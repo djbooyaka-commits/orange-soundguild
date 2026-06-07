@@ -11,6 +11,9 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { PlayerProvider } from "@/components/player/PlayerContext";
+import { PlayerBar } from "@/components/player/PlayerBar";
+import { UploadsProvider } from "@/lib/uploads";
 
 function NotFoundComponent() {
   return (
@@ -118,8 +121,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <UploadsProvider>
+        <PlayerProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <PlayerBar />
+        </PlayerProvider>
+      </UploadsProvider>
     </QueryClientProvider>
   );
 }

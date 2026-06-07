@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
-import { PlayerBar } from "@/components/player/PlayerBar";
-import { PlayerProvider } from "@/components/player/PlayerContext";
 import { tracks } from "@/lib/tracks";
+import { useUploads } from "@/lib/uploads";
 import { Flame, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/")({
