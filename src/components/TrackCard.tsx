@@ -1,0 +1,61 @@
+import { Play, Pause, Heart, Repeat2 } from "lucide-react";
+import { usePlayer } from "./player/PlayerContext";
+import type { Track } from "@/lib/tracks";
+
+export function TrackCard({ track }: { track: Track }) {
+  const { current, isPlaying, play, toggle } = usePlayer();
+  const active = current?.id === track.id;
+  const playing = active && isPlaying;
+
+  const onClick = () => {
+    if (active) toggle();
+    else play(track);
+  };
+
+  return (
+    <article className="group overflow-hidden rounded-xl border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-elegant)]">
+      <div className="relative aspect-square overflow-hidden">
+        <img
+          src={track.cover}
+          alt={`${track.title} cover`}
+          loading="lazy"
+          width={512}
+          height={512}
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        />
+        <button
+          onClick={onClick}
+          aria-label={playing ? "Pause" : "Play"}
+          className={`absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[var(--shadow-glow)] transition ${
+            active ? "opacity-100" : "translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
+          }`}
+        >
+          {playing ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
+        </button>
+        <span className="absolute left-3 top-3 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur">
+          {track.genre}
+        </span>
+      </div>
+
+      <div className="space-y-2 p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className={`truncate text-sm font-semibold ${active ? "text-primary" : "text-foreground"}`}>
+              {track.title}
+            </h3>
+            <p className="truncate text-xs text-muted-foreground">{track.artist}</p>
+          </div>
+          <span className="shrink-0 text-[11px] text-muted-foreground">{track.uploadedAt}</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <span>{track.plays.toLocaleString()} plays</span>
+          <div className="flex items-center gap-3">
+            <button className="flex items-center gap-1 hover:text-primary"><Heart className="h-3.5 w-3.5" /> </button>
+            <button className="flex items-center gap-1 hover:text-primary"><Repeat2 className="h-3.5 w-3.5" /> </button>
+            <span>{track.durationLabel}</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}

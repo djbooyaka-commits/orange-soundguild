@@ -1,0 +1,91 @@
+import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle, Repeat } from "lucide-react";
+import { formatTime, usePlayer } from "./PlayerContext";
+
+export function PlayerBar() {
+  const { current, isPlaying, toggle, progress, currentTime, duration, seek, volume, setVolume } = usePlayer();
+
+  const onSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    seek((e.clientX - rect.left) / rect.width);
+  };
+
+  const disabled = !current;
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-secondary text-secondary-foreground">
+      {/* progress bar at top edge */}
+      <div
+        onClick={current ? onSeek : undefined}
+        className={`group h-1 w-full bg-white/10 ${current ? "cursor-pointer" : ""}`}
+      >
+        <div
+          className="h-full bg-primary transition-[width] duration-150"
+          style={{ width: `${progress * 100}%` }}
+        />
+      </div>
+
+      <div className="mx-auto flex h-20 max-w-7xl items-center gap-4 px-4 sm:px-6">
+        {/* Now playing */}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-white/5">
+            {current ? (
+              <img src={current.cover} alt="" className="h-full w-full object-cover" />
+            ) : null}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">
+              {current?.title ?? "Nothing playing"}
+            </p>
+            <p className="truncate text-xs text-white/60">
+              {current?.artist ?? "Pick a track to start"}
+            </p>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-2">
+          <button className="hidden h-9 w-9 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white md:flex" aria-label="Shuffle">
+            <Shuffle className="h-4 w-4" />
+          </button>
+          <button className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10" aria-label="Previous">
+            <SkipBack className="h-4 w-4" />
+          </button>
+          <button
+            onClick={toggle}
+            disabled={disabled}
+            aria-label={isPlaying ? "Pause" : "Play"}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[var(--shadow-glow)] transition hover:brightness-110 disabled:opacity-50"
+          >
+            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
+          </button>
+          <button className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10" aria-label="Next">
+            <SkipForward className="h-4 w-4" />
+          </button>
+          <button className="hidden h-9 w-9 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white md:flex" aria-label="Repeat">
+            <Repeat className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Time + volume */}
+        <div className="hidden min-w-0 flex-1 items-center justify-end gap-3 sm:flex">
+          <span className="font-mono text-xs tabular-nums text-white/70">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
+          <div className="flex items-center gap-2">
+            <Volume2 className="h-4 w-4 text-white/60" />
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-white/15 accent-[var(--color-primary)]"
+              aria-label="Volume"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
