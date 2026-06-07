@@ -1,0 +1,135 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Navbar } from "@/components/Navbar";
+import { TrackCard } from "@/components/TrackCard";
+import { tracks } from "@/lib/tracks";
+import { CURRENT_USER, useUploads } from "@/lib/uploads";
+import { UploadDialog } from "@/components/UploadDialog";
+import banner from "@/assets/banner.jpg";
+import avatar from "@/assets/avatar.jpg";
+import { Upload, Users, Music2 } from "lucide-react";
+
+export const Route = createFileRoute("/u/$handle")({
+  head: ({ params }) => ({
+    meta: [
+      { title: `@${params.handle} — soundwave` },
+      { name: "description", content: `Listen to tracks uploaded by @${params.handle} on soundwave.` },
+    ],
+  }),
+  component: ProfilePage,
+});
+
+function ProfilePage() {
+  const { handle } = Route.useParams();
+  const { uploads } = useUploads();
+
+  const isMe = handle === CURRENT_USER.handle;
+  const displayName = isMe
+    ? CURRENT_USER.name
+    : decodeURIComponent(handle).replace(/-/g, " ");
+  const bio = isMe ? CURRENT_USER.bio : "Artist on soundwave.";
+
+  const userTracks = isMe
+    ? uploads
+    : tracks.filter((t) => t.artist.toLowerCase() === displayName.toLowerCase());
+
+  return (
+    <div className="min-h-screen bg-background pb-28">
+      <Navbar />
+
+      {/* Banner */}
+      <section className="relative">
+        <div className="h-48 w-full overflow-hidden sm:h-64">
+          <img
+            src={banner}
+            alt=""
+            width={1600}
+            height={512}
+            className="h-full w-full object-cover"
+          />
+        </div>
+
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="-mt-12 flex flex-col items-start gap-4 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-end gap-4">
+              <img
+                src={avatar}
+                alt={`${displayName} avatar`}
+                width={128}
+                height={128}
+                loading="lazy"
+                className="h-24 w-24 rounded-full border-4 border-background object-cover shadow-[var(--shadow-elegant)] sm:h-32 sm:w-32"
+              />
+              <div className="pb-2">
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{displayName}</h1>
+                <p className="text-sm text-muted-foreground">@{handle}</p>
+                <p className="mt-1 max-w-md text-sm text-muted-foreground">{bio}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pb-2">
+              {isMe ? (
+                <UploadDialog>
+                  <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
+                    <Upload className="h-4 w-4" /> Upload
+                  </button>
+                </UploadDialog>
+              ) : (
+                <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
+                  <Users className="h-4 w-4" /> Follow
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="mt-6 flex gap-6 border-b border-border pb-4 text-sm">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Music2 className="h-4 w-4 text-primary" />
+              <strong className="font-semibold text-foreground">{userTracks.length}</strong> tracks
+            </span>
+            <span className="text-muted-foreground">
+              <strong className="font-semibold text-foreground">
+                {userTracks.reduce((n, t) => n + t.plays, 0).toLocaleString()}
+              </strong>{" "}
+              plays
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Uploaded tracks */}
+      <main className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
+        <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
+
+        {userTracks.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              {isMe
+                ? "You haven't uploaded anything yet. Click Upload to share your first track."
+                : `${displayName} hasn't uploaded any tracks yet.`}
+            </p>
+            {isMe && (
+              <div className="mt-4 inline-block">
+                <UploadDialog>
+                  <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
+                    <Upload className="h-4 w-4" /> Upload your first track
+                  </button>
+                </UploadDialog>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {userTracks.map((t) => (
+              <TrackCard key={t.id} track={t} />
+            ))}
+          </div>
+        )}
+
+        <div className="mt-10 text-center text-xs text-muted-foreground">
+          <Link to="/" className="hover:text-primary">← Back to feed</Link>
+        </div>
+      </main>
+    </div>
+  );
+}

@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Search, Upload, Bell, Music2 } from "lucide-react";
+import { UploadDialog } from "./UploadDialog";
+import { CURRENT_USER } from "@/lib/uploads";
 
 export function Navbar() {
   return (
@@ -13,10 +15,16 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-1 text-sm text-muted-foreground md:flex">
-          <Link to="/" className="rounded-md px-3 py-1.5 font-medium text-foreground hover:bg-muted">
+          <Link to="/" className="rounded-md px-3 py-1.5 font-medium text-foreground hover:bg-muted" activeOptions={{ exact: true }}>
             Home
           </Link>
-          <a className="rounded-md px-3 py-1.5 hover:bg-muted" href="#">Feed</a>
+          <Link
+            to="/u/$handle"
+            params={{ handle: CURRENT_USER.handle }}
+            className="rounded-md px-3 py-1.5 hover:bg-muted"
+          >
+            Profile
+          </Link>
           <a className="rounded-md px-3 py-1.5 hover:bg-muted" href="#">Library</a>
         </nav>
 
@@ -35,14 +43,21 @@ export function Navbar() {
           <Bell className="h-4 w-4" />
         </button>
 
-        <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 active:scale-[0.98]">
-          <Upload className="h-4 w-4" />
-          <span className="hidden sm:inline">Upload</span>
-        </button>
+        <UploadDialog>
+          <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 active:scale-[0.98]">
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">Upload</span>
+          </button>
+        </UploadDialog>
 
-        <div className="h-9 w-9 rounded-full bg-secondary text-center text-sm font-semibold leading-9 text-secondary-foreground">
+        <Link
+          to="/u/$handle"
+          params={{ handle: CURRENT_USER.handle }}
+          className="h-9 w-9 rounded-full bg-secondary text-center text-sm font-semibold leading-9 text-secondary-foreground"
+          aria-label="Your profile"
+        >
           A
-        </div>
+        </Link>
       </div>
     </header>
   );
