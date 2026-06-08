@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
+import { Comments } from "@/components/Comments";
 import { tracks } from "@/lib/tracks";
 import { useUploads } from "@/lib/uploads";
+import { usePlayer } from "@/components/player/PlayerContext";
 import { Flame, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -17,9 +20,19 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+const GENRES = ["All", "Electronic", "Hip Hop", "Lo-fi", "Indie", "Ambient", "Jazz", "Techno", "Podcasts"];
+
 function Index() {
   const { uploads } = useUploads();
-  const feed = [...uploads, ...tracks];
+  const { current } = usePlayer();
+  const [genre, setGenre] = useState("All");
+
+  const feed = useMemo(() => {
+    const all = [...uploads, ...tracks];
+    if (genre === "All") return all;
+    return all.filter((t) => t.genre.toLowerCase() === genre.toLowerCase());
+  }, [uploads, genre]);
+
   return (
     <div className="min-h-screen bg-background pb-28">
       <Navbar />
@@ -50,38 +63,58 @@ function Index() {
           </div>
         </section>
 
+        {/* Genre tag bar */}
+        <nav
+          aria-label="Filter by genre"
+          className="mt-6 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
+        >
+          {GENRES.map((g) => {
+            const active = g === genre;
+            return (
+              <button
+                key={g}
+                onClick={() => setGenre(g)}
+                className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-medium transition ${
+                  active
+                    ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                }`}
+              >
+                {g}
+              </button>
+            );
+          })}
+        </nav>
+
         {/* Recent uploads */}
-        <section className="mt-10">
+        <section className="mt-8">
           <header className="mb-5 flex items-end justify-between gap-3">
             <div>
               <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight">
                 <TrendingUp className="h-5 w-5 text-primary" />
                 Recent uploads
               </h2>
-              <p className="text-sm text-muted-foreground">Chronological feed — newest first.</p>
-            </div>
-            <div className="hidden gap-1 text-xs text-muted-foreground sm:flex">
-              {["All", "Electronic", "Lo-fi", "Indie", "Ambient", "Jazz"].map((g, i) => (
-                <button
-                  key={g}
-                  className={`rounded-full px-3 py-1.5 transition ${
-                    i === 0
-                      ? "bg-secondary text-secondary-foreground"
-                      : "border border-border hover:bg-muted"
-                  }`}
-                >
-                  {g}
-                </button>
-              ))}
+              <p className="text-sm text-muted-foreground">
+                {genre === "All" ? "Chronological feed — newest first." : `Showing ${genre} tracks`}
+              </p>
             </div>
           </header>
 
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {feed.map((t) => (
-              <TrackCard key={t.id} track={t} />
-            ))}
-          </div>
+          {feed.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
+              No tracks in {genre} yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {feed.map((t) => (
+                <TrackCard key={t.id} track={t} />
+              ))}
+            </div>
+          )}
         </section>
+
+        {/* Comments on the currently playing track */}
+        {current && <Comments key={current.id} trackId={current.id} title={current.title} />}
       </main>
     </div>
   );
