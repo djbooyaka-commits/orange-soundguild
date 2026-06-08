@@ -14,6 +14,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PlayerProvider } from "@/components/player/PlayerContext";
 import { PlayerBar } from "@/components/player/PlayerBar";
 import { UploadsProvider } from "@/lib/uploads";
+import { AuthProvider } from "@/hooks/useAuth";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -121,13 +123,16 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <UploadsProvider>
+      <AuthProvider>
         <PlayerProvider>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-          <PlayerBar />
+          <UploadsProvider>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+            <PlayerBar />
+            <Toaster />
+          </UploadsProvider>
         </PlayerProvider>
-      </UploadsProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

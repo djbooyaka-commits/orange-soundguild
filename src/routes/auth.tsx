@@ -1,0 +1,135 @@
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { Music2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/auth")({
+  head: () => ({
+    meta: [
+      { title: "Sign in — soundwave" },
+      { name: "description", content: "Sign in to upload and share music on soundwave." },
+    ],
+  }),
+  component: AuthPage,
+});
+
+function AuthPage() {
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) navigate({ to: "/" });
+  }, [user, loading, navigate]);
+
+  const onEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin },
+        });
+        if (error) throw error;
+        toast.success("Account created. Check your email if confirmation is required.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Auth failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onGoogle = async () => {
+    setBusy(true);
+    const r = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (r.error) {
+      toast.error(r.error instanceof Error ? r.error.message : "Google sign-in failed");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-elegant)]">
+        <Link to="/" className="mb-6 flex items-center gap-2 text-lg font-bold">
+          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Music2 className="h-4 w-4" />
+          </span>
+          soundwave
+        </Link>
+
+        <h1 className="text-2xl font-bold tracking-tight">
+          {mode === "signin" ? "Welcome back" : "Create account"}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {mode === "signin" ? "Sign in to upload and like tracks." : "Join to share your sound."}
+        </p>
+
+        <button
+          type="button"
+          onClick={onGoogle}
+          disabled={busy}
+          className="mt-6 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-background text-sm font-medium hover:bg-muted disabled:opacity-50"
+        >
+          Continue with Google
+        </button>
+
+        <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <form onSubmit={onEmail} className="space-y-3">
+          <input
+            type="email"
+            required
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+          />
+          <input
+            type="password"
+            required
+            minLength={6}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+          />
+          <button
+            type="submit"
+            disabled={busy}
+            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground hover:brightness-105 disabled:opacity-50"
+          >
+            {mode === "signin" ? "Sign in" : "Sign up"}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          {mode === "signin" ? "No account?" : "Already have one?"}{" "}
+          <button
+            type="button"
+            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            className="font-medium text-primary hover:underline"
+          >
+            {mode === "signin" ? "Sign up" : "Sign in"}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}

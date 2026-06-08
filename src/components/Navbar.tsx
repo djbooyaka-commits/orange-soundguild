@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Upload, Bell, Music2 } from "lucide-react";
+import { Search, Upload, Bell, Music2, LogOut } from "lucide-react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Navbar() {
+  const { user, signOut } = useAuth();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
@@ -50,14 +52,32 @@ export function Navbar() {
           </button>
         </UploadDialog>
 
-        <Link
-          to="/u/$handle"
-          params={{ handle: CURRENT_USER.handle }}
-          className="h-9 w-9 rounded-full bg-secondary text-center text-sm font-semibold leading-9 text-secondary-foreground"
-          aria-label="Your profile"
-        >
-          A
-        </Link>
+        {user ? (
+          <>
+            <Link
+              to="/u/$handle"
+              params={{ handle: CURRENT_USER.handle }}
+              className="h-9 w-9 rounded-full bg-secondary text-center text-sm font-semibold uppercase leading-9 text-secondary-foreground"
+              aria-label="Your profile"
+            >
+              {(user.email ?? "U").charAt(0)}
+            </Link>
+            <button
+              onClick={() => signOut()}
+              className="hidden h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:flex"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </>
+        ) : (
+          <Link
+            to="/auth"
+            className="inline-flex h-10 items-center rounded-full border border-border px-4 text-sm font-semibold hover:bg-muted"
+          >
+            Sign in
+          </Link>
+        )}
       </div>
     </header>
   );
