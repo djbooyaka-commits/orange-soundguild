@@ -14,7 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      tracks: {
+        Row: {
+          audio_url: string
+          cover_art_url: string | null
+          created_at: string
+          genre: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          audio_url: string
+          cover_art_url?: string | null
+          created_at?: string
+          genre: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          audio_url?: string
+          cover_art_url?: string | null
+          created_at?: string
+          genre?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
