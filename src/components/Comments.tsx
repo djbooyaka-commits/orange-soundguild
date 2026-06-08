@@ -9,12 +9,14 @@ type CommentRow = {
   body: string;
   created_at: string;
   user_id: string;
-  author?: { username: string | null; avatar_url: string | null } | null;
 };
+
+type Profile = { username: string | null; avatar_url: string | null };
 
 export function Comments({ trackId, title }: { trackId: string; title: string }) {
   const { user } = useAuth();
   const [comments, setComments] = useState<CommentRow[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
@@ -23,26 +25,30 @@ export function Comments({ trackId, title }: { trackId: string; title: string })
     let cancelled = false;
     setLoading(true);
     (async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("comments")
-        .select("id, body, created_at, user_id, author:profiles!comments_user_id_fkey(username, avatar_url)")
+        .select("id, body, created_at, user_id")
         .eq("track_id", trackId)
         .order("created_at", { ascending: false })
         .limit(50);
       if (cancelled) return;
-      if (error) {
-        // profile join may fail if FK missing; fall back to a plain select
-        const { data: plain } = await supabase
-          .from("comments")
-          .select("id, body, created_at, user_id")
-          .eq("track_id", trackId)
-          .order("created_at", { ascending: false })
-          .limit(50);
-        setComments((plain ?? []) as CommentRow[]);
-      } else {
-        setComments((data ?? []) as unknown as CommentRow[]);
-      }
+      const rows = (data ?? []) as CommentRow[];
+      setComments(rows);
       setLoading(false);
+
+      const ids = Array.from(new Set(rows.map((r) => r.user_id)));
+      if (ids.length) {
+        const { data: pData } = await supabase
+          .from("profiles")
+          .select("id, username, avatar_url")
+          .in("id", ids);
+        if (cancelled) return;
+        const map: Record<string, Profile> = {};
+        (pData ?? []).forEach((p) => {
+          map[p.id] = { username: p.username, avatar_url: p.avatar_url };
+        });
+        setProfiles((prev) => ({ ...prev, ...map }));
+      }
     })();
     return () => {
       cancelled = true;
@@ -70,6 +76,14 @@ export function Comments({ trackId, title }: { trackId: string; title: string })
     }
     setText("");
     setComments((prev) => [data as CommentRow, ...prev]);
+    if (!profiles[user.id]) {
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("username, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (p) setProfiles((prev) => ({ ...prev, [user.id]: p }));
+    }
   };
 
   return (
@@ -95,6 +109,7 @@ export function Comments({ trackId, title }: { trackId: string; title: string })
           type="submit"
           disabled={!user || posting || !text.trim()}
           className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-105 disabled:opacity-50"
+          aria-label="Post comment"
         >
           <Send className="h-4 w-4" />
         </button>
@@ -106,28 +121,30 @@ export function Comments({ trackId, title }: { trackId: string; title: string })
         <p className="text-sm text-muted-foreground">Be the first to comment.</p>
       ) : (
         <ul className="space-y-4">
-          {comments.map((c) => (
-            <li key={c.id} className="flex gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
-                {c.author?.avatar_url ? (
-                  <img src={c.author.avatar_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  (c.author?.username ?? "U").slice(0, 1).toUpperCase()
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="truncate text-sm font-semibold">
-                    {c.author?.username ?? "user"}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {new Date(c.created_at).toLocaleString()}
-                  </span>
+          {comments.map((c) => {
+            const p = profiles[c.user_id];
+            const name = p?.username ?? "user";
+            return (
+              <li key={c.id} className="flex gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
+                  {p?.avatar_url ? (
+                    <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    name.slice(0, 1).toUpperCase()
+                  )}
                 </div>
-                <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-foreground">{c.body}</p>
-              </div>
-            </li>
-          ))}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="truncate text-sm font-semibold">{name}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {new Date(c.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-foreground">{c.body}</p>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
