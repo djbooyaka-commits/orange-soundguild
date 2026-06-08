@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PlayerProvider } from "@/components/player/PlayerContext";
 import { PlayerBar } from "@/components/player/PlayerBar";
 import { UploadsProvider } from "@/lib/uploads";
+import { LikesProvider } from "@/lib/likes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -125,12 +126,14 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <PlayerProvider>
-          <UploadsProvider>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
-            <PlayerBar />
-            <Toaster />
-          </UploadsProvider>
+          <LikesProvider>
+            <UploadsProvider>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <Outlet />
+              <PlayerBar />
+              <Toaster />
+            </UploadsProvider>
+          </LikesProvider>
         </PlayerProvider>
       </AuthProvider>
     </QueryClientProvider>

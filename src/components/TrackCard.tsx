@@ -1,11 +1,13 @@
 import { Play, Pause, Heart, Repeat2 } from "lucide-react";
 import { usePlayer } from "./player/PlayerContext";
+import { useTrackLike } from "@/lib/likes";
 import type { Track } from "@/lib/tracks";
 
 export function TrackCard({ track }: { track: Track }) {
   const { current, isPlaying, play, toggle } = usePlayer();
   const active = current?.id === track.id;
   const playing = active && isPlaying;
+  const { liked, count, toggle: toggleLike } = useTrackLike(track.id);
 
   const onClick = () => {
     if (active) toggle();
@@ -50,8 +52,21 @@ export function TrackCard({ track }: { track: Track }) {
         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
           <span>{track.plays.toLocaleString()} plays</span>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-1 hover:text-primary"><Heart className="h-3.5 w-3.5" /> </button>
-            <button className="flex items-center gap-1 hover:text-primary"><Repeat2 className="h-3.5 w-3.5" /> </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleLike();
+              }}
+              aria-label={liked ? "Unlike" : "Like"}
+              aria-pressed={liked}
+              className={`flex items-center gap-1 transition ${liked ? "text-primary" : "hover:text-primary"}`}
+            >
+              <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
+              <span className="tabular-nums">{count}</span>
+            </button>
+            <button className="flex items-center gap-1 hover:text-primary" aria-label="Repost">
+              <Repeat2 className="h-3.5 w-3.5" />
+            </button>
             <span>{track.durationLabel}</span>
           </div>
         </div>
