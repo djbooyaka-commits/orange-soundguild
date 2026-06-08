@@ -1,26 +1,21 @@
 import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle, Repeat } from "lucide-react";
 import { formatTime, usePlayer } from "./PlayerContext";
+import { Waveform } from "./Waveform";
 
 export function PlayerBar() {
   const { current, isPlaying, toggle, progress, currentTime, duration, seek, volume, setVolume } = usePlayer();
-
-  const onSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    seek((e.clientX - rect.left) / rect.width);
-  };
 
   const disabled = !current;
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-secondary text-secondary-foreground">
-      {/* progress bar at top edge */}
-      <div
-        onClick={current ? onSeek : undefined}
-        className={`group h-1 w-full bg-white/10 ${current ? "cursor-pointer" : ""}`}
-      >
-        <div
-          className="h-full bg-primary transition-[width] duration-150"
-          style={{ width: `${progress * 100}%` }}
+      {/* Waveform across the top */}
+      <div className="border-b border-white/5 px-4 py-2 sm:px-6">
+        <Waveform
+          seed={current?.id ?? "idle"}
+          progress={progress}
+          onSeek={current ? (r) => seek(r) : undefined}
+          className={current ? "opacity-100" : "opacity-50"}
         />
       </div>
 
