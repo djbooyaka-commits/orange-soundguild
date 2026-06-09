@@ -44,6 +44,15 @@ export function TrackCard({ track, onDelete }: { track: Track; onDelete?: (id: s
         <span className="absolute left-3 top-3 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur">
           {track.genre}
         </span>
+        {onDelete && (
+          <button
+            onClick={handleDelete}
+            aria-label="Delete track"
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/85 text-foreground backdrop-blur transition hover:bg-destructive hover:text-destructive-foreground"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <div className="space-y-2 p-4">
