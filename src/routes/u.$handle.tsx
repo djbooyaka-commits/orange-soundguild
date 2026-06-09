@@ -20,7 +20,7 @@ export const Route = createFileRoute("/u/$handle")({
 
 function ProfilePage() {
   const { handle } = Route.useParams();
-  const { uploads } = useUploads();
+  const { uploads, removeUpload } = useUploads();
 
   const isMe = handle === CURRENT_USER.handle;
   const displayName = isMe
