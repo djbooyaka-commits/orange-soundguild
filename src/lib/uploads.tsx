@@ -57,23 +57,26 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       if (coverErr) throw coverErr;
     }
 
-    // 3) Sign URLs for playback / display
-    const audioUrl = await getSignedUrl("audio", audioPath);
-    const coverUrl = coverPath ? await getSignedUrl("covers", coverPath) : null;
-
-    // 4) Insert into tracks table
+    // 3) Insert storage PATHS (not signed URLs) into the tracks table.
+    // The tracks table is publicly readable; storing signed URLs there would
+    // leak long-lived access to private bucket files. Signed URLs are minted
+    // on demand below for the current session only.
     const { data: row, error: dbErr } = await supabase
       .from("tracks")
       .insert({
         user_id: userId,
         title,
         genre,
-        audio_url: audioUrl,
-        cover_art_url: coverUrl,
+        audio_url: audioPath,
+        cover_art_url: coverPath,
       })
       .select()
       .single();
     if (dbErr) throw dbErr;
+
+    // 4) Sign URLs locally for immediate playback / display in this session.
+    const audioUrl = await getSignedUrl("audio", audioPath);
+    const coverUrl = coverPath ? await getSignedUrl("covers", coverPath) : null;
 
     const track: Track = {
       id: row.id,
