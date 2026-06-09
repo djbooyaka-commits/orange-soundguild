@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Track } from "./tracks";
 import cover2 from "@/assets/cover2.jpg";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export const CURRENT_USER = {
   handle: "me",
@@ -18,7 +19,6 @@ type UploadsState = {
 
 const Ctx = createContext<UploadsState | null>(null);
 
-// 1 year — buckets are private, so we hand the player a long-lived signed URL.
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
 
 async function getSignedUrl(bucket: string, path: string): Promise<string> {
@@ -27,8 +27,72 @@ async function getSignedUrl(bucket: string, path: string): Promise<string> {
   return data.signedUrl;
 }
 
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
 export function UploadsProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [uploads, setUploads] = useState<Track[]>([]);
+
+  // Load this user's tracks from the database on auth changes.
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) {
+      setUploads([]);
+      return;
+    }
+    (async () => {
+      const { data, error } = await supabase
+        .from("tracks")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error || !data || cancelled) return;
+
+      const hydrated = await Promise.all(
+        data.map(async (row) => {
+          let src = "";
+          let cover: string = cover2;
+          try {
+            src = await getSignedUrl("audio", row.audio_url);
+          } catch {
+            // skip if signing fails
+          }
+          if (row.cover_art_url) {
+            try {
+              cover = await getSignedUrl("covers", row.cover_art_url);
+            } catch {
+              /* fall back */
+            }
+          }
+          const track: Track = {
+            id: row.id,
+            title: row.title,
+            artist: CURRENT_USER.name,
+            cover,
+            src,
+            durationLabel: "—:—",
+            uploadedAt: timeAgo(row.created_at),
+            plays: 0,
+            genre: row.genre,
+          };
+          return track;
+        })
+      );
+      if (!cancelled) setUploads(hydrated);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const addUpload = useCallback(async ({ title, genre, file, coverFile }: UploadArgs): Promise<Track> => {
     const { data: userData, error: userErr } = await supabase.auth.getUser();
@@ -40,13 +104,11 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const audioPath = `${userId}/${stamp}-${safeName}`;
 
-    // 1) Upload audio
     const { error: audioErr } = await supabase.storage
       .from("audio")
       .upload(audioPath, file, { contentType: file.type || "audio/mpeg", upsert: false });
     if (audioErr) throw audioErr;
 
-    // 2) Upload cover (optional)
     let coverPath: string | null = null;
     if (coverFile) {
       const safeCover = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -57,10 +119,6 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       if (coverErr) throw coverErr;
     }
 
-    // 3) Insert storage PATHS (not signed URLs) into the tracks table.
-    // The tracks table is publicly readable; storing signed URLs there would
-    // leak long-lived access to private bucket files. Signed URLs are minted
-    // on demand below for the current session only.
     const { data: row, error: dbErr } = await supabase
       .from("tracks")
       .insert({
@@ -74,7 +132,6 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       .single();
     if (dbErr) throw dbErr;
 
-    // 4) Sign URLs locally for immediate playback / display in this session.
     const audioUrl = await getSignedUrl("audio", audioPath);
     const coverUrl = coverPath ? await getSignedUrl("covers", coverPath) : null;
 
