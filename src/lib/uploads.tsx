@@ -21,10 +21,39 @@ const Ctx = createContext<UploadsState | null>(null);
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
 
+function storagePathFromValue(bucket: string, value: string | null | undefined): string | null {
+  if (!value) return null;
+  if (!value.startsWith("http")) return value;
+
+  try {
+    const url = new URL(value);
+    const marker = `/storage/v1/object/sign/${bucket}/`;
+    const publicMarker = `/storage/v1/object/public/${bucket}/`;
+    const pathname = url.pathname;
+    if (pathname.includes(marker)) {
+      return decodeURIComponent(pathname.slice(pathname.indexOf(marker) + marker.length));
+    }
+    if (pathname.includes(publicMarker)) {
+      return decodeURIComponent(pathname.slice(pathname.indexOf(publicMarker) + publicMarker.length));
+    }
+  } catch {
+    // Keep the original value below if URL parsing fails.
+  }
+
+  return value;
+}
+
 async function getSignedUrl(bucket: string, path: string): Promise<string> {
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, SIGNED_URL_TTL);
   if (error || !data) throw error ?? new Error("Failed to sign URL");
   return data.signedUrl;
+}
+
+async function resolveMediaUrl(bucket: string, value: string | null | undefined): Promise<string | null> {
+  const path = storagePathFromValue(bucket, value);
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  return getSignedUrl(bucket, path);
 }
 
 function timeAgo(iso: string) {
@@ -62,13 +91,13 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
           let src = "";
           let cover: string = cover2;
           try {
-            src = await getSignedUrl("audio", row.audio_url);
+            src = (await resolveMediaUrl("audio", row.audio_url)) ?? "";
           } catch {
             // skip if signing fails
           }
           if (row.cover_art_url) {
             try {
-              cover = await getSignedUrl("covers", row.cover_art_url);
+              cover = (await resolveMediaUrl("covers", row.cover_art_url)) ?? cover2;
             } catch {
               /* fall back */
             }
