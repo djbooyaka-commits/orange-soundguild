@@ -20,7 +20,7 @@ export const Route = createFileRoute("/u/$handle")({
 
 function ProfilePage() {
   const { handle } = Route.useParams();
-  const { uploads } = useUploads();
+  const { uploads, removeUpload } = useUploads();
 
   const isMe = handle === CURRENT_USER.handle;
   const displayName = isMe
@@ -121,7 +121,7 @@ function ProfilePage() {
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {userTracks.map((t) => (
-              <TrackCard key={t.id} track={t} />
+              <TrackCard key={t.id} track={t} onDelete={isMe ? removeUpload : undefined} />
             ))}
           </div>
         )}
