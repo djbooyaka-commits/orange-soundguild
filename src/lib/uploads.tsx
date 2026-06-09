@@ -15,6 +15,7 @@ type UploadArgs = { title: string; genre: string; file: File; coverFile?: File |
 type UploadsState = {
   uploads: Track[];
   addUpload: (data: UploadArgs) => Promise<Track>;
+  removeUpload: (id: string) => Promise<void>;
 };
 
 const Ctx = createContext<UploadsState | null>(null);
