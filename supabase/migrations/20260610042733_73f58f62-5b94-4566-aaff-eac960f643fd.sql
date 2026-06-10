@@ -1,0 +1,2 @@
+CREATE POLICY "Users can read own audio" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'audio' AND (auth.uid())::text = (storage.foldername(name))[1]);
+CREATE POLICY "Users can read own covers" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'covers' AND (auth.uid())::text = (storage.foldername(name))[1]);
