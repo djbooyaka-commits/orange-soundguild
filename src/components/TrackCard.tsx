@@ -2,6 +2,7 @@ import { Play, Pause, Heart, Repeat2, Trash2 } from "lucide-react";
 import { usePlayer } from "./player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import type { Track } from "@/lib/tracks";
+import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
 
 export function TrackCard({ track, onDelete }: { track: Track; onDelete?: (id: string) => void | Promise<void> }) {
   const { current, isPlaying, play, toggle } = usePlayer();
