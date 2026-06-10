@@ -6,6 +6,7 @@ import { tracks } from "@/lib/tracks";
 import { CURRENT_USER, useUploads } from "@/lib/uploads";
 import { UploadDialog } from "@/components/UploadDialog";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
+import { PlaylistsSection } from "@/components/PlaylistsSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import banner from "@/assets/banner.jpg";
