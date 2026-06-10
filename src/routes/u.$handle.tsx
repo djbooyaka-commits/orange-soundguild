@@ -1,12 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
 import { tracks } from "@/lib/tracks";
 import { CURRENT_USER, useUploads } from "@/lib/uploads";
 import { UploadDialog } from "@/components/UploadDialog";
+import { EditProfileDialog } from "@/components/EditProfileDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import banner from "@/assets/banner.jpg";
-import avatar from "@/assets/avatar.jpg";
-import { Upload, Users, Music2 } from "lucide-react";
+import defaultAvatar from "@/assets/avatar.jpg";
+import { Upload, Users, Music2, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/u/$handle")({
   head: ({ params }) => ({
@@ -18,15 +22,60 @@ export const Route = createFileRoute("/u/$handle")({
   component: ProfilePage,
 });
 
+type ProfileRow = {
+  username: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+};
+
+const SIGNED_TTL = 60 * 60 * 24 * 365;
+
+async function resolveAvatar(value: string | null | undefined): Promise<string | null> {
+  if (!value) return null;
+  if (value.startsWith("http")) return value;
+  const { data } = await supabase.storage.from("avatars").createSignedUrl(value, SIGNED_TTL);
+  return data?.signedUrl ?? null;
+}
+
 function ProfilePage() {
   const { handle } = Route.useParams();
   const { uploads, removeUpload } = useUploads();
+  const { user } = useAuth();
 
   const isMe = handle === CURRENT_USER.handle;
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
+
+  // Load this user's profile from the database
+  useEffect(() => {
+    let cancelled = false;
+    if (!isMe || !user) {
+      setProfile(null);
+      setAvatarUrl(defaultAvatar);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("username, bio, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      setProfile(data ?? null);
+      const resolved = await resolveAvatar(data?.avatar_url);
+      if (!cancelled) setAvatarUrl(resolved ?? defaultAvatar);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isMe, user]);
+
   const displayName = isMe
-    ? CURRENT_USER.name
+    ? profile?.username?.trim() || CURRENT_USER.name
     : decodeURIComponent(handle).replace(/-/g, " ");
-  const bio = isMe ? CURRENT_USER.bio : "Artist on soundwave.";
+  const bio = isMe
+    ? profile?.bio?.trim() || CURRENT_USER.bio
+    : "Artist on soundwave.";
 
   const userTracks = isMe
     ? uploads
@@ -52,7 +101,7 @@ function ProfilePage() {
           <div className="-mt-12 flex flex-col items-start gap-4 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-end gap-4">
               <img
-                src={avatar}
+                src={isMe ? avatarUrl : defaultAvatar}
                 alt={`${displayName} avatar`}
                 width={128}
                 height={128}
@@ -68,11 +117,25 @@ function ProfilePage() {
 
             <div className="flex items-center gap-2 pb-2">
               {isMe ? (
-                <UploadDialog>
-                  <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
-                    <Upload className="h-4 w-4" /> Upload
-                  </button>
-                </UploadDialog>
+                <>
+                  <EditProfileDialog
+                    profile={profile}
+                    onSaved={async (next) => {
+                      setProfile(next);
+                      const resolved = await resolveAvatar(next.avatar_url);
+                      setAvatarUrl(resolved ?? defaultAvatar);
+                    }}
+                  >
+                    <button className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-semibold hover:bg-muted">
+                      <Pencil className="h-4 w-4" /> Edit profile
+                    </button>
+                  </EditProfileDialog>
+                  <UploadDialog>
+                    <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
+                      <Upload className="h-4 w-4" /> Upload
+                    </button>
+                  </UploadDialog>
+                </>
               ) : (
                 <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
                   <Users className="h-4 w-4" /> Follow
