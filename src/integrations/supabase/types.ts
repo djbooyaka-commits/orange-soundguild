@@ -65,13 +65,6 @@ export type Database = {
             referencedRelation: "playlists"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "playlist_tracks_track_id_fkey"
-            columns: ["track_id"]
-            isOneToOne: false
-            referencedRelation: "tracks"
-            referencedColumns: ["id"]
-          },
         ]
       }
       playlists: {
