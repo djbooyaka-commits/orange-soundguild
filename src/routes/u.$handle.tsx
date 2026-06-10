@@ -46,6 +46,7 @@ function ProfilePage() {
   const isMe = handle === CURRENT_USER.handle;
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   // Load this user's profile from the database
   useEffect(() => {
@@ -70,6 +71,26 @@ function ProfilePage() {
       cancelled = true;
     };
   }, [isMe, user]);
+
+  // Resolve the user id for the handle (for loading playlists)
+  useEffect(() => {
+    let cancelled = false;
+    if (isMe) {
+      setProfileUserId(user?.id ?? null);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", decodeURIComponent(handle))
+        .maybeSingle();
+      if (!cancelled) setProfileUserId(data?.id ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [handle, isMe, user]);
 
   const displayName = isMe
     ? profile?.username?.trim() || CURRENT_USER.name
