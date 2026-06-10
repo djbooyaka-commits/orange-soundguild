@@ -1,0 +1,94 @@
+import { useState } from "react";
+import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic } from "lucide-react";
+import { usePlaylistsForUser } from "@/lib/playlists";
+import { usePlayer } from "./player/PlayerContext";
+
+export function PlaylistsSection({ userId, isOwner }: { userId: string | null; isOwner: boolean }) {
+  const { playlists, removeTrack, deletePlaylist } = usePlaylistsForUser(userId);
+  const { current, isPlaying, play, toggle } = usePlayer();
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  if (!userId) return null;
+  if (playlists.length === 0) {
+    return isOwner ? (
+      <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        No playlists yet. Tap the playlist icon on any track to start one.
+      </div>
+    ) : null;
+  }
+
+  return (
+    <div className="space-y-4">
+      {playlists.map((pl) => {
+        const open = openId === pl.id;
+        return (
+          <div key={pl.id} className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="flex items-center justify-between gap-3 p-4">
+              <button
+                onClick={() => setOpenId(open ? null : pl.id)}
+                className="flex flex-1 items-center gap-3 text-left"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <ListMusic className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-semibold">{pl.name}</h3>
+                  <p className="text-xs text-muted-foreground">{pl.tracks.length} tracks</p>
+                </div>
+                {open ? <ChevronUp className="ml-auto h-4 w-4 text-muted-foreground" /> : <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />}
+              </button>
+              {isOwner && (
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Delete playlist "${pl.name}"?`)) void deletePlaylist(pl.id);
+                  }}
+                  aria-label="Delete playlist"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-destructive hover:text-destructive-foreground"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {open && (
+              <ul className="divide-y divide-border border-t border-border">
+                {pl.tracks.length === 0 ? (
+                  <li className="px-4 py-3 text-xs text-muted-foreground">Empty playlist.</li>
+                ) : (
+                  pl.tracks.map((t) => {
+                    const active = current?.id === t.id;
+                    const playing = active && isPlaying;
+                    return (
+                      <li key={t.id} className="flex items-center gap-3 px-4 py-2">
+                        <button
+                          onClick={() => (active ? toggle() : play(t))}
+                          aria-label={playing ? "Pause" : "Play"}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                        >
+                          {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
+                        </button>
+                        <img src={t.cover} alt="" className="h-8 w-8 rounded object-cover" />
+                        <div className="min-w-0 flex-1">
+                          <p className={`truncate text-sm ${active ? "text-primary" : ""}`}>{t.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">{t.artist}</p>
+                        </div>
+                        {isOwner && (
+                          <button
+                            onClick={() => void removeTrack(pl.id, t.id)}
+                            aria-label="Remove from playlist"
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

@@ -6,6 +6,7 @@ import { tracks } from "@/lib/tracks";
 import { CURRENT_USER, useUploads } from "@/lib/uploads";
 import { UploadDialog } from "@/components/UploadDialog";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
+import { PlaylistsSection } from "@/components/PlaylistsSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import banner from "@/assets/banner.jpg";
@@ -45,6 +46,7 @@ function ProfilePage() {
   const isMe = handle === CURRENT_USER.handle;
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   // Load this user's profile from the database
   useEffect(() => {
@@ -69,6 +71,26 @@ function ProfilePage() {
       cancelled = true;
     };
   }, [isMe, user]);
+
+  // Resolve the user id for the handle (for loading playlists)
+  useEffect(() => {
+    let cancelled = false;
+    if (isMe) {
+      setProfileUserId(user?.id ?? null);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", decodeURIComponent(handle))
+        .maybeSingle();
+      if (!cancelled) setProfileUserId(data?.id ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [handle, isMe, user]);
 
   const displayName = isMe
     ? profile?.username?.trim() || CURRENT_USER.name
@@ -188,6 +210,9 @@ function ProfilePage() {
             ))}
           </div>
         )}
+
+        <h2 className="mb-5 mt-12 text-lg font-bold tracking-tight">Playlists</h2>
+        <PlaylistsSection userId={profileUserId} isOwner={isMe} />
 
         <div className="mt-10 text-center text-xs text-muted-foreground">
           <Link to="/" className="hover:text-primary">← Back to feed</Link>
