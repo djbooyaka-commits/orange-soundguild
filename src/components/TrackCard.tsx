@@ -45,6 +45,7 @@ export function TrackCard({ track, onDelete }: { track: Track; onDelete?: (id: s
         <span className="absolute left-3 top-3 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur">
           {track.genre}
         </span>
+        <AddToPlaylistMenu trackId={track.id} trackTitle={track.title} />
         {onDelete && (
           <button
             onClick={handleDelete}
