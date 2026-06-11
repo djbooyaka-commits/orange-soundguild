@@ -64,7 +64,14 @@ export function TrackCard({ track, onDelete }: { track: Track; onDelete?: (id: s
             <h3 className={`truncate text-sm font-semibold ${active ? "text-primary" : "text-foreground"}`}>
               {track.title}
             </h3>
-            <p className="truncate text-xs text-muted-foreground">{track.artist}</p>
+            <Link
+              to="/u/$handle"
+              params={{ handle: track.artist }}
+              onClick={(e) => e.stopPropagation()}
+              className="truncate text-xs text-muted-foreground hover:text-primary"
+            >
+              {track.artist}
+            </Link>
           </div>
           <span className="shrink-0 text-[11px] text-muted-foreground">{track.uploadedAt}</span>
         </div>
