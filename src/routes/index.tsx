@@ -4,7 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
 import { Comments } from "@/components/Comments";
 import { tracks } from "@/lib/tracks";
-import { useUploads } from "@/lib/uploads";
+import { useAllTracks } from "@/lib/feed";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { Flame, TrendingUp } from "lucide-react";
 
@@ -23,15 +23,15 @@ export const Route = createFileRoute("/")({
 const GENRES = ["All", "Electronic", "Hip Hop", "Lo-fi", "Indie", "Ambient", "Jazz", "Techno", "Podcasts"];
 
 function Index() {
-  const { uploads } = useUploads();
+  const { tracks: uploaded } = useAllTracks();
   const { current } = usePlayer();
   const [genre, setGenre] = useState("All");
 
   const feed = useMemo(() => {
-    const all = [...uploads, ...tracks];
+    const all = [...uploaded, ...tracks];
     if (genre === "All") return all;
     return all.filter((t) => t.genre.toLowerCase() === genre.toLowerCase());
-  }, [uploads, genre]);
+  }, [uploaded, genre]);
 
   return (
     <div className="min-h-screen bg-background pb-28">
