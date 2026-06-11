@@ -102,9 +102,9 @@ function ProfilePage() {
     ? profile?.bio?.trim() || CURRENT_USER.bio
     : "Artist on soundwave.";
 
-  const userTracks = isMe
-    ? uploads
-    : tracks.filter((t) => t.artist.toLowerCase() === displayName.toLowerCase());
+  const { tracks: artistTracks } = useUserTracks(!isMe ? profileUserId : null);
+  const mockArtistTracks = !isMe ? tracks.filter((t) => t.artist.toLowerCase() === displayName.toLowerCase()) : [];
+  const userTracks = isMe ? uploads : [...artistTracks, ...mockArtistTracks];
 
   return (
     <div className="min-h-screen bg-background pb-28">
