@@ -168,18 +168,8 @@ function ProfilePage() {
 
 
           {/* Stats */}
-          <div className="mt-6 flex gap-6 border-b border-border pb-4 text-sm">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Music2 className="h-4 w-4 text-primary" />
-              <strong className="font-semibold text-foreground">{userTracks.length}</strong> tracks
-            </span>
-            <span className="text-muted-foreground">
-              <strong className="font-semibold text-foreground">
-                {userTracks.reduce((n, t) => n + t.plays, 0).toLocaleString()}
-              </strong>{" "}
-              plays
-            </span>
-          </div>
+          <FollowStats userId={profileUserId} trackCount={userTracks.length} playCount={userTracks.reduce((n, t) => n + t.plays, 0)} />
+
         </div>
       </section>
 
