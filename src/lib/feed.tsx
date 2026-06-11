@@ -23,6 +23,37 @@ function timeAgo(iso: string) {
   return `${d}d ago`;
 }
 
+type Row = {
+  id: string;
+  title: string;
+  genre: string;
+  audio_url: string;
+  cover_art_url: string | null;
+  created_at: string;
+  user_id: string;
+  profiles: { username: string | null } | null;
+};
+
+async function hydrate(rows: Row[]): Promise<Track[]> {
+  return Promise.all(
+    rows.map(async (row) => {
+      const src = (await signed("audio", row.audio_url)) ?? "";
+      const cover = row.cover_art_url ? ((await signed("covers", row.cover_art_url)) ?? cover2) : cover2;
+      return {
+        id: row.id,
+        title: row.title,
+        artist: row.profiles?.username ?? "Artist",
+        cover,
+        src,
+        durationLabel: "—:—",
+        uploadedAt: timeAgo(row.created_at),
+        plays: 0,
+        genre: row.genre,
+      } as Track;
+    })
+  );
+}
+
 export function useAllTracks() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,37 +65,8 @@ export function useAllTracks() {
         .from("tracks")
         .select("id, title, genre, audio_url, cover_art_url, created_at, user_id, profiles(username)")
         .order("created_at", { ascending: false });
-      if (!data || cancelled) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
-      const hydrated = await Promise.all(
-        (data as Array<{
-          id: string;
-          title: string;
-          genre: string;
-          audio_url: string;
-          cover_art_url: string | null;
-          created_at: string;
-          user_id: string;
-          profiles: { username: string | null } | null;
-        }>).map(async (row) => {
-          const src = (await signed("audio", row.audio_url)) ?? "";
-          const cover = row.cover_art_url ? ((await signed("covers", row.cover_art_url)) ?? cover2) : cover2;
-          const t: Track = {
-            id: row.id,
-            title: row.title,
-            artist: row.profiles?.username ?? "Artist",
-            cover,
-            src,
-            durationLabel: "—:—",
-            uploadedAt: timeAgo(row.created_at),
-            plays: 0,
-            genre: row.genre,
-          };
-          return t;
-        })
-      );
+      if (cancelled) return;
+      const hydrated = data ? await hydrate(data as Row[]) : [];
       if (!cancelled) {
         setTracks(hydrated);
         setLoading(false);
@@ -74,6 +76,39 @@ export function useAllTracks() {
       cancelled = true;
     };
   }, []);
+
+  return { tracks, loading };
+}
+
+export function useUserTracks(userId: string | null) {
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId) {
+      setTracks([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    (async () => {
+      const { data } = await supabase
+        .from("tracks")
+        .select("id, title, genre, audio_url, cover_art_url, created_at, user_id, profiles(username)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      const hydrated = data ? await hydrate(data as Row[]) : [];
+      if (!cancelled) {
+        setTracks(hydrated);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   return { tracks, loading };
 }
