@@ -9,9 +9,11 @@ import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { PlaylistsSection } from "@/components/PlaylistsSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useFollow } from "@/lib/follows";
+import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
-import { Upload, Users, Music2, Pencil } from "lucide-react";
+import { Upload, Users, Music2, Pencil, UserCheck, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/u/$handle")({
   head: ({ params }) => ({
