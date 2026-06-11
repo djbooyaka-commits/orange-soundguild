@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
 import { tracks } from "@/lib/tracks";
+import { useUserTracks } from "@/lib/feed";
 import { CURRENT_USER, useUploads } from "@/lib/uploads";
 import { UploadDialog } from "@/components/UploadDialog";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
@@ -101,9 +102,9 @@ function ProfilePage() {
     ? profile?.bio?.trim() || CURRENT_USER.bio
     : "Artist on soundwave.";
 
-  const userTracks = isMe
-    ? uploads
-    : tracks.filter((t) => t.artist.toLowerCase() === displayName.toLowerCase());
+  const { tracks: artistTracks } = useUserTracks(!isMe ? profileUserId : null);
+  const mockArtistTracks = !isMe ? tracks.filter((t) => t.artist.toLowerCase() === displayName.toLowerCase()) : [];
+  const userTracks = isMe ? uploads : [...artistTracks, ...mockArtistTracks];
 
   return (
     <div className="min-h-screen bg-background pb-28">
