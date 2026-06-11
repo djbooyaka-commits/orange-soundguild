@@ -212,3 +212,63 @@ function ProfilePage() {
     </div>
   );
 }
+
+function FollowButton({ targetUserId }: { targetUserId: string | null }) {
+  const { user } = useAuth();
+  const { isFollowing, toggle, loading, canFollow } = useFollow(targetUserId);
+
+  if (!targetUserId) {
+    return (
+      <button disabled className="inline-flex h-10 items-center gap-2 rounded-full bg-muted px-4 text-sm font-semibold text-muted-foreground">
+        <Users className="h-4 w-4" /> Follow
+      </button>
+    );
+  }
+  const onClick = async () => {
+    if (!user) {
+      toast.message("Sign in to follow artists.");
+      return;
+    }
+    try {
+      await toggle();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading || (user && !canFollow) || false}
+      className={`inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold shadow-sm transition ${
+        isFollowing
+          ? "border border-border bg-background text-foreground hover:bg-muted"
+          : "bg-primary text-primary-foreground hover:brightness-105"
+      } disabled:opacity-60`}
+    >
+      {isFollowing ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+      {isFollowing ? "Following" : "Follow"}
+    </button>
+  );
+}
+
+function FollowStats({ userId, trackCount, playCount }: { userId: string | null; trackCount: number; playCount: number }) {
+  const { followers, following } = useFollow(userId);
+  return (
+    <div className="mt-6 flex flex-wrap gap-6 border-b border-border pb-4 text-sm">
+      <span className="flex items-center gap-1.5 text-muted-foreground">
+        <Music2 className="h-4 w-4 text-primary" />
+        <strong className="font-semibold text-foreground">{trackCount}</strong> tracks
+      </span>
+      <span className="text-muted-foreground">
+        <strong className="font-semibold text-foreground">{playCount.toLocaleString()}</strong> plays
+      </span>
+      <span className="text-muted-foreground">
+        <strong className="font-semibold text-foreground">{followers}</strong> followers
+      </span>
+      <span className="text-muted-foreground">
+        <strong className="font-semibold text-foreground">{following}</strong> following
+      </span>
+    </div>
+  );
+}
+
