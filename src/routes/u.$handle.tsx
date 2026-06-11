@@ -161,12 +161,11 @@ function ProfilePage() {
                   </UploadDialog>
                 </>
               ) : (
-                <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
-                  <Users className="h-4 w-4" /> Follow
-                </button>
+                <FollowButton targetUserId={profileUserId} />
               )}
             </div>
           </div>
+
 
           {/* Stats */}
           <div className="mt-6 flex gap-6 border-b border-border pb-4 text-sm">
