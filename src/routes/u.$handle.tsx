@@ -90,10 +90,10 @@ function ProfilePage() {
 
   const displayName = isMe
     ? profile?.username?.trim() || CURRENT_USER.name
-    : decodeURIComponent(handle).replace(/-/g, " ");
+    : profile?.username?.trim() || decodeURIComponent(handle).replace(/-/g, " ");
   const bio = isMe
     ? profile?.bio?.trim() || CURRENT_USER.bio
-    : "Artist on soundwave.";
+    : profile?.bio?.trim() || "Artist on soundwave.";
 
   const { tracks: artistTracks } = useUserTracks(!isMe ? profileUserId : null);
   const mockArtistTracks = !isMe ? tracks.filter((t) => t.artist.toLowerCase() === displayName.toLowerCase()) : [];
