@@ -78,6 +78,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         console.error("Failed to record track play", error);
         return;
       }
+      if (currentRef.current?.id !== t.id) return;
       countedRef.current = true;
       window.dispatchEvent(
         new CustomEvent("soundwave:track-played", { detail: { trackId: t.id } }),
@@ -135,7 +136,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const toggle = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !current) return;
-    if (audio.paused) audio.play().catch(() => {});
+    if (audio.paused) {
+      if (audio.ended) {
+        audio.currentTime = 0;
+        setCurrentTime(0);
+        countedRef.current = false;
+      }
+      audio.play().catch(() => {});
+    }
     else audio.pause();
   }, [current]);
 
