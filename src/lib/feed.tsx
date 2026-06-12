@@ -39,7 +39,9 @@ async function hydrate(rows: Row[]): Promise<Track[]> {
   return Promise.all(
     rows.map(async (row) => {
       const src = (await signed("audio", row.audio_url)) ?? "";
-      const cover = row.cover_art_url ? ((await signed("covers", row.cover_art_url)) ?? cover2) : cover2;
+      const cover = row.cover_art_url
+        ? ((await signed("covers", row.cover_art_url)) ?? cover2)
+        : cover2;
       return {
         id: row.id,
         title: row.title,
@@ -51,12 +53,14 @@ async function hydrate(rows: Row[]): Promise<Track[]> {
         plays: row.plays_count ?? 0,
         genre: row.genre,
       } as Track;
-    })
+    }),
   );
 }
 
 function incrementTrackPlays(tracks: Track[], trackId: string) {
-  return tracks.map((track) => (track.id === trackId ? { ...track, plays: track.plays + 1 } : track));
+  return tracks.map((track) =>
+    track.id === trackId ? { ...track, plays: track.plays + 1 } : track,
+  );
 }
 
 export function useAllTracks() {
