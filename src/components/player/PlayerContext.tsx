@@ -79,7 +79,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         return;
       }
       countedRef.current = true;
-      window.dispatchEvent(new CustomEvent("soundwave:track-played", { detail: { trackId: t.id } }));
+      window.dispatchEvent(
+        new CustomEvent("soundwave:track-played", { detail: { trackId: t.id } }),
+      );
     };
     const onTimeWithCompletionCheck = () => {
       onTime();
@@ -110,22 +112,25 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const play = useCallback((t: Track) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (current?.id !== t.id) {
-      audio.src = t.src;
-      setCurrent(t);
-      currentRef.current = t;
-      setCurrentTime(0);
-      countedRef.current = false;
-    } else if (audio.ended) {
-      audio.currentTime = 0;
-      setCurrentTime(0);
-      countedRef.current = false;
-    }
-    audio.play().catch(() => setIsPlaying(false));
-  }, [current?.id]);
+  const play = useCallback(
+    (t: Track) => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      if (current?.id !== t.id) {
+        audio.src = t.src;
+        setCurrent(t);
+        currentRef.current = t;
+        setCurrentTime(0);
+        countedRef.current = false;
+      } else if (audio.ended) {
+        audio.currentTime = 0;
+        setCurrentTime(0);
+        countedRef.current = false;
+      }
+      audio.play().catch(() => setIsPlaying(false));
+    },
+    [current?.id],
+  );
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
@@ -134,11 +139,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     else audio.pause();
   }, [current]);
 
-  const seek = useCallback((ratio: number) => {
-    const audio = audioRef.current;
-    if (!audio || !duration) return;
-    audio.currentTime = Math.max(0, Math.min(1, ratio)) * duration;
-  }, [duration]);
+  const seek = useCallback(
+    (ratio: number) => {
+      const audio = audioRef.current;
+      if (!audio || !duration) return;
+      audio.currentTime = Math.max(0, Math.min(1, ratio)) * duration;
+    },
+    [duration],
+  );
 
   const setVolume = useCallback((v: number) => {
     const audio = audioRef.current;
@@ -147,18 +155,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setVolumeState(v);
   }, []);
 
-  const value = useMemo<PlayerState>(() => ({
-    current,
-    isPlaying,
-    currentTime,
-    duration,
-    progress: duration ? currentTime / duration : 0,
-    volume,
-    play,
-    toggle,
-    seek,
-    setVolume,
-  }), [current, isPlaying, currentTime, duration, volume, play, toggle, seek, setVolume]);
+  const value = useMemo<PlayerState>(
+    () => ({
+      current,
+      isPlaying,
+      currentTime,
+      duration,
+      progress: duration ? currentTime / duration : 0,
+      volume,
+      play,
+      toggle,
+      seek,
+      setVolume,
+    }),
+    [current, isPlaying, currentTime, duration, volume, play, toggle, seek, setVolume],
+  );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
@@ -172,6 +183,8 @@ export function usePlayer() {
 export function formatTime(s: number) {
   if (!isFinite(s) || s < 0) s = 0;
   const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60).toString().padStart(2, "0");
+  const sec = Math.floor(s % 60)
+    .toString()
+    .padStart(2, "0");
   return `${m}:${sec}`;
 }
