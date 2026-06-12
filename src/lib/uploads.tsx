@@ -68,6 +68,10 @@ function timeAgo(iso: string) {
   return `${d}d ago`;
 }
 
+function incrementTrackPlays(tracks: Track[], trackId: string) {
+  return tracks.map((track) => (track.id === trackId ? { ...track, plays: track.plays + 1 } : track));
+}
+
 export function UploadsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [uploads, setUploads] = useState<Track[]>([]);
@@ -123,6 +127,15 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [user]);
+
+  useEffect(() => {
+    const onTrackPlayed = (event: Event) => {
+      const trackId = (event as CustomEvent<{ trackId?: string }>).detail?.trackId;
+      if (trackId) setUploads((prev) => incrementTrackPlays(prev, trackId));
+    };
+    window.addEventListener("soundwave:track-played", onTrackPlayed);
+    return () => window.removeEventListener("soundwave:track-played", onTrackPlayed);
+  }, []);
 
   const addUpload = useCallback(async ({ title, genre, file, coverFile }: UploadArgs): Promise<Track> => {
     const { data: userData, error: userErr } = await supabase.auth.getUser();
