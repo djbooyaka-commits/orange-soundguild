@@ -31,6 +31,7 @@ type Row = {
   cover_art_url: string | null;
   created_at: string;
   user_id: string;
+  plays_count: number | null;
   profiles: { username: string | null } | null;
 };
 
@@ -47,7 +48,7 @@ async function hydrate(rows: Row[]): Promise<Track[]> {
         src,
         durationLabel: "—:—",
         uploadedAt: timeAgo(row.created_at),
-        plays: 0,
+        plays: row.plays_count ?? 0,
         genre: row.genre,
       } as Track;
     })
