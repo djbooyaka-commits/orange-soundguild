@@ -119,7 +119,7 @@ function ProfilePage() {
           <div className="-mt-12 flex flex-col items-start gap-4 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-end gap-4">
               <img
-                src={isMe ? avatarUrl : defaultAvatar}
+                src={avatarUrl}
                 alt={`${displayName} avatar`}
                 width={128}
                 height={128}
