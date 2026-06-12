@@ -152,61 +152,64 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("soundwave:track-played", onTrackPlayed);
   }, []);
 
-  const addUpload = useCallback(async ({ title, genre, file, coverFile }: UploadArgs): Promise<Track> => {
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData.user) {
-      throw new Error("You need to be signed in to upload.");
-    }
-    const userId = userData.user.id;
-    const stamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const audioPath = `${userId}/${stamp}-${safeName}`;
+  const addUpload = useCallback(
+    async ({ title, genre, file, coverFile }: UploadArgs): Promise<Track> => {
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user) {
+        throw new Error("You need to be signed in to upload.");
+      }
+      const userId = userData.user.id;
+      const stamp = Date.now();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const audioPath = `${userId}/${stamp}-${safeName}`;
 
-    const { error: audioErr } = await supabase.storage
-      .from("audio")
-      .upload(audioPath, file, { contentType: file.type || "audio/mpeg", upsert: false });
-    if (audioErr) throw audioErr;
+      const { error: audioErr } = await supabase.storage
+        .from("audio")
+        .upload(audioPath, file, { contentType: file.type || "audio/mpeg", upsert: false });
+      if (audioErr) throw audioErr;
 
-    let coverPath: string | null = null;
-    if (coverFile) {
-      const safeCover = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      coverPath = `${userId}/${stamp}-${safeCover}`;
-      const { error: coverErr } = await supabase.storage
-        .from("covers")
-        .upload(coverPath, coverFile, { contentType: coverFile.type, upsert: false });
-      if (coverErr) throw coverErr;
-    }
+      let coverPath: string | null = null;
+      if (coverFile) {
+        const safeCover = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        coverPath = `${userId}/${stamp}-${safeCover}`;
+        const { error: coverErr } = await supabase.storage
+          .from("covers")
+          .upload(coverPath, coverFile, { contentType: coverFile.type, upsert: false });
+        if (coverErr) throw coverErr;
+      }
 
-    const { data: row, error: dbErr } = await supabase
-      .from("tracks")
-      .insert({
-        user_id: userId,
+      const { data: row, error: dbErr } = await supabase
+        .from("tracks")
+        .insert({
+          user_id: userId,
+          title,
+          genre,
+          audio_url: audioPath,
+          cover_art_url: coverPath,
+        })
+        .select()
+        .single();
+      if (dbErr) throw dbErr;
+
+      const audioUrl = await getSignedUrl("audio", audioPath);
+      const coverUrl = coverPath ? await getSignedUrl("covers", coverPath) : null;
+
+      const track: Track = {
+        id: row.id,
         title,
+        artist: CURRENT_USER.name,
+        cover: coverUrl ?? cover2,
+        src: audioUrl,
+        durationLabel: "—:—",
+        uploadedAt: "Just now",
+        plays: 0,
         genre,
-        audio_url: audioPath,
-        cover_art_url: coverPath,
-      })
-      .select()
-      .single();
-    if (dbErr) throw dbErr;
-
-    const audioUrl = await getSignedUrl("audio", audioPath);
-    const coverUrl = coverPath ? await getSignedUrl("covers", coverPath) : null;
-
-    const track: Track = {
-      id: row.id,
-      title,
-      artist: CURRENT_USER.name,
-      cover: coverUrl ?? cover2,
-      src: audioUrl,
-      durationLabel: "—:—",
-      uploadedAt: "Just now",
-      plays: 0,
-      genre,
-    };
-    setUploads((prev) => [track, ...prev]);
-    return track;
-  }, []);
+      };
+      setUploads((prev) => [track, ...prev]);
+      return track;
+    },
+    [],
+  );
 
   const removeUpload = useCallback(async (id: string) => {
     const target = uploads.find((t) => t.id === id);
