@@ -143,8 +143,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         countedRef.current = false;
       }
       audio.play().catch(() => {});
-    }
-    else audio.pause();
+    } else audio.pause();
   }, [current]);
 
   const seek = useCallback(
