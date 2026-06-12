@@ -211,33 +211,39 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const removeUpload = useCallback(async (id: string) => {
-    const target = uploads.find((t) => t.id === id);
-    const { data: row, error: fetchErr } = await supabase
-      .from("tracks")
-      .select("audio_url, cover_art_url, user_id")
-      .eq("id", id)
-      .maybeSingle();
-    if (fetchErr) throw fetchErr;
+  const removeUpload = useCallback(
+    async (id: string) => {
+      const target = uploads.find((t) => t.id === id);
+      const { data: row, error: fetchErr } = await supabase
+        .from("tracks")
+        .select("audio_url, cover_art_url, user_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
 
-    const audioPath = row ? storagePathFromValue("audio", row.audio_url) : null;
-    const coverPath = row ? storagePathFromValue("covers", row.cover_art_url) : null;
+      const audioPath = row ? storagePathFromValue("audio", row.audio_url) : null;
+      const coverPath = row ? storagePathFromValue("covers", row.cover_art_url) : null;
 
-    const { error: delErr } = await supabase.from("tracks").delete().eq("id", id);
-    if (delErr) throw delErr;
+      const { error: delErr } = await supabase.from("tracks").delete().eq("id", id);
+      if (delErr) throw delErr;
 
-    if (audioPath && !audioPath.startsWith("http")) {
-      await supabase.storage.from("audio").remove([audioPath]);
-    }
-    if (coverPath && !coverPath.startsWith("http")) {
-      await supabase.storage.from("covers").remove([coverPath]);
-    }
+      if (audioPath && !audioPath.startsWith("http")) {
+        await supabase.storage.from("audio").remove([audioPath]);
+      }
+      if (coverPath && !coverPath.startsWith("http")) {
+        await supabase.storage.from("covers").remove([coverPath]);
+      }
 
-    setUploads((prev) => prev.filter((t) => t.id !== id));
-    void target;
-  }, [uploads]);
+      setUploads((prev) => prev.filter((t) => t.id !== id));
+      void target;
+    },
+    [uploads],
+  );
 
-  const value = useMemo(() => ({ uploads, addUpload, removeUpload }), [uploads, addUpload, removeUpload]);
+  const value = useMemo(
+    () => ({ uploads, addUpload, removeUpload }),
+    [uploads, addUpload, removeUpload],
+  );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
