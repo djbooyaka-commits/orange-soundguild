@@ -9,6 +9,9 @@ import {
   type ReactNode,
 } from "react";
 import type { Track } from "@/lib/tracks";
+import { supabase } from "@/integrations/supabase/client";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type PlayerState = {
   current: Track | null;
