@@ -64,7 +64,7 @@ export function useAllTracks() {
     (async () => {
       const { data } = await supabase
         .from("tracks")
-        .select("id, title, genre, audio_url, cover_art_url, created_at, user_id, profiles(username)")
+        .select("id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, profiles(username)")
         .order("created_at", { ascending: false });
       if (cancelled) return;
       const hydrated = data ? await hydrate(data as Row[]) : [];
@@ -96,7 +96,7 @@ export function useUserTracks(userId: string | null) {
     (async () => {
       const { data } = await supabase
         .from("tracks")
-        .select("id, title, genre, audio_url, cover_art_url, created_at, user_id, profiles(username)")
+        .select("id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, profiles(username)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (cancelled) return;
