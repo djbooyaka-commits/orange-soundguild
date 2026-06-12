@@ -69,7 +69,9 @@ function timeAgo(iso: string) {
 }
 
 function incrementTrackPlays(tracks: Track[], trackId: string) {
-  return tracks.map((track) => (track.id === trackId ? { ...track, plays: track.plays + 1 } : track));
+  return tracks.map((track) =>
+    track.id === trackId ? { ...track, plays: track.plays + 1 } : track,
+  );
 }
 
 export function UploadsProvider({ children }: { children: ReactNode }) {
@@ -119,7 +121,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
             genre: row.genre,
           };
           return track;
-        })
+        }),
       );
       if (!cancelled) setUploads(hydrated);
     })();
