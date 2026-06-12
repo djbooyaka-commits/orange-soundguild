@@ -39,7 +39,9 @@ async function hydrate(rows: Row[]): Promise<Track[]> {
   return Promise.all(
     rows.map(async (row) => {
       const src = (await signed("audio", row.audio_url)) ?? "";
-      const cover = row.cover_art_url ? ((await signed("covers", row.cover_art_url)) ?? cover2) : cover2;
+      const cover = row.cover_art_url
+        ? ((await signed("covers", row.cover_art_url)) ?? cover2)
+        : cover2;
       return {
         id: row.id,
         title: row.title,
@@ -51,7 +53,13 @@ async function hydrate(rows: Row[]): Promise<Track[]> {
         plays: row.plays_count ?? 0,
         genre: row.genre,
       } as Track;
-    })
+    }),
+  );
+}
+
+function incrementTrackPlays(tracks: Track[], trackId: string) {
+  return tracks.map((track) =>
+    track.id === trackId ? { ...track, plays: track.plays + 1 } : track,
   );
 }
 
@@ -64,7 +72,9 @@ export function useAllTracks() {
     (async () => {
       const { data } = await supabase
         .from("tracks")
-        .select("id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, profiles(username)")
+        .select(
+          "id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, profiles(username)",
+        )
         .order("created_at", { ascending: false });
       if (cancelled) return;
       const hydrated = data ? await hydrate(data as Row[]) : [];
@@ -76,6 +86,15 @@ export function useAllTracks() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const onTrackPlayed = (event: Event) => {
+      const trackId = (event as CustomEvent<{ trackId?: string }>).detail?.trackId;
+      if (trackId) setTracks((prev) => incrementTrackPlays(prev, trackId));
+    };
+    window.addEventListener("soundwave:track-played", onTrackPlayed);
+    return () => window.removeEventListener("soundwave:track-played", onTrackPlayed);
   }, []);
 
   return { tracks, loading };
@@ -96,7 +115,9 @@ export function useUserTracks(userId: string | null) {
     (async () => {
       const { data } = await supabase
         .from("tracks")
-        .select("id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, profiles(username)")
+        .select(
+          "id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, profiles(username)",
+        )
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (cancelled) return;
@@ -110,6 +131,15 @@ export function useUserTracks(userId: string | null) {
       cancelled = true;
     };
   }, [userId]);
+
+  useEffect(() => {
+    const onTrackPlayed = (event: Event) => {
+      const trackId = (event as CustomEvent<{ trackId?: string }>).detail?.trackId;
+      if (trackId) setTracks((prev) => incrementTrackPlays(prev, trackId));
+    };
+    window.addEventListener("soundwave:track-played", onTrackPlayed);
+    return () => window.removeEventListener("soundwave:track-played", onTrackPlayed);
+  }, []);
 
   return { tracks, loading };
 }

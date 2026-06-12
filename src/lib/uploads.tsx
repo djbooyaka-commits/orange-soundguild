@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Track } from "./tracks";
 import cover2 from "@/assets/cover2.jpg";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +43,9 @@ function storagePathFromValue(bucket: string, value: string | null | undefined):
       return decodeURIComponent(pathname.slice(pathname.indexOf(marker) + marker.length));
     }
     if (pathname.includes(publicMarker)) {
-      return decodeURIComponent(pathname.slice(pathname.indexOf(publicMarker) + publicMarker.length));
+      return decodeURIComponent(
+        pathname.slice(pathname.indexOf(publicMarker) + publicMarker.length),
+      );
     }
   } catch {
     // Keep the original value below if URL parsing fails.
@@ -50,7 +60,10 @@ async function getSignedUrl(bucket: string, path: string): Promise<string> {
   return data.signedUrl;
 }
 
-async function resolveMediaUrl(bucket: string, value: string | null | undefined): Promise<string | null> {
+async function resolveMediaUrl(
+  bucket: string,
+  value: string | null | undefined,
+): Promise<string | null> {
   const path = storagePathFromValue(bucket, value);
   if (!path) return null;
   if (path.startsWith("http")) return path;
@@ -66,6 +79,12 @@ function timeAgo(iso: string) {
   if (h < 24) return `${h}h ago`;
   const d = Math.floor(h / 24);
   return `${d}d ago`;
+}
+
+function incrementTrackPlays(tracks: Track[], trackId: string) {
+  return tracks.map((track) =>
+    track.id === trackId ? { ...track, plays: track.plays + 1 } : track,
+  );
 }
 
 export function UploadsProvider({ children }: { children: ReactNode }) {
@@ -115,7 +134,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
             genre: row.genre,
           };
           return track;
-        })
+        }),
       );
       if (!cancelled) setUploads(hydrated);
     })();
@@ -124,89 +143,107 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  const addUpload = useCallback(async ({ title, genre, file, coverFile }: UploadArgs): Promise<Track> => {
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData.user) {
-      throw new Error("You need to be signed in to upload.");
-    }
-    const userId = userData.user.id;
-    const stamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const audioPath = `${userId}/${stamp}-${safeName}`;
-
-    const { error: audioErr } = await supabase.storage
-      .from("audio")
-      .upload(audioPath, file, { contentType: file.type || "audio/mpeg", upsert: false });
-    if (audioErr) throw audioErr;
-
-    let coverPath: string | null = null;
-    if (coverFile) {
-      const safeCover = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      coverPath = `${userId}/${stamp}-${safeCover}`;
-      const { error: coverErr } = await supabase.storage
-        .from("covers")
-        .upload(coverPath, coverFile, { contentType: coverFile.type, upsert: false });
-      if (coverErr) throw coverErr;
-    }
-
-    const { data: row, error: dbErr } = await supabase
-      .from("tracks")
-      .insert({
-        user_id: userId,
-        title,
-        genre,
-        audio_url: audioPath,
-        cover_art_url: coverPath,
-      })
-      .select()
-      .single();
-    if (dbErr) throw dbErr;
-
-    const audioUrl = await getSignedUrl("audio", audioPath);
-    const coverUrl = coverPath ? await getSignedUrl("covers", coverPath) : null;
-
-    const track: Track = {
-      id: row.id,
-      title,
-      artist: CURRENT_USER.name,
-      cover: coverUrl ?? cover2,
-      src: audioUrl,
-      durationLabel: "—:—",
-      uploadedAt: "Just now",
-      plays: 0,
-      genre,
+  useEffect(() => {
+    const onTrackPlayed = (event: Event) => {
+      const trackId = (event as CustomEvent<{ trackId?: string }>).detail?.trackId;
+      if (trackId) setUploads((prev) => incrementTrackPlays(prev, trackId));
     };
-    setUploads((prev) => [track, ...prev]);
-    return track;
+    window.addEventListener("soundwave:track-played", onTrackPlayed);
+    return () => window.removeEventListener("soundwave:track-played", onTrackPlayed);
   }, []);
 
-  const removeUpload = useCallback(async (id: string) => {
-    const target = uploads.find((t) => t.id === id);
-    const { data: row, error: fetchErr } = await supabase
-      .from("tracks")
-      .select("audio_url, cover_art_url, user_id")
-      .eq("id", id)
-      .maybeSingle();
-    if (fetchErr) throw fetchErr;
+  const addUpload = useCallback(
+    async ({ title, genre, file, coverFile }: UploadArgs): Promise<Track> => {
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user) {
+        throw new Error("You need to be signed in to upload.");
+      }
+      const userId = userData.user.id;
+      const stamp = Date.now();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const audioPath = `${userId}/${stamp}-${safeName}`;
 
-    const audioPath = row ? storagePathFromValue("audio", row.audio_url) : null;
-    const coverPath = row ? storagePathFromValue("covers", row.cover_art_url) : null;
+      const { error: audioErr } = await supabase.storage
+        .from("audio")
+        .upload(audioPath, file, { contentType: file.type || "audio/mpeg", upsert: false });
+      if (audioErr) throw audioErr;
 
-    const { error: delErr } = await supabase.from("tracks").delete().eq("id", id);
-    if (delErr) throw delErr;
+      let coverPath: string | null = null;
+      if (coverFile) {
+        const safeCover = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        coverPath = `${userId}/${stamp}-${safeCover}`;
+        const { error: coverErr } = await supabase.storage
+          .from("covers")
+          .upload(coverPath, coverFile, { contentType: coverFile.type, upsert: false });
+        if (coverErr) throw coverErr;
+      }
 
-    if (audioPath && !audioPath.startsWith("http")) {
-      await supabase.storage.from("audio").remove([audioPath]);
-    }
-    if (coverPath && !coverPath.startsWith("http")) {
-      await supabase.storage.from("covers").remove([coverPath]);
-    }
+      const { data: row, error: dbErr } = await supabase
+        .from("tracks")
+        .insert({
+          user_id: userId,
+          title,
+          genre,
+          audio_url: audioPath,
+          cover_art_url: coverPath,
+        })
+        .select()
+        .single();
+      if (dbErr) throw dbErr;
 
-    setUploads((prev) => prev.filter((t) => t.id !== id));
-    void target;
-  }, [uploads]);
+      const audioUrl = await getSignedUrl("audio", audioPath);
+      const coverUrl = coverPath ? await getSignedUrl("covers", coverPath) : null;
 
-  const value = useMemo(() => ({ uploads, addUpload, removeUpload }), [uploads, addUpload, removeUpload]);
+      const track: Track = {
+        id: row.id,
+        title,
+        artist: CURRENT_USER.name,
+        cover: coverUrl ?? cover2,
+        src: audioUrl,
+        durationLabel: "—:—",
+        uploadedAt: "Just now",
+        plays: 0,
+        genre,
+      };
+      setUploads((prev) => [track, ...prev]);
+      return track;
+    },
+    [],
+  );
+
+  const removeUpload = useCallback(
+    async (id: string) => {
+      const target = uploads.find((t) => t.id === id);
+      const { data: row, error: fetchErr } = await supabase
+        .from("tracks")
+        .select("audio_url, cover_art_url, user_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+
+      const audioPath = row ? storagePathFromValue("audio", row.audio_url) : null;
+      const coverPath = row ? storagePathFromValue("covers", row.cover_art_url) : null;
+
+      const { error: delErr } = await supabase.from("tracks").delete().eq("id", id);
+      if (delErr) throw delErr;
+
+      if (audioPath && !audioPath.startsWith("http")) {
+        await supabase.storage.from("audio").remove([audioPath]);
+      }
+      if (coverPath && !coverPath.startsWith("http")) {
+        await supabase.storage.from("covers").remove([coverPath]);
+      }
+
+      setUploads((prev) => prev.filter((t) => t.id !== id));
+      void target;
+    },
+    [uploads],
+  );
+
+  const value = useMemo(
+    () => ({ uploads, addUpload, removeUpload }),
+    [uploads, addUpload, removeUpload],
+  );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
