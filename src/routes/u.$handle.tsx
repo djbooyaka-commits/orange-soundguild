@@ -51,56 +51,49 @@ function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
-  // Load this user's profile from the database
+  // Load profile (own or viewed user) from database
   useEffect(() => {
     let cancelled = false;
-    if (!isMe || !user) {
-      setProfile(null);
-      setAvatarUrl(defaultAvatar);
-      return;
-    }
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("username, bio, avatar_url")
-        .eq("id", user.id)
-        .maybeSingle();
+      let data: (ProfileRow & { id: string }) | null = null;
+      if (isMe) {
+        if (!user) {
+          setProfile(null);
+          setAvatarUrl(defaultAvatar);
+          setProfileUserId(null);
+          return;
+        }
+        const res = await supabase
+          .from("profiles")
+          .select("id, username, bio, avatar_url")
+          .eq("id", user.id)
+          .maybeSingle();
+        data = res.data ?? null;
+      } else {
+        const res = await supabase
+          .from("profiles")
+          .select("id, username, bio, avatar_url")
+          .eq("username", decodeURIComponent(handle))
+          .maybeSingle();
+        data = res.data ?? null;
+      }
       if (cancelled) return;
-      setProfile(data ?? null);
+      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url } : null);
+      setProfileUserId(data?.id ?? null);
       const resolved = await resolveAvatar(data?.avatar_url);
       if (!cancelled) setAvatarUrl(resolved ?? defaultAvatar);
     })();
     return () => {
       cancelled = true;
     };
-  }, [isMe, user]);
-
-  // Resolve the user id for the handle (for loading playlists)
-  useEffect(() => {
-    let cancelled = false;
-    if (isMe) {
-      setProfileUserId(user?.id ?? null);
-      return;
-    }
-    (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("username", decodeURIComponent(handle))
-        .maybeSingle();
-      if (!cancelled) setProfileUserId(data?.id ?? null);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [handle, isMe, user]);
+  }, [isMe, user, handle]);
 
   const displayName = isMe
     ? profile?.username?.trim() || CURRENT_USER.name
-    : decodeURIComponent(handle).replace(/-/g, " ");
+    : profile?.username?.trim() || decodeURIComponent(handle).replace(/-/g, " ");
   const bio = isMe
     ? profile?.bio?.trim() || CURRENT_USER.bio
-    : "Artist on soundwave.";
+    : profile?.bio?.trim() || "Artist on soundwave.";
 
   const { tracks: artistTracks } = useUserTracks(!isMe ? profileUserId : null);
   const mockArtistTracks = !isMe ? tracks.filter((t) => t.artist.toLowerCase() === displayName.toLowerCase()) : [];
@@ -126,7 +119,7 @@ function ProfilePage() {
           <div className="-mt-12 flex flex-col items-start gap-4 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-end gap-4">
               <img
-                src={isMe ? avatarUrl : defaultAvatar}
+                src={avatarUrl}
                 alt={`${displayName} avatar`}
                 width={128}
                 height={128}
