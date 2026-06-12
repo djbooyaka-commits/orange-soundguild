@@ -111,7 +111,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
             src,
             durationLabel: "—:—",
             uploadedAt: timeAgo(row.created_at),
-            plays: 0,
+            plays: (row as { plays_count?: number | null }).plays_count ?? 0,
             genre: row.genre,
           };
           return track;
