@@ -30,6 +30,8 @@ const Ctx = createContext<PlayerState | null>(null);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentRef = useRef<Track | null>(null);
+  const recordedRef = useRef<Set<string>>(new Set());
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -45,7 +47,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     const onTime = () => setCurrentTime(audio.currentTime);
     const onMeta = () => setDuration(audio.duration || 0);
-    const onEnd = () => setIsPlaying(false);
+    const onEnd = () => {
+      setIsPlaying(false);
+      const t = currentRef.current;
+      if (!t || !UUID_RE.test(t.id)) return;
+      // Only count once per track per session
+      if (recordedRef.current.has(t.id)) return;
+      // Require the track was played to completion
+      if (audio.duration && audio.currentTime < audio.duration - 1.5) return;
+      recordedRef.current.add(t.id);
+      void supabase.rpc("record_track_play", { p_track_id: t.id });
+    };
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
 
@@ -71,6 +83,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (current?.id !== t.id) {
       audio.src = t.src;
       setCurrent(t);
+      currentRef.current = t;
       setCurrentTime(0);
     }
     audio.play().catch(() => setIsPlaying(false));
