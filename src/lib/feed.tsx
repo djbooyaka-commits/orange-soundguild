@@ -55,6 +55,10 @@ async function hydrate(rows: Row[]): Promise<Track[]> {
   );
 }
 
+function incrementTrackPlays(tracks: Track[], trackId: string) {
+  return tracks.map((track) => (track.id === trackId ? { ...track, plays: track.plays + 1 } : track));
+}
+
 export function useAllTracks() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +80,15 @@ export function useAllTracks() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const onTrackPlayed = (event: Event) => {
+      const trackId = (event as CustomEvent<{ trackId?: string }>).detail?.trackId;
+      if (trackId) setTracks((prev) => incrementTrackPlays(prev, trackId));
+    };
+    window.addEventListener("soundwave:track-played", onTrackPlayed);
+    return () => window.removeEventListener("soundwave:track-played", onTrackPlayed);
   }, []);
 
   return { tracks, loading };
@@ -110,6 +123,15 @@ export function useUserTracks(userId: string | null) {
       cancelled = true;
     };
   }, [userId]);
+
+  useEffect(() => {
+    const onTrackPlayed = (event: Event) => {
+      const trackId = (event as CustomEvent<{ trackId?: string }>).detail?.trackId;
+      if (trackId) setTracks((prev) => incrementTrackPlays(prev, trackId));
+    };
+    window.addEventListener("soundwave:track-played", onTrackPlayed);
+    return () => window.removeEventListener("soundwave:track-played", onTrackPlayed);
+  }, []);
 
   return { tracks, loading };
 }
