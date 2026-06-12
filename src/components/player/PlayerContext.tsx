@@ -61,9 +61,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const hasCompletedPlaythrough = () => {
       const mediaDuration = audio.duration;
       if (!Number.isFinite(mediaDuration) || mediaDuration <= 0) return false;
-      const reachedEnd = audio.ended || audio.currentTime >= mediaDuration - 0.5;
-      const listenedLongEnough = playedSeconds() >= mediaDuration * 0.95;
-      return reachedEnd && listenedLongEnough;
+      if (!audio.played.length) return false;
+      const startedAtBeginning = audio.played.start(0) <= 1;
+      const reachedEnd = audio.ended || audio.currentTime >= mediaDuration - 0.25;
+      const listenedLongEnough = playedSeconds() >= mediaDuration * 0.99;
+      return startedAtBeginning && reachedEnd && listenedLongEnough;
     };
     const recordIfComplete = async () => {
       const t = currentRef.current;
