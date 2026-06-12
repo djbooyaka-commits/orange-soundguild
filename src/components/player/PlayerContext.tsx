@@ -31,7 +31,8 @@ const Ctx = createContext<PlayerState | null>(null);
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentRef = useRef<Track | null>(null);
-  const recordedRef = useRef<Set<string>>(new Set());
+  const countedRef = useRef(false);
+  const recordingRef = useRef(false);
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -43,36 +44,66 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = new Audio();
     audio.preload = "metadata";
     audio.volume = volume;
+    audio.setAttribute("aria-hidden", "true");
+    audio.style.display = "none";
+    document.body.appendChild(audio);
     audioRef.current = audio;
 
     const onTime = () => setCurrentTime(audio.currentTime);
     const onMeta = () => setDuration(audio.duration || 0);
-    const onEnd = () => {
-      setIsPlaying(false);
+    const playedSeconds = () => {
+      let total = 0;
+      for (let i = 0; i < audio.played.length; i += 1) {
+        total += audio.played.end(i) - audio.played.start(i);
+      }
+      return total;
+    };
+    const hasCompletedPlaythrough = () => {
+      const mediaDuration = audio.duration;
+      if (!Number.isFinite(mediaDuration) || mediaDuration <= 0) return false;
+      const reachedEnd = audio.ended || audio.currentTime >= mediaDuration - 0.5;
+      const listenedLongEnough = playedSeconds() >= mediaDuration * 0.95;
+      return reachedEnd && listenedLongEnough;
+    };
+    const recordIfComplete = async () => {
       const t = currentRef.current;
-      if (!t || !UUID_RE.test(t.id)) return;
-      // Only count once per track per session
-      if (recordedRef.current.has(t.id)) return;
-      // Require the track was played to completion
-      if (audio.duration && audio.currentTime < audio.duration - 1.5) return;
-      recordedRef.current.add(t.id);
-      void supabase.rpc("record_track_play", { p_track_id: t.id });
+      if (!t || !UUID_RE.test(t.id) || countedRef.current || recordingRef.current) return;
+      if (!hasCompletedPlaythrough()) return;
+      recordingRef.current = true;
+      const { error } = await supabase.rpc("record_track_play", { p_track_id: t.id });
+      recordingRef.current = false;
+      if (error) {
+        console.error("Failed to record track play", error);
+        return;
+      }
+      countedRef.current = true;
+      window.dispatchEvent(new CustomEvent("soundwave:track-played", { detail: { trackId: t.id } }));
+    };
+    const onTimeWithCompletionCheck = () => {
+      onTime();
+      void recordIfComplete();
+    };
+    const onEnd = () => {
+      setCurrentTime(audio.duration || audio.currentTime);
+      setIsPlaying(false);
+      void recordIfComplete();
     };
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
 
-    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("timeupdate", onTimeWithCompletionCheck);
     audio.addEventListener("loadedmetadata", onMeta);
     audio.addEventListener("ended", onEnd);
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
     return () => {
       audio.pause();
-      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("timeupdate", onTimeWithCompletionCheck);
       audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("ended", onEnd);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
+      audio.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -85,6 +116,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setCurrent(t);
       currentRef.current = t;
       setCurrentTime(0);
+      countedRef.current = false;
+    } else if (audio.ended) {
+      audio.currentTime = 0;
+      setCurrentTime(0);
+      countedRef.current = false;
     }
     audio.play().catch(() => setIsPlaying(false));
   }, [current?.id]);
