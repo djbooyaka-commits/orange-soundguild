@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Track } from "./tracks";
 import cover2 from "@/assets/cover2.jpg";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +43,9 @@ function storagePathFromValue(bucket: string, value: string | null | undefined):
       return decodeURIComponent(pathname.slice(pathname.indexOf(marker) + marker.length));
     }
     if (pathname.includes(publicMarker)) {
-      return decodeURIComponent(pathname.slice(pathname.indexOf(publicMarker) + publicMarker.length));
+      return decodeURIComponent(
+        pathname.slice(pathname.indexOf(publicMarker) + publicMarker.length),
+      );
     }
   } catch {
     // Keep the original value below if URL parsing fails.
@@ -50,7 +60,10 @@ async function getSignedUrl(bucket: string, path: string): Promise<string> {
   return data.signedUrl;
 }
 
-async function resolveMediaUrl(bucket: string, value: string | null | undefined): Promise<string | null> {
+async function resolveMediaUrl(
+  bucket: string,
+  value: string | null | undefined,
+): Promise<string | null> {
   const path = storagePathFromValue(bucket, value);
   if (!path) return null;
   if (path.startsWith("http")) return path;
