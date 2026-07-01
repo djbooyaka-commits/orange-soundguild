@@ -33,6 +33,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const currentRef = useRef<Track | null>(null);
   const countedRef = useRef(false);
   const recordingRef = useRef(false);
+  const queueRef = useRef<Track[]>([]);
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
