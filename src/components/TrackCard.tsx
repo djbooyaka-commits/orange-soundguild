@@ -90,9 +90,6 @@ export function TrackCard({ track, onDelete }: { track: Track; onDelete?: (id: s
               <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
               <span className="tabular-nums">{count}</span>
             </button>
-            <button className="flex items-center gap-1 hover:text-primary" aria-label="Repost">
-              <Repeat2 className="h-3.5 w-3.5" />
-            </button>
             <span>{track.durationLabel}</span>
           </div>
         </div>
