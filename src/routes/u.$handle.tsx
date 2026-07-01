@@ -11,10 +11,11 @@ import { PlaylistsSection } from "@/components/PlaylistsSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFollow } from "@/lib/follows";
+import { useIsAdmin, adminDeleteTrack, setUserBanned } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
-import { Upload, Users, Music2, Pencil, UserCheck, UserPlus } from "lucide-react";
+import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/u/$handle")({
   head: ({ params }) => ({
@@ -30,6 +31,7 @@ type ProfileRow = {
   username: string | null;
   bio: string | null;
   avatar_url: string | null;
+  is_banned?: boolean | null;
 };
 
 const SIGNED_TTL = 60 * 60 * 24 * 365;
@@ -45,11 +47,13 @@ function ProfilePage() {
   const { handle } = Route.useParams();
   const { uploads, removeUpload } = useUploads();
   const { user } = useAuth();
+  const isAdmin = useIsAdmin();
 
   const isMe = handle === CURRENT_USER.handle;
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   // Load profile (own or viewed user) from database
   useEffect(() => {
@@ -65,20 +69,20 @@ function ProfilePage() {
         }
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url")
+          .select("id, username, bio, avatar_url, is_banned")
           .eq("id", user.id)
           .maybeSingle();
         data = res.data ?? null;
       } else {
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url")
+          .select("id, username, bio, avatar_url, is_banned")
           .eq("username", decodeURIComponent(handle))
           .maybeSingle();
         data = res.data ?? null;
       }
       if (cancelled) return;
-      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url } : null);
+      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url, is_banned: data.is_banned } : null);
       setProfileUserId(data?.id ?? null);
       const resolved = await resolveAvatar(data?.avatar_url);
       if (!cancelled) setAvatarUrl(resolved ?? defaultAvatar);
@@ -97,7 +101,29 @@ function ProfilePage() {
 
   const { tracks: artistTracks } = useUserTracks(!isMe ? profileUserId : null);
   const mockArtistTracks = !isMe ? tracks.filter((t) => t.artist.toLowerCase() === displayName.toLowerCase()) : [];
-  const userTracks = isMe ? uploads : [...artistTracks, ...mockArtistTracks];
+  const userTracks = (isMe ? uploads : [...artistTracks, ...mockArtistTracks]).filter((t) => !hidden.has(t.id));
+
+  const handleAdminDelete = async (id: string) => {
+    try {
+      await adminDeleteTrack(id);
+      setHidden((prev) => new Set(prev).add(id));
+      toast.success("Track removed.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleBanToggle = async () => {
+    if (!profileUserId) return;
+    const nextBanned = !profile?.is_banned;
+    try {
+      await setUserBanned(profileUserId, nextBanned);
+      setProfile((p) => (p ? { ...p, is_banned: nextBanned } : p));
+      toast.success(nextBanned ? `${displayName} has been banned.` : `${displayName} has been unbanned.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -155,10 +181,35 @@ function ProfilePage() {
                   </UploadDialog>
                 </>
               ) : (
-                <FollowButton targetUserId={profileUserId} />
+                <>
+                  <FollowButton targetUserId={profileUserId} />
+                  {isAdmin && profileUserId && (
+                    <button
+                      onClick={handleBanToggle}
+                      className={`inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold shadow-sm transition ${
+                        profile?.is_banned
+                          ? "bg-emerald-600 text-white hover:brightness-105"
+                          : "bg-destructive text-destructive-foreground hover:brightness-105"
+                      }`}
+                    >
+                      {profile?.is_banned ? (
+                        <><ShieldCheck className="h-4 w-4" /> Unban</>
+                      ) : (
+                        <><ShieldOff className="h-4 w-4" /> Ban</>
+                      )}
+                    </button>
+                  )}
+                </>
+              )}
+              {isMe && profile?.is_banned && (
+                <span className="inline-flex h-10 items-center gap-2 rounded-full bg-destructive/10 px-3 text-xs font-semibold text-destructive">
+                  Your account is banned
+                </span>
               )}
             </div>
           </div>
+
+
 
 
           {/* Stats */}
@@ -191,7 +242,11 @@ function ProfilePage() {
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {userTracks.map((t) => (
-              <TrackCard key={t.id} track={t} onDelete={isMe ? removeUpload : undefined} />
+              <TrackCard
+                key={t.id}
+                track={t}
+                onDelete={isMe ? removeUpload : isAdmin ? handleAdminDelete : undefined}
+              />
             ))}
           </div>
         )}
