@@ -93,6 +93,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setCurrentTime(audio.duration || audio.currentTime);
       setIsPlaying(false);
       void recordIfComplete();
+      const q = queueRef.current;
+      const cur = currentRef.current;
+      if (q.length && cur) {
+        const idx = q.findIndex((x) => x.id === cur.id);
+        const next = idx >= 0 ? q[idx + 1] : undefined;
+        if (next) {
+          audio.src = next.src;
+          setCurrent(next);
+          currentRef.current = next;
+          setCurrentTime(0);
+          countedRef.current = false;
+          audio.play().catch(() => setIsPlaying(false));
+        }
+      }
     };
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
