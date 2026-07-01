@@ -1,4 +1,4 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle, Repeat } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle } from "lucide-react";
 import { formatTime, usePlayer } from "./PlayerContext";
 import { Waveform } from "./Waveform";
 
