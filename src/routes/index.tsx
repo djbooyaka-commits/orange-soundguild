@@ -6,6 +6,8 @@ import { Comments } from "@/components/Comments";
 import { tracks } from "@/lib/tracks";
 import { useAllTracks } from "@/lib/feed";
 import { usePlayer } from "@/components/player/PlayerContext";
+import { useIsAdmin, adminDeleteTrack } from "@/hooks/useIsAdmin";
+import { toast } from "sonner";
 import { Flame, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -25,13 +27,25 @@ const GENRES = ["All", "Electronic", "Hip Hop", "Lo-fi", "Indie", "Ambient", "Ja
 function Index() {
   const { tracks: uploaded } = useAllTracks();
   const { current } = usePlayer();
+  const isAdmin = useIsAdmin();
   const [genre, setGenre] = useState("All");
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const feed = useMemo(() => {
-    const all = [...uploaded, ...tracks];
+    const all = [...uploaded, ...tracks].filter((t) => !hidden.has(t.id));
     if (genre === "All") return all;
     return all.filter((t) => t.genre.toLowerCase() === genre.toLowerCase());
-  }, [uploaded, genre]);
+  }, [uploaded, genre, hidden]);
+
+  const handleAdminDelete = async (id: string) => {
+    try {
+      await adminDeleteTrack(id);
+      setHidden((prev) => new Set(prev).add(id));
+      toast.success("Track removed.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-28">
