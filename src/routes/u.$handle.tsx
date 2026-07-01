@@ -47,11 +47,13 @@ function ProfilePage() {
   const { handle } = Route.useParams();
   const { uploads, removeUpload } = useUploads();
   const { user } = useAuth();
+  const isAdmin = useIsAdmin();
 
   const isMe = handle === CURRENT_USER.handle;
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   // Load profile (own or viewed user) from database
   useEffect(() => {
@@ -67,20 +69,20 @@ function ProfilePage() {
         }
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url")
+          .select("id, username, bio, avatar_url, is_banned")
           .eq("id", user.id)
           .maybeSingle();
         data = res.data ?? null;
       } else {
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url")
+          .select("id, username, bio, avatar_url, is_banned")
           .eq("username", decodeURIComponent(handle))
           .maybeSingle();
         data = res.data ?? null;
       }
       if (cancelled) return;
-      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url } : null);
+      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url, is_banned: data.is_banned } : null);
       setProfileUserId(data?.id ?? null);
       const resolved = await resolveAvatar(data?.avatar_url);
       if (!cancelled) setAvatarUrl(resolved ?? defaultAvatar);
@@ -99,7 +101,29 @@ function ProfilePage() {
 
   const { tracks: artistTracks } = useUserTracks(!isMe ? profileUserId : null);
   const mockArtistTracks = !isMe ? tracks.filter((t) => t.artist.toLowerCase() === displayName.toLowerCase()) : [];
-  const userTracks = isMe ? uploads : [...artistTracks, ...mockArtistTracks];
+  const userTracks = (isMe ? uploads : [...artistTracks, ...mockArtistTracks]).filter((t) => !hidden.has(t.id));
+
+  const handleAdminDelete = async (id: string) => {
+    try {
+      await adminDeleteTrack(id);
+      setHidden((prev) => new Set(prev).add(id));
+      toast.success("Track removed.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleBanToggle = async () => {
+    if (!profileUserId) return;
+    const nextBanned = !profile?.is_banned;
+    try {
+      await setUserBanned(profileUserId, nextBanned);
+      setProfile((p) => (p ? { ...p, is_banned: nextBanned } : p));
+      toast.success(nextBanned ? `${displayName} has been banned.` : `${displayName} has been unbanned.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-28">
