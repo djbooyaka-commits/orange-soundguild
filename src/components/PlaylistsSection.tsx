@@ -21,9 +21,24 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
     <div className="space-y-4">
       {playlists.map((pl) => {
         const open = openId === pl.id;
+        const plActive = pl.tracks.some((t) => t.id === current?.id);
+        const plPlaying = plActive && isPlaying;
         return (
           <div key={pl.id} className="overflow-hidden rounded-xl border border-border bg-card">
             <div className="flex items-center justify-between gap-3 p-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (pl.tracks.length === 0) return;
+                  if (plActive) toggle();
+                  else play(pl.tracks[0], pl.tracks);
+                }}
+                aria-label={plPlaying ? "Pause playlist" : "Play playlist"}
+                disabled={pl.tracks.length === 0}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow disabled:opacity-40"
+              >
+                {plPlaying ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
+              </button>
               <button
                 onClick={() => setOpenId(open ? null : pl.id)}
                 className="flex flex-1 items-center gap-3 text-left"
