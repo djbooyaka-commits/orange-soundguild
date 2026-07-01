@@ -60,7 +60,7 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                     return (
                       <li key={t.id} className="flex items-center gap-3 px-4 py-2">
                         <button
-                          onClick={() => (active ? toggle() : play(t))}
+                          onClick={() => (active ? toggle() : play(t, pl.tracks))}
                           aria-label={playing ? "Pause" : "Play"}
                           className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground"
                         >

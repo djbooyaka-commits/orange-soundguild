@@ -20,7 +20,7 @@ type PlayerState = {
   duration: number;
   currentTime: number;
   volume: number;
-  play: (t: Track) => void;
+  play: (t: Track, queue?: Track[]) => void;
   toggle: () => void;
   seek: (ratio: number) => void;
   setVolume: (v: number) => void;
@@ -33,6 +33,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const currentRef = useRef<Track | null>(null);
   const countedRef = useRef(false);
   const recordingRef = useRef(false);
+  const queueRef = useRef<Track[]>([]);
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -92,6 +93,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setCurrentTime(audio.duration || audio.currentTime);
       setIsPlaying(false);
       void recordIfComplete();
+      const q = queueRef.current;
+      const cur = currentRef.current;
+      if (q.length && cur) {
+        const idx = q.findIndex((x) => x.id === cur.id);
+        const next = idx >= 0 ? q[idx + 1] : undefined;
+        if (next) {
+          audio.src = next.src;
+          setCurrent(next);
+          currentRef.current = next;
+          setCurrentTime(0);
+          countedRef.current = false;
+          audio.play().catch(() => setIsPlaying(false));
+        }
+      }
     };
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
@@ -114,9 +129,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const play = useCallback(
-    (t: Track) => {
+    (t: Track, queue?: Track[]) => {
       const audio = audioRef.current;
       if (!audio) return;
+      if (queue && queue.length) {
+        queueRef.current = queue;
+      } else if (!queueRef.current.some((x) => x.id === t.id)) {
+        queueRef.current = [t];
+      }
       if (current?.id !== t.id) {
         audio.src = t.src;
         setCurrent(t);
