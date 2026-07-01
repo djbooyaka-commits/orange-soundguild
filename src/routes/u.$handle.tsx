@@ -206,7 +206,10 @@ function ProfilePage() {
                   Your account is banned
                 </span>
               )}
+            </div>
           </div>
+
+
 
 
           {/* Stats */}
