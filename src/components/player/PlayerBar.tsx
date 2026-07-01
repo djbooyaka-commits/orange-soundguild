@@ -1,4 +1,4 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle, Repeat } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle } from "lucide-react";
 import { formatTime, usePlayer } from "./PlayerContext";
 import { Waveform } from "./Waveform";
 
@@ -55,9 +55,6 @@ export function PlayerBar() {
           </button>
           <button className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10" aria-label="Next">
             <SkipForward className="h-4 w-4" />
-          </button>
-          <button className="hidden h-9 w-9 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white md:flex" aria-label="Repeat">
-            <Repeat className="h-4 w-4" />
           </button>
         </div>
 
