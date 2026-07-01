@@ -129,9 +129,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const play = useCallback(
-    (t: Track) => {
+    (t: Track, queue?: Track[]) => {
       const audio = audioRef.current;
       if (!audio) return;
+      if (queue && queue.length) {
+        queueRef.current = queue;
+      } else if (!queueRef.current.some((x) => x.id === t.id)) {
+        queueRef.current = [t];
+      }
       if (current?.id !== t.id) {
         audio.src = t.src;
         setCurrent(t);
