@@ -1,4 +1,4 @@
-import { Play, Pause, Heart, Repeat2, Trash2 } from "lucide-react";
+import { Play, Pause, Heart, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { usePlayer } from "./player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
