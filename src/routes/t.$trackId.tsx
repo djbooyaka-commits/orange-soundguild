@@ -101,6 +101,7 @@ function TrackPage() {
                 <Heart className={`h-4 w-4 ${like.liked ? "fill-current" : ""}`} />
                 {like.count}
               </button>
+              <AddToPlaylistMenu trackId={track.id} trackTitle={track.title} variant="inline" />
             </div>
           </div>
         </section>
