@@ -69,20 +69,25 @@ function ProfilePage() {
         }
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url, is_banned")
+          .select("id, username, bio, avatar_url")
           .eq("id", user.id)
           .maybeSingle();
-        data = res.data ?? null;
+        data = res.data ? { ...res.data, is_banned: null } : null;
       } else {
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url, is_banned")
+          .select("id, username, bio, avatar_url")
           .eq("username", decodeURIComponent(handle))
           .maybeSingle();
-        data = res.data ?? null;
+        data = res.data ? { ...res.data, is_banned: null } : null;
       }
       if (cancelled) return;
-      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url, is_banned: data.is_banned } : null);
+      let banned: boolean | null = null;
+      if (data?.id) {
+        const { data: b } = await supabase.rpc("is_banned", { _user_id: data.id });
+        banned = !!b;
+      }
+      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url, is_banned: banned } : null);
       setProfileUserId(data?.id ?? null);
       const resolved = await resolveAvatar(data?.avatar_url);
       if (!cancelled) setAvatarUrl(resolved ?? defaultAvatar);
