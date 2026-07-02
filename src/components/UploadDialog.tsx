@@ -14,7 +14,7 @@ import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-const GENRES = ["Electronic", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other"];
+const GENRES = ["Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other"];
 
 export function UploadDialog({ children }: { children: React.ReactNode }) {
   const { addUpload } = useUploads();

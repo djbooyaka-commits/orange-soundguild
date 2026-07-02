@@ -250,6 +250,7 @@ function ProfilePage() {
               <TrackCard
                 key={t.id}
                 track={t}
+                canEdit={isMe}
                 onDelete={isMe ? removeUpload : isAdmin ? handleAdminDelete : undefined}
               />
             ))}

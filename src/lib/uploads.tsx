@@ -19,10 +19,12 @@ export const CURRENT_USER = {
 };
 
 type UploadArgs = { title: string; genre: string; file: File; coverFile?: File | null };
+type UpdateArgs = { id: string; title: string; genre: string; coverFile?: File | null };
 
 type UploadsState = {
   uploads: Track[];
   addUpload: (data: UploadArgs) => Promise<Track>;
+  updateUpload: (data: UpdateArgs) => Promise<void>;
   removeUpload: (id: string) => Promise<void>;
 };
 
@@ -240,9 +242,60 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
     [uploads],
   );
 
+  const updateUpload = useCallback(
+    async ({ id, title, genre, coverFile }: UpdateArgs) => {
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user) throw new Error("You need to be signed in.");
+      const userId = userData.user.id;
+
+      const { data: row, error: fetchErr } = await supabase
+        .from("tracks")
+        .select("cover_art_url")
+        .eq("id", id)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+
+      let newCoverPath: string | null | undefined = undefined;
+      if (coverFile) {
+        const stamp = Date.now();
+        const safe = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${userId}/${stamp}-${safe}`;
+        const { error: upErr } = await supabase.storage
+          .from("covers")
+          .upload(path, coverFile, { contentType: coverFile.type, upsert: false });
+        if (upErr) throw upErr;
+        newCoverPath = path;
+      }
+
+      const patch: { title: string; genre: string; cover_art_url?: string } = { title, genre };
+      if (newCoverPath) patch.cover_art_url = newCoverPath;
+
+      const { error: updErr } = await supabase.from("tracks").update(patch).eq("id", id);
+      if (updErr) throw updErr;
+
+      // Remove old cover file if replaced
+      if (newCoverPath && row?.cover_art_url) {
+        const oldPath = storagePathFromValue("covers", row.cover_art_url);
+        if (oldPath && !oldPath.startsWith("http")) {
+          await supabase.storage.from("covers").remove([oldPath]);
+        }
+      }
+
+      const newCoverUrl = newCoverPath ? await getSignedUrl("covers", newCoverPath) : null;
+      setUploads((prev) =>
+        prev.map((t) =>
+          t.id === id
+            ? { ...t, title, genre, cover: newCoverUrl ?? t.cover }
+            : t,
+        ),
+      );
+    },
+    [],
+  );
+
   const value = useMemo(
-    () => ({ uploads, addUpload, removeUpload }),
-    [uploads, addUpload, removeUpload],
+    () => ({ uploads, addUpload, updateUpload, removeUpload }),
+    [uploads, addUpload, updateUpload, removeUpload],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

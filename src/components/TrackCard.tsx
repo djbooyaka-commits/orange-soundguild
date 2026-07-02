@@ -1,11 +1,12 @@
-import { Play, Pause, Heart, Trash2 } from "lucide-react";
+import { Play, Pause, Heart, Trash2, Pencil } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { usePlayer } from "./player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import type { Track } from "@/lib/tracks";
 import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
+import { EditTrackDialog } from "./EditTrackDialog";
 
-export function TrackCard({ track, onDelete }: { track: Track; onDelete?: (id: string) => void | Promise<void> }) {
+export function TrackCard({ track, onDelete, canEdit }: { track: Track; onDelete?: (id: string) => void | Promise<void>; canEdit?: boolean }) {
   const { current, isPlaying, play, toggle } = usePlayer();
   const navigate = useNavigate();
   const active = current?.id === track.id;
@@ -49,14 +50,29 @@ export function TrackCard({ track, onDelete }: { track: Track; onDelete?: (id: s
           {track.genre}
         </span>
         <AddToPlaylistMenu trackId={track.id} trackTitle={track.title} />
-        {onDelete && (
-          <button
-            onClick={handleDelete}
-            aria-label="Delete track"
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/85 text-foreground backdrop-blur transition hover:bg-destructive hover:text-destructive-foreground"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+        {(onDelete || canEdit) && (
+          <div className="absolute right-3 top-3 flex items-center gap-1.5">
+            {canEdit && (
+              <EditTrackDialog track={track}>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Edit track"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-background/85 text-foreground backdrop-blur transition hover:bg-primary hover:text-primary-foreground"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              </EditTrackDialog>
+            )}
+            {onDelete && (
+              <button
+                onClick={handleDelete}
+                aria-label="Delete track"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-background/85 text-foreground backdrop-blur transition hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
