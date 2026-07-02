@@ -124,8 +124,6 @@ function Index() {
           )}
         </section>
 
-        {/* Comments on the currently playing track */}
-        {current && <Comments key={current.id} trackId={current.id} title={current.title} />}
       </main>
     </div>
   );
