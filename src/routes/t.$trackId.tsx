@@ -7,6 +7,7 @@ import { tracks as sampleTracks } from "@/lib/tracks";
 import { useAllTracks } from "@/lib/feed";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
+import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
 
 export const Route = createFileRoute("/t/$trackId")({
   component: TrackPage,
