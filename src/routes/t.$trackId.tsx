@@ -7,6 +7,7 @@ import { tracks as sampleTracks } from "@/lib/tracks";
 import { useAllTracks } from "@/lib/feed";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
+import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
 
 export const Route = createFileRoute("/t/$trackId")({
   component: TrackPage,
@@ -100,6 +101,7 @@ function TrackPage() {
                 <Heart className={`h-4 w-4 ${like.liked ? "fill-current" : ""}`} />
                 {like.count}
               </button>
+              <AddToPlaylistMenu trackId={track.id} trackTitle={track.title} variant="inline" />
             </div>
           </div>
         </section>

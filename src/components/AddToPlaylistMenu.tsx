@@ -12,12 +12,26 @@ import { useMyPlaylists } from "@/lib/playlists";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-export function AddToPlaylistMenu({ trackId, trackTitle }: { trackId: string; trackTitle: string }) {
+export function AddToPlaylistMenu({
+  trackId,
+  trackTitle,
+  variant = "overlay",
+}: {
+  trackId: string;
+  trackTitle: string;
+  variant?: "overlay" | "inline";
+}) {
   const { user } = useAuth();
   const { playlists, create, addTrack } = useMyPlaylists();
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+
+  const overlayClass =
+    "absolute right-12 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/85 text-foreground backdrop-blur transition hover:bg-primary hover:text-primary-foreground";
+  const inlineClass =
+    "inline-flex h-12 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium text-foreground transition hover:border-primary/40";
+  const triggerClass = variant === "inline" ? inlineClass : overlayClass;
 
   const handleAdd = async (playlistId: string, playlistName: string) => {
     try {
@@ -56,9 +70,10 @@ export function AddToPlaylistMenu({ trackId, trackTitle }: { trackId: string; tr
           toast.message("Sign in to create playlists.");
         }}
         aria-label="Add to playlist"
-        className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/85 text-foreground backdrop-blur transition hover:bg-primary hover:text-primary-foreground"
+        className={triggerClass}
       >
         <ListPlus className="h-4 w-4" />
+        {variant === "inline" && <span>Add to playlist</span>}
       </button>
     );
   }
@@ -69,9 +84,10 @@ export function AddToPlaylistMenu({ trackId, trackTitle }: { trackId: string; tr
         <button
           onClick={(e) => e.stopPropagation()}
           aria-label="Add to playlist"
-          className="absolute right-12 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/85 text-foreground backdrop-blur transition hover:bg-primary hover:text-primary-foreground"
+          className={triggerClass}
         >
           <ListPlus className="h-4 w-4" />
+          {variant === "inline" && <span>Add to playlist</span>}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
