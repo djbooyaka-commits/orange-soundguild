@@ -24,7 +24,6 @@ const GENRES = ["All", "Electronic", "Hip Hop", "Lo-fi", "Indie", "Ambient", "Ja
 
 function Index() {
   const { tracks: uploaded } = useAllTracks();
-  const { current } = usePlayer();
   const isAdmin = useIsAdmin();
   const [genre, setGenre] = useState("All");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
