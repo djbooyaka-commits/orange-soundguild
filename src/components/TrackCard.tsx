@@ -1,11 +1,12 @@
-import { Play, Pause, Heart, Trash2 } from "lucide-react";
+import { Play, Pause, Heart, Trash2, Pencil } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { usePlayer } from "./player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import type { Track } from "@/lib/tracks";
 import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
+import { EditTrackDialog } from "./EditTrackDialog";
 
-export function TrackCard({ track, onDelete }: { track: Track; onDelete?: (id: string) => void | Promise<void> }) {
+export function TrackCard({ track, onDelete, canEdit }: { track: Track; onDelete?: (id: string) => void | Promise<void>; canEdit?: boolean }) {
   const { current, isPlaying, play, toggle } = usePlayer();
   const navigate = useNavigate();
   const active = current?.id === track.id;
