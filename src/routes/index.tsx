@@ -2,10 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
-import { Comments } from "@/components/Comments";
 import { tracks } from "@/lib/tracks";
 import { useAllTracks } from "@/lib/feed";
-import { usePlayer } from "@/components/player/PlayerContext";
 import { useIsAdmin, adminDeleteTrack } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
 import { Flame, TrendingUp } from "lucide-react";
@@ -26,7 +24,6 @@ const GENRES = ["All", "Electronic", "Hip Hop", "Lo-fi", "Indie", "Ambient", "Ja
 
 function Index() {
   const { tracks: uploaded } = useAllTracks();
-  const { current } = usePlayer();
   const isAdmin = useIsAdmin();
   const [genre, setGenre] = useState("All");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
@@ -127,8 +124,6 @@ function Index() {
           )}
         </section>
 
-        {/* Comments on the currently playing track */}
-        {current && <Comments key={current.id} trackId={current.id} title={current.title} />}
       </main>
     </div>
   );

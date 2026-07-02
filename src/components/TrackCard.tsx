@@ -1,5 +1,5 @@
 import { Play, Pause, Heart, Trash2 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { usePlayer } from "./player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import type { Track } from "@/lib/tracks";
@@ -7,6 +7,7 @@ import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
 
 export function TrackCard({ track, onDelete }: { track: Track; onDelete?: (id: string) => void | Promise<void> }) {
   const { current, isPlaying, play, toggle } = usePlayer();
+  const navigate = useNavigate();
   const active = current?.id === track.id;
   const playing = active && isPlaying;
   const { liked, count, toggle: toggleLike } = useTrackLike(track.id);
@@ -14,6 +15,7 @@ export function TrackCard({ track, onDelete }: { track: Track; onDelete?: (id: s
   const onClick = () => {
     if (active) toggle();
     else play(track);
+    navigate({ to: "/t/$trackId", params: { trackId: track.id } });
   };
 
   const handleDelete = async (e: React.MouseEvent) => {

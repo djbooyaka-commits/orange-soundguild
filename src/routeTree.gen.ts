@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
+import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -28,34 +29,43 @@ const UHandleRoute = UHandleRouteImport.update({
   path: '/u/$handle',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TTrackIdRoute = TTrackIdRouteImport.update({
+  id: '/t/$trackId',
+  path: '/t/$trackId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/u/$handle'
+  fullPaths: '/' | '/auth' | '/t/$trackId' | '/u/$handle'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/u/$handle'
-  id: '__root__' | '/' | '/auth' | '/u/$handle'
+  to: '/' | '/auth' | '/t/$trackId' | '/u/$handle'
+  id: '__root__' | '/' | '/auth' | '/t/$trackId' | '/u/$handle'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  TTrackIdRoute: typeof TTrackIdRoute
   UHandleRoute: typeof UHandleRoute
 }
 
@@ -82,12 +92,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UHandleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/t/$trackId': {
+      id: '/t/$trackId'
+      path: '/t/$trackId'
+      fullPath: '/t/$trackId'
+      preLoaderRoute: typeof TTrackIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  TTrackIdRoute: TTrackIdRoute,
   UHandleRoute: UHandleRoute,
 }
 export const routeTree = rootRouteImport
