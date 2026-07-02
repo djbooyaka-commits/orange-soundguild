@@ -19,10 +19,12 @@ export const CURRENT_USER = {
 };
 
 type UploadArgs = { title: string; genre: string; file: File; coverFile?: File | null };
+type UpdateArgs = { id: string; title: string; genre: string; coverFile?: File | null };
 
 type UploadsState = {
   uploads: Track[];
   addUpload: (data: UploadArgs) => Promise<Track>;
+  updateUpload: (data: UpdateArgs) => Promise<void>;
   removeUpload: (id: string) => Promise<void>;
 };
 
