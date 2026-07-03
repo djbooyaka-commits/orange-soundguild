@@ -11,6 +11,7 @@ import type { Track } from "./tracks";
 import cover2 from "@/assets/cover2.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { signOne, signMany } from "./signMedia";
 
 export const CURRENT_USER = {
   handle: "me",
@@ -29,8 +30,6 @@ type UploadsState = {
 };
 
 const Ctx = createContext<UploadsState | null>(null);
-
-const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
 
 function storagePathFromValue(bucket: string, value: string | null | undefined): string | null {
   if (!value) return null;
