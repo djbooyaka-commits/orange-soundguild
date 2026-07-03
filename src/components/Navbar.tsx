@@ -20,6 +20,9 @@ export function Navbar() {
           <Link to="/" className="rounded-md px-3 py-1.5 font-medium text-foreground hover:bg-muted" activeOptions={{ exact: true }}>
             Home
           </Link>
+          <Link to="/top100" className="rounded-md px-3 py-1.5 hover:bg-muted">
+            Top 100
+          </Link>
           <Link
             to="/u/$handle"
             params={{ handle: CURRENT_USER.handle }}
