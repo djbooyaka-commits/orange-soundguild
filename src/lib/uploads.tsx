@@ -272,7 +272,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const newCoverUrl = newCoverPath ? await getSignedUrl("covers", newCoverPath) : null;
+      const newCoverUrl = newCoverPath ? await signOne("covers", newCoverPath) : null;
       setUploads((prev) =>
         prev.map((t) =>
           t.id === id
