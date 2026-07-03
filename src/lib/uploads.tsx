@@ -55,20 +55,12 @@ function storagePathFromValue(bucket: string, value: string | null | undefined):
   return value;
 }
 
-async function getSignedUrl(bucket: string, path: string): Promise<string> {
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, SIGNED_URL_TTL);
-  if (error || !data) throw error ?? new Error("Failed to sign URL");
-  return data.signedUrl;
-}
-
 async function resolveMediaUrl(
-  bucket: string,
+  bucket: "audio" | "covers",
   value: string | null | undefined,
 ): Promise<string | null> {
   const path = storagePathFromValue(bucket, value);
-  if (!path) return null;
-  if (path.startsWith("http")) return path;
-  return getSignedUrl(bucket, path);
+  return signOne(bucket, path);
 }
 
 function timeAgo(iso: string) {
