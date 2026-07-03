@@ -11,6 +11,7 @@ import type { Track } from "./tracks";
 import cover2 from "@/assets/cover2.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { signOne, signMany } from "./signMedia";
 
 export const CURRENT_USER = {
   handle: "me",
@@ -29,8 +30,6 @@ type UploadsState = {
 };
 
 const Ctx = createContext<UploadsState | null>(null);
-
-const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
 
 function storagePathFromValue(bucket: string, value: string | null | undefined): string | null {
   if (!value) return null;
@@ -56,20 +55,12 @@ function storagePathFromValue(bucket: string, value: string | null | undefined):
   return value;
 }
 
-async function getSignedUrl(bucket: string, path: string): Promise<string> {
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, SIGNED_URL_TTL);
-  if (error || !data) throw error ?? new Error("Failed to sign URL");
-  return data.signedUrl;
-}
-
 async function resolveMediaUrl(
-  bucket: string,
+  bucket: "audio" | "covers",
   value: string | null | undefined,
 ): Promise<string | null> {
   const path = storagePathFromValue(bucket, value);
-  if (!path) return null;
-  if (path.startsWith("http")) return path;
-  return getSignedUrl(bucket, path);
+  return signOne(bucket, path);
 }
 
 function timeAgo(iso: string) {
@@ -193,8 +184,8 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         .single();
       if (dbErr) throw dbErr;
 
-      const audioUrl = await getSignedUrl("audio", audioPath);
-      const coverUrl = coverPath ? await getSignedUrl("covers", coverPath) : null;
+      const audioUrl = (await signOne("audio", audioPath)) ?? "";
+      const coverUrl = coverPath ? await signOne("covers", coverPath) : null;
 
       const track: Track = {
         id: row.id,
@@ -281,7 +272,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const newCoverUrl = newCoverPath ? await getSignedUrl("covers", newCoverPath) : null;
+      const newCoverUrl = newCoverPath ? await signOne("covers", newCoverPath) : null;
       setUploads((prev) =>
         prev.map((t) =>
           t.id === id
