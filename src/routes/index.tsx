@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
-import { tracks } from "@/lib/tracks";
 import { useAllTracks } from "@/lib/feed";
 import { useIsAdmin, adminDeleteTrack } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
@@ -29,7 +28,7 @@ function Index() {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const feed = useMemo(() => {
-    const all = [...uploaded, ...tracks].filter((t) => !hidden.has(t.id));
+    const all = uploaded.filter((t) => !hidden.has(t.id));
     if (genre === "All") return all;
     return all.filter((t) => t.genre.toLowerCase() === genre.toLowerCase());
   }, [uploaded, genre, hidden]);

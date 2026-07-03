@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import { Play, Pause, Heart, ArrowLeft } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Comments } from "@/components/Comments";
-import { tracks as sampleTracks } from "@/lib/tracks";
 import { useAllTracks } from "@/lib/feed";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
@@ -20,7 +19,7 @@ function TrackPage() {
   const navigate = useNavigate();
 
   const track = useMemo(
-    () => [...uploaded, ...sampleTracks].find((t) => t.id === trackId),
+    () => uploaded.find((t) => t.id === trackId),
     [uploaded, trackId],
   );
 

@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
-import { tracks } from "@/lib/tracks";
 import { useUserTracks } from "@/lib/feed";
 import { CURRENT_USER, useUploads } from "@/lib/uploads";
 import { UploadDialog } from "@/components/UploadDialog";
@@ -105,8 +104,7 @@ function ProfilePage() {
     : profile?.bio?.trim() || "Artist on soundwave.";
 
   const { tracks: artistTracks } = useUserTracks(!isMe ? profileUserId : null);
-  const mockArtistTracks = !isMe ? tracks.filter((t) => t.artist.toLowerCase() === displayName.toLowerCase()) : [];
-  const userTracks = (isMe ? uploads : [...artistTracks, ...mockArtistTracks]).filter((t) => !hidden.has(t.id));
+  const userTracks = (isMe ? uploads : artistTracks).filter((t) => !hidden.has(t.id));
 
   const handleAdminDelete = async (id: string) => {
     try {
