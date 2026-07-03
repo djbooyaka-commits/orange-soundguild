@@ -184,8 +184,8 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         .single();
       if (dbErr) throw dbErr;
 
-      const audioUrl = await getSignedUrl("audio", audioPath);
-      const coverUrl = coverPath ? await getSignedUrl("covers", coverPath) : null;
+      const audioUrl = (await signOne("audio", audioPath)) ?? "";
+      const coverUrl = coverPath ? await signOne("covers", coverPath) : null;
 
       const track: Track = {
         id: row.id,
