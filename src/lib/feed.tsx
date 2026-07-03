@@ -2,15 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Track } from "./tracks";
 import cover2 from "@/assets/cover2.jpg";
-
-const SIGNED_TTL = 60 * 60 * 24 * 365;
-
-async function signed(bucket: string, path: string | null): Promise<string | null> {
-  if (!path) return null;
-  if (path.startsWith("http")) return path;
-  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, SIGNED_TTL);
-  return data?.signedUrl ?? null;
-}
+import { signMany } from "./signMedia";
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -36,25 +28,23 @@ type Row = {
 };
 
 async function hydrate(rows: Row[]): Promise<Track[]> {
-  return Promise.all(
-    rows.map(async (row) => {
-      const src = (await signed("audio", row.audio_url)) ?? "";
-      const cover = row.cover_art_url
-        ? ((await signed("covers", row.cover_art_url)) ?? cover2)
-        : cover2;
-      return {
-        id: row.id,
-        title: row.title,
-        artist: row.profiles?.username ?? "Artist",
-        cover,
-        src,
-        durationLabel: "—:—",
-        uploadedAt: timeAgo(row.created_at),
-        plays: row.plays_count ?? 0,
-        genre: row.genre,
-      } as Track;
-    }),
-  );
+  const items: { bucket: "audio" | "covers"; path: string | null | undefined }[] = [];
+  rows.forEach((row) => {
+    items.push({ bucket: "audio", path: row.audio_url });
+    items.push({ bucket: "covers", path: row.cover_art_url });
+  });
+  const urls = await signMany(items);
+  return rows.map((row, i) => ({
+    id: row.id,
+    title: row.title,
+    artist: row.profiles?.username ?? "Artist",
+    cover: urls[i * 2 + 1] ?? cover2,
+    src: urls[i * 2] ?? "",
+    durationLabel: "—:—",
+    uploadedAt: timeAgo(row.created_at),
+    plays: row.plays_count ?? 0,
+    genre: row.genre,
+  }));
 }
 
 function incrementTrackPlays(tracks: Track[], trackId: string) {
