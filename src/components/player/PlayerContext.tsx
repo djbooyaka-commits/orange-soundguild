@@ -119,17 +119,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       void recordIfComplete();
       const q = queueRef.current;
       const cur = currentRef.current;
-      if (q.length && cur) {
-        const idx = q.findIndex((x) => x.id === cur.id);
-        const next = idx >= 0 ? q[idx + 1] : undefined;
-        if (next) {
-          audio.src = next.src;
-          setCurrent(next);
-          currentRef.current = next;
-          setCurrentTime(0);
-          countedRef.current = false;
-          audio.play().catch(() => setIsPlaying(false));
-        }
+      const nxt = pickNext(q, cur?.id);
+      if (nxt) {
+        audio.src = nxt.src;
+        setCurrent(nxt);
+        currentRef.current = nxt;
+        setCurrentTime(0);
+        countedRef.current = false;
+        audio.play().catch(() => setIsPlaying(false));
       }
     };
     const onPlay = () => setIsPlaying(true);
