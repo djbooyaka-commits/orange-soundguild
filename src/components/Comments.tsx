@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
+import { signMany, signOne } from "@/lib/signMedia";
 
 type CommentRow = {
   id: string;
@@ -43,9 +44,14 @@ export function Comments({ trackId, title }: { trackId: string; title: string })
           .select("id, username, avatar_url")
           .in("id", ids);
         if (cancelled) return;
+        const rows2 = pData ?? [];
+        const signed = await signMany(
+          rows2.map((p) => ({ bucket: "avatars" as const, path: p.avatar_url })),
+        );
+        if (cancelled) return;
         const map: Record<string, Profile> = {};
-        (pData ?? []).forEach((p) => {
-          map[p.id] = { username: p.username, avatar_url: p.avatar_url };
+        rows2.forEach((p, i) => {
+          map[p.id] = { username: p.username, avatar_url: signed[i] };
         });
         setProfiles((prev) => ({ ...prev, ...map }));
       }
@@ -82,7 +88,10 @@ export function Comments({ trackId, title }: { trackId: string; title: string })
         .select("username, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
-      if (p) setProfiles((prev) => ({ ...prev, [user.id]: p }));
+      if (p) {
+        const url = await signOne("avatars", p.avatar_url);
+        setProfiles((prev) => ({ ...prev, [user.id]: { username: p.username, avatar_url: url } }));
+      }
     }
   };
 
