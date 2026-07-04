@@ -203,7 +203,7 @@ export function usePlaylistsForUser(userId: string | null) {
       // Two-step swap to avoid unique(playlist_id, position) collision
       await supabase
         .from("playlist_tracks")
-        .update({ position: -1 })
+        .update({ position: swapIdx })
         .eq("playlist_id", playlistId)
         .eq("track_id", a.id);
       await supabase
@@ -211,11 +211,6 @@ export function usePlaylistsForUser(userId: string | null) {
         .update({ position: idx })
         .eq("playlist_id", playlistId)
         .eq("track_id", b.id);
-      await supabase
-        .from("playlist_tracks")
-        .update({ position: swapIdx })
-        .eq("playlist_id", playlistId)
-        .eq("track_id", a.id);
       refresh();
     },
     [data, refresh]
