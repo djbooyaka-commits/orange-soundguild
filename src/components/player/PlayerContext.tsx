@@ -38,11 +38,31 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const countedRef = useRef(false);
   const recordingRef = useRef(false);
   const queueRef = useRef<Track[]>([]);
+  const shuffleRef = useRef(false);
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.8);
+  const [shuffle, setShuffle] = useState(false);
+
+  const pickNext = useCallback((q: Track[], curId: string | undefined): Track | undefined => {
+    if (!q.length) return undefined;
+    if (shuffleRef.current) {
+      if (q.length === 1) return q[0];
+      const others = q.filter((t) => t.id !== curId);
+      return others[Math.floor(Math.random() * others.length)];
+    }
+    const idx = q.findIndex((x) => x.id === curId);
+    return idx >= 0 ? q[idx + 1] : undefined;
+  }, []);
+
+  const pickPrev = useCallback((q: Track[], curId: string | undefined): Track | undefined => {
+    if (!q.length) return undefined;
+    if (shuffleRef.current) return pickNext(q, curId);
+    const idx = q.findIndex((x) => x.id === curId);
+    return idx > 0 ? q[idx - 1] : undefined;
+  }, [pickNext]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
