@@ -203,6 +203,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setVolumeState(v);
   }, []);
 
+  const toggleShuffle = useCallback(() => {
+    setShuffle((s) => {
+      shuffleRef.current = !s;
+      return !s;
+    });
+  }, []);
+
+  const jumpTo = useCallback((t: Track | undefined) => {
+    if (!t) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.src = t.src;
+    setCurrent(t);
+    currentRef.current = t;
+    setCurrentTime(0);
+    countedRef.current = false;
+    audio.play().catch(() => setIsPlaying(false));
+  }, []);
+
+  const next = useCallback(() => {
+    jumpTo(pickNext(queueRef.current, currentRef.current?.id));
+  }, [jumpTo, pickNext]);
+
+  const prev = useCallback(() => {
+    jumpTo(pickPrev(queueRef.current, currentRef.current?.id));
+  }, [jumpTo, pickPrev]);
+
   const value = useMemo<PlayerState>(
     () => ({
       current,
@@ -211,12 +238,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       duration,
       progress: duration ? currentTime / duration : 0,
       volume,
+      shuffle,
       play,
       toggle,
       seek,
       setVolume,
+      toggleShuffle,
+      next,
+      prev,
     }),
-    [current, isPlaying, currentTime, duration, volume, play, toggle, seek, setVolume],
+    [current, isPlaying, currentTime, duration, volume, shuffle, play, toggle, seek, setVolume, toggleShuffle, next, prev],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
