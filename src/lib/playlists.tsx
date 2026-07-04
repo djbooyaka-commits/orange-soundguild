@@ -180,5 +180,46 @@ export function usePlaylistsForUser(userId: string | null) {
     refresh();
   }, [refresh]);
 
-  return { playlists: data, refresh, removeTrack, deletePlaylist };
+  const createPlaylist = useCallback(
+    async (name: string) => {
+      if (!userId) throw new Error("Sign in to create a playlist.");
+      const { error } = await supabase.from("playlists").insert({ user_id: userId, name });
+      if (error) throw error;
+      refresh();
+    },
+    [userId, refresh]
+  );
+
+  const moveTrack = useCallback(
+    async (playlistId: string, trackId: string, direction: "up" | "down") => {
+      const pl = data.find((p) => p.id === playlistId);
+      if (!pl) return;
+      const idx = pl.tracks.findIndex((t) => t.id === trackId);
+      if (idx < 0) return;
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= pl.tracks.length) return;
+      const a = pl.tracks[idx];
+      const b = pl.tracks[swapIdx];
+      // Two-step swap to avoid unique(playlist_id, position) collision
+      await supabase
+        .from("playlist_tracks")
+        .update({ position: -1 })
+        .eq("playlist_id", playlistId)
+        .eq("track_id", a.id);
+      await supabase
+        .from("playlist_tracks")
+        .update({ position: idx })
+        .eq("playlist_id", playlistId)
+        .eq("track_id", b.id);
+      await supabase
+        .from("playlist_tracks")
+        .update({ position: swapIdx })
+        .eq("playlist_id", playlistId)
+        .eq("track_id", a.id);
+      refresh();
+    },
+    [data, refresh]
+  );
+
+  return { playlists: data, refresh, removeTrack, deletePlaylist, createPlaylist, moveTrack };
 }
