@@ -20,10 +20,14 @@ type PlayerState = {
   duration: number;
   currentTime: number;
   volume: number;
+  shuffle: boolean;
   play: (t: Track, queue?: Track[]) => void;
   toggle: () => void;
   seek: (ratio: number) => void;
   setVolume: (v: number) => void;
+  toggleShuffle: () => void;
+  next: () => void;
+  prev: () => void;
 };
 
 const Ctx = createContext<PlayerState | null>(null);
