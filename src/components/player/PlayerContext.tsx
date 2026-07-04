@@ -20,10 +20,14 @@ type PlayerState = {
   duration: number;
   currentTime: number;
   volume: number;
+  shuffle: boolean;
   play: (t: Track, queue?: Track[]) => void;
   toggle: () => void;
   seek: (ratio: number) => void;
   setVolume: (v: number) => void;
+  toggleShuffle: () => void;
+  next: () => void;
+  prev: () => void;
 };
 
 const Ctx = createContext<PlayerState | null>(null);
@@ -34,11 +38,31 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const countedRef = useRef(false);
   const recordingRef = useRef(false);
   const queueRef = useRef<Track[]>([]);
+  const shuffleRef = useRef(false);
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.8);
+  const [shuffle, setShuffle] = useState(false);
+
+  const pickNext = useCallback((q: Track[], curId: string | undefined): Track | undefined => {
+    if (!q.length) return undefined;
+    if (shuffleRef.current) {
+      if (q.length === 1) return q[0];
+      const others = q.filter((t) => t.id !== curId);
+      return others[Math.floor(Math.random() * others.length)];
+    }
+    const idx = q.findIndex((x) => x.id === curId);
+    return idx >= 0 ? q[idx + 1] : undefined;
+  }, []);
+
+  const pickPrev = useCallback((q: Track[], curId: string | undefined): Track | undefined => {
+    if (!q.length) return undefined;
+    if (shuffleRef.current) return pickNext(q, curId);
+    const idx = q.findIndex((x) => x.id === curId);
+    return idx > 0 ? q[idx - 1] : undefined;
+  }, [pickNext]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -95,17 +119,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       void recordIfComplete();
       const q = queueRef.current;
       const cur = currentRef.current;
-      if (q.length && cur) {
-        const idx = q.findIndex((x) => x.id === cur.id);
-        const next = idx >= 0 ? q[idx + 1] : undefined;
-        if (next) {
-          audio.src = next.src;
-          setCurrent(next);
-          currentRef.current = next;
-          setCurrentTime(0);
-          countedRef.current = false;
-          audio.play().catch(() => setIsPlaying(false));
-        }
+      const nxt = pickNext(q, cur?.id);
+      if (nxt) {
+        audio.src = nxt.src;
+        setCurrent(nxt);
+        currentRef.current = nxt;
+        setCurrentTime(0);
+        countedRef.current = false;
+        audio.play().catch(() => setIsPlaying(false));
       }
     };
     const onPlay = () => setIsPlaying(true);
@@ -182,6 +203,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setVolumeState(v);
   }, []);
 
+  const toggleShuffle = useCallback(() => {
+    setShuffle((s) => {
+      shuffleRef.current = !s;
+      return !s;
+    });
+  }, []);
+
+  const jumpTo = useCallback((t: Track | undefined) => {
+    if (!t) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.src = t.src;
+    setCurrent(t);
+    currentRef.current = t;
+    setCurrentTime(0);
+    countedRef.current = false;
+    audio.play().catch(() => setIsPlaying(false));
+  }, []);
+
+  const next = useCallback(() => {
+    jumpTo(pickNext(queueRef.current, currentRef.current?.id));
+  }, [jumpTo, pickNext]);
+
+  const prev = useCallback(() => {
+    jumpTo(pickPrev(queueRef.current, currentRef.current?.id));
+  }, [jumpTo, pickPrev]);
+
   const value = useMemo<PlayerState>(
     () => ({
       current,
@@ -190,12 +238,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       duration,
       progress: duration ? currentTime / duration : 0,
       volume,
+      shuffle,
       play,
       toggle,
       seek,
       setVolume,
+      toggleShuffle,
+      next,
+      prev,
     }),
-    [current, isPlaying, currentTime, duration, volume, play, toggle, seek, setVolume],
+    [current, isPlaying, currentTime, duration, volume, shuffle, play, toggle, seek, setVolume, toggleShuffle, next, prev],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

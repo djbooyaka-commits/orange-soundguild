@@ -3,7 +3,7 @@ import { formatTime, usePlayer } from "./PlayerContext";
 import { Waveform } from "./Waveform";
 
 export function PlayerBar() {
-  const { current, isPlaying, toggle, progress, currentTime, duration, seek, volume, setVolume } = usePlayer();
+  const { current, isPlaying, toggle, progress, currentTime, duration, seek, volume, setVolume, shuffle, toggleShuffle, next, prev } = usePlayer();
 
   const disabled = !current;
 
@@ -39,10 +39,15 @@ export function PlayerBar() {
 
         {/* Controls */}
         <div className="flex items-center gap-2">
-          <button className="hidden h-9 w-9 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white md:flex" aria-label="Shuffle">
+          <button
+            onClick={toggleShuffle}
+            aria-label="Shuffle"
+            aria-pressed={shuffle}
+            className={`hidden h-9 w-9 items-center justify-center rounded-full hover:bg-white/10 md:flex ${shuffle ? "text-primary" : "text-white/60 hover:text-white"}`}
+          >
             <Shuffle className="h-4 w-4" />
           </button>
-          <button className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10" aria-label="Previous">
+          <button onClick={prev} disabled={disabled} className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10 disabled:opacity-40" aria-label="Previous">
             <SkipBack className="h-4 w-4" />
           </button>
           <button
@@ -53,7 +58,7 @@ export function PlayerBar() {
           >
             {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
           </button>
-          <button className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10" aria-label="Next">
+          <button onClick={next} disabled={disabled} className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10 disabled:opacity-40" aria-label="Next">
             <SkipForward className="h-4 w-4" />
           </button>
         </div>
