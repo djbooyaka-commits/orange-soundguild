@@ -79,6 +79,7 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
 
   return (
     <div className="space-y-4">
+      {createBar}
       {playlists.map((pl) => {
         const open = openId === pl.id;
         const plActive = pl.tracks.some((t) => t.id === current?.id);
