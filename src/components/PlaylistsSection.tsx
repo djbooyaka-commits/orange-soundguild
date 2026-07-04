@@ -1,24 +1,85 @@
 import { useState } from "react";
-import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic } from "lucide-react";
+import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { usePlaylistsForUser } from "@/lib/playlists";
 import { usePlayer } from "./player/PlayerContext";
+import { toast } from "sonner";
 
 export function PlaylistsSection({ userId, isOwner }: { userId: string | null; isOwner: boolean }) {
-  const { playlists, removeTrack, deletePlaylist } = usePlaylistsForUser(userId);
+  const { playlists, removeTrack, deletePlaylist, createPlaylist, moveTrack } = usePlaylistsForUser(userId);
   const { current, isPlaying, play, toggle } = usePlayer();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
 
   if (!userId) return null;
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = name.trim();
+    if (!n) return;
+    try {
+      await createPlaylist(n);
+      toast.success(`Created "${n}"`);
+      setName("");
+      setCreating(false);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const createBar = isOwner ? (
+    <div className="mb-4">
+      {creating ? (
+        <form onSubmit={handleCreate} className="flex items-center gap-2">
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Playlist name"
+            className="h-10 flex-1 rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-primary"
+          />
+          <button
+            type="submit"
+            className="h-10 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground"
+          >
+            Create
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCreating(false);
+              setName("");
+            }}
+            className="h-10 rounded-full border border-border bg-background px-4 text-sm font-semibold"
+          >
+            Cancel
+          </button>
+        </form>
+      ) : (
+        <button
+          onClick={() => setCreating(true)}
+          className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105"
+        >
+          <Plus className="h-4 w-4" /> New playlist
+        </button>
+      )}
+    </div>
+  ) : null;
+
   if (playlists.length === 0) {
     return isOwner ? (
-      <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-        No playlists yet. Tap the playlist icon on any track to start one.
+      <div className="space-y-4">
+        {createBar}
+        <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          No playlists yet. Create one above, or tap the playlist icon on any track to start one.
+        </div>
       </div>
     ) : null;
   }
 
   return (
     <div className="space-y-4">
+      {createBar}
       {playlists.map((pl) => {
         const open = openId === pl.id;
         const plActive = pl.tracks.some((t) => t.id === current?.id);
@@ -69,11 +130,11 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                 {pl.tracks.length === 0 ? (
                   <li className="px-4 py-3 text-xs text-muted-foreground">Empty playlist.</li>
                 ) : (
-                  pl.tracks.map((t) => {
+                  pl.tracks.map((t, idx) => {
                     const active = current?.id === t.id;
                     const playing = active && isPlaying;
                     return (
-                      <li key={t.id} className="flex items-center gap-3 px-4 py-2">
+                      <li key={t.id} className="flex items-center gap-2 px-4 py-2">
                         <button
                           onClick={() => (active ? toggle() : play(t, pl.tracks))}
                           aria-label={playing ? "Pause" : "Play"}
@@ -87,13 +148,31 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                           <p className="truncate text-xs text-muted-foreground">{t.artist}</p>
                         </div>
                         {isOwner && (
-                          <button
-                            onClick={() => void removeTrack(pl.id, t.id)}
-                            aria-label="Remove from playlist"
-                            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => void moveTrack(pl.id, t.id, "up")}
+                              disabled={idx === 0}
+                              aria-label="Move up"
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-30"
+                            >
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => void moveTrack(pl.id, t.id, "down")}
+                              disabled={idx === pl.tracks.length - 1}
+                              aria-label="Move down"
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-30"
+                            >
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => void removeTrack(pl.id, t.id)}
+                              aria-label="Remove from playlist"
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
                         )}
                       </li>
                     );
