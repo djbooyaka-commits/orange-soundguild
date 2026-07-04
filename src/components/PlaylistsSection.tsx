@@ -130,11 +130,11 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                 {pl.tracks.length === 0 ? (
                   <li className="px-4 py-3 text-xs text-muted-foreground">Empty playlist.</li>
                 ) : (
-                  pl.tracks.map((t) => {
+                  pl.tracks.map((t, idx) => {
                     const active = current?.id === t.id;
                     const playing = active && isPlaying;
                     return (
-                      <li key={t.id} className="flex items-center gap-3 px-4 py-2">
+                      <li key={t.id} className="flex items-center gap-2 px-4 py-2">
                         <button
                           onClick={() => (active ? toggle() : play(t, pl.tracks))}
                           aria-label={playing ? "Pause" : "Play"}
@@ -148,13 +148,31 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                           <p className="truncate text-xs text-muted-foreground">{t.artist}</p>
                         </div>
                         {isOwner && (
-                          <button
-                            onClick={() => void removeTrack(pl.id, t.id)}
-                            aria-label="Remove from playlist"
-                            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => void moveTrack(pl.id, t.id, "up")}
+                              disabled={idx === 0}
+                              aria-label="Move up"
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-30"
+                            >
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => void moveTrack(pl.id, t.id, "down")}
+                              disabled={idx === pl.tracks.length - 1}
+                              aria-label="Move down"
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-30"
+                            >
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => void removeTrack(pl.id, t.id)}
+                              aria-label="Remove from playlist"
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
                         )}
                       </li>
                     );
