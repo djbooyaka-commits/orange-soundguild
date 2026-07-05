@@ -17,7 +17,7 @@ import { SuperfanPublicProfile } from "@/components/SuperfanPublicProfile";
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
-import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck, Award } from "lucide-react";
+import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck, Award, Globe, Instagram, Twitter, Youtube, Music } from "lucide-react";
 import { useRoyaltyProgress } from "@/hooks/useRoyaltyProgress";
 
 export const Route = createFileRoute("/u/$handle")({
