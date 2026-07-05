@@ -69,7 +69,11 @@ export function Navbar() {
 
         {(!user || isArtist) && (
           <UploadDialog>
-            <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 active:scale-[0.98]">
+            <button
+              type="button"
+              aria-label="Upload track"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 active:scale-[0.98]"
+            >
               <Upload className="h-4 w-4" />
               <span className="hidden sm:inline">Upload</span>
             </button>
