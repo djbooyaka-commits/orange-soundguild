@@ -4,6 +4,7 @@ import { Sparkles, Upload, BarChart3, Music2, Check, Loader2 } from "lucide-reac
 import { Navbar } from "@/components/Navbar";
 
 const PhantomPayPanel = lazy(() => import("@/components/PhantomPayPanel"));
+const PaypalPayPanel = lazy(() => import("@/components/PaypalPayPanel"));
 
 export const Route = createFileRoute("/upgrade")({
   head: () => ({
@@ -48,30 +49,47 @@ function UpgradePage() {
         </div>
 
         <div className="mt-12 rounded-3xl border border-border bg-card p-8 shadow-sm">
-          <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                Artist plan
-              </div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-5xl font-bold">$10</span>
-                <span className="text-lg text-muted-foreground">/month</span>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Paid on Solana mainnet. 30 days of artist access per payment.
-              </p>
+          <div>
+            <div className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+              Artist plan
             </div>
-            <Suspense
-              fallback={
-                <div className="flex h-40 w-full max-w-sm items-center justify-center rounded-xl border border-border bg-muted/40">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              }
-            >
-              <PhantomPayPanel />
-            </Suspense>
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className="text-5xl font-bold">$10</span>
+              <span className="text-lg text-muted-foreground">/month</span>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              30 days of artist access per payment. Pay with PayPal or Phantom wallet.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-8 md:grid-cols-2">
+            <div>
+              <div className="mb-3 text-sm font-semibold">Pay with PayPal</div>
+              <Suspense
+                fallback={
+                  <div className="flex h-40 items-center justify-center rounded-xl border border-border bg-muted/40">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                }
+              >
+                <PaypalPayPanel />
+              </Suspense>
+            </div>
+            <div>
+              <div className="mb-3 text-sm font-semibold">Pay with Phantom (Solana)</div>
+              <Suspense
+                fallback={
+                  <div className="flex h-40 items-center justify-center rounded-xl border border-border bg-muted/40">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                }
+              >
+                <PhantomPayPanel />
+              </Suspense>
+            </div>
           </div>
         </div>
+
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2">
           {BENEFITS.map(({ icon: Icon, title, desc }) => (
