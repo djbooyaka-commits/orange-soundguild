@@ -4,7 +4,7 @@ import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
-import { toast } from "sonner";
+
 
 export function Navbar() {
   const { user, signOut } = useAuth();
