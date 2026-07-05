@@ -2,12 +2,26 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Sparkles, Upload, BarChart3, Music2, Check, Wallet, Loader2 } from "lucide-react";
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js";
+import {
+  getAssociatedTokenAddressSync,
+  createTransferCheckedInstruction,
+  createAssociatedTokenAccountInstruction,
+  getAccount,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { toast } from "sonner";
 import {
-  buildArtistPaymentTx,
+  getPaymentConfig,
   verifyArtistPayment,
 } from "@/lib/api/artist-payment.functions";
 
@@ -16,10 +30,7 @@ type PhantomProvider = {
   publicKey: { toString(): string } | null;
   connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString(): string } }>;
   disconnect: () => Promise<void>;
-  request: (args: {
-    method: string;
-    params: Record<string, unknown>;
-  }) => Promise<{ signature: string; publicKey?: string }>;
+  signAndSendTransaction: (tx: Transaction) => Promise<{ signature: string }>;
 };
 
 function getPhantom(): PhantomProvider | null {
@@ -58,33 +69,28 @@ const BENEFITS = [
   { icon: Sparkles, title: "Full creator tools", desc: "Edit tracks, manage playlists, and pin your best work." },
 ];
 
+type Config = Awaited<ReturnType<typeof getPaymentConfig>>;
+
 function UpgradePage() {
   const { user } = useAuth();
   const { isArtist, loading: accLoading } = useAccountType();
   const navigate = useNavigate();
-  const buildTx = useServerFn(buildArtistPaymentTx);
+  const loadConfig = useServerFn(getPaymentConfig);
   const verify = useServerFn(verifyArtistPayment);
 
+  const [config, setConfig] = useState<Config | null>(null);
   const [token, setToken] = useState<"USDC" | "SOL">("USDC");
   const [wallet, setWallet] = useState<string | null>(null);
   const [busy, setBusy] = useState<null | "connect" | "pay">(null);
-  const [solPrice, setSolPrice] = useState<number | null>(null);
 
   useEffect(() => {
+    loadConfig().then(setConfig).catch(() => {});
     const p = getPhantom();
     if (!p) return;
     p.connect({ onlyIfTrusted: true })
       .then((r) => setWallet(r.publicKey.toString()))
       .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (token !== "SOL") return;
-    fetch("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd")
-      .then((r) => r.json())
-      .then((j) => setSolPrice(j?.solana?.usd ?? null))
-      .catch(() => {});
-  }, [token]);
+  }, [loadConfig]);
 
   const connectWallet = async () => {
     const p = getPhantom();
@@ -110,27 +116,64 @@ function UpgradePage() {
       return;
     }
     const p = getPhantom();
-    if (!p || !wallet) {
+    if (!p || !wallet || !config) {
       toast.error("Connect Phantom wallet first");
       return;
     }
     setBusy("pay");
     try {
-      const q = await buildTx({ data: { token, from: wallet } });
-      const res = await p.request({
-        method: "signAndSendTransaction",
-        params: { message: q.messageBase58 },
-      });
-      const signature = res.signature;
+      const conn = new Connection(config.rpcUrl, "confirmed");
+      const payer = new PublicKey(wallet);
+      const receiver = new PublicKey(config.receiver);
+      const tx = new Transaction();
+
+      if (token === "SOL") {
+        if (!config.solUsd) throw new Error("SOL price unavailable — try USDC");
+        const amount = +(config.priceUsd / config.solUsd).toFixed(6);
+        tx.add(
+          SystemProgram.transfer({
+            fromPubkey: payer,
+            toPubkey: receiver,
+            lamports: Math.round(amount * LAMPORTS_PER_SOL),
+          }),
+        );
+      } else {
+        const mint = new PublicKey(config.usdcMint);
+        const fromAta = getAssociatedTokenAddressSync(mint, payer);
+        const toAta = getAssociatedTokenAddressSync(mint, receiver);
+        try {
+          await getAccount(conn, toAta);
+        } catch {
+          tx.add(createAssociatedTokenAccountInstruction(payer, toAta, receiver, mint));
+        }
+        tx.add(
+          createTransferCheckedInstruction(
+            fromAta,
+            mint,
+            toAta,
+            payer,
+            BigInt(config.priceUsd * 10 ** config.usdcDecimals),
+            config.usdcDecimals,
+            [],
+            TOKEN_PROGRAM_ID,
+          ),
+        );
+      }
+
+      const { blockhash } = await conn.getLatestBlockhash();
+      tx.recentBlockhash = blockhash;
+      tx.feePayer = payer;
+
+      const { signature } = await p.signAndSendTransaction(tx);
       toast.info("Confirming payment on Solana…");
-      const verified = await verify({ data: { signature, token: q.token } });
+      await conn.confirmTransaction(signature, "confirmed");
+      const verified = await verify({ data: { signature, token } });
       toast.success(
         `You're an artist! Active until ${new Date(verified.expiresAt).toLocaleDateString()}.`,
       );
       navigate({ to: "/" });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Payment failed";
-      toast.error(msg);
+      toast.error(e instanceof Error ? e.message : "Payment failed");
     } finally {
       setBusy(null);
     }
@@ -139,8 +182,8 @@ function UpgradePage() {
   const priceLabel =
     token === "USDC"
       ? "10 USDC"
-      : solPrice
-        ? `~${(10 / solPrice).toFixed(4)} SOL`
+      : config?.solUsd
+        ? `~${(10 / config.solUsd).toFixed(4)} SOL`
         : "~$10 in SOL";
 
   return (
@@ -195,9 +238,9 @@ function UpgradePage() {
                   <span className="text-muted-foreground">You'll pay</span>
                   <span className="font-semibold">{priceLabel}</span>
                 </div>
-                {token === "SOL" && solPrice && (
+                {token === "SOL" && config?.solUsd && (
                   <div className="mt-1 text-xs text-muted-foreground">
-                    SOL price: ${solPrice.toFixed(2)} USD
+                    SOL price: ${config.solUsd.toFixed(2)} USD
                   </div>
                 )}
               </div>
@@ -218,7 +261,7 @@ function UpgradePage() {
               ) : (
                 <button
                   onClick={pay}
-                  disabled={busy !== null || isArtist || accLoading}
+                  disabled={busy !== null || isArtist || accLoading || !config}
                   className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-8 text-base font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 active:scale-[0.98] disabled:opacity-60"
                 >
                   {busy === "pay" ? (
