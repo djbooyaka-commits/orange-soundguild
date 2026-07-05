@@ -24,11 +24,23 @@ export function PhantomPayPanel() {
   const [config, setConfig] = useState<Config | null>(null);
   const [token, setToken] = useState<"USDC" | "SOL">("SOL");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [configFailed, setConfigFailed] = useState(false);
   const [signature, setSignature] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    loadConfig().then(setConfig).catch(() => {});
+    let cancelled = false;
+    setConfigFailed(false);
+    loadConfig()
+      .then((nextConfig) => {
+        if (!cancelled) setConfig(nextConfig);
+      })
+      .catch(() => {
+        if (!cancelled) setConfigFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [loadConfig]);
 
   const payUrl = useMemo(() => {
@@ -124,7 +136,11 @@ export function PhantomPayPanel() {
       ) : (
         <>
 
-          {qrDataUrl ? (
+          {configFailed ? (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-center text-sm text-destructive">
+              Payment link could not load. Refresh and try again.
+            </div>
+          ) : qrDataUrl ? (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-white p-4">
               <img src={qrDataUrl} alt="Scan with Phantom" className="h-56 w-56" />
               <p className="text-center text-xs text-muted-foreground">
