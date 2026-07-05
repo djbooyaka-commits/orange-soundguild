@@ -486,6 +486,7 @@ export type Database = {
       }
       tracks: {
         Row: {
+          album: string | null
           audio_url: string
           cover_art_url: string | null
           created_at: string
@@ -493,9 +494,11 @@ export type Database = {
           id: string
           plays_count: number
           title: string
+          track_number: number | null
           user_id: string
         }
         Insert: {
+          album?: string | null
           audio_url: string
           cover_art_url?: string | null
           created_at?: string
@@ -503,9 +506,11 @@ export type Database = {
           id?: string
           plays_count?: number
           title: string
+          track_number?: number | null
           user_id: string
         }
         Update: {
+          album?: string | null
           audio_url?: string
           cover_art_url?: string | null
           created_at?: string
@@ -513,6 +518,7 @@ export type Database = {
           id?: string
           plays_count?: number
           title?: string
+          track_number?: number | null
           user_id?: string
         }
         Relationships: [
