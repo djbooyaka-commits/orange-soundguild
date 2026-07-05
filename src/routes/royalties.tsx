@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Award, Loader2, Wallet, TrendingUp, Music2 } from "lucide-react";
+import { Award, Loader2, Wallet, TrendingUp, Music2, Send } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { useRoyaltyProgress } from "@/hooks/useRoyaltyProgress";
 import { RoyaltyProgressCard } from "@/components/RoyaltyProgressCard";
+import { CashoutDialog } from "@/components/CashoutDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/royalties")({
@@ -32,12 +33,25 @@ type Payout = {
   created_at: string;
 };
 
+type PayoutRequest = {
+  id: string;
+  method: "paypal" | "phantom";
+  destination: string;
+  amount_cents: number;
+  status: "pending" | "processing" | "paid" | "rejected";
+  admin_note: string | null;
+  created_at: string;
+  processed_at: string | null;
+};
+
 function RoyaltiesPage() {
   const { user, loading: authLoading } = useAuth();
   const { isArtist, loading: acctLoading } = useAccountType();
   const { data: progress } = useRoyaltyProgress(user?.id);
   const [payouts, setPayouts] = useState<Payout[] | null>(null);
   const [balanceCents, setBalanceCents] = useState<number>(0);
+  const [requests, setRequests] = useState<PayoutRequest[] | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -54,7 +68,14 @@ function RoyaltiesPage() {
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => setBalanceCents(Number(data?.credit_balance_cents ?? 0)));
-  }, [user]);
+    supabase
+      .from("payout_requests")
+      .select("id, method, destination, amount_cents, status, admin_note, created_at, processed_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => setRequests((data ?? []) as PayoutRequest[]));
+  }, [user, reloadKey]);
 
   if (authLoading || acctLoading) {
     return (
@@ -152,6 +173,19 @@ function RoyaltiesPage() {
             </div>
             <div className="mt-2 text-3xl font-bold">${(balanceCents / 100).toFixed(2)}</div>
             <div className="mt-1 text-xs text-muted-foreground">Includes referrals + royalties</div>
+            <CashoutDialog
+              balanceCents={balanceCents}
+              onSubmitted={() => setReloadKey((k) => k + 1)}
+            >
+              <button
+                type="button"
+                className="mt-4 inline-flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={balanceCents < 2500}
+              >
+                <Send className="h-3.5 w-3.5" />
+                {balanceCents < 2500 ? "Cash out at $25" : "Cash out"}
+              </button>
+            </CashoutDialog>
           </div>
           <div className="rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
@@ -214,6 +248,55 @@ function RoyaltiesPage() {
                     </div>
                     <div className="font-semibold text-emerald-600">
                       +${(p.amount_cents / 100).toFixed(2)}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-border bg-card p-6">
+          <div className="text-sm font-semibold">Cashout requests</div>
+          {requests === null ? (
+            <div className="mt-6 flex justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : requests.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              No cashout requests yet. Your balance must be at least $25 to request one.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y divide-border">
+              {requests.map((r) => {
+                const when = new Date(r.created_at).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                });
+                const statusColor =
+                  r.status === "paid"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                    : r.status === "rejected"
+                      ? "bg-destructive/15 text-destructive"
+                      : "bg-muted text-muted-foreground";
+                return (
+                  <li key={r.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                    <div className="min-w-0">
+                      <div className="font-medium">
+                        {r.method === "paypal" ? "PayPal" : "Phantom"} ·{" "}
+                        <span className="text-muted-foreground truncate">{r.destination}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Requested {when}
+                        {r.admin_note ? ` · ${r.admin_note}` : ""}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="font-semibold">${(r.amount_cents / 100).toFixed(2)}</div>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${statusColor}`}>
+                        {r.status}
+                      </span>
                     </div>
                   </li>
                 );
