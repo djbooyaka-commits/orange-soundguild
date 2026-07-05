@@ -2,44 +2,32 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Sparkles, Upload, BarChart3, Music2, Check, Wallet, Loader2 } from "lucide-react";
-import {
-  Connection,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-  LAMPORTS_PER_SOL,
-} from "@solana/web3.js";
-import {
-  getAssociatedTokenAddressSync,
-  createTransferCheckedInstruction,
-  createAssociatedTokenAccountInstruction,
-  getAccount,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { toast } from "sonner";
 import {
-  getArtistPaymentQuote,
+  buildArtistPaymentTx,
   verifyArtistPayment,
 } from "@/lib/api/artist-payment.functions";
-
-const RPC_URL = "https://api.mainnet-beta.solana.com";
-const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-const USDC_DECIMALS = 6;
 
 type PhantomProvider = {
   isPhantom?: boolean;
   publicKey: { toString(): string } | null;
   connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString(): string } }>;
   disconnect: () => Promise<void>;
-  signAndSendTransaction: (tx: Transaction) => Promise<{ signature: string }>;
+  request: (args: {
+    method: string;
+    params: Record<string, unknown>;
+  }) => Promise<{ signature: string; publicKey?: string }>;
 };
 
 function getPhantom(): PhantomProvider | null {
   if (typeof window === "undefined") return null;
-  const w = window as unknown as { phantom?: { solana?: PhantomProvider }; solana?: PhantomProvider };
+  const w = window as unknown as {
+    phantom?: { solana?: PhantomProvider };
+    solana?: PhantomProvider;
+  };
   const p = w.phantom?.solana ?? w.solana;
   return p?.isPhantom ? p : null;
 }
@@ -51,7 +39,7 @@ export const Route = createFileRoute("/upgrade")({
       {
         name: "description",
         content:
-          "Upgrade to an Artist account for $10/month, paid with Phantom wallet in USDC or SOL. Unlock uploads and your artist page.",
+          "Upgrade to an Artist account for $10/month, paid with Phantom wallet in USDC or SOL.",
       },
       { property: "og:title", content: "Become an Artist — soundwave" },
       {
@@ -74,7 +62,7 @@ function UpgradePage() {
   const { user } = useAuth();
   const { isArtist, loading: accLoading } = useAccountType();
   const navigate = useNavigate();
-  const quote = useServerFn(getArtistPaymentQuote);
+  const buildTx = useServerFn(buildArtistPaymentTx);
   const verify = useServerFn(verifyArtistPayment);
 
   const [token, setToken] = useState<"USDC" | "SOL">("USDC");
@@ -128,55 +116,16 @@ function UpgradePage() {
     }
     setBusy("pay");
     try {
-      const q = await quote({ data: { token } });
-      const conn = new Connection(RPC_URL, "confirmed");
-      const payer = new PublicKey(wallet);
-      const receiver = new PublicKey(q.receiver);
-      const tx = new Transaction();
-
-      if (q.token === "SOL") {
-        tx.add(
-          SystemProgram.transfer({
-            fromPubkey: payer,
-            toPubkey: receiver,
-            lamports: Math.round(q.amount * LAMPORTS_PER_SOL),
-          }),
-        );
-      } else {
-        const mint = new PublicKey(USDC_MINT);
-        const fromAta = getAssociatedTokenAddressSync(mint, payer);
-        const toAta = getAssociatedTokenAddressSync(mint, receiver);
-        // Ensure recipient ATA exists; if not, add creation ix (payer funds)
-        try {
-          await getAccount(conn, toAta);
-        } catch {
-          tx.add(createAssociatedTokenAccountInstruction(payer, toAta, receiver, mint));
-        }
-        tx.add(
-          createTransferCheckedInstruction(
-            fromAta,
-            mint,
-            toAta,
-            payer,
-            BigInt(Math.round(q.amount * 10 ** USDC_DECIMALS)),
-            USDC_DECIMALS,
-            [],
-            TOKEN_PROGRAM_ID,
-          ),
-        );
-      }
-
-      const { blockhash } = await conn.getLatestBlockhash();
-      tx.recentBlockhash = blockhash;
-      tx.feePayer = payer;
-
-      const { signature } = await p.signAndSendTransaction(tx);
+      const q = await buildTx({ data: { token, from: wallet } });
+      const res = await p.request({
+        method: "signAndSendTransaction",
+        params: { message: q.messageBase58 },
+      });
+      const signature = res.signature;
       toast.info("Confirming payment on Solana…");
-      await conn.confirmTransaction(signature, "confirmed");
-
-      const res = await verify({ data: { signature, token: q.token } });
+      const verified = await verify({ data: { signature, token: q.token } });
       toast.success(
-        `You're an artist! Subscription active until ${new Date(res.expiresAt).toLocaleDateString()}.`,
+        `You're an artist! Active until ${new Date(verified.expiresAt).toLocaleDateString()}.`,
       );
       navigate({ to: "/" });
     } catch (e) {

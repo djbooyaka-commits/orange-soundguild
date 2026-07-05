@@ -1,6 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { Connection, PublicKey } from "@solana/web3.js";
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js";
+import {
+  getAssociatedTokenAddressSync,
+  createTransferCheckedInstruction,
+  createAssociatedTokenAccountInstruction,
+  getAccount,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import bs58 from "bs58";
 
 const RECEIVER = "GeiXPwBprWDwSzYq7qiqsV6eRRqTuLf1PaowHZjcdQZr";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
@@ -9,7 +23,6 @@ const PRICE_USD = 10;
 const NETWORK = "mainnet-beta";
 const RPC_URL = "https://api.mainnet-beta.solana.com";
 const SUB_DAYS = 30;
-// Allow ±3% price drift between quote & tx confirmation
 const SOL_TOLERANCE = 0.03;
 
 async function fetchSolUsd(): Promise<number> {
@@ -24,29 +37,68 @@ async function fetchSolUsd(): Promise<number> {
   return p;
 }
 
-export const getArtistPaymentQuote = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: "SOL" | "USDC" }) => {
+export const buildArtistPaymentTx = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: "SOL" | "USDC"; from: string }) => {
     if (data.token !== "SOL" && data.token !== "USDC") throw new Error("Bad token");
+    if (!data.from || typeof data.from !== "string") throw new Error("Missing wallet");
     return data;
   })
   .handler(async ({ data }) => {
-    if (data.token === "USDC") {
-      return {
-        token: "USDC" as const,
-        receiver: RECEIVER,
-        amount: PRICE_USD,
-        usdcMint: USDC_MINT,
-        network: NETWORK,
-      };
+    const conn = new Connection(RPC_URL, "confirmed");
+    const payer = new PublicKey(data.from);
+    const receiver = new PublicKey(RECEIVER);
+    const tx = new Transaction();
+    let amount = 0;
+    let solUsdPrice: number | undefined;
+
+    if (data.token === "SOL") {
+      solUsdPrice = await fetchSolUsd();
+      amount = +(PRICE_USD / solUsdPrice).toFixed(6);
+      tx.add(
+        SystemProgram.transfer({
+          fromPubkey: payer,
+          toPubkey: receiver,
+          lamports: Math.round(amount * LAMPORTS_PER_SOL),
+        }),
+      );
+    } else {
+      amount = PRICE_USD;
+      const mint = new PublicKey(USDC_MINT);
+      const fromAta = getAssociatedTokenAddressSync(mint, payer);
+      const toAta = getAssociatedTokenAddressSync(mint, receiver);
+      try {
+        await getAccount(conn, toAta);
+      } catch {
+        tx.add(createAssociatedTokenAccountInstruction(payer, toAta, receiver, mint));
+      }
+      tx.add(
+        createTransferCheckedInstruction(
+          fromAta,
+          mint,
+          toAta,
+          payer,
+          BigInt(Math.round(amount * 10 ** USDC_DECIMALS)),
+          USDC_DECIMALS,
+          [],
+          TOKEN_PROGRAM_ID,
+        ),
+      );
     }
-    const price = await fetchSolUsd();
-    const amount = +(PRICE_USD / price).toFixed(6);
+
+    const { blockhash } = await conn.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = payer;
+
+    const messageBytes = tx.serializeMessage();
+    const messageBase58 = bs58.encode(messageBytes);
+
     return {
-      token: "SOL" as const,
-      receiver: RECEIVER,
+      token: data.token,
       amount,
-      solUsdPrice: price,
+      solUsdPrice,
       network: NETWORK,
+      receiver: RECEIVER,
+      messageBase58,
     };
   });
 
@@ -61,7 +113,6 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Guard: already recorded?
     const { data: existing } = await supabase
       .from("artist_subscriptions")
       .select("id")
@@ -70,7 +121,6 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
     if (existing) throw new Error("This transaction has already been used.");
 
     const conn = new Connection(RPC_URL, "confirmed");
-    // Retry a few times — tx may not have propagated yet
     let tx = null;
     for (let i = 0; i < 6; i++) {
       tx = await conn.getParsedTransaction(data.signature, {
@@ -83,7 +133,6 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
     if (!tx) throw new Error("Transaction not found yet. Try again in a moment.");
     if (tx.meta?.err) throw new Error("Transaction failed on-chain.");
 
-    const receiverPk = new PublicKey(RECEIVER);
     const accountKeys = tx.transaction.message.accountKeys.map((k) => k.pubkey.toBase58());
     const feePayer = accountKeys[0];
     let verifiedAmount = 0;
@@ -104,7 +153,6 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
         );
       verifiedAmount = sol;
     } else {
-      // USDC: use pre/post token balances for the receiver + mint
       const pre = tx.meta?.preTokenBalances ?? [];
       const post = tx.meta?.postTokenBalances ?? [];
       const findBal = (arr: typeof post) =>
@@ -120,8 +168,6 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
           `USDC received (${delta / 10 ** USDC_DECIMALS}) less than required ${PRICE_USD}.`,
         );
       verifiedAmount = delta / 10 ** USDC_DECIMALS;
-      // sanity: confirm receiver Pk parses
-      void receiverPk;
     }
 
     const expiresAt = new Date(Date.now() + SUB_DAYS * 24 * 60 * 60 * 1000).toISOString();
