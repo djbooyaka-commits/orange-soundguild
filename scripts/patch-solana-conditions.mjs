@@ -83,8 +83,9 @@ for (const dir of packages) {
       }
     }
 
-    pkg.exports = { ".": dotExports };
-    // Also update main/module to point at browser bundle so plain resolvers work.
+    // Delete exports entirely; rely on main/module fields so Vite/Rollup's
+    // strict conditional-exports resolver can't reject valid packages.
+    delete pkg.exports;
     if (b.cjs) pkg.main = b.cjs;
     if (b.mjs) pkg.module = b.mjs;
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
