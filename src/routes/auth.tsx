@@ -118,6 +118,9 @@ function AuthPage() {
       toast.error("You must agree to the Terms of Service to create an account.");
       return;
     }
+    if (mode === "signup") {
+      try { window.sessionStorage.setItem("tos_accepted_at", new Date().toISOString()); } catch { /* ignore */ }
+    }
     setBusy(true);
     const r = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
