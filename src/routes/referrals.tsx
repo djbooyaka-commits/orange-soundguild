@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { getMyReferralInfo } from "@/lib/api/artist-payment.functions";
+import { RoyaltyProgressCard } from "@/components/RoyaltyProgressCard";
 
 export const Route = createFileRoute("/referrals")({
   head: () => ({
@@ -176,6 +177,12 @@ function ReferralsPage() {
             </button>
           </div>
         </div>
+
+        {info.accountType === "artist" && (
+          <div className="mt-8">
+            <RoyaltyProgressCard userId={user?.id ?? null} />
+          </div>
+        )}
 
         <div className="mt-8 rounded-3xl border border-border bg-card p-6">
           <div className="text-sm font-semibold">Recent payouts</div>

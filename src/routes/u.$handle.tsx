@@ -14,7 +14,8 @@ import { useIsAdmin, adminDeleteTrack, setUserBanned } from "@/hooks/useIsAdmin"
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
-import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck } from "lucide-react";
+import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck, Award } from "lucide-react";
+import { useRoyaltyProgress } from "@/hooks/useRoyaltyProgress";
 
 export const Route = createFileRoute("/u/$handle")({
   head: ({ params }) => {
@@ -181,7 +182,10 @@ function ProfilePage() {
                 className="h-24 w-24 rounded-full border-4 border-background object-cover shadow-[var(--shadow-elegant)] sm:h-32 sm:w-32"
               />
               <div className="pb-2">
-                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{displayName}</h1>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{displayName}</h1>
+                  <RoyaltyBadge userId={profileUserId} />
+                </div>
                 <p className="text-sm text-muted-foreground">@{handle}</p>
                 <p className="mt-1 max-w-md text-sm text-muted-foreground">{bio}</p>
               </div>
@@ -332,6 +336,19 @@ function FollowButton({ targetUserId }: { targetUserId: string | null }) {
       {isFollowing ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
       {isFollowing ? "Following" : "Follow"}
     </button>
+  );
+}
+
+function RoyaltyBadge({ userId }: { userId: string | null }) {
+  const { data } = useRoyaltyProgress(userId);
+  if (!data?.eligible) return null;
+  return (
+    <span
+      title="Stream royalties unlocked"
+      className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400"
+    >
+      <Award className="h-3.5 w-3.5" /> Royalties unlocked
+    </span>
   );
 }
 
