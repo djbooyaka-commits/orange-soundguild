@@ -216,6 +216,8 @@ function ProfilePage() {
                 </div>
                 <p className="text-sm text-muted-foreground">@{handle}</p>
                 <p className="mt-1 max-w-md text-sm text-muted-foreground">{bio}</p>
+                <SocialLinks profile={profile} />
+
               </div>
             </div>
 
