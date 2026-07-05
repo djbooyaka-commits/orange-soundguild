@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      artist_subscriptions: {
+        Row: {
+          amount: number
+          expires_at: string
+          from_wallet: string
+          id: string
+          network: string
+          paid_at: string
+          token: string
+          tx_signature: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          expires_at: string
+          from_wallet: string
+          id?: string
+          network?: string
+          paid_at?: string
+          token: string
+          tx_signature: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          expires_at?: string
+          from_wallet?: string
+          id?: string
+          network?: string
+          paid_at?: string
+          token?: string
+          tx_signature?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           body: string
