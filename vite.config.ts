@@ -4,4 +4,17 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
+  vite: {
+    resolve: {
+      alias: {
+        buffer: "buffer",
+      },
+    },
+    define: {
+      global: "globalThis",
+    },
+    optimizeDeps: {
+      include: ["buffer"],
+    },
+  },
 });
