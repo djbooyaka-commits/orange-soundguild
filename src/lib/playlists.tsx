@@ -218,3 +218,52 @@ export function usePlaylistsForUser(userId: string | null) {
 
   return { playlists: data, refresh, removeTrack, deletePlaylist, createPlaylist, moveTrack };
 }
+
+export async function savePlaylistToLibrary(
+  sourcePlaylistId: string,
+  targetUserId: string,
+  sourceName: string,
+): Promise<string> {
+  // Ensure not saving own playlist
+  const { data: src } = await supabase
+    .from("playlists")
+    .select("user_id")
+    .eq("id", sourcePlaylistId)
+    .maybeSingle();
+  if (src?.user_id === targetUserId) throw new Error("This is already your playlist.");
+
+  // Prevent duplicates by name for this user
+  const { data: dup } = await supabase
+    .from("playlists")
+    .select("id")
+    .eq("user_id", targetUserId)
+    .eq("name", sourceName)
+    .maybeSingle();
+  if (dup) throw new Error(`You already have a playlist named "${sourceName}".`);
+
+  const { data: created, error: createErr } = await supabase
+    .from("playlists")
+    .insert({ user_id: targetUserId, name: sourceName })
+    .select("id")
+    .single();
+  if (createErr || !created) throw createErr ?? new Error("Could not save playlist.");
+
+  const { data: items } = await supabase
+    .from("playlist_tracks")
+    .select("track_id, position")
+    .eq("playlist_id", sourcePlaylistId)
+    .order("position", { ascending: true });
+
+  if (items && items.length) {
+    const rows = items.map((it, idx) => ({
+      playlist_id: created.id,
+      track_id: it.track_id,
+      position: idx,
+    }));
+    const { error: insErr } = await supabase.from("playlist_tracks").insert(rows);
+    if (insErr) throw insErr;
+  }
+
+  return created.id;
+}
+
