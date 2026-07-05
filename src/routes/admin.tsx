@@ -102,7 +102,7 @@ function AdminPage() {
       .upsert(
         {
           key: "artist_welcome",
-          value: content as unknown as Record<string, unknown>,
+          value: JSON.parse(JSON.stringify(content)),
           updated_by: user!.id,
         },
         { onConflict: "key" },
