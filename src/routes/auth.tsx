@@ -9,9 +9,14 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — soundwave" },
-      { name: "description", content: "Sign in to upload and share music on soundwave." },
+      { title: "Sign in — Orange Sound Guild" },
+      { name: "description", content: "Sign in to upload, save playlists and share music on Orange Sound Guild." },
+      { property: "og:title", content: "Sign in — Orange Sound Guild" },
+      { property: "og:description", content: "Sign in to upload, save playlists and share music on Orange Sound Guild." },
+      { property: "og:url", content: "https://orange-soundguild.lovable.app/auth" },
+      { name: "robots", content: "noindex" },
     ],
+    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/auth" }],
   }),
   component: AuthPage,
 });
