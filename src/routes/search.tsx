@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Search as SearchIcon } from "lucide-react";
+import { signMany } from "@/lib/signMedia";
+import cover2 from "@/assets/cover2.jpg";
 
 const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
@@ -32,6 +34,7 @@ type TrackRow = {
   title: string;
   genre: string | null;
   cover_art_url: string | null;
+  coverUrl?: string | null;
   user_id: string;
   plays_count: number | null;
 };
@@ -39,6 +42,7 @@ type ProfileRow = {
   id: string;
   username: string | null;
   avatar_url: string | null;
+  avatarUrl?: string | null;
   account_type: string | null;
 };
 type PlaylistRow = {
@@ -71,18 +75,11 @@ function SearchPage() {
     setLoading(true);
     const like = `%${term.replace(/[%_]/g, (m: string) => "\\" + m)}%`;
     (async () => {
-      const [p, pl] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id,username,avatar_url,account_type")
-          .ilike("username", like)
-          .limit(30),
-        supabase
-          .from("playlists")
-          .select("id,name,user_id")
-          .ilike("name", like)
-          .limit(30),
-      ]);
+      const p = await supabase
+        .from("profiles")
+        .select("id,username,avatar_url,account_type")
+        .ilike("username", like)
+        .limit(30);
       if (cancelled) return;
 
       const matchedProfiles = (p.data as ProfileRow[]) ?? [];
@@ -93,15 +90,44 @@ function SearchPage() {
       if (artistIds.length > 0) {
         orClauses.push(`user_id.in.(${artistIds.join(",")})`);
       }
-      const { data: tData } = await supabase
-        .from("tracks")
-        .select("id,title,genre,cover_art_url,user_id,plays_count")
-        .or(orClauses.join(","))
-        .order("plays_count", { ascending: false })
-        .limit(50);
+
+      const playlistClauses = [`name.ilike.${like}`];
+      if (artistIds.length > 0) {
+        playlistClauses.push(`user_id.in.(${artistIds.join(",")})`);
+      }
+
+      const [tracksResult, playlistsResult] = await Promise.all([
+        supabase
+          .from("tracks")
+          .select("id,title,genre,cover_art_url,user_id,plays_count")
+          .or(orClauses.join(","))
+          .order("plays_count", { ascending: false })
+          .limit(50),
+        supabase
+          .from("playlists")
+          .select("id,name,user_id")
+          .or(playlistClauses.join(","))
+          .limit(30),
+      ]);
       if (cancelled) return;
 
-      const rawPlaylists = (pl.data as { id: string; name: string; user_id: string }[]) ?? [];
+      const rawTracks = (tracksResult.data as TrackRow[]) ?? [];
+      const [trackCovers, profileAvatars] = await Promise.all([
+        signMany(rawTracks.map((track) => ({ bucket: "covers", path: track.cover_art_url }))),
+        signMany(matchedProfiles.map((profile) => ({ bucket: "avatars", path: profile.avatar_url }))),
+      ]);
+      if (cancelled) return;
+
+      const signedProfiles = matchedProfiles.map((profile, index) => ({
+        ...profile,
+        avatarUrl: profileAvatars[index],
+      }));
+      const signedTracks = rawTracks.map((track, index) => ({
+        ...track,
+        coverUrl: trackCovers[index] ?? cover2,
+      }));
+
+      const rawPlaylists = (playlistsResult.data as { id: string; name: string; user_id: string }[]) ?? [];
       const ownerIds = Array.from(new Set(rawPlaylists.map((r) => r.user_id)));
       let ownerMap = new Map<string, string | null>();
       if (ownerIds.length > 0) {
@@ -113,8 +139,8 @@ function SearchPage() {
           ownerMap.set(o.id, o.username);
         });
       }
-      setTracks((tData as TrackRow[]) ?? []);
-      setProfiles(matchedProfiles);
+      setTracks(signedTracks);
+      setProfiles(signedProfiles);
       setPlaylists(
         rawPlaylists.map((r) => ({
           id: r.id,
@@ -176,8 +202,8 @@ function SearchPage() {
                         className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-muted"
                       >
                         <div className="h-10 w-10 overflow-hidden rounded-full bg-secondary text-center text-sm font-semibold uppercase leading-10 text-secondary-foreground">
-                          {p.avatar_url ? (
-                            <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                          {p.avatarUrl ? (
+                            <img src={p.avatarUrl} alt="" className="h-full w-full object-cover" />
                           ) : (
                             (p.username ?? "U").charAt(0)
                           )}
@@ -209,9 +235,7 @@ function SearchPage() {
                         className="flex items-center gap-3 p-3 hover:bg-muted"
                       >
                         <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded bg-secondary">
-                          {t.cover_art_url && (
-                            <img src={t.cover_art_url} alt="" className="h-full w-full object-cover" />
-                          )}
+                          <img src={t.coverUrl ?? cover2} alt={`${t.title} cover art`} className="h-full w-full object-cover" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-medium">{t.title}</div>
