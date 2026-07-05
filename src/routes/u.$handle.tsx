@@ -74,6 +74,8 @@ function ProfilePage() {
   const { uploads, removeUpload } = useUploads();
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
+  const { isArtist } = useAccountType();
+
 
   const isMe = handle === CURRENT_USER.handle;
   const [profile, setProfile] = useState<ProfileRow | null>(null);
