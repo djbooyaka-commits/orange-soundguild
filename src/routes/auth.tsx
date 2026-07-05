@@ -61,6 +61,10 @@ function AuthPage() {
 
   const onEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && !agreedTos) {
+      toast.error("You must agree to the Terms of Service to create an account.");
+      return;
+    }
     setBusy(true);
     try {
       if (mode === "signup") {
