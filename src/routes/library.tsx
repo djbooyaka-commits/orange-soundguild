@@ -6,9 +6,14 @@ import { useAuth } from "@/hooks/useAuth";
 export const Route = createFileRoute("/library")({
   head: () => ({
     meta: [
-      { title: "Your Library — soundwave" },
-      { name: "description", content: "Your saved and created playlists on soundwave." },
+      { title: "Your Library — Orange Sound Guild" },
+      { name: "description", content: "Your saved and created playlists on Orange Sound Guild." },
+      { property: "og:title", content: "Your Library — Orange Sound Guild" },
+      { property: "og:description", content: "Your saved and created playlists on Orange Sound Guild." },
+      { property: "og:url", content: "https://orange-soundguild.lovable.app/library" },
+      { name: "robots", content: "noindex" },
     ],
+    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/library" }],
   }),
   component: LibraryPage,
 });
