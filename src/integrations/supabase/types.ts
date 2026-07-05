@@ -159,6 +159,7 @@ export type Database = {
           is_banned: boolean
           referral_code: string | null
           referred_by: string | null
+          royalty_test_override: boolean
           updated_at: string
           username: string | null
         }
@@ -172,6 +173,7 @@ export type Database = {
           is_banned?: boolean
           referral_code?: string | null
           referred_by?: string | null
+          royalty_test_override?: boolean
           updated_at?: string
           username?: string | null
         }
@@ -185,6 +187,7 @@ export type Database = {
           is_banned?: boolean
           referral_code?: string | null
           referred_by?: string | null
+          royalty_test_override?: boolean
           updated_at?: string
           username?: string | null
         }
