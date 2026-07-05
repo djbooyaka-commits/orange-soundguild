@@ -32,10 +32,15 @@ type PlayerState = {
 
 const Ctx = createContext<PlayerState | null>(null);
 
-const TAB_ID =
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2);
+let _tabId: string | null = null;
+const getTabId = () => {
+  if (_tabId) return _tabId;
+  _tabId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+  return _tabId;
+};
 const PLAYBACK_CHANNEL = "soundwave:playback";
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
@@ -55,9 +60,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
 
   const announcePlaying = useCallback(() => {
-    channelRef.current?.postMessage({ type: "playing", tabId: TAB_ID });
+    channelRef.current?.postMessage({ type: "playing", tabId: getTabId() });
     try {
-      localStorage.setItem("soundwave:active-player", TAB_ID);
+      localStorage.setItem("soundwave:active-player", getTabId());
     } catch {
       // ignore
     }
@@ -163,7 +168,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // Cross-tab coordination: only one player may be active at once.
     let channel: BroadcastChannel | null = null;
     const handleForeignPlaying = (foreignTabId: string) => {
-      if (foreignTabId === TAB_ID) return;
+      if (foreignTabId === getTabId()) return;
       if (!audio.paused) audio.pause();
     };
     if (typeof BroadcastChannel !== "undefined") {
