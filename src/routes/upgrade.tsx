@@ -34,6 +34,11 @@ const ARTIST_BENEFITS = [
   { icon: Music2, title: "Your artist page", desc: "A dedicated profile for fans to follow and discover your music." },
   { icon: BarChart3, title: "Listener insights", desc: "See plays, likes, and how your tracks perform over time." },
   { icon: DollarSign, title: "Earn $1 / $0.50 per referral", desc: "Get paid every time someone you invited pays for their plan." },
+  {
+    icon: Sparkles,
+    title: "Unlock stream royalties",
+    desc: "Hit 500 followers, 20 Artist referrals, or 40 Superfan referrals to become royalty-eligible.",
+  },
 ];
 
 const SUPERFAN_BENEFITS = [
