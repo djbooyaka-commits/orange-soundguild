@@ -129,11 +129,18 @@ export function PhantomPayPanel() {
         ))}
       </div>
 
-      <div className="rounded-xl border border-border bg-background/60 px-4 py-3 text-sm">
+      <div className="space-y-2 rounded-xl border border-border bg-background/60 px-4 py-3 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">You'll pay</span>
           <span className="font-semibold">{priceLabel}</span>
         </div>
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">Network</span>
+          <span className="font-semibold text-emerald-600">Solana Mainnet</span>
+        </div>
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Make sure Phantom is set to <span className="font-semibold">Mainnet</span> and keep a little SOL (~0.001) for network fees.
+        </p>
       </div>
 
       {isArtist ? (
