@@ -253,7 +253,13 @@ function ProfilePage() {
 
 
           {/* Stats */}
-          <FollowStats userId={profileUserId} trackCount={userTracks.length} playCount={userTracks.reduce((n, t) => n + t.plays, 0)} />
+          <FollowStats
+            userId={profileUserId}
+            trackCount={userTracks.length}
+            playCount={userTracks.reduce((n, t) => n + t.plays, 0)}
+            isArtist={isMe ? isArtist : profile?.account_type === "artist"}
+          />
+
 
         </div>
       </section>
