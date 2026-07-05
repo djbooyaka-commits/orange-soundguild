@@ -9,7 +9,13 @@ import {
   capturePaypalOrder,
 } from "@/lib/api/artist-payment.functions";
 
-export default function PaypalPayPanel() {
+type Tier = "artist" | "superfan";
+
+interface Props {
+  tier?: Tier;
+}
+
+export default function PaypalPayPanel({ tier = "artist" }: Props) {
   const navigate = useNavigate();
   const createOrder = useServerFn(createPaypalOrder);
   const captureOrder = useServerFn(capturePaypalOrder);
@@ -61,22 +67,26 @@ export default function PaypalPayPanel() {
         <PayPalButtons
           style={{ layout: "vertical", label: "pay", shape: "rect" }}
           disabled={status === "processing" || status === "success"}
+          forceReRender={[tier]}
           createOrder={async () => {
             setStatus("processing");
             setMessage(null);
-            const { orderId } = await createOrder();
+            const { orderId } = await createOrder({ data: { tier } });
             return orderId;
           }}
           onApprove={async (data) => {
             try {
-              const res = await captureOrder({ data: { orderId: data.orderID } });
+              const res = await captureOrder({ data: { orderId: data.orderID, tier } });
               setStatus("success");
               setMessage(
-                `Payment received. Artist access active until ${new Date(
+                `Payment received. ${tier === "artist" ? "Artist" : "Superfan"} access active until ${new Date(
                   res.expiresAt,
                 ).toLocaleDateString()}.`,
               );
-              setTimeout(() => navigate({ to: "/artist-welcome" }), 1800);
+              setTimeout(
+                () => navigate({ to: tier === "artist" ? "/artist-welcome" : "/referrals" }),
+                1800,
+              );
             } catch (e: unknown) {
               setStatus("error");
               setMessage(e instanceof Error ? e.message : "Capture failed");
