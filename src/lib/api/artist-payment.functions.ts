@@ -9,6 +9,22 @@ const NETWORK = "mainnet-beta";
 const RPC_URL = "https://api.mainnet-beta.solana.com";
 const SUB_DAYS = 30;
 const SOL_TOLERANCE = 0.03;
+const FALLBACK_SOL_USD = 150;
+
+async function fetchJsonWithTimeout<T>(url: string, timeoutMs = 3500): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+    return (await res.json()) as T;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 type SolanaRpcRes<T> = { jsonrpc: "2.0"; result?: T; error?: { message: string } };
 
@@ -25,15 +41,21 @@ async function rpc<T>(method: string, params: unknown[]): Promise<T> {
 }
 
 async function fetchSolUsd(): Promise<number> {
-  const res = await fetch(
+  const coinGecko = await fetchJsonWithTimeout<{ solana?: { usd?: number } }>(
     "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
-    { headers: { accept: "application/json" } },
-  );
-  if (!res.ok) throw new Error("Could not fetch SOL price");
-  const j = (await res.json()) as { solana?: { usd?: number } };
-  const p = j?.solana?.usd;
-  if (!p || p <= 0) throw new Error("Invalid SOL price");
-  return p;
+  ).catch(() => null);
+  const coinGeckoPrice = coinGecko?.solana?.usd;
+  if (coinGeckoPrice && coinGeckoPrice > 0) return coinGeckoPrice;
+
+  const jupiter = await fetchJsonWithTimeout<{
+    data?: { SOL?: { price?: number }; So11111111111111111111111111111111111111112?: { price?: number } };
+  }>("https://lite-api.jup.ag/price/v3?ids=SOL").catch(() => null);
+  const jupiterPrice =
+    jupiter?.data?.SOL?.price ??
+    jupiter?.data?.So11111111111111111111111111111111111111112?.price;
+  if (jupiterPrice && jupiterPrice > 0) return jupiterPrice;
+
+  return FALLBACK_SOL_USD;
 }
 
 type ParsedTx = {
