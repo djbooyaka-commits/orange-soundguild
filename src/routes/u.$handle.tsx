@@ -471,7 +471,7 @@ function SocialLinks({ profile }: { profile: ProfileRow | null }) {
     { url: profile.twitter_url, label: "X", icon: <Twitter className="h-3.5 w-3.5" /> },
     { url: profile.tiktok_url, label: "TikTok", icon: <Music className="h-3.5 w-3.5" /> },
     { url: profile.youtube_url, label: "YouTube", icon: <Youtube className="h-3.5 w-3.5" /> },
-    { url: profile.soundcloud_url, label: "SoundCloud", icon: <Music2 className="h-3.5 w-3.5" /> },
+    { url: profile.facebook_url, label: "Facebook", icon: <Music2 className="h-3.5 w-3.5" /> },
     { url: profile.spotify_url, label: "Spotify", icon: <Music2 className="h-3.5 w-3.5" /> },
   ].filter((i) => i.url && i.url.trim().length > 0);
   if (items.length === 0) return null;
