@@ -13,6 +13,7 @@ import { useFollow } from "@/lib/follows";
 import { useIsAdmin, adminDeleteTrack, setUserBanned } from "@/hooks/useIsAdmin";
 import { useAccountType } from "@/hooks/useAccountType";
 import { SuperfanTopStats } from "@/components/SuperfanTopStats";
+import { SuperfanPublicProfile } from "@/components/SuperfanPublicProfile";
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
@@ -292,6 +293,10 @@ function ProfilePage() {
               />
             ))}
           </div>
+        )}
+
+        {!isMe && profileUserId && (
+          <SuperfanPublicProfile userId={profileUserId} displayName={displayName} />
         )}
 
         {!isMe && (
