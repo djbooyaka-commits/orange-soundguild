@@ -4,8 +4,9 @@ import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
 import { useAllTracks } from "@/lib/feed";
 import { useIsAdmin, adminDeleteTrack } from "@/hooks/useIsAdmin";
+import { useOnlineCount } from "@/hooks/useOnlineCount";
 import { toast } from "sonner";
-import { Flame, TrendingUp } from "lucide-react";
+import { Flame, TrendingUp, Users } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
