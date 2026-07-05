@@ -7,7 +7,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
-
 export function Navbar() {
   const { user, signOut } = useAuth();
   const { isArtist } = useAccountType();
@@ -42,6 +41,11 @@ export function Navbar() {
           {user && (
             <Link to="/referrals" className="rounded-md px-3 py-1.5 hover:bg-muted">
               Referrals
+            </Link>
+          )}
+          {user && isArtist && (
+            <Link to="/royalties" className="rounded-md px-3 py-1.5 hover:bg-muted">
+              Royalties
             </Link>
           )}
           {isAdmin && (
