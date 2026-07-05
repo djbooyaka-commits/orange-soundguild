@@ -5,13 +5,11 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
-  vite: {
-    plugins: [
-      nodePolyfills({
-        include: ["buffer"],
-        globals: { Buffer: true, global: true, process: false },
-        protocolImports: true,
-      }),
-    ],
-  },
+  plugins: [
+    nodePolyfills({
+      include: ["buffer"],
+      globals: { Buffer: true, global: true, process: false },
+      protocolImports: true,
+    }),
+  ],
 });
