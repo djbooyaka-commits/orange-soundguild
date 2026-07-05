@@ -255,8 +255,14 @@ function ProfilePage() {
           </div>
         )}
 
-        <h2 className="mb-5 mt-12 text-lg font-bold tracking-tight">Playlists</h2>
-        <PlaylistsSection userId={profileUserId} isOwner={isMe} />
+        {!isMe && (
+          <>
+            <h2 className="mb-5 mt-12 text-lg font-bold tracking-tight">Playlists</h2>
+            <PlaylistsSection userId={profileUserId} isOwner={false} />
+          </>
+        )}
+
+
 
         <div className="mt-10 text-center text-xs text-muted-foreground">
           <Link to="/" className="hover:text-primary">← Back to feed</Link>
