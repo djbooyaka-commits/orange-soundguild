@@ -90,6 +90,9 @@ function SearchPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <h1 className="mb-4 text-2xl font-bold tracking-tight sm:text-3xl">
+          Search tracks and artists
+        </h1>
         <form
           onSubmit={(e) => {
             e.preventDefault();
