@@ -263,38 +263,40 @@ function ProfilePage() {
           <SuperfanPublicProfile userId={profileUserId} displayName="you" />
         )}
 
-        <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
+        {(isMe ? isArtist : accountType === "artist") && (
+          <>
+            <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
 
-        {userTracks.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              {isMe
-                ? isArtist
-                  ? "You haven't uploaded anything yet. Click Upload to share your first track."
-                  : "Upgrade to an Artist account to upload tracks."
-                : `${displayName} hasn't uploaded any tracks yet.`}
-            </p>
-            {isMe && isArtist && (
-              <div className="mt-4 inline-block">
-                <UploadDialog>
-                  <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
-                    <Upload className="h-4 w-4" /> Upload your first track
-                  </button>
-                </UploadDialog>
+            {userTracks.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {isMe
+                    ? "You haven't uploaded anything yet. Click Upload to share your first track."
+                    : `${displayName} hasn't uploaded any tracks yet.`}
+                </p>
+                {isMe && isArtist && (
+                  <div className="mt-4 inline-block">
+                    <UploadDialog>
+                      <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
+                        <Upload className="h-4 w-4" /> Upload your first track
+                      </button>
+                    </UploadDialog>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {userTracks.map((t) => (
+                  <TrackCard
+                    key={t.id}
+                    track={t}
+                    canEdit={isMe}
+                    onDelete={isMe ? removeUpload : isAdmin ? handleAdminDelete : undefined}
+                  />
+                ))}
               </div>
             )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {userTracks.map((t) => (
-              <TrackCard
-                key={t.id}
-                track={t}
-                canEdit={isMe}
-                onDelete={isMe ? removeUpload : isAdmin ? handleAdminDelete : undefined}
-              />
-            ))}
-          </div>
+          </>
         )}
 
         {!isMe && profileUserId && (
