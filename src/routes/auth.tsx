@@ -29,6 +29,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [refCode, setRefCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [agreedTos, setAgreedTos] = useState(false);
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/" });
@@ -60,6 +61,10 @@ function AuthPage() {
 
   const onEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && !agreedTos) {
+      toast.error("You must agree to the Terms of Service to create an account.");
+      return;
+    }
     setBusy(true);
     try {
       if (mode === "signup") {
@@ -90,6 +95,10 @@ function AuthPage() {
   };
 
   const onGoogle = async () => {
+    if (mode === "signup" && !agreedTos) {
+      toast.error("You must agree to the Terms of Service to create an account.");
+      return;
+    }
     setBusy(true);
     const r = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
@@ -120,7 +129,7 @@ function AuthPage() {
         <button
           type="button"
           onClick={onGoogle}
-          disabled={busy}
+          disabled={busy || (mode === "signup" && !agreedTos)}
           className="mt-6 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-background text-sm font-medium hover:bg-muted disabled:opacity-50"
         >
           Continue with Google
@@ -157,9 +166,26 @@ function AuthPage() {
               className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
             />
           )}
+          {mode === "signup" && (
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={agreedTos}
+                onChange={(e) => setAgreedTos(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+              />
+              <span>
+                I agree to the{" "}
+                <Link to="/terms" target="_blank" className="font-medium text-primary hover:underline">
+                  Terms of Service
+                </Link>
+                .
+              </span>
+            </label>
+          )}
           <button
             type="submit"
-            disabled={busy}
+            disabled={busy || (mode === "signup" && !agreedTos)}
             className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground hover:brightness-105 disabled:opacity-50"
           >
             {mode === "signin" ? "Sign in" : "Sign up"}
