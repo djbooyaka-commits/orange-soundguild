@@ -1,0 +1,2 @@
+ALTER TABLE public.artist_subscriptions DROP CONSTRAINT artist_subscriptions_token_check;
+ALTER TABLE public.artist_subscriptions ADD CONSTRAINT artist_subscriptions_token_check CHECK (token = ANY (ARRAY['SOL'::text, 'USDC'::text, 'PAYPAL'::text]));
