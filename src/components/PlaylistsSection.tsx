@@ -1,15 +1,34 @@
 import { useState } from "react";
-import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown } from "lucide-react";
-import { usePlaylistsForUser } from "@/lib/playlists";
+import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus } from "lucide-react";
+import { usePlaylistsForUser, savePlaylistToLibrary } from "@/lib/playlists";
 import { usePlayer } from "./player/PlayerContext";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 export function PlaylistsSection({ userId, isOwner }: { userId: string | null; isOwner: boolean }) {
   const { playlists, removeTrack, deletePlaylist, createPlaylist, moveTrack } = usePlaylistsForUser(userId);
   const { current, isPlaying, play, toggle } = usePlayer();
+  const { user } = useAuth();
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [name, setName] = useState("");
+
+  const handleSave = async (id: string, plName: string) => {
+    if (!user) {
+      toast.error("Sign in to save playlists.");
+      return;
+    }
+    setSavingId(id);
+    try {
+      await savePlaylistToLibrary(id, user.id, plName);
+      toast.success(`Saved "${plName}" to your library`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   if (!userId) return null;
 
@@ -113,7 +132,7 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                 </div>
                 {open ? <ChevronUp className="ml-auto h-4 w-4 text-muted-foreground" /> : <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />}
               </button>
-              {isOwner && (
+              {isOwner ? (
                 <button
                   onClick={() => {
                     if (window.confirm(`Delete playlist "${pl.name}"?`)) void deletePlaylist(pl.id);
@@ -122,6 +141,17 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                   className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-destructive hover:text-destructive-foreground"
                 >
                   <Trash2 className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => void handleSave(pl.id, pl.name)}
+                  disabled={savingId === pl.id || pl.tracks.length === 0}
+                  aria-label="Save playlist to your library"
+                  title="Save to your library"
+                  className="inline-flex h-8 items-center gap-1 rounded-full border border-border bg-background px-3 text-xs font-semibold text-foreground transition hover:border-primary hover:text-primary disabled:opacity-50"
+                >
+                  <BookmarkPlus className="h-3.5 w-3.5" />
+                  {savingId === pl.id ? "Saving…" : "Save"}
                 </button>
               )}
             </div>
