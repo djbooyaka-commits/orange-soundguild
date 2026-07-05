@@ -327,6 +327,42 @@ export type Database = {
         }
         Relationships: []
       }
+      site_expenses: {
+        Row: {
+          amount_cents: number
+          category: string
+          created_at: string
+          description: string
+          id: string
+          note: string | null
+          spent_on: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          category?: string
+          created_at?: string
+          description: string
+          id?: string
+          note?: string | null
+          spent_on?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          note?: string | null
+          spent_on?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       track_likes: {
         Row: {
           created_at: string
