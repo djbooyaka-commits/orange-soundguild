@@ -21,6 +21,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const { addUpload } = useUploads();
   const { play } = usePlayer();
   const { user } = useAuth();
+  const { isFan } = useAccountType();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -41,6 +42,10 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const onOpenChange = (o: boolean) => {
     if (o && !user) {
       navigate({ to: "/auth" });
+      return;
+    }
+    if (o && isFan) {
+      toast.error("Fan accounts can't upload. Upgrade to an artist account first.");
       return;
     }
     setOpen(o);
