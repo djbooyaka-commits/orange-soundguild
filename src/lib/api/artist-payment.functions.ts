@@ -35,15 +35,33 @@ async function fetchJsonWithTimeout<T>(url: string, timeoutMs = 3500): Promise<T
 type SolanaRpcRes<T> = { jsonrpc: "2.0"; result?: T; error?: { message: string } };
 
 async function rpc<T>(method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(RPC_URL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  const body = (await res.json()) as SolanaRpcRes<T>;
-  if (body.error) throw new Error(`RPC ${method}: ${body.error.message}`);
-  if (body.result === undefined) throw new Error(`RPC ${method}: empty result`);
-  return body.result;
+  let lastErr: unknown = null;
+  for (const url of RPC_URLS) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      });
+      if (!res.ok) {
+        lastErr = new Error(`RPC ${method} ${url}: HTTP ${res.status}`);
+        continue;
+      }
+      const body = (await res.json()) as SolanaRpcRes<T>;
+      if (body.error) {
+        lastErr = new Error(`RPC ${method} ${url}: ${body.error.message}`);
+        continue;
+      }
+      if (body.result === undefined) {
+        lastErr = new Error(`RPC ${method} ${url}: empty result`);
+        continue;
+      }
+      return body.result;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(`RPC ${method} failed on all endpoints`);
 }
 
 async function fetchSolUsd(): Promise<number> {
