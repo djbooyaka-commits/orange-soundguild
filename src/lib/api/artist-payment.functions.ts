@@ -409,11 +409,8 @@ export const getMyReferralInfo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("referral_code, credit_balance_cents, account_type")
-      .eq("id", userId)
-      .maybeSingle();
+    const { data: info } = await supabase.rpc("get_my_referral_info" as never);
+    const row = Array.isArray(info) ? (info[0] as Record<string, unknown> | undefined) : undefined;
 
     const { data: earnings } = await supabase
       .from("referral_earnings" as never)
@@ -422,15 +419,11 @@ export const getMyReferralInfo = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(50);
 
-    const { count: referredCount } = await supabase
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("referred_by" as never, userId);
-
     return {
-      referralCode: (profile as { referral_code?: string } | null)?.referral_code ?? null,
-      balanceCents: (profile as { credit_balance_cents?: number } | null)?.credit_balance_cents ?? 0,
-      accountType: (profile as { account_type?: string } | null)?.account_type ?? "fan",
+      referralCode: (row?.referral_code as string | null) ?? null,
+      balanceCents: (row?.balance_cents as number | null) ?? 0,
+      accountType: (row?.account_type as string | null) ?? "fan",
+      referredCount: Number(row?.referred_count ?? 0),
       earnings: (earnings ?? []) as Array<{
         id: string;
         amount_cents: number;
