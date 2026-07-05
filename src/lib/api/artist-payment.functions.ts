@@ -431,6 +431,5 @@ export const getMyReferralInfo = createServerFn({ method: "GET" })
         created_at: string;
         referred_user_id: string;
       }>,
-      referredCount: referredCount ?? 0,
     };
   });
