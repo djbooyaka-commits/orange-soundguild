@@ -355,6 +355,15 @@ export type Database = {
           referred_count: number
         }[]
       }
+      get_royalty_progress: {
+        Args: { _user_id: string }
+        Returns: {
+          artist_referrals: number
+          eligible: boolean
+          followers: number
+          superfan_referrals: number
+        }[]
+      }
       get_total_users: { Args: never; Returns: number }
       has_role: {
         Args: {
@@ -365,6 +374,7 @@ export type Database = {
       }
       is_artist: { Args: { _user_id: string }; Returns: boolean }
       is_banned: { Args: { _user_id: string }; Returns: boolean }
+      is_royalty_eligible: { Args: { _user_id: string }; Returns: boolean }
       record_track_play: { Args: { p_track_id: string }; Returns: undefined }
     }
     Enums: {
