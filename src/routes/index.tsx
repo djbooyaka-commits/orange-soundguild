@@ -27,6 +27,7 @@ const GENRES = ["All", "Electronic", "House", "Tech House", "Drum and Bass", "Af
 function Index() {
   const { tracks: uploaded } = useAllTracks();
   const isAdmin = useIsAdmin();
+  const onlineCount = useOnlineCount();
   const [genre, setGenre] = useState("All");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
