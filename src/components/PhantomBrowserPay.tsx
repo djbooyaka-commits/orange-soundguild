@@ -1,66 +1,42 @@
-import { Buffer } from "buffer";
-if (typeof window !== "undefined" && !(window as unknown as { Buffer?: unknown }).Buffer) {
-  (window as unknown as { Buffer: typeof Buffer }).Buffer = Buffer;
-}
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Connection,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-  LAMPORTS_PER_SOL,
-} from "@solana/web3.js";
-import {
-  createTransferInstruction,
-  getAssociatedTokenAddress,
-  createAssociatedTokenAccountInstruction,
-  getAccount,
-} from "@solana/spl-token";
+import bs58 from "bs58";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "@tanstack/react-router";
 import { verifyArtistPayment } from "@/lib/api/artist-payment.functions";
+import { buildPhantomTransaction } from "@/lib/api/phantom-tx.functions";
 
 type PhantomProvider = {
   isPhantom?: boolean;
-  publicKey: PublicKey | null;
-  connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: PublicKey }>;
-  signAndSendTransaction: (tx: Transaction) => Promise<{ signature: string }>;
+  publicKey: { toString(): string } | null;
+  connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString(): string } }>;
+  signAndSendTransaction: (
+    txOrOpts: unknown,
+  ) => Promise<{ signature: string }>;
+  request?: (args: { method: string; params: unknown }) => Promise<{ signature: string }>;
 };
 
 function getPhantom(): PhantomProvider | null {
   if (typeof window === "undefined") return null;
-  const w = window as unknown as { solana?: PhantomProvider; phantom?: { solana?: PhantomProvider } };
+  const w = window as unknown as {
+    solana?: PhantomProvider;
+    phantom?: { solana?: PhantomProvider };
+  };
   const p = w.phantom?.solana ?? w.solana;
   return p?.isPhantom ? p : null;
 }
 
-type Props = {
-  token: "USDC" | "SOL";
-  receiver: string;
-  usdcMint: string;
-  usdcDecimals: number;
-  priceUsd: number;
-  solUsd: number | null;
-  rpcUrl: string;
-};
+type Props = { token: "USDC" | "SOL" };
 
-export function PhantomBrowserPay({
-  token,
-  receiver,
-  usdcMint,
-  usdcDecimals,
-  priceUsd,
-  solUsd,
-  rpcUrl,
-}: Props) {
+export function PhantomBrowserPay({ token }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const build = useServerFn(buildPhantomTransaction);
   const verify = useServerFn(verifyArtistPayment);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState("");
 
   const pay = async () => {
     if (!user) {
@@ -73,62 +49,35 @@ export function PhantomBrowserPay({
       window.open("https://phantom.app/download", "_blank");
       return;
     }
-    if (token === "SOL" && !solUsd) {
-      toast.error("SOL price unavailable, try USDC.");
-      return;
-    }
 
     setBusy(true);
     try {
       setStatus("Connecting to Phantom…");
       const { publicKey } = await provider.connect();
-      const payer = publicKey;
-      const receiverPk = new PublicKey(receiver);
-      const connection = new Connection(rpcUrl, "confirmed");
+      const payer = publicKey.toString();
 
-      const tx = new Transaction();
+      setStatus("Preparing transaction…");
+      const { transactionBase58 } = await build({ data: { payer, token } });
 
-      if (token === "SOL") {
-        const lamports = Math.ceil((priceUsd / (solUsd as number)) * LAMPORTS_PER_SOL);
-        tx.add(
-          SystemProgram.transfer({
-            fromPubkey: payer,
-            toPubkey: receiverPk,
-            lamports,
-          }),
-        );
+      setStatus("Approve in Phantom…");
+      let signature: string;
+      if (provider.request) {
+        const res = await provider.request({
+          method: "signAndSendTransaction",
+          params: { message: transactionBase58 },
+        });
+        signature = res.signature;
       } else {
-        const mint = new PublicKey(usdcMint);
-        const fromAta = await getAssociatedTokenAddress(mint, payer);
-        const toAta = await getAssociatedTokenAddress(mint, receiverPk);
-
-        // Ensure receiver ATA exists; create if missing (payer funds rent)
-        try {
-          await getAccount(connection, toAta);
-        } catch {
-          tx.add(
-            createAssociatedTokenAccountInstruction(payer, toAta, receiverPk, mint),
-          );
-        }
-
-        const amount = BigInt(Math.round(priceUsd * 10 ** usdcDecimals));
-        tx.add(createTransferInstruction(fromAta, toAta, payer, amount));
+        // Fallback: decode + submit via signAndSendTransaction with raw bytes
+        const bytes = bs58.decode(transactionBase58);
+        const res = await provider.signAndSendTransaction(bytes);
+        signature = res.signature;
       }
 
-      const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      tx.recentBlockhash = blockhash;
-      tx.feePayer = payer;
-
-      setStatus("Approve the transaction in Phantom…");
-      const { signature } = await provider.signAndSendTransaction(tx);
-
-      setStatus("Confirming on Solana…");
-      await connection.confirmTransaction(signature, "confirmed");
-
       setStatus("Activating your artist access…");
-      const res = await verify({ data: { signature, token } });
+      const r = await verify({ data: { signature, token } });
       toast.success(
-        `You're an artist! Active until ${new Date(res.expiresAt).toLocaleDateString()}.`,
+        `You're an artist! Active until ${new Date(r.expiresAt).toLocaleDateString()}.`,
       );
       navigate({ to: "/" });
     } catch (e) {
@@ -148,7 +97,7 @@ export function PhantomBrowserPay({
         className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-foreground px-4 text-sm font-semibold text-background shadow-sm transition hover:brightness-110 disabled:opacity-60"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
-        {busy ? status || "Working…" : `Pay with Phantom extension`}
+        {busy ? status || "Working…" : "Pay with Phantom extension"}
       </button>
       <p className="text-center text-[11px] text-muted-foreground">
         Uses your Phantom browser extension — no signature copy-paste needed.
