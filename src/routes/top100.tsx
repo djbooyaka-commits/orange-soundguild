@@ -11,10 +11,25 @@ import cover2 from "@/assets/cover2.jpg";
 export const Route = createFileRoute("/top100")({
   head: () => ({
     meta: [
-      { title: "Top 100 — soundwave" },
-      { name: "description", content: "The 100 most-played tracks on soundwave right now." },
-      { property: "og:title", content: "Top 100 — soundwave" },
-      { property: "og:description", content: "The 100 most-played tracks on soundwave right now." },
+      { title: "Top 100 — Orange Sound Guild" },
+      { name: "description", content: "The 100 most-played tracks on Orange Sound Guild right now." },
+      { property: "og:title", content: "Top 100 — Orange Sound Guild" },
+      { property: "og:description", content: "The 100 most-played tracks on Orange Sound Guild right now." },
+      { property: "og:url", content: "https://orange-soundguild.lovable.app/top100" },
+    ],
+    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/top100" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "MusicPlaylist",
+          name: "Top 100 — Orange Sound Guild",
+          description: "The 100 most-played tracks on Orange Sound Guild right now.",
+          url: "https://orange-soundguild.lovable.app/top100",
+          numTracks: 100,
+        }),
+      },
     ],
   }),
   component: Top100,

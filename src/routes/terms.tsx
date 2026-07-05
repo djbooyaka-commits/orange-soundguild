@@ -16,7 +16,9 @@ export const Route = createFileRoute("/terms")({
         content:
           "Read the Terms of Service for Orange Sound Guild, including artist ownership, listener licenses, and prohibited conduct.",
       },
+      { property: "og:url", content: "https://orange-soundguild.lovable.app/terms" },
     ],
+    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/terms" }],
   }),
   component: TermsPage,
 });

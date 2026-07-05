@@ -89,17 +89,42 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Orange Sound Guild" },
       { property: "og:description", content: "Orange Sound Guild is a modern music streaming web app for uploading, discovering, and playing audio tracks." },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Orange Sound Guild" },
+      { property: "og:url", content: "https://orange-soundguild.lovable.app/" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@OrangeSoundGuild" },
       { name: "twitter:title", content: "Orange Sound Guild" },
       { name: "twitter:description", content: "Orange Sound Guild is a modern music streaming web app for uploading, discovering, and playing audio tracks." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2d38d80d-d29e-4b54-8530-9462dfa3096a/id-preview-a3e6c4ef--9a7ba628-0768-4d89-a2be-c5c8fa4fefa8.lovable.app-1780911487638.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2d38d80d-d29e-4b54-8530-9462dfa3096a/id-preview-a3e6c4ef--9a7ba628-0768-4d89-a2be-c5c8fa4fefa8.lovable.app-1780911487638.png" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "WebSite",
+              name: "Orange Sound Guild",
+              url: "https://orange-soundguild.lovable.app/",
+              potentialAction: {
+                "@type": "SearchAction",
+                target: "https://orange-soundguild.lovable.app/search?q={search_term_string}",
+                "query-input": "required name=search_term_string",
+              },
+            },
+            {
+              "@type": "Organization",
+              name: "Orange Sound Guild",
+              url: "https://orange-soundguild.lovable.app/",
+            },
+          ],
+        }),
       },
     ],
   }),

@@ -1,0 +1,14 @@
+# Orange Sound Guild
+
+> Orange Sound Guild is a music streaming web app for uploading, discovering, and playing audio tracks from independent artists.
+
+## Pages
+
+- [Home](/): Latest tracks and featured artists.
+- [Top 100](/top100): The 100 most-played tracks right now.
+- [Search](/search): Find artists, tracks and genres.
+- [Terms](/terms): Terms of service.
+
+## Optional
+
+- [Sign in](/auth): Sign in to save playlists, follow artists, and upload.

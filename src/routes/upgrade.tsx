@@ -9,18 +9,20 @@ const PaypalPayPanel = lazy(() => import("@/components/PaypalPayPanel"));
 export const Route = createFileRoute("/upgrade")({
   head: () => ({
     meta: [
-      { title: "Become an Artist — soundwave" },
+      { title: "Become an Artist — Orange Sound Guild" },
       {
         name: "description",
         content:
-          "Upgrade to an Artist account for $10/month, paid with Phantom wallet in USDC or SOL.",
+          "Upgrade to an Artist account on Orange Sound Guild for $10/month, paid with Phantom wallet in USDC or SOL.",
       },
-      { property: "og:title", content: "Become an Artist — soundwave" },
+      { property: "og:title", content: "Become an Artist — Orange Sound Guild" },
       {
         property: "og:description",
-        content: "Pay $10/mo with Phantom (USDC or SOL) to unlock artist tools.",
+        content: "Pay $10/mo with Phantom (USDC or SOL) to unlock artist tools on Orange Sound Guild.",
       },
+      { property: "og:url", content: "https://orange-soundguild.lovable.app/upgrade" },
     ],
+    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/upgrade" }],
   }),
   component: UpgradePage,
 });

@@ -59,13 +59,21 @@ export function Navbar() {
           </form>
         </div>
 
-        <button className="hidden h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:flex">
+        <button
+          type="button"
+          aria-label="Notifications"
+          className="hidden h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:flex"
+        >
           <Bell className="h-4 w-4" />
         </button>
 
         {(!user || isArtist) && (
           <UploadDialog>
-            <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 active:scale-[0.98]">
+            <button
+              type="button"
+              aria-label="Upload track"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 active:scale-[0.98]"
+            >
               <Upload className="h-4 w-4" />
               <span className="hidden sm:inline">Upload</span>
             </button>

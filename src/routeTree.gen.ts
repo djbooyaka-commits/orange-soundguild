@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as Top100RouteImport } from './routes/top100'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -32,6 +33,11 @@ const Top100Route = Top100RouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/search': typeof SearchRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/search': typeof SearchRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/search': typeof SearchRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/search'
+    | '/sitemap.xml'
     | '/terms'
     | '/top100'
     | '/upgrade'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/search'
+    | '/sitemap.xml'
     | '/terms'
     | '/top100'
     | '/upgrade'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/search'
+    | '/sitemap.xml'
     | '/terms'
     | '/top100'
     | '/upgrade'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   LibraryRoute: typeof LibraryRoute
   SearchRoute: typeof SearchRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   Top100Route: typeof Top100Route
   UpgradeRoute: typeof UpgradeRoute
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   LibraryRoute: LibraryRoute,
   SearchRoute: SearchRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   Top100Route: Top100Route,
   UpgradeRoute: UpgradeRoute,
