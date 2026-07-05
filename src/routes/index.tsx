@@ -73,6 +73,17 @@ function Index() {
               <p className="mt-3 max-w-xl text-sm text-white/70">
                 A community of producers, bedroom artists and labels. Fresh tracks, every minute — straight to your queue.
               </p>
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/85 backdrop-blur">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                </span>
+                <Users className="h-3.5 w-3.5 text-primary" />
+                <span>
+                  <span className="tabular-nums font-semibold text-white">{onlineCount.toLocaleString()}</span>{" "}
+                  {onlineCount === 1 ? "listener" : "listeners"} online now
+                </span>
+              </div>
             </div>
           </div>
         </section>
