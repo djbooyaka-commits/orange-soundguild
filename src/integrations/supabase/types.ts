@@ -22,6 +22,7 @@ export type Database = {
           id: string
           network: string
           paid_at: string
+          tier: string
           token: string
           tx_signature: string
           user_id: string
@@ -33,6 +34,7 @@ export type Database = {
           id?: string
           network?: string
           paid_at?: string
+          tier?: string
           token: string
           tx_signature: string
           user_id: string
@@ -44,6 +46,7 @@ export type Database = {
           id?: string
           network?: string
           paid_at?: string
+          tier?: string
           token?: string
           tx_signature?: string
           user_id?: string
@@ -151,8 +154,11 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          credit_balance_cents: number
           id: string
           is_banned: boolean
+          referral_code: string | null
+          referred_by: string | null
           updated_at: string
           username: string | null
         }
@@ -161,8 +167,11 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          credit_balance_cents?: number
           id: string
           is_banned?: boolean
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -171,12 +180,53 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          credit_balance_cents?: number
           id?: string
           is_banned?: boolean
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
           username?: string | null
         }
         Relationships: []
+      }
+      referral_earnings: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          referred_user_id: string
+          referrer_id: string
+          subscription_id: string | null
+          tier: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          referred_user_id: string
+          referrer_id: string
+          subscription_id?: string | null
+          tier: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          referred_user_id?: string
+          referrer_id?: string
+          subscription_id?: string | null
+          tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_earnings_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "artist_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_content: {
         Row: {
@@ -287,6 +337,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      credit_referral: {
+        Args: {
+          _referred_user: string
+          _subscription_id: string
+          _tier: string
+        }
+        Returns: undefined
+      }
+      generate_referral_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -299,7 +358,7 @@ export type Database = {
       record_track_play: { Args: { p_track_id: string }; Returns: undefined }
     }
     Enums: {
-      account_type: "fan" | "artist"
+      account_type: "fan" | "artist" | "superfan"
       app_role: "admin" | "user"
     }
     CompositeTypes: {
@@ -428,7 +487,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      account_type: ["fan", "artist"],
+      account_type: ["fan", "artist", "superfan"],
       app_role: ["admin", "user"],
     },
   },
