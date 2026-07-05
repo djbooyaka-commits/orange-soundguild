@@ -295,6 +295,10 @@ function ProfilePage() {
           </div>
         )}
 
+        {!isMe && profileUserId && (
+          <SuperfanPublicProfile userId={profileUserId} displayName={displayName} />
+        )}
+
         {!isMe && (
           <>
             <h2 className="mb-5 mt-12 text-lg font-bold tracking-tight">Playlists</h2>
