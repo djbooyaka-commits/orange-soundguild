@@ -119,7 +119,7 @@ function SearchPage() {
             autoFocus
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Search artists, tracks, genres…"
+            placeholder="Search artists, tracks, playlists…"
             className="h-12 w-full rounded-full border border-border bg-muted/60 pl-12 pr-4 text-base outline-none focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/30"
           />
         </form>
