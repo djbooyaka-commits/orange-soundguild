@@ -8,4 +8,6 @@ export type Track = {
   uploadedAt: string;
   plays: number;
   genre: string;
+  album?: string | null;
+  trackNumber?: number | null;
 };
