@@ -33,12 +33,25 @@ type Payout = {
   created_at: string;
 };
 
+type PayoutRequest = {
+  id: string;
+  method: "paypal" | "phantom";
+  destination: string;
+  amount_cents: number;
+  status: "pending" | "processing" | "paid" | "rejected";
+  admin_note: string | null;
+  created_at: string;
+  processed_at: string | null;
+};
+
 function RoyaltiesPage() {
   const { user, loading: authLoading } = useAuth();
   const { isArtist, loading: acctLoading } = useAccountType();
   const { data: progress } = useRoyaltyProgress(user?.id);
   const [payouts, setPayouts] = useState<Payout[] | null>(null);
   const [balanceCents, setBalanceCents] = useState<number>(0);
+  const [requests, setRequests] = useState<PayoutRequest[] | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -55,7 +68,14 @@ function RoyaltiesPage() {
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => setBalanceCents(Number(data?.credit_balance_cents ?? 0)));
-  }, [user]);
+    supabase
+      .from("payout_requests")
+      .select("id, method, destination, amount_cents, status, admin_note, created_at, processed_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => setRequests((data ?? []) as PayoutRequest[]));
+  }, [user, reloadKey]);
 
   if (authLoading || acctLoading) {
     return (
