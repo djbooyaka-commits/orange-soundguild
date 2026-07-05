@@ -45,7 +45,7 @@ type PlaylistRow = {
   id: string;
   name: string;
   user_id: string;
-  profiles: { username: string | null } | null;
+  ownerHandle: string | null;
 };
 
 function SearchPage() {
@@ -85,14 +85,33 @@ function SearchPage() {
           .limit(30),
         supabase
           .from("playlists")
-          .select("id,name,user_id,profiles(username)")
+          .select("id,name,user_id")
           .ilike("name", like)
           .limit(30),
       ]);
       if (cancelled) return;
+      const rawPlaylists = (pl.data as { id: string; name: string; user_id: string }[]) ?? [];
+      const ownerIds = Array.from(new Set(rawPlaylists.map((r) => r.user_id)));
+      let ownerMap = new Map<string, string | null>();
+      if (ownerIds.length > 0) {
+        const { data: owners } = await supabase
+          .from("profiles")
+          .select("id,username")
+          .in("id", ownerIds);
+        (owners ?? []).forEach((o: { id: string; username: string | null }) => {
+          ownerMap.set(o.id, o.username);
+        });
+      }
       setTracks((t.data as TrackRow[]) ?? []);
       setProfiles((p.data as ProfileRow[]) ?? []);
-      setPlaylists((pl.data as unknown as PlaylistRow[]) ?? []);
+      setPlaylists(
+        rawPlaylists.map((r) => ({
+          id: r.id,
+          name: r.name,
+          user_id: r.user_id,
+          ownerHandle: ownerMap.get(r.user_id) ?? null,
+        })),
+      );
       setLoading(false);
     })();
     return () => {
@@ -203,7 +222,7 @@ function SearchPage() {
               ) : (
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {playlists.map((pl) => {
-                    const owner = pl.profiles?.username ?? null;
+                    const owner = pl.ownerHandle;
                     return (
                       <li key={pl.id}>
                         {owner ? (
