@@ -66,7 +66,7 @@ type ProfileRow = {
   instagram_url?: string | null;
   tiktok_url?: string | null;
   youtube_url?: string | null;
-  soundcloud_url?: string | null;
+  facebook_url?: string | null;
   spotify_url?: string | null;
 };
 
@@ -108,14 +108,14 @@ function ProfilePage() {
         }
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, soundcloud_url, spotify_url")
+          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, facebook_url, spotify_url")
           .eq("id", user.id)
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
       } else {
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, soundcloud_url, spotify_url")
+          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, facebook_url, spotify_url")
           .eq("username", decodeURIComponent(handle))
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
@@ -137,7 +137,7 @@ function ProfilePage() {
         instagram_url: data.instagram_url,
         tiktok_url: data.tiktok_url,
         youtube_url: data.youtube_url,
-        soundcloud_url: data.soundcloud_url,
+        facebook_url: data.facebook_url,
         spotify_url: data.spotify_url,
       } : null);
 
@@ -471,7 +471,7 @@ function SocialLinks({ profile }: { profile: ProfileRow | null }) {
     { url: profile.twitter_url, label: "X", icon: <Twitter className="h-3.5 w-3.5" /> },
     { url: profile.tiktok_url, label: "TikTok", icon: <Music className="h-3.5 w-3.5" /> },
     { url: profile.youtube_url, label: "YouTube", icon: <Youtube className="h-3.5 w-3.5" /> },
-    { url: profile.soundcloud_url, label: "SoundCloud", icon: <Music2 className="h-3.5 w-3.5" /> },
+    { url: profile.facebook_url, label: "Facebook", icon: <Music2 className="h-3.5 w-3.5" /> },
     { url: profile.spotify_url, label: "Spotify", icon: <Music2 className="h-3.5 w-3.5" /> },
   ].filter((i) => i.url && i.url.trim().length > 0);
   if (items.length === 0) return null;
