@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-export type AccountType = "fan" | "artist";
+export type AccountType = "fan" | "artist" | "superfan";
 
 export function useAccountType() {
   const { user } = useAuth();
