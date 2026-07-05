@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useFollow } from "@/lib/follows";
 import { useIsAdmin, adminDeleteTrack, setUserBanned } from "@/hooks/useIsAdmin";
 import { useAccountType } from "@/hooks/useAccountType";
+import { SuperfanTopStats } from "@/components/SuperfanTopStats";
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
@@ -74,7 +75,7 @@ function ProfilePage() {
   const { uploads, removeUpload } = useUploads();
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
-  const { isArtist } = useAccountType();
+  const { isArtist, accountType } = useAccountType();
 
 
   const isMe = handle === CURRENT_USER.handle;
@@ -257,6 +258,8 @@ function ProfilePage() {
 
       {/* Uploaded tracks */}
       <main className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
+        {isMe && accountType === "superfan" && <SuperfanTopStats />}
+
         <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
 
         {userTracks.length === 0 ? (
