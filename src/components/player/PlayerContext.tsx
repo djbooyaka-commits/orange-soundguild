@@ -222,6 +222,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const toggleShuffle = useCallback(() => {
     setShuffle((s) => {
       shuffleRef.current = !s;
+      if (!s) playedRef.current = new Set();
       return !s;
     });
   }, []);
