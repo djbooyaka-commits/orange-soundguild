@@ -32,6 +32,12 @@ type PlayerState = {
 
 const Ctx = createContext<PlayerState | null>(null);
 
+const TAB_ID =
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+const PLAYBACK_CHANNEL = "soundwave:playback";
+
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentRef = useRef<Track | null>(null);
@@ -40,12 +46,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const queueRef = useRef<Track[]>([]);
   const shuffleRef = useRef(false);
   const playedRef = useRef<Set<string>>(new Set());
+  const channelRef = useRef<BroadcastChannel | null>(null);
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.8);
   const [shuffle, setShuffle] = useState(false);
+
+  const announcePlaying = useCallback(() => {
+    channelRef.current?.postMessage({ type: "playing", tabId: TAB_ID });
+    try {
+      localStorage.setItem("soundwave:active-player", TAB_ID);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const pickNext = useCallback((q: Track[], curId: string | undefined): Track | undefined => {
     if (!q.length) return undefined;
@@ -138,8 +154,31 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         audio.play().catch(() => setIsPlaying(false));
       }
     };
-    const onPlay = () => setIsPlaying(true);
+    const onPlay = () => {
+      setIsPlaying(true);
+      announcePlaying();
+    };
     const onPause = () => setIsPlaying(false);
+
+    // Cross-tab coordination: only one player may be active at once.
+    let channel: BroadcastChannel | null = null;
+    const handleForeignPlaying = (foreignTabId: string) => {
+      if (foreignTabId === TAB_ID) return;
+      if (!audio.paused) audio.pause();
+    };
+    if (typeof BroadcastChannel !== "undefined") {
+      channel = new BroadcastChannel(PLAYBACK_CHANNEL);
+      channel.onmessage = (ev) => {
+        if (ev.data?.type === "playing") handleForeignPlaying(ev.data.tabId);
+      };
+      channelRef.current = channel;
+    }
+    const onStorage = (ev: StorageEvent) => {
+      if (ev.key === "soundwave:active-player" && ev.newValue) {
+        handleForeignPlaying(ev.newValue);
+      }
+    };
+    window.addEventListener("storage", onStorage);
 
     audio.addEventListener("timeupdate", onTimeWithCompletionCheck);
     audio.addEventListener("loadedmetadata", onMeta);
@@ -153,6 +192,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("ended", onEnd);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
+      window.removeEventListener("storage", onStorage);
+      if (channel) {
+        channel.close();
+        channelRef.current = null;
+      }
       audio.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
