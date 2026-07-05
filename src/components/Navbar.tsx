@@ -19,7 +19,7 @@ export function Navbar() {
           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Music2 className="h-4 w-4" />
           </span>
-          <span className="hidden text-lg sm:inline">soundwave</span>
+          <span className="hidden text-lg sm:inline">Orange Sound Guild</span>
         </Link>
 
         <nav className="hidden items-center gap-1 text-sm text-muted-foreground md:flex">

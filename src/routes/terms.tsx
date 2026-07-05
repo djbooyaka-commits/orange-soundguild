@@ -4,17 +4,17 @@ import { Navbar } from "@/components/Navbar";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Terms of Service — Orange-Sound Guild" },
+      { title: "Terms of Service — Orange Sound Guild" },
       {
         name: "description",
         content:
-          "The Terms of Service governing your use of Orange-Sound Guild — accounts, uploads, licenses, payments, and more.",
+          "The Terms of Service governing your use of Orange Sound Guild — accounts, uploads, licenses, payments, and more.",
       },
-      { property: "og:title", content: "Terms of Service — Orange-Sound Guild" },
+      { property: "og:title", content: "Terms of Service — Orange Sound Guild" },
       {
         property: "og:description",
         content:
-          "Read the Terms of Service for Orange-Sound Guild, including artist ownership, listener licenses, and prohibited conduct.",
+          "Read the Terms of Service for Orange Sound Guild, including artist ownership, listener licenses, and prohibited conduct.",
       },
     ],
   }),
@@ -66,7 +66,7 @@ function TermsPage() {
 
         <div className="mt-6 space-y-3 text-sm leading-relaxed text-muted-foreground">
           <p>
-            Welcome to <span className="font-semibold text-foreground">Orange-Sound Guild</span>{" "}
+            Welcome to <span className="font-semibold text-foreground">Orange Sound Guild</span>{" "}
             ("Platform," "we," "our," or "us"). These Terms of Service ("Terms") govern your use
             of our website, applications, and services.
           </p>
@@ -341,7 +341,7 @@ function TermsPage() {
         <Section n={20} title="Contact Us">
           <p>Questions about these Terms may be directed to:</p>
           <div className="rounded-xl border border-border bg-card p-4 text-foreground">
-            <div className="font-semibold">Orange-Sound Guild</div>
+            <div className="font-semibold">Orange Sound Guild</div>
             <div className="mt-1 text-sm text-muted-foreground">
               Email:{" "}
               <a
