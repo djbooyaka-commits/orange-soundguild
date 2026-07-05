@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import QRCode from "qrcode";
-import { Sparkles, Loader2, ExternalLink, CheckCircle2 } from "lucide-react";
+import { Sparkles, Loader2, ExternalLink, CheckCircle2, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
@@ -27,6 +27,13 @@ export function PhantomPayPanel() {
   const [configFailed, setConfigFailed] = useState(false);
   const [signature, setSignature] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const copyText = (value: string, label: string) => {
+    navigator.clipboard
+      ?.writeText(value)
+      .then(() => toast.success(`${label} copied`))
+      .catch(() => toast.error(`Could not copy ${label.toLowerCase()}`));
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -54,11 +61,11 @@ export function PhantomPayPanel() {
     } else {
       return;
     }
-    parts.push(`label=${encodeURIComponent("Soundwave Artist")}`);
-    parts.push(`message=${encodeURIComponent("30-day artist subscription")}`);
 
     return `solana:${config.receiver}?${parts.join("&")}`;
   }, [config, token]);
+
+  const solAmount = config?.solUsd ? (config.priceUsd / config.solUsd).toFixed(6) : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -146,6 +153,31 @@ export function PhantomPayPanel() {
               <p className="text-center text-xs text-muted-foreground">
                 Open Phantom on your phone, tap Scan, and confirm the payment.
               </p>
+              {token === "SOL" && config && solAmount && (
+                <div className="w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-slate-900">
+                  <div className="flex items-center justify-between gap-3 text-xs">
+                    <span className="text-slate-500">SOL amount</span>
+                    <button
+                      type="button"
+                      onClick={() => copyText(solAmount, "Amount")}
+                      className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                    >
+                      {solAmount} <Copy className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+                    <span className="text-slate-500">Wallet</span>
+                    <button
+                      type="button"
+                      onClick={() => copyText(config.receiver, "Wallet address")}
+                      className="min-w-0 truncate font-semibold text-primary hover:underline"
+                      title={config.receiver}
+                    >
+                      {config.receiver.slice(0, 6)}…{config.receiver.slice(-6)}
+                    </button>
+                  </div>
+                </div>
+              )}
               {payUrl && (
                 <button
                   type="button"
