@@ -1,18 +1,15 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
-  vite: {
-    resolve: {
-      conditions: ["workerd", "worker", "browser", "module", "import", "default"],
-    },
-    ssr: {
-      resolve: {
-        conditions: ["workerd", "worker", "browser", "module", "import", "default"],
-        externalConditions: ["workerd", "worker", "browser", "module", "import", "default"],
-      },
-    },
-  },
+  plugins: [
+    nodePolyfills({
+      include: ["buffer"],
+      globals: { Buffer: true, global: true, process: false },
+      protocolImports: true,
+    }),
+  ],
 });
