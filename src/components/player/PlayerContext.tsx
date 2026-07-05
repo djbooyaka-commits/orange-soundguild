@@ -69,10 +69,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = new Audio();
     audio.preload = "metadata";
     audio.volume = volume;
+    audio.crossOrigin = "anonymous";
+    // iOS/mobile: inline playback + no autoplay hijacking
+    audio.setAttribute("playsinline", "true");
+    audio.setAttribute("webkit-playsinline", "true");
     audio.setAttribute("aria-hidden", "true");
     audio.style.display = "none";
     document.body.appendChild(audio);
     audioRef.current = audio;
+
 
     const onTime = () => setCurrentTime(audio.currentTime);
     const onMeta = () => setDuration(audio.duration || 0);
