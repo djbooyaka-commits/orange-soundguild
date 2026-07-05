@@ -21,7 +21,7 @@ type ProfileData = {
   instagram_url?: string | null;
   tiktok_url?: string | null;
   youtube_url?: string | null;
-  soundcloud_url?: string | null;
+  facebook_url?: string | null;
   spotify_url?: string | null;
 };
 
