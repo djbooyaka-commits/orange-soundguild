@@ -386,8 +386,8 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ uploads, addUpload, updateUpload, removeUpload }),
-    [uploads, addUpload, updateUpload, removeUpload],
+    () => ({ uploads, addUpload, addAlbum, updateUpload, removeUpload }),
+    [uploads, addUpload, addAlbum, updateUpload, removeUpload],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
