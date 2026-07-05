@@ -1,21 +1,17 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
   vite: {
-    resolve: {
-      alias: [
-        { find: /^node:buffer$/, replacement: "buffer" },
-        { find: /^buffer$/, replacement: "buffer/" },
-      ],
-    },
-    define: {
-      global: "globalThis",
-    },
-    optimizeDeps: {
-      include: ["buffer"],
-    },
+    plugins: [
+      nodePolyfills({
+        include: ["buffer"],
+        globals: { Buffer: true, global: true, process: false },
+        protocolImports: true,
+      }),
+    ],
   },
 });
