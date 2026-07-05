@@ -27,11 +27,36 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [refCode, setRefCode] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/" });
   }, [user, loading, navigate]);
+
+  // Capture ?ref=CODE from URL and remember it (so it survives Google OAuth round-trip too)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("ref");
+    if (q) {
+      const clean = q.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+      setRefCode(clean);
+      try {
+        window.sessionStorage.setItem("ref_code", clean);
+      } catch {
+        /* ignore */
+      }
+      setMode("signup");
+    } else {
+      try {
+        const stored = window.sessionStorage.getItem("ref_code");
+        if (stored) setRefCode(stored);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
 
   const onEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,9 +66,17 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: refCode ? { ref_code: refCode } : undefined,
+          },
         });
         if (error) throw error;
+        try {
+          window.sessionStorage.removeItem("ref_code");
+        } catch {
+          /* ignore */
+        }
         toast.success("Account created. Check your email if confirmation is required.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -115,6 +148,15 @@ function AuthPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
           />
+          {mode === "signup" && (
+            <input
+              type="text"
+              placeholder="Referral code (optional)"
+              value={refCode}
+              onChange={(e) => setRefCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12))}
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+            />
+          )}
           <button
             type="submit"
             disabled={busy}

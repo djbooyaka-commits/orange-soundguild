@@ -10,7 +10,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
-  const { isArtist, isFan } = useAccountType();
+  const { isArtist } = useAccountType();
   const isAdmin = useIsAdmin();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -39,6 +39,11 @@ export function Navbar() {
             Profile
           </Link>
           <Link to="/library" className="rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
+          {user && (
+            <Link to="/referrals" className="rounded-md px-3 py-1.5 hover:bg-muted">
+              Referrals
+            </Link>
+          )}
           {isAdmin && (
             <Link to="/admin" className="rounded-md px-3 py-1.5 font-medium text-primary hover:bg-muted">
               Admin
@@ -86,13 +91,13 @@ export function Navbar() {
             </button>
           </UploadDialog>
         )}
-        {user && isFan && (
+        {user && !isArtist && (
           <Link
             to="/upgrade"
             className="inline-flex h-10 items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 text-sm font-semibold text-primary transition hover:bg-primary/20"
           >
             <Sparkles className="h-4 w-4" />
-            <span className="hidden sm:inline">Become an artist</span>
+            <span className="hidden sm:inline">Upgrade</span>
           </Link>
         )}
 

@@ -11,12 +11,16 @@ import {
   verifyArtistPayment,
 } from "@/lib/api/artist-payment.functions";
 
-
 type Config = Awaited<ReturnType<typeof getPaymentConfig>>;
+type Tier = "artist" | "superfan";
 
-export function PhantomPayPanel() {
+interface Props {
+  tier?: Tier;
+}
+
+export function PhantomPayPanel({ tier = "artist" }: Props) {
   const { user } = useAuth();
-  const { isArtist } = useAccountType();
+  const { isArtist, accountType } = useAccountType();
   const navigate = useNavigate();
   const loadConfig = useServerFn(getPaymentConfig);
   const verify = useServerFn(verifyArtistPayment);
@@ -27,6 +31,8 @@ export function PhantomPayPanel() {
   const [configFailed, setConfigFailed] = useState(false);
   const [signature, setSignature] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const priceUsd = tier === "artist" ? 10 : 5;
 
   const copyText = (value: string, label: string) => {
     navigator.clipboard
@@ -54,18 +60,17 @@ export function PhantomPayPanel() {
     if (!config) return;
     const parts: string[] = [];
     if (token === "USDC") {
-      parts.push(`amount=${config.priceUsd}`);
+      parts.push(`amount=${priceUsd}`);
       parts.push(`spl-token=${config.usdcMint}`);
     } else if (config.solUsd) {
-      parts.push(`amount=${(config.priceUsd / config.solUsd).toFixed(6)}`);
+      parts.push(`amount=${(priceUsd / config.solUsd).toFixed(6)}`);
     } else {
       return;
     }
-
     return `solana:${config.receiver}?${parts.join("&")}`;
-  }, [config, token]);
+  }, [config, token, priceUsd]);
 
-  const solAmount = config?.solUsd ? (config.priceUsd / config.solUsd).toFixed(6) : null;
+  const solAmount = config?.solUsd ? (priceUsd / config.solUsd).toFixed(6) : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -92,11 +97,11 @@ export function PhantomPayPanel() {
     }
     setBusy(true);
     try {
-      const res = await verify({ data: { signature: signature.trim(), token } });
+      const res = await verify({ data: { signature: signature.trim(), token, tier } });
       toast.success(
-        `You're an artist! Active until ${new Date(res.expiresAt).toLocaleDateString()}.`,
+        `${tier === "artist" ? "Artist" : "Superfan"} access active until ${new Date(res.expiresAt).toLocaleDateString()}.`,
       );
-      navigate({ to: "/artist-welcome" });
+      navigate({ to: tier === "artist" ? "/artist-welcome" : "/referrals" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Verification failed");
     } finally {
@@ -106,10 +111,14 @@ export function PhantomPayPanel() {
 
   const priceLabel =
     token === "USDC"
-      ? "10 USDC"
+      ? `${priceUsd} USDC`
       : config?.solUsd
-        ? `~${(10 / config.solUsd).toFixed(4)} SOL`
-        : "~$10 in SOL";
+        ? `~${(priceUsd / config.solUsd).toFixed(4)} SOL`
+        : `~$${priceUsd} in SOL`;
+
+  const alreadyActive =
+    (tier === "artist" && isArtist) ||
+    (tier === "superfan" && (accountType === "superfan" || isArtist));
 
   return (
     <div className="w-full max-w-sm space-y-4">
@@ -143,13 +152,12 @@ export function PhantomPayPanel() {
         </p>
       </div>
 
-      {isArtist ? (
+      {alreadyActive ? (
         <div className="flex items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
-          <CheckCircle2 className="h-4 w-4" /> You're already an artist
+          <CheckCircle2 className="h-4 w-4" /> You already have this plan
         </div>
       ) : (
         <>
-
           {configFailed ? (
             <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-center text-sm text-destructive">
               Payment link could not load. Refresh and try again.
@@ -192,9 +200,7 @@ export function PhantomPayPanel() {
                     const ua = navigator.userAgent || "";
                     const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
                     if (isMobile) {
-                      // Try native Solana Pay protocol handler first
                       window.location.href = payUrl;
-                      // Fallback to Phantom universal link after a short delay
                       setTimeout(() => {
                         const ul = `https://phantom.app/ul/v1/pay?request=${encodeURIComponent(payUrl)}`;
                         window.location.href = ul;
@@ -234,7 +240,7 @@ export function PhantomPayPanel() {
               className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Activate artist access
+              Activate {tier === "artist" ? "artist" : "superfan"} access
             </button>
           </div>
         </>

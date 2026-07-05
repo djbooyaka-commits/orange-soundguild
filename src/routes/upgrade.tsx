@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
-import { Sparkles, Upload, BarChart3, Music2, Check, Loader2 } from "lucide-react";
+import { lazy, Suspense, useState } from "react";
+import { Sparkles, Upload, BarChart3, Music2, Check, Loader2, Heart, DollarSign } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 
 const PhantomPayPanel = lazy(() => import("@/components/PhantomPayPanel"));
@@ -9,16 +9,16 @@ const PaypalPayPanel = lazy(() => import("@/components/PaypalPayPanel"));
 export const Route = createFileRoute("/upgrade")({
   head: () => ({
     meta: [
-      { title: "Become an Artist — Orange Sound Guild" },
+      { title: "Upgrade your account — Orange Sound Guild" },
       {
         name: "description",
         content:
-          "Upgrade to an Artist account on Orange Sound Guild for $10/month, paid with Phantom wallet in USDC or SOL.",
+          "Become an Artist ($10/mo) or Superfan ($5/mo). Earn referral commissions when you invite others to Orange Sound Guild.",
       },
-      { property: "og:title", content: "Become an Artist — Orange Sound Guild" },
+      { property: "og:title", content: "Upgrade — Orange Sound Guild" },
       {
         property: "og:description",
-        content: "Pay $10/mo with Phantom (USDC or SOL) to unlock artist tools on Orange Sound Guild.",
+        content: "Artist and Superfan plans, plus a referral system that pays.",
       },
       { property: "og:url", content: "https://orange-soundguild.lovable.app/upgrade" },
     ],
@@ -27,40 +27,77 @@ export const Route = createFileRoute("/upgrade")({
   component: UpgradePage,
 });
 
-const BENEFITS = [
+type Tier = "artist" | "superfan";
+
+const ARTIST_BENEFITS = [
   { icon: Upload, title: "Unlimited uploads", desc: "Publish tracks, EPs, and albums to your artist page." },
   { icon: Music2, title: "Your artist page", desc: "A dedicated profile for fans to follow and discover your music." },
   { icon: BarChart3, title: "Listener insights", desc: "See plays, likes, and how your tracks perform over time." },
-  { icon: Sparkles, title: "Full creator tools", desc: "Edit tracks, manage playlists, and pin your best work." },
+  { icon: DollarSign, title: "Earn $1 / $0.50 per referral", desc: "Get paid every time someone you invited pays for their plan." },
+];
+
+const SUPERFAN_BENEFITS = [
+  { icon: Heart, title: "Big Superfan badge", desc: "Show off your Superfan status on your account page." },
+  { icon: Music2, title: "Everything free members get", desc: "Listen, like, comment, follow — the full free experience." },
+  { icon: DollarSign, title: "Earn $1 / $0.50 per referral", desc: "$1 when your invite goes Artist, $0.50 when they go Superfan." },
+  { icon: Sparkles, title: "Renewal keeps earning", desc: "Every month your invites renew, you get paid again." },
 ];
 
 function UpgradePage() {
+  const [tier, setTier] = useState<Tier>("artist");
+  const isArtist = tier === "artist";
+  const price = isArtist ? 10 : 5;
+  const benefits = isArtist ? ARTIST_BENEFITS : SUPERFAN_BENEFITS;
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
         <div className="text-center">
           <div className="mx-auto mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Sparkles className="h-7 w-7" />
+            {isArtist ? <Sparkles className="h-7 w-7" /> : <Heart className="h-7 w-7" />}
           </div>
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Become an artist</h1>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            {isArtist ? "Become an artist" : "Become a Superfan"}
+          </h1>
           <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-            Share your sound with the world. Pay $10/month with your Phantom wallet to unlock
-            uploads, your artist page, and every creator tool on soundwave.
+            {isArtist
+              ? "Share your sound with the world. Unlock uploads, your artist page, and every creator tool."
+              : "Support the site, wear a big Superfan badge, and earn from every friend you bring in."}
           </p>
         </div>
 
-        <div className="mt-12 rounded-3xl border border-border bg-card p-8 shadow-sm">
+        {/* Tier selector */}
+        <div className="mx-auto mt-8 grid max-w-md grid-cols-2 gap-2 rounded-full border border-border bg-muted/50 p-1">
+          <button
+            onClick={() => setTier("artist")}
+            className={`h-10 rounded-full text-sm font-semibold transition ${
+              isArtist ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Artist — $10/mo
+          </button>
+          <button
+            onClick={() => setTier("superfan")}
+            className={`h-10 rounded-full text-sm font-semibold transition ${
+              !isArtist ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Superfan — $5/mo
+          </button>
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-border bg-card p-8 shadow-sm">
           <div>
             <div className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-              Artist plan
+              {isArtist ? "Artist plan" : "Superfan plan"}
             </div>
             <div className="mt-2 flex items-baseline gap-1">
-              <span className="text-5xl font-bold">$10</span>
+              <span className="text-5xl font-bold">${price}</span>
               <span className="text-lg text-muted-foreground">/month</span>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              30 days of artist access per payment. Pay with PayPal or Phantom wallet.
+              30 days of {isArtist ? "artist" : "Superfan"} access per payment. Pay with PayPal or Phantom wallet.
             </p>
           </div>
 
@@ -74,7 +111,7 @@ function UpgradePage() {
                   </div>
                 }
               >
-                <PaypalPayPanel />
+                <PaypalPayPanel tier={tier} />
               </Suspense>
             </div>
             <div>
@@ -86,15 +123,14 @@ function UpgradePage() {
                   </div>
                 }
               >
-                <PhantomPayPanel />
+                <PhantomPayPanel tier={tier} />
               </Suspense>
             </div>
           </div>
         </div>
 
-
         <div className="mt-12 grid gap-4 sm:grid-cols-2">
-          {BENEFITS.map(({ icon: Icon, title, desc }) => (
+          {benefits.map(({ icon: Icon, title, desc }) => (
             <div key={title} className="flex gap-4 rounded-2xl border border-border bg-card/60 p-5">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" />
@@ -108,15 +144,15 @@ function UpgradePage() {
         </div>
 
         <div className="mt-12 rounded-2xl border border-border bg-muted/30 p-6">
-          <h2 className="font-semibold">What's included</h2>
+          <h2 className="font-semibold">Referral program</h2>
           <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
             {[
-              "Unlimited track uploads",
-              "Public artist profile",
-              "Track editing & artwork",
-              "Playlist creation",
-              "Listener stats",
-              "Fan follows & comments",
+              "Artists and Superfans get a referral code",
+              "$1 for each Artist you refer",
+              "$0.50 for each Superfan you refer",
+              "You get paid again every renewal",
+              "Earnings show as credit on your account",
+              "Share your link or your code",
             ].map((item) => (
               <li key={item} className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />
@@ -125,8 +161,7 @@ function UpgradePage() {
             ))}
           </ul>
           <p className="mt-6 text-xs text-muted-foreground">
-            Payments are on-chain (Solana mainnet). All sales are final — Solana transactions
-            can't be reversed.{" "}
+            All sales are final. Solana transactions can't be reversed.{" "}
             <Link to="/" className="underline hover:text-foreground">
               Back to home
             </Link>
