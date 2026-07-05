@@ -17,9 +17,13 @@ export const Route = createFileRoute("/search")({
   notFoundComponent: () => <div className="p-6">Not found.</div>,
   head: () => ({
     meta: [
-      { title: "Search — soundwave" },
-      { name: "description", content: "Search artists, tracks and genres on soundwave." },
+      { title: "Search — Orange Sound Guild" },
+      { name: "description", content: "Search artists, tracks and genres on Orange Sound Guild." },
+      { property: "og:title", content: "Search — Orange Sound Guild" },
+      { property: "og:description", content: "Search artists, tracks and genres on Orange Sound Guild." },
+      { property: "og:url", content: "https://orange-soundguild.lovable.app/search" },
     ],
+    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/search" }],
   }),
 });
 
