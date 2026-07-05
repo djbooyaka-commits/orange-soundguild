@@ -148,6 +148,15 @@ function AuthPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
           />
+          {mode === "signup" && (
+            <input
+              type="text"
+              placeholder="Referral code (optional)"
+              value={refCode}
+              onChange={(e) => setRefCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12))}
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+            />
+          )}
           <button
             type="submit"
             disabled={busy}
