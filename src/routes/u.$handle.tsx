@@ -108,14 +108,14 @@ function ProfilePage() {
         }
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, soundcloud_url, spotify_url")
+          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, facebook_url, spotify_url")
           .eq("id", user.id)
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
       } else {
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, soundcloud_url, spotify_url")
+          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, facebook_url, spotify_url")
           .eq("username", decodeURIComponent(handle))
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
