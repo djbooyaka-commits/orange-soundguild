@@ -43,6 +43,11 @@ export function Navbar() {
               Referrals
             </Link>
           )}
+          {user && isArtist && (
+            <Link to="/royalties" className="rounded-md px-3 py-1.5 hover:bg-muted">
+              Royalties
+            </Link>
+          )}
           {isAdmin && (
             <Link to="/admin" className="rounded-md px-3 py-1.5 font-medium text-primary hover:bg-muted">
               Admin
