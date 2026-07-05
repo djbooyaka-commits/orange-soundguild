@@ -243,7 +243,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const next = useCallback(() => {
-    jumpTo(pickNext(queueRef.current, currentRef.current?.id));
+    const cur = currentRef.current;
+    if (cur) playedRef.current.add(cur.id);
+    jumpTo(pickNext(queueRef.current, cur?.id));
   }, [jumpTo, pickNext]);
 
   const prev = useCallback(() => {
