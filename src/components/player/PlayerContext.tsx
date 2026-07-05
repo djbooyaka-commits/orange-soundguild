@@ -69,7 +69,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = new Audio();
     audio.preload = "metadata";
     audio.volume = volume;
-    audio.crossOrigin = "anonymous";
+    // NOTE: no crossOrigin — Supabase signed URLs stream fine without it
     // iOS/mobile: inline playback + no autoplay hijacking
     audio.setAttribute("playsinline", "true");
     audio.setAttribute("webkit-playsinline", "true");
