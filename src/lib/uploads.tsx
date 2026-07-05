@@ -164,7 +164,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addUpload = useCallback(
-    async ({ title, genre, file, coverFile }: UploadArgs): Promise<Track> => {
+    async ({ title, genre, file, coverFile, album, trackNumber }: UploadArgs): Promise<Track> => {
       const { data: userData, error: userErr } = await supabase.auth.getUser();
       if (userErr || !userData.user) {
         throw new Error("You need to be signed in to upload.");
@@ -189,6 +189,9 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         if (coverErr) throw coverErr;
       }
 
+      const albumName = album && album.trim() ? album.trim() : null;
+      const trackNum = albumName ? (trackNumber ?? null) : null;
+
       const { data: row, error: dbErr } = await supabase
         .from("tracks")
         .insert({
@@ -197,6 +200,8 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
           genre,
           audio_url: audioPath,
           cover_art_url: coverPath,
+          album: albumName,
+          track_number: trackNum,
         })
         .select()
         .single();
@@ -215,12 +220,90 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         uploadedAt: "Just now",
         plays: 0,
         genre,
+        album: albumName,
+        trackNumber: trackNum,
       };
       setUploads((prev) => [track, ...prev]);
       return track;
     },
     [],
   );
+
+  const addAlbum = useCallback(
+    async ({ album, genre, tracks, coverFile }: AlbumArgs): Promise<Track[]> => {
+      const name = album.trim();
+      if (!name) throw new Error("Album name is required.");
+      if (!tracks.length) throw new Error("Add at least one track.");
+
+      // Upload the shared cover once and reuse the same path for every track.
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user) throw new Error("You need to be signed in to upload.");
+      const userId = userData.user.id;
+
+      let sharedCoverPath: string | null = null;
+      if (coverFile) {
+        const stamp = Date.now();
+        const safeCover = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        sharedCoverPath = `${userId}/${stamp}-album-${safeCover}`;
+        const { error: coverErr } = await supabase.storage
+          .from("covers")
+          .upload(sharedCoverPath, coverFile, { contentType: coverFile.type, upsert: false });
+        if (coverErr) throw coverErr;
+      }
+
+      const sharedCoverUrl = sharedCoverPath ? await signOne("covers", sharedCoverPath) : null;
+      const created: Track[] = [];
+
+      for (let i = 0; i < tracks.length; i++) {
+        const t = tracks[i];
+        const title = t.title.trim() || t.file.name.replace(/\.[^.]+$/, "");
+        const stamp = Date.now() + i;
+        const safeName = t.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const audioPath = `${userId}/${stamp}-${safeName}`;
+
+        const { error: audioErr } = await supabase.storage
+          .from("audio")
+          .upload(audioPath, t.file, { contentType: t.file.type || "audio/mpeg", upsert: false });
+        if (audioErr) throw audioErr;
+
+        const { data: row, error: dbErr } = await supabase
+          .from("tracks")
+          .insert({
+            user_id: userId,
+            title,
+            genre,
+            audio_url: audioPath,
+            cover_art_url: sharedCoverPath,
+            album: name,
+            track_number: i + 1,
+          })
+          .select()
+          .single();
+        if (dbErr) throw dbErr;
+
+        const audioUrl = (await signOne("audio", audioPath)) ?? "";
+        created.push({
+          id: row.id,
+          title,
+          artist: CURRENT_USER.name,
+          cover: sharedCoverUrl ?? cover2,
+          src: audioUrl,
+          durationLabel: "—:—",
+          uploadedAt: "Just now",
+          plays: 0,
+          genre,
+          album: name,
+          trackNumber: i + 1,
+        });
+      }
+
+      setUploads((prev) => [...created, ...prev]);
+      return created;
+    },
+    [],
+  );
+
+
 
   const removeUpload = useCallback(
     async (id: string) => {
