@@ -127,6 +127,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       void recordIfComplete();
       const q = queueRef.current;
       const cur = currentRef.current;
+      if (cur) playedRef.current.add(cur.id);
       const nxt = pickNext(q, cur?.id);
       if (nxt) {
         audio.src = nxt.src;
