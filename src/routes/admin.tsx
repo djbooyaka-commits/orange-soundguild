@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save, RotateCcw, ShieldAlert } from "lucide-react";
+import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,33 @@ import {
   mergeArtistWelcome,
   type ArtistWelcomeContent,
 } from "@/lib/artist-welcome-content";
+
+type SiteExpense = {
+  id: string;
+  spent_on: string;
+  category: string;
+  description: string;
+  amount_cents: number;
+  note: string | null;
+};
+
+const EXPENSE_CATEGORIES = [
+  "hosting",
+  "domain",
+  "ai",
+  "storage",
+  "marketing",
+  "design",
+  "legal",
+  "tools",
+  "payouts",
+  "other",
+];
+
+function fmtUsd(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
