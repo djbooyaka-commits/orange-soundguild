@@ -1,5 +1,6 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Search, Upload, Bell, Music2, LogOut, Sparkles } from "lucide-react";
+import { useState } from "react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +10,8 @@ import { useAccountType } from "@/hooks/useAccountType";
 export function Navbar() {
   const { user, signOut } = useAuth();
   const { isArtist, isFan } = useAccountType();
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
@@ -37,14 +40,23 @@ export function Navbar() {
         </nav>
 
         <div className="flex flex-1 items-center">
-          <label className="relative w-full max-w-md">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const term = q.trim();
+              if (term) navigate({ to: "/search", search: { q: term } });
+            }}
+            className="relative w-full max-w-md"
+          >
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
               type="search"
               placeholder="Search artists, tracks, genres…"
               className="h-10 w-full rounded-full border border-border bg-muted/60 pl-10 pr-4 text-sm outline-none transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/30"
             />
-          </label>
+          </form>
         </div>
 
         <button className="hidden h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:flex">
