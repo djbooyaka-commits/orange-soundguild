@@ -31,7 +31,7 @@ const SOCIALS: { key: keyof ProfileData; label: string; placeholder: string }[] 
   { key: "twitter_url", label: "X / Twitter", placeholder: "https://x.com/yourhandle" },
   { key: "tiktok_url", label: "TikTok", placeholder: "https://tiktok.com/@yourhandle" },
   { key: "youtube_url", label: "YouTube", placeholder: "https://youtube.com/@yourchannel" },
-  { key: "soundcloud_url", label: "SoundCloud", placeholder: "https://soundcloud.com/yourhandle" },
+  { key: "facebook_url", label: "Facebook", placeholder: "https://facebook.com/yourhandle" },
   { key: "spotify_url", label: "Spotify", placeholder: "https://open.spotify.com/artist/..." },
 ];
 
