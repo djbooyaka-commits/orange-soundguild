@@ -73,7 +73,11 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: refCode ? { ref_code: refCode } : undefined,
+            data: {
+              tos_accepted: true,
+              tos_accepted_at: new Date().toISOString(),
+              ...(refCode ? { ref_code: refCode } : {}),
+            },
           },
         });
         if (error) throw error;
