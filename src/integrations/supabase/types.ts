@@ -355,6 +355,7 @@ export type Database = {
           referred_count: number
         }[]
       }
+      get_total_users: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
