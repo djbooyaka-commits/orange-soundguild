@@ -5,8 +5,9 @@ import { TrackCard } from "@/components/TrackCard";
 import { useAllTracks } from "@/lib/feed";
 import { useIsAdmin, adminDeleteTrack } from "@/hooks/useIsAdmin";
 import { useOnlineCount } from "@/hooks/useOnlineCount";
+import { useTotalUsers } from "@/hooks/useTotalUsers";
 import { toast } from "sonner";
-import { Flame, TrendingUp, Users } from "lucide-react";
+import { Flame, TrendingUp, Users, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
