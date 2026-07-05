@@ -3,7 +3,7 @@ import { lazy, Suspense } from "react";
 import { Sparkles, Upload, BarChart3, Music2, Check, Loader2 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 
-const PhantomPayPanel = lazy(() => import("@/components/PhantomPayPanel.client"));
+const PhantomPayPanel = lazy(() => import("@/components/PhantomPayPanel"));
 
 export const Route = createFileRoute("/upgrade")({
   head: () => ({
