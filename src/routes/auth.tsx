@@ -31,6 +31,16 @@ function AuthPage() {
   const [refCode, setRefCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [agreedTos, setAgreedTos] = useState(false);
+  const [tosScrolled, setTosScrolled] = useState(false);
+  const tosBoxRef = useRef<HTMLDivElement>(null);
+
+  const handleTosScroll = () => {
+    const el = tosBoxRef.current;
+    if (!el) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) {
+      setTosScrolled(true);
+    }
+  };
 
   useEffect(() => {
     if (!loading && user) {
