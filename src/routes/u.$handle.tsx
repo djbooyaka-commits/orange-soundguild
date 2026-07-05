@@ -137,7 +137,7 @@ function ProfilePage() {
         instagram_url: data.instagram_url,
         tiktok_url: data.tiktok_url,
         youtube_url: data.youtube_url,
-        soundcloud_url: data.soundcloud_url,
+        facebook_url: data.facebook_url,
         spotify_url: data.spotify_url,
       } : null);
 
