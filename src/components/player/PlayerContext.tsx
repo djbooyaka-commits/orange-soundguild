@@ -60,9 +60,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
 
   const announcePlaying = useCallback(() => {
-    channelRef.current?.postMessage({ type: "playing", tabId: TAB_ID });
+    channelRef.current?.postMessage({ type: "playing", tabId: getTabId() });
     try {
-      localStorage.setItem("soundwave:active-player", TAB_ID);
+      localStorage.setItem("soundwave:active-player", getTabId());
     } catch {
       // ignore
     }
@@ -168,7 +168,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // Cross-tab coordination: only one player may be active at once.
     let channel: BroadcastChannel | null = null;
     const handleForeignPlaying = (foreignTabId: string) => {
-      if (foreignTabId === TAB_ID) return;
+      if (foreignTabId === getTabId()) return;
       if (!audio.paused) audio.pause();
     };
     if (typeof BroadcastChannel !== "undefined") {
