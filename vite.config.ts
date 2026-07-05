@@ -4,9 +4,4 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
-  vite: {
-    resolve: {
-      conditions: ["browser", "import", "module", "default"],
-    },
-  },
 });
