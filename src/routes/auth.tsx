@@ -129,7 +129,7 @@ function AuthPage() {
         <button
           type="button"
           onClick={onGoogle}
-          disabled={busy}
+          disabled={busy || (mode === "signup" && !agreedTos)}
           className="mt-6 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-background text-sm font-medium hover:bg-muted disabled:opacity-50"
         >
           Continue with Google
