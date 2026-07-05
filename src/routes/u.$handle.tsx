@@ -253,7 +253,13 @@ function ProfilePage() {
 
 
           {/* Stats */}
-          <FollowStats userId={profileUserId} trackCount={userTracks.length} playCount={userTracks.reduce((n, t) => n + t.plays, 0)} />
+          <FollowStats
+            userId={profileUserId}
+            trackCount={userTracks.length}
+            playCount={userTracks.reduce((n, t) => n + t.plays, 0)}
+            isArtist={isMe ? isArtist : profile?.account_type === "artist"}
+          />
+
 
         </div>
       </section>
@@ -372,8 +378,40 @@ function RoyaltyBadge({ userId }: { userId: string | null }) {
   );
 }
 
-function FollowStats({ userId, trackCount, playCount }: { userId: string | null; trackCount: number; playCount: number }) {
+function FollowStats({
+  userId,
+  trackCount,
+  playCount,
+  isArtist,
+}: {
+  userId: string | null;
+  trackCount: number;
+  playCount: number;
+  isArtist: boolean;
+}) {
   const { followers, following } = useFollow(userId);
+  const [monthlyListeners, setMonthlyListeners] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isArtist || !userId) {
+      setMonthlyListeners(null);
+      return;
+    }
+    (async () => {
+      const { data, error } = await supabase.rpc("get_monthly_listeners", { _artist_id: userId });
+      if (cancelled) return;
+      if (error) {
+        setMonthlyListeners(0);
+        return;
+      }
+      setMonthlyListeners(typeof data === "number" ? data : Number(data ?? 0));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, isArtist]);
+
   return (
     <div className="mt-6 flex flex-wrap gap-6 border-b border-border pb-4 text-sm">
       <span className="flex items-center gap-1.5 text-muted-foreground">
@@ -383,6 +421,14 @@ function FollowStats({ userId, trackCount, playCount }: { userId: string | null;
       <span className="text-muted-foreground">
         <strong className="font-semibold text-foreground">{playCount.toLocaleString()}</strong> plays
       </span>
+      {isArtist && (
+        <span className="text-muted-foreground">
+          <strong className="font-semibold text-foreground">
+            {(monthlyListeners ?? 0).toLocaleString()}
+          </strong>{" "}
+          monthly listeners
+        </span>
+      )}
       <span className="text-muted-foreground">
         <strong className="font-semibold text-foreground">{followers}</strong> followers
       </span>
@@ -392,4 +438,5 @@ function FollowStats({ userId, trackCount, playCount }: { userId: string | null;
     </div>
   );
 }
+
 

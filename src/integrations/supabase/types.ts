@@ -574,6 +574,7 @@ export type Database = {
         Returns: undefined
       }
       generate_referral_code: { Args: never; Returns: string }
+      get_monthly_listeners: { Args: { _artist_id: string }; Returns: number }
       get_my_referral_info: {
         Args: never
         Returns: {
