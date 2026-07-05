@@ -6,7 +6,13 @@ const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDC_DECIMALS = 6;
 const PRICE_USD = 10;
 const NETWORK = "mainnet-beta";
-const RPC_URL = "https://api.mainnet-beta.solana.com";
+const RPC_URLS = [
+  "https://solana-rpc.publicnode.com",
+  "https://api.mainnet.rpcpool.com",
+  "https://solana.drpc.org",
+  "https://api.mainnet-beta.solana.com",
+];
+const RPC_URL = RPC_URLS[0];
 const SUB_DAYS = 30;
 const SOL_TOLERANCE = 0.03;
 const FALLBACK_SOL_USD = 150;
