@@ -4,19 +4,11 @@ import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
-import { toast } from "sonner";
+
 
 export function Navbar() {
   const { user, signOut } = useAuth();
-  const { isArtist, isFan, upgradeToArtist } = useAccountType();
-  const handleUpgrade = async () => {
-    try {
-      await upgradeToArtist();
-      toast.success("You're now an artist! Upload away.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upgrade failed");
-    }
-  };
+  const { isArtist, isFan } = useAccountType();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
@@ -68,13 +60,13 @@ export function Navbar() {
           </UploadDialog>
         )}
         {user && isFan && (
-          <button
-            onClick={handleUpgrade}
+          <Link
+            to="/upgrade"
             className="inline-flex h-10 items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 text-sm font-semibold text-primary transition hover:bg-primary/20"
           >
             <Sparkles className="h-4 w-4" />
             <span className="hidden sm:inline">Become an artist</span>
-          </button>
+          </Link>
         )}
 
         {user ? (
