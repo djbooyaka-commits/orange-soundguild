@@ -19,12 +19,27 @@ export const CURRENT_USER = {
   bio: "Independent producer. Uploads weekly.",
 };
 
-type UploadArgs = { title: string; genre: string; file: File; coverFile?: File | null };
+type UploadArgs = {
+  title: string;
+  genre: string;
+  file: File;
+  coverFile?: File | null;
+  album?: string | null;
+  trackNumber?: number | null;
+};
+type AlbumTrackInput = { title: string; file: File };
+type AlbumArgs = {
+  album: string;
+  genre: string;
+  tracks: AlbumTrackInput[];
+  coverFile?: File | null;
+};
 type UpdateArgs = { id: string; title: string; genre: string; coverFile?: File | null };
 
 type UploadsState = {
   uploads: Track[];
   addUpload: (data: UploadArgs) => Promise<Track>;
+  addAlbum: (data: AlbumArgs) => Promise<Track[]>;
   updateUpload: (data: UpdateArgs) => Promise<void>;
   removeUpload: (id: string) => Promise<void>;
 };
