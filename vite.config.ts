@@ -6,9 +6,10 @@ export default defineConfig({
   },
   vite: {
     resolve: {
-      alias: {
-        "node:buffer": "buffer",
-      },
+      alias: [
+        { find: /^node:buffer$/, replacement: "buffer" },
+        { find: /^buffer$/, replacement: "buffer/" },
+      ],
     },
     define: {
       global: "globalThis",
