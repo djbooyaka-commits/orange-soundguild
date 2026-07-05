@@ -222,7 +222,7 @@ function SearchPage() {
               ) : (
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {playlists.map((pl) => {
-                    const owner = pl.profiles?.username ?? null;
+                    const owner = pl.ownerHandle;
                     return (
                       <li key={pl.id}>
                         {owner ? (
