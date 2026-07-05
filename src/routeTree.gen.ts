@@ -16,6 +16,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ArtistWelcomeRouteImport } from './routes/artist-welcome'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
@@ -55,6 +56,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArtistWelcomeRoute = ArtistWelcomeRouteImport.update({
+  id: '/artist-welcome',
+  path: '/artist-welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -73,6 +79,7 @@ const TTrackIdRoute = TTrackIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/search': typeof SearchRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/search': typeof SearchRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/search': typeof SearchRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/artist-welcome'
     | '/auth'
     | '/library'
     | '/search'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/artist-welcome'
     | '/auth'
     | '/library'
     | '/search'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/artist-welcome'
     | '/auth'
     | '/library'
     | '/search'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ArtistWelcomeRoute: typeof ArtistWelcomeRoute
   AuthRoute: typeof AuthRoute
   LibraryRoute: typeof LibraryRoute
   SearchRoute: typeof SearchRoute
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/artist-welcome': {
+      id: '/artist-welcome'
+      path: '/artist-welcome'
+      fullPath: '/artist-welcome'
+      preLoaderRoute: typeof ArtistWelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -237,6 +257,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ArtistWelcomeRoute: ArtistWelcomeRoute,
   AuthRoute: AuthRoute,
   LibraryRoute: LibraryRoute,
   SearchRoute: SearchRoute,

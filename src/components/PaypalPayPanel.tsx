@@ -76,7 +76,7 @@ export default function PaypalPayPanel() {
                   res.expiresAt,
                 ).toLocaleDateString()}.`,
               );
-              setTimeout(() => navigate({ to: "/" }), 1800);
+              setTimeout(() => navigate({ to: "/artist-welcome" }), 1800);
             } catch (e: unknown) {
               setStatus("error");
               setMessage(e instanceof Error ? e.message : "Capture failed");
