@@ -166,9 +166,26 @@ function AuthPage() {
               className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
             />
           )}
+          {mode === "signup" && (
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={agreedTos}
+                onChange={(e) => setAgreedTos(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+              />
+              <span>
+                I agree to the{" "}
+                <Link to="/terms" target="_blank" className="font-medium text-primary hover:underline">
+                  Terms of Service
+                </Link>
+                .
+              </span>
+            </label>
+          )}
           <button
             type="submit"
-            disabled={busy}
+            disabled={busy || (mode === "signup" && !agreedTos)}
             className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground hover:brightness-105 disabled:opacity-50"
           >
             {mode === "signin" ? "Sign in" : "Sign up"}
