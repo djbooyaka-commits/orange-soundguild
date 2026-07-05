@@ -95,6 +95,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_requests: {
+        Row: {
+          admin_note: string | null
+          amount_cents: number
+          created_at: string
+          destination: string
+          id: string
+          method: Database["public"]["Enums"]["payout_method"]
+          processed_at: string | null
+          status: Database["public"]["Enums"]["payout_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_cents: number
+          created_at?: string
+          destination: string
+          id?: string
+          method: Database["public"]["Enums"]["payout_method"]
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["payout_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount_cents?: number
+          created_at?: string
+          destination?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payout_method"]
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["payout_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       playlist_tracks: {
         Row: {
           added_at: string
@@ -405,6 +444,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_update_payout_status: {
+        Args: {
+          _new_status: Database["public"]["Enums"]["payout_status"]
+          _note?: string
+          _request_id: string
+        }
+        Returns: undefined
+      }
       credit_referral: {
         Args: {
           _referred_user: string
@@ -444,6 +491,14 @@ export type Database = {
       is_banned: { Args: { _user_id: string }; Returns: boolean }
       is_royalty_eligible: { Args: { _user_id: string }; Returns: boolean }
       record_track_play: { Args: { p_track_id: string }; Returns: undefined }
+      request_payout: {
+        Args: {
+          _amount_cents: number
+          _destination: string
+          _method: Database["public"]["Enums"]["payout_method"]
+        }
+        Returns: string
+      }
       run_monthly_royalty_payout: {
         Args: { p_period_start?: string }
         Returns: {
@@ -455,6 +510,8 @@ export type Database = {
     Enums: {
       account_type: "fan" | "artist" | "superfan"
       app_role: "admin" | "user"
+      payout_method: "paypal" | "phantom"
+      payout_status: "pending" | "processing" | "paid" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -584,6 +641,8 @@ export const Constants = {
     Enums: {
       account_type: ["fan", "artist", "superfan"],
       app_role: ["admin", "user"],
+      payout_method: ["paypal", "phantom"],
+      payout_status: ["pending", "processing", "paid", "rejected"],
     },
   },
 } as const
