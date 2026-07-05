@@ -60,6 +60,7 @@ type ProfileRow = {
   bio: string | null;
   avatar_url: string | null;
   is_banned?: boolean | null;
+  account_type?: string | null;
 };
 
 const SIGNED_TTL = 60 * 60 * 24 * 365;
