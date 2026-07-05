@@ -10,7 +10,7 @@ import {
   getPaymentConfig,
   verifyArtistPayment,
 } from "@/lib/api/artist-payment.functions";
-import { PhantomBrowserPay } from "@/components/PhantomBrowserPay";
+
 
 type Config = Awaited<ReturnType<typeof getPaymentConfig>>;
 
@@ -111,23 +111,6 @@ export function PhantomPayPanel() {
         </div>
       ) : (
         <>
-          {config && (
-            <PhantomBrowserPay
-              token={token}
-              receiver={config.receiver}
-              usdcMint={config.usdcMint}
-              usdcDecimals={config.usdcDecimals}
-              priceUsd={config.priceUsd}
-              solUsd={config.solUsd}
-              rpcUrl={config.rpcUrl}
-            />
-          )}
-
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
-            or scan with phone
-            <div className="h-px flex-1 bg-border" />
-          </div>
 
           {qrDataUrl ? (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-white p-4">
