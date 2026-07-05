@@ -4,12 +4,10 @@ import { Headphones, Music2, Play } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyListeningStats, type TopArtist, type TopTrack } from "@/lib/api/listening.functions";
 import { signMany } from "@/lib/signMedia";
-import { usePlayer } from "@/components/player/PlayerContext";
 import defaultAvatar from "@/assets/avatar.jpg";
 
 export function SuperfanTopStats() {
   const fetchStats = useServerFn(getMyListeningStats);
-  const { playTrack } = usePlayer();
   const [loading, setLoading] = useState(true);
   const [topTrack, setTopTrack] = useState<TopTrack | null>(null);
   const [topArtist, setTopArtist] = useState<TopArtist | null>(null);
