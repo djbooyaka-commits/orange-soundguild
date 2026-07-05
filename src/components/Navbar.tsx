@@ -59,7 +59,11 @@ export function Navbar() {
           </form>
         </div>
 
-        <button className="hidden h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:flex">
+        <button
+          type="button"
+          aria-label="Notifications"
+          className="hidden h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:flex"
+        >
           <Bell className="h-4 w-4" />
         </button>
 
