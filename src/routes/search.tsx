@@ -45,7 +45,7 @@ type PlaylistRow = {
   id: string;
   name: string;
   user_id: string;
-  profiles: { username: string | null } | null;
+  ownerHandle: string | null;
 };
 
 function SearchPage() {
