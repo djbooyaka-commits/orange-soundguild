@@ -258,6 +258,8 @@ function ProfilePage() {
 
       {/* Uploaded tracks */}
       <main className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
+        {isMe && accountType === "superfan" && <SuperfanTopStats />}
+
         <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
 
         {userTracks.length === 0 ? (
