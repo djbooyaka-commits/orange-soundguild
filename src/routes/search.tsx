@@ -57,7 +57,7 @@ function SearchPage() {
     }
     let cancelled = false;
     setLoading(true);
-    const like = `%${term.replace(/[%_]/g, (m) => "\\" + m)}%`;
+    const like = `%${term.replace(/[%_]/g, (m: string) => "\\" + m)}%`;
     (async () => {
       const [t, p] = await Promise.all([
         supabase
