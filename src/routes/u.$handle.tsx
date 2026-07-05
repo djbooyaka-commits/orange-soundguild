@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFollow } from "@/lib/follows";
 import { useIsAdmin, adminDeleteTrack, setUserBanned } from "@/hooks/useIsAdmin";
+import { useAccountType } from "@/hooks/useAccountType";
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
@@ -73,6 +74,8 @@ function ProfilePage() {
   const { uploads, removeUpload } = useUploads();
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
+  const { isArtist } = useAccountType();
+
 
   const isMe = handle === CURRENT_USER.handle;
   const [profile, setProfile] = useState<ProfileRow | null>(null);
@@ -206,11 +209,13 @@ function ProfilePage() {
                       <Pencil className="h-4 w-4" /> Edit profile
                     </button>
                   </EditProfileDialog>
-                  <UploadDialog>
-                    <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
-                      <Upload className="h-4 w-4" /> Upload
-                    </button>
-                  </UploadDialog>
+                  {isArtist && (
+                    <UploadDialog>
+                      <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
+                        <Upload className="h-4 w-4" /> Upload
+                      </button>
+                    </UploadDialog>
+                  )}
                 </>
               ) : (
                 <>
@@ -258,10 +263,12 @@ function ProfilePage() {
           <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
             <p className="text-sm text-muted-foreground">
               {isMe
-                ? "You haven't uploaded anything yet. Click Upload to share your first track."
+                ? isArtist
+                  ? "You haven't uploaded anything yet. Click Upload to share your first track."
+                  : "Upgrade to an Artist account to upload tracks."
                 : `${displayName} hasn't uploaded any tracks yet.`}
             </p>
-            {isMe && (
+            {isMe && isArtist && (
               <div className="mt-4 inline-block">
                 <UploadDialog>
                   <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
