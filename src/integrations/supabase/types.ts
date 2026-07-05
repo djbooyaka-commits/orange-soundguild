@@ -228,6 +228,39 @@ export type Database = {
           },
         ]
       }
+      royalty_payouts: {
+        Row: {
+          amount_cents: number
+          artist_weighted_plays: number
+          created_at: string
+          id: string
+          period_start: string
+          pool_cents: number
+          total_weighted_plays: number
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          artist_weighted_plays: number
+          created_at?: string
+          id?: string
+          period_start: string
+          pool_cents: number
+          total_weighted_plays: number
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          artist_weighted_plays?: number
+          created_at?: string
+          id?: string
+          period_start?: string
+          pool_cents?: number
+          total_weighted_plays?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       site_content: {
         Row: {
           created_at: string
@@ -269,6 +302,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      track_plays: {
+        Row: {
+          created_at: string
+          id: string
+          sub_tier: string | null
+          track_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          sub_tier?: string | null
+          track_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sub_tier?: string | null
+          track_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_plays_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tracks: {
         Row: {
@@ -376,6 +441,13 @@ export type Database = {
       is_banned: { Args: { _user_id: string }; Returns: boolean }
       is_royalty_eligible: { Args: { _user_id: string }; Returns: boolean }
       record_track_play: { Args: { p_track_id: string }; Returns: undefined }
+      run_monthly_royalty_payout: {
+        Args: { p_period_start?: string }
+        Returns: {
+          paid_amount_cents: number
+          paid_user_id: string
+        }[]
+      }
     }
     Enums: {
       account_type: "fan" | "artist" | "superfan"
