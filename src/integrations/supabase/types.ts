@@ -111,6 +111,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_type: Database["public"]["Enums"]["account_type"]
           avatar_url: string | null
           bio: string | null
           created_at: string
@@ -120,6 +121,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          account_type?: Database["public"]["Enums"]["account_type"]
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -129,6 +131,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          account_type?: Database["public"]["Enums"]["account_type"]
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -231,10 +234,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_artist: { Args: { _user_id: string }; Returns: boolean }
       is_banned: { Args: { _user_id: string }; Returns: boolean }
       record_track_play: { Args: { p_track_id: string }; Returns: undefined }
     }
     Enums: {
+      account_type: "fan" | "artist"
       app_role: "admin" | "user"
     }
     CompositeTypes: {
@@ -363,6 +368,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_type: ["fan", "artist"],
       app_role: ["admin", "user"],
     },
   },

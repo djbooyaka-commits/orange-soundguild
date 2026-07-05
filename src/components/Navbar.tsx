@@ -1,11 +1,22 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Upload, Bell, Music2, LogOut } from "lucide-react";
+import { Search, Upload, Bell, Music2, LogOut, Sparkles } from "lucide-react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccountType } from "@/hooks/useAccountType";
+import { toast } from "sonner";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
+  const { isArtist, isFan, upgradeToArtist } = useAccountType();
+  const handleUpgrade = async () => {
+    try {
+      await upgradeToArtist();
+      toast.success("You're now an artist! Upload away.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upgrade failed");
+    }
+  };
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
@@ -48,12 +59,23 @@ export function Navbar() {
           <Bell className="h-4 w-4" />
         </button>
 
-        <UploadDialog>
-          <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 active:scale-[0.98]">
-            <Upload className="h-4 w-4" />
-            <span className="hidden sm:inline">Upload</span>
+        {(!user || isArtist) && (
+          <UploadDialog>
+            <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 active:scale-[0.98]">
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Upload</span>
+            </button>
+          </UploadDialog>
+        )}
+        {user && isFan && (
+          <button
+            onClick={handleUpgrade}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 text-sm font-semibold text-primary transition hover:bg-primary/20"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">Become an artist</span>
           </button>
-        </UploadDialog>
+        )}
 
         {user ? (
           <>

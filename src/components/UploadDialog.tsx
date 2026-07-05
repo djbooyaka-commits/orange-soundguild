@@ -12,6 +12,7 @@ import {
 import { useUploads } from "@/lib/uploads";
 import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccountType } from "@/hooks/useAccountType";
 import { toast } from "sonner";
 
 const GENRES = ["Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other"];
@@ -20,6 +21,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const { addUpload } = useUploads();
   const { play } = usePlayer();
   const { user } = useAuth();
+  const { isFan } = useAccountType();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -40,6 +42,10 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const onOpenChange = (o: boolean) => {
     if (o && !user) {
       navigate({ to: "/auth" });
+      return;
+    }
+    if (o && isFan) {
+      toast.error("Fan accounts can't upload. Upgrade to an artist account first.");
       return;
     }
     setOpen(o);
