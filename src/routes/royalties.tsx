@@ -255,6 +255,55 @@ function RoyaltiesPage() {
             </ul>
           )}
         </div>
+
+        <div className="mt-8 rounded-3xl border border-border bg-card p-6">
+          <div className="text-sm font-semibold">Cashout requests</div>
+          {requests === null ? (
+            <div className="mt-6 flex justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : requests.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              No cashout requests yet. Your balance must be at least $25 to request one.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y divide-border">
+              {requests.map((r) => {
+                const when = new Date(r.created_at).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                });
+                const statusColor =
+                  r.status === "paid"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                    : r.status === "rejected"
+                      ? "bg-destructive/15 text-destructive"
+                      : "bg-muted text-muted-foreground";
+                return (
+                  <li key={r.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                    <div className="min-w-0">
+                      <div className="font-medium">
+                        {r.method === "paypal" ? "PayPal" : "Phantom"} ·{" "}
+                        <span className="text-muted-foreground truncate">{r.destination}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Requested {when}
+                        {r.admin_note ? ` · ${r.admin_note}` : ""}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="font-semibold">${(r.amount_cents / 100).toFixed(2)}</div>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${statusColor}`}>
+                        {r.status}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </main>
     </div>
   );
