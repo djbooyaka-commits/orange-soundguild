@@ -16,7 +16,31 @@ type ProfileData = {
   username: string | null;
   bio: string | null;
   avatar_url: string | null;
+  website_url?: string | null;
+  twitter_url?: string | null;
+  instagram_url?: string | null;
+  tiktok_url?: string | null;
+  youtube_url?: string | null;
+  soundcloud_url?: string | null;
+  spotify_url?: string | null;
 };
+
+const SOCIALS: { key: keyof ProfileData; label: string; placeholder: string }[] = [
+  { key: "website_url", label: "Website", placeholder: "https://yoursite.com" },
+  { key: "instagram_url", label: "Instagram", placeholder: "https://instagram.com/yourhandle" },
+  { key: "twitter_url", label: "X / Twitter", placeholder: "https://x.com/yourhandle" },
+  { key: "tiktok_url", label: "TikTok", placeholder: "https://tiktok.com/@yourhandle" },
+  { key: "youtube_url", label: "YouTube", placeholder: "https://youtube.com/@yourchannel" },
+  { key: "soundcloud_url", label: "SoundCloud", placeholder: "https://soundcloud.com/yourhandle" },
+  { key: "spotify_url", label: "Spotify", placeholder: "https://open.spotify.com/artist/..." },
+];
+
+function normalizeUrl(v: string): string | null {
+  const t = v.trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  return `https://${t}`;
+}
 
 export function EditProfileDialog({
   children,
@@ -31,6 +55,7 @@ export function EditProfileDialog({
   const [open, setOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
+  const [socials, setSocials] = useState<Record<string, string>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,6 +65,12 @@ export function EditProfileDialog({
     if (!open) return;
     setUsername(profile?.username ?? "");
     setBio(profile?.bio ?? "");
+    setSocials(
+      SOCIALS.reduce<Record<string, string>>((acc, s) => {
+        acc[s.key as string] = (profile?.[s.key] as string | null) ?? "";
+        return acc;
+      }, {}),
+    );
     setAvatarFile(null);
     setPreview(null);
   }, [open, profile]);
@@ -75,17 +106,28 @@ export function EditProfileDialog({
         avatarPath = path;
       }
 
+      const socialUpdate = SOCIALS.reduce<Record<string, string | null>>((acc, s) => {
+        acc[s.key as string] = normalizeUrl(socials[s.key as string] ?? "");
+        return acc;
+      }, {});
+
       const { error: dbErr } = await supabase
         .from("profiles")
         .update({
           username: name,
           bio: bio.trim() || null,
           avatar_url: avatarPath,
+          ...socialUpdate,
         })
         .eq("id", user.id);
       if (dbErr) throw dbErr;
 
-      onSaved({ username: name, bio: bio.trim() || null, avatar_url: avatarPath });
+      onSaved({
+        username: name,
+        bio: bio.trim() || null,
+        avatar_url: avatarPath,
+        ...socialUpdate,
+      });
       toast.success("Profile updated");
       setOpen(false);
     } catch (err) {
@@ -98,13 +140,13 @@ export function EditProfileDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserIcon className="h-4 w-4 text-primary" /> Edit profile
           </DialogTitle>
           <DialogDescription>
-            Update how your artist profile appears to listeners.
+            Update how your profile appears to listeners.
           </DialogDescription>
         </DialogHeader>
 
@@ -171,6 +213,27 @@ export function EditProfileDialog({
                 )}
               </span>
             </button>
+          </div>
+
+          <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+            <div className="text-xs font-semibold text-foreground">Social links</div>
+            <p className="text-[11px] text-muted-foreground">
+              Add any pages you want people to find. Leave blank to hide.
+            </p>
+            {SOCIALS.map((s) => (
+              <div key={s.key as string} className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">{s.label}</label>
+                <input
+                  type="url"
+                  value={socials[s.key as string] ?? ""}
+                  onChange={(e) =>
+                    setSocials((prev) => ({ ...prev, [s.key as string]: e.target.value }))
+                  }
+                  placeholder={s.placeholder}
+                  className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+            ))}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
