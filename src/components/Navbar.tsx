@@ -5,11 +5,13 @@ import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 
 export function Navbar() {
   const { user, signOut } = useAuth();
   const { isArtist, isFan } = useAccountType();
+  const isAdmin = useIsAdmin();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   return (
@@ -37,6 +39,11 @@ export function Navbar() {
             Profile
           </Link>
           <Link to="/library" className="rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
+          {isAdmin && (
+            <Link to="/admin" className="rounded-md px-3 py-1.5 font-medium text-primary hover:bg-muted">
+              Admin
+            </Link>
+          )}
         </nav>
 
         <div className="flex flex-1 items-center">
