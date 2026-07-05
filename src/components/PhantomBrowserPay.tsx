@@ -1,3 +1,7 @@
+import { Buffer } from "buffer";
+if (typeof window !== "undefined" && !(window as unknown as { Buffer?: unknown }).Buffer) {
+  (window as unknown as { Buffer: typeof Buffer }).Buffer = Buffer;
+}
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Wallet } from "lucide-react";
