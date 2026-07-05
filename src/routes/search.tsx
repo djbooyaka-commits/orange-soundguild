@@ -195,6 +195,50 @@ function SearchPage() {
                 </ul>
               )}
             </section>
+
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Playlists</h2>
+              {playlists.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No playlists found.</p>
+              ) : (
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {playlists.map((pl) => {
+                    const owner = pl.profiles?.username ?? null;
+                    return (
+                      <li key={pl.id}>
+                        {owner ? (
+                          <Link
+                            to="/u/$handle"
+                            params={{ handle: owner }}
+                            className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-muted"
+                          >
+                            <div className="flex h-10 w-10 items-center justify-center rounded bg-primary/10 text-sm font-semibold text-primary">
+                              {pl.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate font-medium">{pl.name}</div>
+                              <div className="truncate text-xs text-muted-foreground">
+                                by @{owner}
+                              </div>
+                            </div>
+                          </Link>
+                        ) : (
+                          <div className="flex items-center gap-3 rounded-lg border border-border p-3 opacity-60">
+                            <div className="flex h-10 w-10 items-center justify-center rounded bg-primary/10 text-sm font-semibold text-primary">
+                              {pl.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate font-medium">{pl.name}</div>
+                              <div className="truncate text-xs text-muted-foreground">Playlist</div>
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
           </div>
         )}
       </main>
