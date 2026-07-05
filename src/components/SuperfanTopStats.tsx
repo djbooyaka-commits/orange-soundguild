@@ -92,21 +92,14 @@ export function SuperfanTopStats() {
                 {topTrack.plays.toLocaleString()} plays
               </p>
             </div>
-            <button
-              onClick={() =>
-                playTrack({
-                  id: topTrack.track_id,
-                  title: topTrack.title,
-                  artist: topTrack.artist_username ?? "Artist",
-                  cover: trackCover ?? "",
-                  audioUrl: "",
-                })
-              }
+            <Link
+              to="/t/$trackId"
+              params={{ trackId: topTrack.track_id }}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:brightness-105"
-              aria-label="Play"
+              aria-label="Open track"
             >
               <Play className="ml-0.5 h-4 w-4" />
-            </button>
+            </Link>
           </div>
         )}
 
