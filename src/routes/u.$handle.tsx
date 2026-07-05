@@ -263,10 +263,12 @@ function ProfilePage() {
           <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
             <p className="text-sm text-muted-foreground">
               {isMe
-                ? "You haven't uploaded anything yet. Click Upload to share your first track."
+                ? isArtist
+                  ? "You haven't uploaded anything yet. Click Upload to share your first track."
+                  : "Upgrade to an Artist account to upload tracks."
                 : `${displayName} hasn't uploaded any tracks yet.`}
             </p>
-            {isMe && (
+            {isMe && isArtist && (
               <div className="mt-4 inline-block">
                 <UploadDialog>
                   <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
