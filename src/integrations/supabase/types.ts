@@ -259,13 +259,13 @@ export type Database = {
           bio: string | null
           created_at: string
           credit_balance_cents: number
+          facebook_url: string | null
           id: string
           instagram_url: string | null
           is_banned: boolean
           referral_code: string | null
           referred_by: string | null
           royalty_test_override: boolean
-          soundcloud_url: string | null
           spotify_url: string | null
           tiktok_url: string | null
           tos_accepted: boolean
@@ -282,13 +282,13 @@ export type Database = {
           bio?: string | null
           created_at?: string
           credit_balance_cents?: number
+          facebook_url?: string | null
           id: string
           instagram_url?: string | null
           is_banned?: boolean
           referral_code?: string | null
           referred_by?: string | null
           royalty_test_override?: boolean
-          soundcloud_url?: string | null
           spotify_url?: string | null
           tiktok_url?: string | null
           tos_accepted?: boolean
@@ -305,13 +305,13 @@ export type Database = {
           bio?: string | null
           created_at?: string
           credit_balance_cents?: number
+          facebook_url?: string | null
           id?: string
           instagram_url?: string | null
           is_banned?: boolean
           referral_code?: string | null
           referred_by?: string | null
           royalty_test_override?: boolean
-          soundcloud_url?: string | null
           spotify_url?: string | null
           tiktok_url?: string | null
           tos_accepted?: boolean
