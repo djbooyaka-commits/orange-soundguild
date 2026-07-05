@@ -463,4 +463,34 @@ function FollowStats({
   );
 }
 
+function SocialLinks({ profile }: { profile: ProfileRow | null }) {
+  if (!profile) return null;
+  const items: { url: string | null | undefined; label: string; icon: React.ReactNode }[] = [
+    { url: profile.website_url, label: "Website", icon: <Globe className="h-3.5 w-3.5" /> },
+    { url: profile.instagram_url, label: "Instagram", icon: <Instagram className="h-3.5 w-3.5" /> },
+    { url: profile.twitter_url, label: "X", icon: <Twitter className="h-3.5 w-3.5" /> },
+    { url: profile.tiktok_url, label: "TikTok", icon: <Music className="h-3.5 w-3.5" /> },
+    { url: profile.youtube_url, label: "YouTube", icon: <Youtube className="h-3.5 w-3.5" /> },
+    { url: profile.soundcloud_url, label: "SoundCloud", icon: <Music2 className="h-3.5 w-3.5" /> },
+    { url: profile.spotify_url, label: "Spotify", icon: <Music2 className="h-3.5 w-3.5" /> },
+  ].filter((i) => i.url && i.url.trim().length > 0);
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {items.map((i) => (
+        <a
+          key={i.label}
+          href={i.url!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary hover:text-primary"
+        >
+          {i.icon} {i.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+
 
