@@ -30,6 +30,9 @@ export function Navbar() {
           <Link to="/top100" className="rounded-md px-3 py-1.5 hover:bg-muted">
             Top 100
           </Link>
+          <Link to="/superfans" className="rounded-md px-3 py-1.5 hover:bg-muted">
+            Superfans
+          </Link>
           <Link
             to="/u/$handle"
             params={{ handle: CURRENT_USER.handle }}
