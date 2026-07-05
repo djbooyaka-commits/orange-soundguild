@@ -1,6 +1,7 @@
 import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle } from "lucide-react";
 import { formatTime, usePlayer } from "./PlayerContext";
 import { Waveform } from "./Waveform";
+import { AdSlot } from "@/components/AdSlot";
 
 export function PlayerBar() {
   const { current, isPlaying, toggle, progress, currentTime, duration, seek, volume, setVolume, shuffle, toggleShuffle, next, prev } = usePlayer();
