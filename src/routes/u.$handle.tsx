@@ -108,14 +108,14 @@ function ProfilePage() {
         }
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url, account_type")
+          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, soundcloud_url, spotify_url")
           .eq("id", user.id)
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
       } else {
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url, account_type")
+          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, soundcloud_url, spotify_url")
           .eq("username", decodeURIComponent(handle))
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
@@ -126,7 +126,21 @@ function ProfilePage() {
         const { data: b } = await supabase.rpc("is_banned", { _user_id: data.id });
         banned = !!b;
       }
-      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url, is_banned: banned, account_type: data.account_type } : null);
+      setProfile(data ? {
+        username: data.username,
+        bio: data.bio,
+        avatar_url: data.avatar_url,
+        is_banned: banned,
+        account_type: data.account_type,
+        website_url: data.website_url,
+        twitter_url: data.twitter_url,
+        instagram_url: data.instagram_url,
+        tiktok_url: data.tiktok_url,
+        youtube_url: data.youtube_url,
+        soundcloud_url: data.soundcloud_url,
+        spotify_url: data.spotify_url,
+      } : null);
+
       setProfileUserId(data?.id ?? null);
       const resolved = await resolveAvatar(data?.avatar_url);
       if (!cancelled) setAvatarUrl(resolved ?? defaultAvatar);
