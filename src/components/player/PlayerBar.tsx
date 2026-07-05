@@ -10,6 +10,9 @@ export function PlayerBar() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-secondary text-secondary-foreground">
+      {/* Ad strip (free users only) */}
+      <AdSlot variant="player" />
+
       {/* Waveform across the top */}
       <div className="border-b border-white/5 px-4 py-2 sm:px-6">
         <Waveform
