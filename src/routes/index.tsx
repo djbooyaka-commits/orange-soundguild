@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
+import { AdSlot } from "@/components/AdSlot";
 import { useAllTracks } from "@/lib/feed";
 import { useIsAdmin, adminDeleteTrack } from "@/hooks/useIsAdmin";
 import { useOnlineCount } from "@/hooks/useOnlineCount";
