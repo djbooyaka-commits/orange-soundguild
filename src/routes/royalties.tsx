@@ -173,6 +173,19 @@ function RoyaltiesPage() {
             </div>
             <div className="mt-2 text-3xl font-bold">${(balanceCents / 100).toFixed(2)}</div>
             <div className="mt-1 text-xs text-muted-foreground">Includes referrals + royalties</div>
+            <CashoutDialog
+              balanceCents={balanceCents}
+              onSubmitted={() => setReloadKey((k) => k + 1)}
+            >
+              <button
+                type="button"
+                className="mt-4 inline-flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={balanceCents < 2500}
+              >
+                <Send className="h-3.5 w-3.5" />
+                {balanceCents < 2500 ? "Cash out at $25" : "Cash out"}
+              </button>
+            </CashoutDialog>
           </div>
           <div className="rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
