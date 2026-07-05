@@ -10,6 +10,7 @@ import {
   getPaymentConfig,
   verifyArtistPayment,
 } from "@/lib/api/artist-payment.functions";
+import { PhantomBrowserPay } from "@/components/PhantomBrowserPay";
 
 type Config = Awaited<ReturnType<typeof getPaymentConfig>>;
 
