@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Award, Loader2, Wallet, TrendingUp, Music2 } from "lucide-react";
+import { Award, Loader2, Wallet, TrendingUp, Music2, Send } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { useRoyaltyProgress } from "@/hooks/useRoyaltyProgress";
 import { RoyaltyProgressCard } from "@/components/RoyaltyProgressCard";
+import { CashoutDialog } from "@/components/CashoutDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/royalties")({
