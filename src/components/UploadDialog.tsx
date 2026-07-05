@@ -12,6 +12,7 @@ import {
 import { useUploads } from "@/lib/uploads";
 import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccountType } from "@/hooks/useAccountType";
 import { toast } from "sonner";
 
 const GENRES = ["Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other"];
