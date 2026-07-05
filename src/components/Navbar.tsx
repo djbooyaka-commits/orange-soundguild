@@ -39,6 +39,11 @@ export function Navbar() {
             Profile
           </Link>
           <Link to="/library" className="rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
+          {user && (
+            <Link to="/referrals" className="rounded-md px-3 py-1.5 hover:bg-muted">
+              Referrals
+            </Link>
+          )}
           {isAdmin && (
             <Link to="/admin" className="rounded-md px-3 py-1.5 font-medium text-primary hover:bg-muted">
               Admin
