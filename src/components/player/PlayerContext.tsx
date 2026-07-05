@@ -165,6 +165,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
       if (current?.id !== t.id) {
         audio.src = t.src;
+        audio.load(); // iOS/mobile: prime the element inside the user gesture
         setCurrent(t);
         currentRef.current = t;
         setCurrentTime(0);
@@ -174,7 +175,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setCurrentTime(0);
         countedRef.current = false;
       }
-      audio.play().catch(() => setIsPlaying(false));
+      // Must be called synchronously in the user gesture for mobile browsers
+      const p = audio.play();
+      if (p && typeof p.catch === "function") p.catch(() => setIsPlaying(false));
     },
     [current?.id],
   );
@@ -188,9 +191,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setCurrentTime(0);
         countedRef.current = false;
       }
-      audio.play().catch(() => {});
+      const p = audio.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
     } else audio.pause();
   }, [current]);
+
 
   const seek = useCallback(
     (ratio: number) => {
