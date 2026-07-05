@@ -93,11 +93,6 @@ export function AdSlot({ variant, className = "" }: AdSlotProps) {
   const placement = variant === "banner" ? "feed" : "player";
   const ad = useLiveCampaign(placement);
 
-  if (user && loading) return null;
-  if (accountType === "artist" || accountType === "superfan") return null;
-
-  const hasAd = !!ad;
-
   const linkProps = useMemo(() => {
     if (!ad) return null;
     if (ad.linkExternal) {
@@ -105,6 +100,11 @@ export function AdSlot({ variant, className = "" }: AdSlotProps) {
     }
     return { href: ad.href };
   }, [ad]);
+
+  if (user && loading) return null;
+  if (accountType === "artist" || accountType === "superfan") return null;
+
+  const hasAd = !!ad;
 
   if (variant === "banner") {
     if (hasAd && ad && linkProps) {
