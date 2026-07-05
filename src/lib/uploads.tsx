@@ -130,6 +130,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
               /* fall back */
             }
           }
+          const rowExt = row as { plays_count?: number | null; album?: string | null; track_number?: number | null };
           const track: Track = {
             id: row.id,
             title: row.title,
@@ -138,8 +139,10 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
             src,
             durationLabel: "—:—",
             uploadedAt: timeAgo(row.created_at),
-            plays: (row as { plays_count?: number | null }).plays_count ?? 0,
+            plays: rowExt.plays_count ?? 0,
             genre: row.genre,
+            album: rowExt.album ?? null,
+            trackNumber: rowExt.track_number ?? null,
           };
           return track;
         }),
