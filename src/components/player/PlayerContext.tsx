@@ -32,6 +32,12 @@ type PlayerState = {
 
 const Ctx = createContext<PlayerState | null>(null);
 
+const TAB_ID =
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+const PLAYBACK_CHANNEL = "soundwave:playback";
+
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentRef = useRef<Track | null>(null);
@@ -40,12 +46,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const queueRef = useRef<Track[]>([]);
   const shuffleRef = useRef(false);
   const playedRef = useRef<Set<string>>(new Set());
+  const channelRef = useRef<BroadcastChannel | null>(null);
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.8);
   const [shuffle, setShuffle] = useState(false);
+
+  const announcePlaying = useCallback(() => {
+    channelRef.current?.postMessage({ type: "playing", tabId: TAB_ID });
+    try {
+      localStorage.setItem("soundwave:active-player", TAB_ID);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const pickNext = useCallback((q: Track[], curId: string | undefined): Track | undefined => {
     if (!q.length) return undefined;
