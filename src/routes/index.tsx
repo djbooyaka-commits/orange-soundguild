@@ -29,6 +29,7 @@ function Index() {
   const { tracks: uploaded } = useAllTracks();
   const isAdmin = useIsAdmin();
   const onlineCount = useOnlineCount();
+  const totalUsers = useTotalUsers();
   const [genre, setGenre] = useState("All");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
