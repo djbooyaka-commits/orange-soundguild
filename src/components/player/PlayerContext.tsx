@@ -39,6 +39,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const recordingRef = useRef(false);
   const queueRef = useRef<Track[]>([]);
   const shuffleRef = useRef(false);
+  const playedRef = useRef<Set<string>>(new Set());
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -49,9 +50,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const pickNext = useCallback((q: Track[], curId: string | undefined): Track | undefined => {
     if (!q.length) return undefined;
     if (shuffleRef.current) {
-      if (q.length === 1) return q[0];
-      const others = q.filter((t) => t.id !== curId);
-      return others[Math.floor(Math.random() * others.length)];
+      if (q.length === 1) return undefined;
+      const played = playedRef.current;
+      const remaining = q.filter((t) => t.id !== curId && !played.has(t.id));
+      if (!remaining.length) return undefined;
+      return remaining[Math.floor(Math.random() * remaining.length)];
     }
     const idx = q.findIndex((x) => x.id === curId);
     return idx >= 0 ? q[idx + 1] : undefined;
