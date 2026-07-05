@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useFollow } from "@/lib/follows";
 import { useIsAdmin, adminDeleteTrack, setUserBanned } from "@/hooks/useIsAdmin";
 import { useAccountType } from "@/hooks/useAccountType";
+import { SuperfanTopStats } from "@/components/SuperfanTopStats";
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
