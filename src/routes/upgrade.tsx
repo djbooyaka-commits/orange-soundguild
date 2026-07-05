@@ -4,6 +4,7 @@ import { Sparkles, Upload, BarChart3, Music2, Check, Loader2 } from "lucide-reac
 import { Navbar } from "@/components/Navbar";
 
 const PhantomPayPanel = lazy(() => import("@/components/PhantomPayPanel"));
+const PaypalPayPanel = lazy(() => import("@/components/PaypalPayPanel"));
 
 export const Route = createFileRoute("/upgrade")({
   head: () => ({
