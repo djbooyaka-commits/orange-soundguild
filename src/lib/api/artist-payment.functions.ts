@@ -4,7 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const RECEIVER = "GeiXPwBprWDwSzYq7qiqsV6eRRqTuLf1PaowHZjcdQZr";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDC_DECIMALS = 6;
-const PRICE_USD = 10;
+const PRICE_ARTIST = 10;
+const PRICE_SUPERFAN = 5;
 const NETWORK = "mainnet-beta";
 const RPC_URLS = [
   "https://solana-rpc.publicnode.com",
@@ -16,6 +17,9 @@ const RPC_URL = RPC_URLS[0];
 const SUB_DAYS = 30;
 const SOL_TOLERANCE = 0.03;
 const FALLBACK_SOL_USD = 150;
+
+export type Tier = "artist" | "superfan";
+const priceFor = (tier: Tier) => (tier === "artist" ? PRICE_ARTIST : PRICE_SUPERFAN);
 
 async function fetchJsonWithTimeout<T>(url: string, timeoutMs = 3500): Promise<T> {
   const controller = new AbortController();
@@ -105,13 +109,51 @@ type ParsedTx = {
   } | null;
 };
 
+function validateTier(t: unknown): Tier {
+  if (t !== "artist" && t !== "superfan") throw new Error("Invalid tier");
+  return t;
+}
+
+// After a subscription row is inserted, upgrade account_type (never downgrade artist)
+// and credit any referrer.
+async function postPaymentSideEffects(params: {
+  userId: string;
+  tier: Tier;
+  subscriptionId: string | null;
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { userId, tier, subscriptionId } = params;
+
+  // Upgrade account_type: artist wins over superfan; never downgrade.
+  const { data: prof } = await supabaseAdmin
+    .from("profiles")
+    .select("account_type")
+    .eq("id", userId)
+    .maybeSingle();
+  const current = prof?.account_type;
+  let next = current;
+  if (tier === "artist") next = "artist";
+  else if (tier === "superfan" && current !== "artist") next = "superfan";
+  if (next && next !== current) {
+    await supabaseAdmin.from("profiles").update({ account_type: next }).eq("id", userId);
+  }
+
+  // Credit referrer
+  await supabaseAdmin.rpc("credit_referral" as never, {
+    _referred_user: userId,
+    _subscription_id: subscriptionId,
+    _tier: tier,
+  } as never);
+}
+
 export const getPaymentConfig = createServerFn({ method: "GET" }).handler(async () => {
   const solUsd = await fetchSolUsd().catch(() => null);
   return {
     receiver: RECEIVER,
     usdcMint: USDC_MINT,
     usdcDecimals: USDC_DECIMALS,
-    priceUsd: PRICE_USD,
+    priceArtist: PRICE_ARTIST,
+    priceSuperfan: PRICE_SUPERFAN,
     network: NETWORK,
     rpcUrl: RPC_URL,
     solUsd,
@@ -120,14 +162,16 @@ export const getPaymentConfig = createServerFn({ method: "GET" }).handler(async 
 
 export const verifyArtistPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { signature: string; token: "SOL" | "USDC" }) => {
+  .inputValidator((data: { signature: string; token: "SOL" | "USDC"; tier?: Tier }) => {
     if (!data?.signature || typeof data.signature !== "string" || data.signature.length < 20)
       throw new Error("Invalid signature");
     if (data.token !== "SOL" && data.token !== "USDC") throw new Error("Bad token");
-    return data;
+    const tier = validateTier(data.tier ?? "artist");
+    return { ...data, tier };
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const priceUsd = priceFor(data.tier);
 
     const { data: existing } = await supabase
       .from("artist_subscriptions")
@@ -162,13 +206,13 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
       const pre = tx.meta?.preBalances?.[idx] ?? 0;
       const post = tx.meta?.postBalances?.[idx] ?? 0;
       const lamports = post - pre;
-      if (lamports <= 0) throw new Error("No SOL received by artist wallet");
+      if (lamports <= 0) throw new Error("No SOL received");
       const sol = lamports / 1_000_000_000;
       const price = await fetchSolUsd();
       const usdValue = sol * price;
-      if (usdValue < PRICE_USD * (1 - SOL_TOLERANCE))
+      if (usdValue < priceUsd * (1 - SOL_TOLERANCE))
         throw new Error(
-          `Payment under required amount (received ~$${usdValue.toFixed(2)}, need $${PRICE_USD}).`,
+          `Payment under required amount (received ~$${usdValue.toFixed(2)}, need $${priceUsd}).`,
         );
       verifiedAmount = sol;
     } else {
@@ -176,40 +220,40 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
       const post = tx.meta?.postTokenBalances ?? [];
       const findBal = (arr: typeof post) =>
         arr.find((b) => b.owner === RECEIVER && b.mint === USDC_MINT);
-      const preBal = findBal(pre);
-      const postBal = findBal(post);
-      const preAmt = preBal ? Number(preBal.uiTokenAmount.amount) : 0;
-      const postAmt = postBal ? Number(postBal.uiTokenAmount.amount) : 0;
+      const preAmt = findBal(pre) ? Number(findBal(pre)!.uiTokenAmount.amount) : 0;
+      const postAmt = findBal(post) ? Number(findBal(post)!.uiTokenAmount.amount) : 0;
       const delta = postAmt - preAmt;
-      const need = PRICE_USD * 10 ** USDC_DECIMALS;
+      const need = priceUsd * 10 ** USDC_DECIMALS;
       if (delta < need)
-        throw new Error(
-          `USDC received (${delta / 10 ** USDC_DECIMALS}) less than required ${PRICE_USD}.`,
-        );
+        throw new Error(`USDC received (${delta / 10 ** USDC_DECIMALS}) less than required ${priceUsd}.`);
       verifiedAmount = delta / 10 ** USDC_DECIMALS;
     }
 
     const expiresAt = new Date(Date.now() + SUB_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-    const { error: insErr } = await supabase.from("artist_subscriptions").insert({
-      user_id: userId,
-      tx_signature: data.signature,
-      token: data.token,
-      amount: verifiedAmount,
-      from_wallet: feePayer,
-      network: NETWORK,
-      expires_at: expiresAt,
-    });
+    const { data: sub, error: insErr } = await supabase
+      .from("artist_subscriptions")
+      .insert({
+        user_id: userId,
+        tx_signature: data.signature,
+        token: data.token,
+        amount: verifiedAmount,
+        from_wallet: feePayer,
+        network: NETWORK,
+        expires_at: expiresAt,
+        tier: data.tier,
+      } as never)
+      .select("id")
+      .maybeSingle();
     if (insErr) throw new Error(insErr.message);
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: upErr } = await supabaseAdmin
-      .from("profiles")
-      .update({ account_type: "artist" })
-      .eq("id", userId);
-    if (upErr) throw new Error(upErr.message);
+    await postPaymentSideEffects({
+      userId,
+      tier: data.tier,
+      subscriptionId: sub?.id ?? null,
+    });
 
-    return { ok: true, expiresAt, amount: verifiedAmount, token: data.token };
+    return { ok: true, expiresAt, amount: verifiedAmount, token: data.token, tier: data.tier };
   });
 
 const PAYPAL_API =
@@ -238,13 +282,17 @@ async function paypalAccessToken(): Promise<string> {
 export const getPaypalConfig = createServerFn({ method: "GET" }).handler(async () => ({
   clientId: process.env.PAYPAL_CLIENT_ID ?? "",
   mode: (process.env.PAYPAL_MODE ?? "sandbox") as "sandbox" | "live",
-  priceUsd: PRICE_USD,
+  priceArtist: PRICE_ARTIST,
+  priceSuperfan: PRICE_SUPERFAN,
 }));
 
 export const createPaypalOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .inputValidator((data: { tier?: Tier } | undefined) => ({ tier: validateTier(data?.tier ?? "artist") }))
+  .handler(async ({ data }) => {
     const token = await paypalAccessToken();
+    const priceUsd = priceFor(data.tier);
+    const label = data.tier === "artist" ? "Artist plan" : "Superfan plan";
     const res = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
       method: "POST",
       headers: {
@@ -255,8 +303,9 @@ export const createPaypalOrder = createServerFn({ method: "POST" })
         intent: "CAPTURE",
         purchase_units: [
           {
-            amount: { currency_code: "USD", value: PRICE_USD.toFixed(2) },
-            description: "soundwave Artist plan - 30 days",
+            amount: { currency_code: "USD", value: priceUsd.toFixed(2) },
+            description: `Orange Sound Guild ${label} - 30 days`,
+            custom_id: data.tier,
           },
         ],
       }),
@@ -267,18 +316,20 @@ export const createPaypalOrder = createServerFn({ method: "POST" })
     }
     const j = (await res.json()) as { id?: string };
     if (!j.id) throw new Error("No order id");
-    return { orderId: j.id };
+    return { orderId: j.id, tier: data.tier };
   });
 
 export const capturePaypalOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { orderId: string }) => {
+  .inputValidator((data: { orderId: string; tier?: Tier }) => {
     if (!data?.orderId || typeof data.orderId !== "string" || data.orderId.length < 5)
       throw new Error("Invalid orderId");
-    return data;
+    const tier = validateTier(data.tier ?? "artist");
+    return { orderId: data.orderId, tier };
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const priceUsd = priceFor(data.tier);
 
     const { data: existing } = await supabase
       .from("artist_subscriptions")
@@ -289,7 +340,6 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
 
     const token = await paypalAccessToken();
 
-    // Capture the order
     const capRes = await fetch(
       `${PAYPAL_API}/v2/checkout/orders/${data.orderId}/capture`,
       {
@@ -323,29 +373,71 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
     const amt = Number(capture?.amount?.value ?? unit?.amount?.value ?? "0");
     const currency = capture?.amount?.currency_code ?? unit?.amount?.currency_code;
     if (currency !== "USD") throw new Error("Currency must be USD");
-    if (!(amt >= PRICE_USD)) throw new Error(`Amount ${amt} less than required ${PRICE_USD}`);
+    if (!(amt >= priceUsd)) throw new Error(`Amount ${amt} less than required ${priceUsd}`);
 
     const expiresAt = new Date(Date.now() + SUB_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const payerRef = order.payer?.payer_id ?? order.payer?.email_address ?? "paypal";
 
-    const { error: insErr } = await supabase.from("artist_subscriptions").insert({
-      user_id: userId,
-      tx_signature: data.orderId,
-      token: "PAYPAL",
-      amount: amt,
-      from_wallet: payerRef,
-      network: process.env.PAYPAL_MODE ?? "sandbox",
-      expires_at: expiresAt,
-    });
+    const { data: sub, error: insErr } = await supabase
+      .from("artist_subscriptions")
+      .insert({
+        user_id: userId,
+        tx_signature: data.orderId,
+        token: "PAYPAL",
+        amount: amt,
+        from_wallet: payerRef,
+        network: process.env.PAYPAL_MODE ?? "sandbox",
+        expires_at: expiresAt,
+        tier: data.tier,
+      } as never)
+      .select("id")
+      .maybeSingle();
     if (insErr) throw new Error(insErr.message);
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: upErr } = await supabaseAdmin
-      .from("profiles")
-      .update({ account_type: "artist" })
-      .eq("id", userId);
-    if (upErr) throw new Error(upErr.message);
+    await postPaymentSideEffects({
+      userId,
+      tier: data.tier,
+      subscriptionId: sub?.id ?? null,
+    });
 
-    return { ok: true, expiresAt, amount: amt };
+    return { ok: true, expiresAt, amount: amt, tier: data.tier };
   });
 
+// ---- Referral read APIs ----
+
+export const getMyReferralInfo = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("referral_code, credit_balance_cents, account_type")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const { data: earnings } = await supabase
+      .from("referral_earnings" as never)
+      .select("id, amount_cents, tier, created_at, referred_user_id")
+      .eq("referrer_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    const { count: referredCount } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("referred_by" as never, userId);
+
+    return {
+      referralCode: (profile as { referral_code?: string } | null)?.referral_code ?? null,
+      balanceCents: (profile as { credit_balance_cents?: number } | null)?.credit_balance_cents ?? 0,
+      accountType: (profile as { account_type?: string } | null)?.account_type ?? "fan",
+      earnings: (earnings ?? []) as Array<{
+        id: string;
+        amount_cents: number;
+        tier: string;
+        created_at: string;
+        referred_user_id: string;
+      }>,
+      referredCount: referredCount ?? 0,
+    };
+  });
