@@ -225,11 +225,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current;
     if (!audio) return;
     audio.src = t.src;
+    audio.load();
     setCurrent(t);
     currentRef.current = t;
     setCurrentTime(0);
     countedRef.current = false;
-    audio.play().catch(() => setIsPlaying(false));
+    const p = audio.play();
+    if (p && typeof p.catch === "function") p.catch(() => setIsPlaying(false));
+
   }, []);
 
   const next = useCallback(() => {
