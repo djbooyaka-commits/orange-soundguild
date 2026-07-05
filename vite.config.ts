@@ -12,4 +12,9 @@ export default defineConfig({
       protocolImports: true,
     }),
   ],
+  vite: {
+    resolve: {
+      conditions: ["browser", "module", "import", "default"],
+    },
+  },
 });
