@@ -95,6 +95,10 @@ function AuthPage() {
   };
 
   const onGoogle = async () => {
+    if (mode === "signup" && !agreedTos) {
+      toast.error("You must agree to the Terms of Service to create an account.");
+      return;
+    }
     setBusy(true);
     const r = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
