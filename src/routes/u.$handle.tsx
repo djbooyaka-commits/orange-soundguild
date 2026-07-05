@@ -61,6 +61,13 @@ type ProfileRow = {
   avatar_url: string | null;
   is_banned?: boolean | null;
   account_type?: string | null;
+  website_url?: string | null;
+  twitter_url?: string | null;
+  instagram_url?: string | null;
+  tiktok_url?: string | null;
+  youtube_url?: string | null;
+  soundcloud_url?: string | null;
+  spotify_url?: string | null;
 };
 
 const SIGNED_TTL = 60 * 60 * 24 * 365;
@@ -71,6 +78,7 @@ async function resolveAvatar(value: string | null | undefined): Promise<string |
   const { data } = await supabase.storage.from("avatars").createSignedUrl(value, SIGNED_TTL);
   return data?.signedUrl ?? null;
 }
+
 
 function ProfilePage() {
   const { handle } = Route.useParams();
