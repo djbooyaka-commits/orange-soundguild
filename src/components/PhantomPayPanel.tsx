@@ -34,18 +34,19 @@ export function PhantomPayPanel() {
 
   useEffect(() => {
     if (!config) return;
-    const params = new URLSearchParams();
+    const parts: string[] = [];
     if (token === "USDC") {
-      params.set("amount", String(config.priceUsd));
-      params.set("spl-token", config.usdcMint);
+      parts.push(`amount=${config.priceUsd}`);
+      parts.push(`spl-token=${config.usdcMint}`);
     } else if (config.solUsd) {
-      params.set("amount", (config.priceUsd / config.solUsd).toFixed(6));
+      parts.push(`amount=${(config.priceUsd / config.solUsd).toFixed(6)}`);
     } else {
       return;
     }
-    params.set("label", "Soundwave Artist");
-    params.set("message", "30-day artist subscription");
-    const url = `solana:${config.receiver}?${params.toString()}`;
+    parts.push(`label=${encodeURIComponent("Soundwave Artist")}`);
+    parts.push(`message=${encodeURIComponent("30-day artist subscription")}`);
+    parts.push(`reference=${config.receiver}`);
+    const url = `solana:${config.receiver}?${parts.join("&")}`;
     setPayUrl(url);
     QRCode.toDataURL(url, { width: 240, margin: 1 }).then(setQrDataUrl).catch(() => {});
   }, [config, token]);
