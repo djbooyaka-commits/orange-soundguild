@@ -156,7 +156,8 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
     });
     if (insErr) throw new Error(insErr.message);
 
-    const { error: upErr } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: upErr } = await supabaseAdmin
       .from("profiles")
       .update({ account_type: "artist" })
       .eq("id", userId);
