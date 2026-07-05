@@ -96,7 +96,7 @@ export function PhantomPayPanel() {
       toast.success(
         `You're an artist! Active until ${new Date(res.expiresAt).toLocaleDateString()}.`,
       );
-      navigate({ to: "/" });
+      navigate({ to: "/artist-welcome" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Verification failed");
     } finally {
