@@ -164,3 +164,140 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
 
     return { ok: true, expiresAt, amount: verifiedAmount, token: data.token };
   });
+
+const PAYPAL_API =
+  (process.env.PAYPAL_MODE ?? "sandbox") === "live"
+    ? "https://api-m.paypal.com"
+    : "https://api-m.sandbox.paypal.com";
+
+async function paypalAccessToken(): Promise<string> {
+  const id = process.env.PAYPAL_CLIENT_ID;
+  const secret = process.env.PAYPAL_CLIENT_SECRET;
+  if (!id || !secret) throw new Error("PayPal not configured");
+  const res = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      authorization: `Basic ${btoa(`${id}:${secret}`)}`,
+    },
+    body: "grant_type=client_credentials",
+  });
+  if (!res.ok) throw new Error("PayPal auth failed");
+  const j = (await res.json()) as { access_token?: string };
+  if (!j.access_token) throw new Error("PayPal auth: no token");
+  return j.access_token;
+}
+
+export const getPaypalConfig = createServerFn({ method: "GET" }).handler(async () => ({
+  clientId: process.env.PAYPAL_CLIENT_ID ?? "",
+  mode: (process.env.PAYPAL_MODE ?? "sandbox") as "sandbox" | "live",
+  priceUsd: PRICE_USD,
+}));
+
+export const createPaypalOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const token = await paypalAccessToken();
+    const res = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        intent: "CAPTURE",
+        purchase_units: [
+          {
+            amount: { currency_code: "USD", value: PRICE_USD.toFixed(2) },
+            description: "soundwave Artist plan - 30 days",
+          },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(`Create order failed: ${t}`);
+    }
+    const j = (await res.json()) as { id?: string };
+    if (!j.id) throw new Error("No order id");
+    return { orderId: j.id };
+  });
+
+export const capturePaypalOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId: string }) => {
+    if (!data?.orderId || typeof data.orderId !== "string" || data.orderId.length < 5)
+      throw new Error("Invalid orderId");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: existing } = await supabase
+      .from("artist_subscriptions")
+      .select("id")
+      .eq("tx_signature", data.orderId)
+      .maybeSingle();
+    if (existing) throw new Error("This order has already been used.");
+
+    const token = await paypalAccessToken();
+
+    // Capture the order
+    const capRes = await fetch(
+      `${PAYPAL_API}/v2/checkout/orders/${data.orderId}/capture`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    const order = (await capRes.json()) as {
+      status?: string;
+      purchase_units?: Array<{
+        amount?: { value?: string; currency_code?: string };
+        payments?: {
+          captures?: Array<{
+            status?: string;
+            amount?: { value?: string; currency_code?: string };
+          }>;
+        };
+      }>;
+      payer?: { email_address?: string; payer_id?: string };
+      message?: string;
+    };
+    if (!capRes.ok) throw new Error(order.message ?? "Capture failed");
+    if (order.status !== "COMPLETED")
+      throw new Error(`Order not completed (status ${order.status})`);
+
+    const unit = order.purchase_units?.[0];
+    const capture = unit?.payments?.captures?.[0];
+    const amt = Number(capture?.amount?.value ?? unit?.amount?.value ?? "0");
+    const currency = capture?.amount?.currency_code ?? unit?.amount?.currency_code;
+    if (currency !== "USD") throw new Error("Currency must be USD");
+    if (!(amt >= PRICE_USD)) throw new Error(`Amount ${amt} less than required ${PRICE_USD}`);
+
+    const expiresAt = new Date(Date.now() + SUB_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const payerRef = order.payer?.payer_id ?? order.payer?.email_address ?? "paypal";
+
+    const { error: insErr } = await supabase.from("artist_subscriptions").insert({
+      user_id: userId,
+      tx_signature: data.orderId,
+      token: "PAYPAL",
+      amount: amt,
+      from_wallet: payerRef,
+      network: process.env.PAYPAL_MODE ?? "sandbox",
+      expires_at: expiresAt,
+    });
+    if (insErr) throw new Error(insErr.message);
+
+    const { error: upErr } = await supabase
+      .from("profiles")
+      .update({ account_type: "artist" })
+      .eq("id", userId);
+    if (upErr) throw new Error(upErr.message);
+
+    return { ok: true, expiresAt, amount: amt };
+  });
+
