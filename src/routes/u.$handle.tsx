@@ -17,7 +17,7 @@ import { SuperfanPublicProfile } from "@/components/SuperfanPublicProfile";
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
-import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck, Award } from "lucide-react";
+import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck, Award, Globe, Instagram, Twitter, Youtube, Music } from "lucide-react";
 import { useRoyaltyProgress } from "@/hooks/useRoyaltyProgress";
 
 export const Route = createFileRoute("/u/$handle")({
@@ -61,6 +61,13 @@ type ProfileRow = {
   avatar_url: string | null;
   is_banned?: boolean | null;
   account_type?: string | null;
+  website_url?: string | null;
+  twitter_url?: string | null;
+  instagram_url?: string | null;
+  tiktok_url?: string | null;
+  youtube_url?: string | null;
+  soundcloud_url?: string | null;
+  spotify_url?: string | null;
 };
 
 const SIGNED_TTL = 60 * 60 * 24 * 365;
@@ -71,6 +78,7 @@ async function resolveAvatar(value: string | null | undefined): Promise<string |
   const { data } = await supabase.storage.from("avatars").createSignedUrl(value, SIGNED_TTL);
   return data?.signedUrl ?? null;
 }
+
 
 function ProfilePage() {
   const { handle } = Route.useParams();
@@ -100,14 +108,14 @@ function ProfilePage() {
         }
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url, account_type")
+          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, soundcloud_url, spotify_url")
           .eq("id", user.id)
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
       } else {
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url, account_type")
+          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, soundcloud_url, spotify_url")
           .eq("username", decodeURIComponent(handle))
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
@@ -118,7 +126,21 @@ function ProfilePage() {
         const { data: b } = await supabase.rpc("is_banned", { _user_id: data.id });
         banned = !!b;
       }
-      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url, is_banned: banned, account_type: data.account_type } : null);
+      setProfile(data ? {
+        username: data.username,
+        bio: data.bio,
+        avatar_url: data.avatar_url,
+        is_banned: banned,
+        account_type: data.account_type,
+        website_url: data.website_url,
+        twitter_url: data.twitter_url,
+        instagram_url: data.instagram_url,
+        tiktok_url: data.tiktok_url,
+        youtube_url: data.youtube_url,
+        soundcloud_url: data.soundcloud_url,
+        spotify_url: data.spotify_url,
+      } : null);
+
       setProfileUserId(data?.id ?? null);
       const resolved = await resolveAvatar(data?.avatar_url);
       if (!cancelled) setAvatarUrl(resolved ?? defaultAvatar);
@@ -194,6 +216,8 @@ function ProfilePage() {
                 </div>
                 <p className="text-sm text-muted-foreground">@{handle}</p>
                 <p className="mt-1 max-w-md text-sm text-muted-foreground">{bio}</p>
+                <SocialLinks profile={profile} />
+
               </div>
             </div>
 
@@ -438,5 +462,35 @@ function FollowStats({
     </div>
   );
 }
+
+function SocialLinks({ profile }: { profile: ProfileRow | null }) {
+  if (!profile) return null;
+  const items: { url: string | null | undefined; label: string; icon: React.ReactNode }[] = [
+    { url: profile.website_url, label: "Website", icon: <Globe className="h-3.5 w-3.5" /> },
+    { url: profile.instagram_url, label: "Instagram", icon: <Instagram className="h-3.5 w-3.5" /> },
+    { url: profile.twitter_url, label: "X", icon: <Twitter className="h-3.5 w-3.5" /> },
+    { url: profile.tiktok_url, label: "TikTok", icon: <Music className="h-3.5 w-3.5" /> },
+    { url: profile.youtube_url, label: "YouTube", icon: <Youtube className="h-3.5 w-3.5" /> },
+    { url: profile.soundcloud_url, label: "SoundCloud", icon: <Music2 className="h-3.5 w-3.5" /> },
+    { url: profile.spotify_url, label: "Spotify", icon: <Music2 className="h-3.5 w-3.5" /> },
+  ].filter((i) => i.url && i.url.trim().length > 0);
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {items.map((i) => (
+        <a
+          key={i.label}
+          href={i.url!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary hover:text-primary"
+        >
+          {i.icon} {i.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 
 
