@@ -9,6 +9,33 @@ import { useTrackLike } from "@/lib/likes";
 import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
 
 export const Route = createFileRoute("/t/$trackId")({
+  head: ({ params }) => {
+    const url = `https://orange-soundguild.lovable.app/t/${params.trackId}`;
+    const title = `Track on Orange Sound Guild`;
+    const description = `Stream this track on Orange Sound Guild — discover music from independent artists.`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "music.song" },
+        { property: "og:url", content: url },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "MusicRecording",
+            url,
+            identifier: params.trackId,
+          }),
+        },
+      ],
+    };
+  },
   component: TrackPage,
 });
 
