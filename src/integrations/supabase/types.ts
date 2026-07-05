@@ -260,14 +260,21 @@ export type Database = {
           created_at: string
           credit_balance_cents: number
           id: string
+          instagram_url: string | null
           is_banned: boolean
           referral_code: string | null
           referred_by: string | null
           royalty_test_override: boolean
+          soundcloud_url: string | null
+          spotify_url: string | null
+          tiktok_url: string | null
           tos_accepted: boolean
           tos_accepted_at: string | null
+          twitter_url: string | null
           updated_at: string
           username: string | null
+          website_url: string | null
+          youtube_url: string | null
         }
         Insert: {
           account_type?: Database["public"]["Enums"]["account_type"]
@@ -276,14 +283,21 @@ export type Database = {
           created_at?: string
           credit_balance_cents?: number
           id: string
+          instagram_url?: string | null
           is_banned?: boolean
           referral_code?: string | null
           referred_by?: string | null
           royalty_test_override?: boolean
+          soundcloud_url?: string | null
+          spotify_url?: string | null
+          tiktok_url?: string | null
           tos_accepted?: boolean
           tos_accepted_at?: string | null
+          twitter_url?: string | null
           updated_at?: string
           username?: string | null
+          website_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
           account_type?: Database["public"]["Enums"]["account_type"]
@@ -292,14 +306,21 @@ export type Database = {
           created_at?: string
           credit_balance_cents?: number
           id?: string
+          instagram_url?: string | null
           is_banned?: boolean
           referral_code?: string | null
           referred_by?: string | null
           royalty_test_override?: boolean
+          soundcloud_url?: string | null
+          spotify_url?: string | null
+          tiktok_url?: string | null
           tos_accepted?: boolean
           tos_accepted_at?: string | null
+          twitter_url?: string | null
           updated_at?: string
           username?: string | null
+          website_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
