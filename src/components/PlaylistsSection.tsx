@@ -8,9 +8,27 @@ import { toast } from "sonner";
 export function PlaylistsSection({ userId, isOwner }: { userId: string | null; isOwner: boolean }) {
   const { playlists, removeTrack, deletePlaylist, createPlaylist, moveTrack } = usePlaylistsForUser(userId);
   const { current, isPlaying, play, toggle } = usePlayer();
+  const { user } = useAuth();
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [name, setName] = useState("");
+
+  const handleSave = async (id: string, plName: string) => {
+    if (!user) {
+      toast.error("Sign in to save playlists.");
+      return;
+    }
+    setSavingId(id);
+    try {
+      await savePlaylistToLibrary(id, user.id, plName);
+      toast.success(`Saved "${plName}" to your library`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   if (!userId) return null;
 
