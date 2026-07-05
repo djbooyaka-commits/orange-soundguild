@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import QRCode from "qrcode";
 import { Sparkles, Loader2, ExternalLink, CheckCircle2 } from "lucide-react";
@@ -22,9 +22,8 @@ export function PhantomPayPanel() {
   const verify = useServerFn(verifyArtistPayment);
 
   const [config, setConfig] = useState<Config | null>(null);
-  const [token, setToken] = useState<"USDC" | "SOL">("USDC");
+  const [token, setToken] = useState<"USDC" | "SOL">("SOL");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [payUrl, setPayUrl] = useState<string | null>(null);
   const [signature, setSignature] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -32,7 +31,7 @@ export function PhantomPayPanel() {
     loadConfig().then(setConfig).catch(() => {});
   }, [loadConfig]);
 
-  useEffect(() => {
+  const payUrl = useMemo(() => {
     if (!config) return;
     const parts: string[] = [];
     if (token === "USDC") {
@@ -45,11 +44,23 @@ export function PhantomPayPanel() {
     }
     parts.push(`label=${encodeURIComponent("Soundwave Artist")}`);
     parts.push(`message=${encodeURIComponent("30-day artist subscription")}`);
-    
-    const url = `solana:${config.receiver}?${parts.join("&")}`;
-    setPayUrl(url);
-    QRCode.toDataURL(url, { width: 240, margin: 1 }).then(setQrDataUrl).catch(() => {});
+
+    return `solana:${config.receiver}?${parts.join("&")}`;
   }, [config, token]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setQrDataUrl(null);
+    if (!payUrl) return;
+    QRCode.toDataURL(payUrl, { width: 240, margin: 1 })
+      .then((dataUrl) => {
+        if (!cancelled) setQrDataUrl(dataUrl);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [payUrl]);
 
   const submitSignature = async () => {
     if (!user) {
