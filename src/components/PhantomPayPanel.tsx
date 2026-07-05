@@ -45,7 +45,7 @@ export function PhantomPayPanel() {
     }
     parts.push(`label=${encodeURIComponent("Soundwave Artist")}`);
     parts.push(`message=${encodeURIComponent("30-day artist subscription")}`);
-    parts.push(`reference=${config.receiver}`);
+    
     const url = `solana:${config.receiver}?${parts.join("&")}`;
     setPayUrl(url);
     QRCode.toDataURL(url, { width: 240, margin: 1 }).then(setQrDataUrl).catch(() => {});
