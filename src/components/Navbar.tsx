@@ -1,5 +1,6 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Search, Upload, Bell, Music2, LogOut, Sparkles } from "lucide-react";
+import { useState } from "react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +10,8 @@ import { useAccountType } from "@/hooks/useAccountType";
 export function Navbar() {
   const { user, signOut } = useAuth();
   const { isArtist, isFan } = useAccountType();
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
