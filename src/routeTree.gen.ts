@@ -14,6 +14,7 @@ import { Route as Top100RouteImport } from './routes/top100'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as RoyaltiesRouteImport } from './routes/royalties'
 import { Route as ReferralsRouteImport } from './routes/referrals'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -46,6 +47,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoyaltiesRoute = RoyaltiesRouteImport.update({
+  id: '/royalties',
+  path: '/royalties',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReferralsRoute = ReferralsRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/referrals': typeof ReferralsRoute
+  '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/referrals': typeof ReferralsRoute
+  '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/referrals': typeof ReferralsRoute
+  '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/referrals'
+    | '/royalties'
     | '/search'
     | '/sitemap.xml'
     | '/terms'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/referrals'
+    | '/royalties'
     | '/search'
     | '/sitemap.xml'
     | '/terms'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/referrals'
+    | '/royalties'
     | '/search'
     | '/sitemap.xml'
     | '/terms'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   LibraryRoute: typeof LibraryRoute
   ReferralsRoute: typeof ReferralsRoute
+  RoyaltiesRoute: typeof RoyaltiesRoute
   SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
@@ -234,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/royalties': {
+      id: '/royalties'
+      path: '/royalties'
+      fullPath: '/royalties'
+      preLoaderRoute: typeof RoyaltiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/referrals': {
@@ -302,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   LibraryRoute: LibraryRoute,
   ReferralsRoute: ReferralsRoute,
+  RoyaltiesRoute: RoyaltiesRoute,
   SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
