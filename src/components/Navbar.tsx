@@ -10,7 +10,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
-  const { isArtist, isFan } = useAccountType();
+  const { isArtist } = useAccountType();
   const isAdmin = useIsAdmin();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
