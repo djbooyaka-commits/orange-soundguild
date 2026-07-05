@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save, RotateCcw, ShieldAlert } from "lucide-react";
+import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,33 @@ import {
   mergeArtistWelcome,
   type ArtistWelcomeContent,
 } from "@/lib/artist-welcome-content";
+
+type SiteExpense = {
+  id: string;
+  spent_on: string;
+  category: string;
+  description: string;
+  amount_cents: number;
+  note: string | null;
+};
+
+const EXPENSE_CATEGORIES = [
+  "hosting",
+  "domain",
+  "ai",
+  "storage",
+  "marketing",
+  "design",
+  "legal",
+  "tools",
+  "payouts",
+  "other",
+];
+
+function fmtUsd(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -245,6 +272,10 @@ function AdminPage() {
               </Field>
             </Section>
 
+            <SiteAccounting />
+
+
+
             <div className="sticky bottom-4 flex gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur">
               <button
                 onClick={save}
@@ -290,3 +321,237 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
+
+
+function SiteAccounting() {
+  const { user } = useAuth();
+  const [rows, setRows] = useState<SiteExpense[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState({
+    spent_on: new Date().toISOString().slice(0, 10),
+    category: "hosting",
+    description: "",
+    amount: "",
+    note: "",
+  });
+
+  async function reload() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("site_expenses")
+      .select("id, spent_on, category, description, amount_cents, note")
+      .order("spent_on", { ascending: false })
+      .order("created_at", { ascending: false });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setRows((data ?? []) as SiteExpense[]);
+  }
+
+  useEffect(() => {
+    void reload();
+  }, []);
+
+  async function addRow(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    const amt = Number(form.amount);
+    if (!form.description.trim()) {
+      toast.error("Add a short description");
+      return;
+    }
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast.error("Amount must be greater than 0");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from("site_expenses").insert({
+      user_id: user.id,
+      spent_on: form.spent_on,
+      category: form.category,
+      description: form.description.trim(),
+      amount_cents: Math.round(amt * 100),
+      note: form.note.trim() || null,
+    });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Expense added");
+    setForm((f) => ({ ...f, description: "", amount: "", note: "" }));
+    void reload();
+  }
+
+  async function removeRow(id: string) {
+    if (!confirm("Delete this expense?")) return;
+    const { error } = await supabase.from("site_expenses").delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setRows((r) => r.filter((x) => x.id !== id));
+    toast.success("Deleted");
+  }
+
+  const total = rows.reduce((s, r) => s + r.amount_cents, 0);
+  const byCategory = rows.reduce<Record<string, number>>((acc, r) => {
+    acc[r.category] = (acc[r.category] ?? 0) + r.amount_cents;
+    return acc;
+  }, {});
+
+  return (
+    <section className="rounded-2xl border border-border bg-card/50 p-5">
+      <div className="mb-4 flex items-center gap-2">
+        <Receipt className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold">Site accounting</h2>
+      </div>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Log every dollar spent running the site. Only admins can see these entries.
+      </p>
+
+      <div className="mb-5 rounded-xl border border-border bg-background/60 p-4">
+        <div className="text-xs uppercase text-muted-foreground">Total spent</div>
+        <div className="mt-1 text-3xl font-bold tracking-tight">{fmtUsd(total)}</div>
+        {Object.keys(byCategory).length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {Object.entries(byCategory)
+              .sort((a, b) => b[1] - a[1])
+              .map(([cat, cents]) => (
+                <span
+                  key={cat}
+                  className="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs"
+                >
+                  <span className="font-medium capitalize">{cat}</span>{" "}
+                  <span className="text-muted-foreground">{fmtUsd(cents)}</span>
+                </span>
+              ))}
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={addRow} className="mb-6 grid gap-3 sm:grid-cols-6">
+        <div className="sm:col-span-2">
+          <div className="mb-1.5 text-xs font-medium text-muted-foreground">Date</div>
+          <input
+            type="date"
+            className={inputCls}
+            value={form.spent_on}
+            onChange={(e) => setForm({ ...form, spent_on: e.target.value })}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <div className="mb-1.5 text-xs font-medium text-muted-foreground">Category</div>
+          <select
+            className={inputCls}
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+          >
+            {EXPENSE_CATEGORIES.map((c) => (
+              <option key={c} value={c} className="capitalize">
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <div className="mb-1.5 text-xs font-medium text-muted-foreground">Amount (USD)</div>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            className={inputCls}
+            value={form.amount}
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          />
+        </div>
+        <div className="sm:col-span-3">
+          <div className="mb-1.5 text-xs font-medium text-muted-foreground">Description</div>
+          <input
+            className={inputCls}
+            placeholder="e.g. Domain renewal"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+        </div>
+        <div className="sm:col-span-3">
+          <div className="mb-1.5 text-xs font-medium text-muted-foreground">Note (optional)</div>
+          <input
+            className={inputCls}
+            placeholder="Invoice #, vendor, etc."
+            value={form.note}
+            onChange={(e) => setForm({ ...form, note: e.target.value })}
+          />
+        </div>
+        <div className="sm:col-span-6">
+          <button
+            type="submit"
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Add expense
+          </button>
+        </div>
+      </form>
+
+      <div className="overflow-hidden rounded-xl border border-border">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            No expenses logged yet.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">Date</th>
+                <th className="px-3 py-2 text-left">Category</th>
+                <th className="px-3 py-2 text-left">Description</th>
+                <th className="px-3 py-2 text-right">Amount</th>
+                <th className="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-border">
+                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                    {r.spent_on}
+                  </td>
+                  <td className="px-3 py-2 capitalize">{r.category}</td>
+                  <td className="px-3 py-2">
+                    <div>{r.description}</div>
+                    {r.note && (
+                      <div className="text-xs text-muted-foreground">{r.note}</div>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right font-medium">
+                    {fmtUsd(r.amount_cents)}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      onClick={() => removeRow(r.id)}
+                      className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
+  );
+}
+
