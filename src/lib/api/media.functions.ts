@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const BUCKETS = ["audio", "covers", "avatars"] as const;
 const SIGNED_TTL = 60 * 60; // 1 hour
@@ -17,6 +18,7 @@ const inputSchema = z.object({
 });
 
 export const signMediaUrls = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
