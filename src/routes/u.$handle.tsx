@@ -60,6 +60,7 @@ type ProfileRow = {
   bio: string | null;
   avatar_url: string | null;
   is_banned?: boolean | null;
+  account_type?: string | null;
 };
 
 const SIGNED_TTL = 60 * 60 * 24 * 365;
@@ -99,14 +100,14 @@ function ProfilePage() {
         }
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url")
+          .select("id, username, bio, avatar_url, account_type")
           .eq("id", user.id)
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
       } else {
         const res = await supabase
           .from("profiles")
-          .select("id, username, bio, avatar_url")
+          .select("id, username, bio, avatar_url, account_type")
           .eq("username", decodeURIComponent(handle))
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
@@ -117,7 +118,7 @@ function ProfilePage() {
         const { data: b } = await supabase.rpc("is_banned", { _user_id: data.id });
         banned = !!b;
       }
-      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url, is_banned: banned } : null);
+      setProfile(data ? { username: data.username, bio: data.bio, avatar_url: data.avatar_url, is_banned: banned, account_type: data.account_type } : null);
       setProfileUserId(data?.id ?? null);
       const resolved = await resolveAvatar(data?.avatar_url);
       if (!cancelled) setAvatarUrl(resolved ?? defaultAvatar);
@@ -263,38 +264,40 @@ function ProfilePage() {
           <SuperfanPublicProfile userId={profileUserId} displayName="you" />
         )}
 
-        <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
+        {(isMe ? isArtist : profile?.account_type === "artist") && (
+          <>
+            <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
 
-        {userTracks.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              {isMe
-                ? isArtist
-                  ? "You haven't uploaded anything yet. Click Upload to share your first track."
-                  : "Upgrade to an Artist account to upload tracks."
-                : `${displayName} hasn't uploaded any tracks yet.`}
-            </p>
-            {isMe && isArtist && (
-              <div className="mt-4 inline-block">
-                <UploadDialog>
-                  <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
-                    <Upload className="h-4 w-4" /> Upload your first track
-                  </button>
-                </UploadDialog>
+            {userTracks.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {isMe
+                    ? "You haven't uploaded anything yet. Click Upload to share your first track."
+                    : `${displayName} hasn't uploaded any tracks yet.`}
+                </p>
+                {isMe && isArtist && (
+                  <div className="mt-4 inline-block">
+                    <UploadDialog>
+                      <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
+                        <Upload className="h-4 w-4" /> Upload your first track
+                      </button>
+                    </UploadDialog>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {userTracks.map((t) => (
+                  <TrackCard
+                    key={t.id}
+                    track={t}
+                    canEdit={isMe}
+                    onDelete={isMe ? removeUpload : isAdmin ? handleAdminDelete : undefined}
+                  />
+                ))}
               </div>
             )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {userTracks.map((t) => (
-              <TrackCard
-                key={t.id}
-                track={t}
-                canEdit={isMe}
-                onDelete={isMe ? removeUpload : isAdmin ? handleAdminDelete : undefined}
-              />
-            ))}
-          </div>
+          </>
         )}
 
         {!isMe && profileUserId && (
