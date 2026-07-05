@@ -33,7 +33,7 @@ export function Navbar() {
           >
             Profile
           </Link>
-          <a className="rounded-md px-3 py-1.5 hover:bg-muted" href="#">Library</a>
+          <Link to="/library" className="rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
         </nav>
 
         <div className="flex flex-1 items-center">
