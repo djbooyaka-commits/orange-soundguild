@@ -17,12 +17,37 @@ import defaultAvatar from "@/assets/avatar.jpg";
 import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/u/$handle")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `@${params.handle} — soundwave` },
-      { name: "description", content: `Listen to tracks uploaded by @${params.handle} on soundwave.` },
-    ],
-  }),
+  head: ({ params }) => {
+    const handle = decodeURIComponent(params.handle);
+    const url = `https://orange-soundguild.lovable.app/u/${params.handle}`;
+    return {
+      meta: [
+        { title: `@${handle} — Orange Sound Guild` },
+        { name: "description", content: `Listen to tracks uploaded by @${handle} on Orange Sound Guild.` },
+        { property: "og:title", content: `@${handle} on Orange Sound Guild` },
+        { property: "og:description", content: `Listen to tracks uploaded by @${handle} on Orange Sound Guild.` },
+        { property: "og:type", content: "profile" },
+        { property: "og:url", content: url },
+        { property: "profile:username", content: handle },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            mainEntity: {
+              "@type": "Person",
+              name: handle,
+              alternateName: `@${handle}`,
+              url,
+            },
+          }),
+        },
+      ],
+    };
+  },
   component: ProfilePage,
 });
 
