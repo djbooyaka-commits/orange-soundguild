@@ -41,6 +41,12 @@ type ProfileRow = {
   avatar_url: string | null;
   account_type: string | null;
 };
+type PlaylistRow = {
+  id: string;
+  name: string;
+  user_id: string;
+  profiles: { username: string | null } | null;
+};
 
 function SearchPage() {
   const { q } = Route.useSearch();
@@ -48,6 +54,7 @@ function SearchPage() {
   const [input, setInput] = useState(q);
   const [tracks, setTracks] = useState<TrackRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [playlists, setPlaylists] = useState<PlaylistRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => setInput(q), [q]);
@@ -57,13 +64,14 @@ function SearchPage() {
     if (!term) {
       setTracks([]);
       setProfiles([]);
+      setPlaylists([]);
       return;
     }
     let cancelled = false;
     setLoading(true);
     const like = `%${term.replace(/[%_]/g, (m: string) => "\\" + m)}%`;
     (async () => {
-      const [t, p] = await Promise.all([
+      const [t, p, pl] = await Promise.all([
         supabase
           .from("tracks")
           .select("id,title,genre,cover_art_url,user_id,plays_count")
@@ -75,10 +83,16 @@ function SearchPage() {
           .select("id,username,avatar_url,account_type")
           .ilike("username", like)
           .limit(30),
+        supabase
+          .from("playlists")
+          .select("id,name,user_id,profiles(username)")
+          .ilike("name", like)
+          .limit(30),
       ]);
       if (cancelled) return;
       setTracks((t.data as TrackRow[]) ?? []);
       setProfiles((p.data as ProfileRow[]) ?? []);
+      setPlaylists((pl.data as unknown as PlaylistRow[]) ?? []);
       setLoading(false);
     })();
     return () => {
