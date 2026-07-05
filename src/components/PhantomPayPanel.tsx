@@ -111,17 +111,7 @@ export function PhantomPayPanel() {
         </div>
       ) : (
         <>
-          {config && (
-            <PhantomBrowserPay
-              token={token}
-              receiver={config.receiver}
-              usdcMint={config.usdcMint}
-              usdcDecimals={config.usdcDecimals}
-              priceUsd={config.priceUsd}
-              solUsd={config.solUsd}
-              rpcUrl={config.rpcUrl}
-            />
-          )}
+          {config && <PhantomBrowserPay token={token} />}
 
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground">
             <div className="h-px flex-1 bg-border" />
