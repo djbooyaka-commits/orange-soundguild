@@ -48,6 +48,11 @@ export function Navbar() {
               Royalties
             </Link>
           )}
+          {user && isArtist && (
+            <Link to="/ads" className="rounded-md px-3 py-1.5 hover:bg-muted">
+              Ads
+            </Link>
+          )}
           {isAdmin && (
             <Link to="/admin" className="rounded-md px-3 py-1.5 font-medium text-primary hover:bg-muted">
               Admin

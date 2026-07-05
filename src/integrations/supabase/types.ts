@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_campaigns: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          dest_url: string | null
+          ends_at: string | null
+          headline: string | null
+          id: string
+          image_url: string | null
+          mode: Database["public"]["Enums"]["ad_mode"]
+          package: Database["public"]["Enums"]["ad_package"]
+          paypal_order_id: string | null
+          placements: string[]
+          starts_at: string | null
+          status: Database["public"]["Enums"]["ad_status"]
+          track_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          dest_url?: string | null
+          ends_at?: string | null
+          headline?: string | null
+          id?: string
+          image_url?: string | null
+          mode: Database["public"]["Enums"]["ad_mode"]
+          package: Database["public"]["Enums"]["ad_package"]
+          paypal_order_id?: string | null
+          placements: string[]
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["ad_status"]
+          track_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          dest_url?: string | null
+          ends_at?: string | null
+          headline?: string | null
+          id?: string
+          image_url?: string | null
+          mode?: Database["public"]["Enums"]["ad_mode"]
+          package?: Database["public"]["Enums"]["ad_package"]
+          paypal_order_id?: string | null
+          placements?: string[]
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["ad_status"]
+          track_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaigns_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_subscriptions: {
         Row: {
           amount: number
@@ -551,6 +616,9 @@ export type Database = {
     }
     Enums: {
       account_type: "fan" | "artist" | "superfan"
+      ad_mode: "track" | "custom"
+      ad_package: "bronze" | "silver" | "gold"
+      ad_status: "pending" | "active" | "expired" | "refunded"
       app_role: "admin" | "user"
       payout_method: "paypal" | "phantom"
       payout_status: "pending" | "processing" | "paid" | "rejected"
@@ -682,6 +750,9 @@ export const Constants = {
   public: {
     Enums: {
       account_type: ["fan", "artist", "superfan"],
+      ad_mode: ["track", "custom"],
+      ad_package: ["bronze", "silver", "gold"],
+      ad_status: ["pending", "active", "expired", "refunded"],
       app_role: ["admin", "user"],
       payout_method: ["paypal", "phantom"],
       payout_status: ["pending", "processing", "paid", "rejected"],

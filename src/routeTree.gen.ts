@@ -19,6 +19,7 @@ import { Route as ReferralsRouteImport } from './routes/referrals'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ArtistWelcomeRouteImport } from './routes/artist-welcome'
+import { Route as AdsRouteImport } from './routes/ads'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
@@ -74,6 +75,11 @@ const ArtistWelcomeRoute = ArtistWelcomeRouteImport.update({
   path: '/artist-welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdsRoute = AdsRouteImport.update({
+  id: '/ads',
+  path: '/ads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -98,6 +104,7 @@ const TTrackIdRoute = TTrackIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ads': typeof AdsRoute
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ads': typeof AdsRoute
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ads': typeof AdsRoute
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/ads'
     | '/artist-welcome'
     | '/auth'
     | '/library'
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/ads'
     | '/artist-welcome'
     | '/auth'
     | '/library'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/ads'
     | '/artist-welcome'
     | '/auth'
     | '/library'
@@ -198,6 +210,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AdsRoute: typeof AdsRoute
   ArtistWelcomeRoute: typeof ArtistWelcomeRoute
   AuthRoute: typeof AuthRoute
   LibraryRoute: typeof LibraryRoute
@@ -284,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtistWelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ads': {
+      id: '/ads'
+      path: '/ads'
+      fullPath: '/ads'
+      preLoaderRoute: typeof AdsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -318,6 +338,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AdsRoute: AdsRoute,
   ArtistWelcomeRoute: ArtistWelcomeRoute,
   AuthRoute: AuthRoute,
   LibraryRoute: LibraryRoute,
