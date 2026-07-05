@@ -4,9 +4,10 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
+    "postinstall": "node ./scripts/patch-solana-conditions.mjs || true",
     "dev": "vite dev",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "build": "node ./scripts/patch-solana-conditions.mjs && vite build",
+    "build:dev": "node ./scripts/patch-solana-conditions.mjs && vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
