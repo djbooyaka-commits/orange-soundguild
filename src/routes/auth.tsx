@@ -32,7 +32,22 @@ function AuthPage() {
   const [agreedTos, setAgreedTos] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/" });
+    if (!loading && user) {
+      // Persist TOS acceptance for OAuth signups where sessionStorage was set pre-redirect
+      try {
+        const flag = window.sessionStorage.getItem("tos_accepted_at");
+        if (flag) {
+          supabase
+            .from("profiles")
+            .update({ tos_accepted: true, tos_accepted_at: flag })
+            .eq("id", user.id)
+            .then(() => {
+              try { window.sessionStorage.removeItem("tos_accepted_at"); } catch { /* ignore */ }
+            });
+        }
+      } catch { /* ignore */ }
+      navigate({ to: "/" });
+    }
   }, [user, loading, navigate]);
 
   // Capture ?ref=CODE from URL and remember it (so it survives Google OAuth round-trip too)
@@ -73,7 +88,11 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: refCode ? { ref_code: refCode } : undefined,
+            data: {
+              tos_accepted: true,
+              tos_accepted_at: new Date().toISOString(),
+              ...(refCode ? { ref_code: refCode } : {}),
+            },
           },
         });
         if (error) throw error;
@@ -98,6 +117,9 @@ function AuthPage() {
     if (mode === "signup" && !agreedTos) {
       toast.error("You must agree to the Terms of Service to create an account.");
       return;
+    }
+    if (mode === "signup") {
+      try { window.sessionStorage.setItem("tos_accepted_at", new Date().toISOString()); } catch { /* ignore */ }
     }
     setBusy(true);
     const r = await lovable.auth.signInWithOAuth("google", {
