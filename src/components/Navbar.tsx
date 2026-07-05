@@ -5,6 +5,7 @@ import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 
 export function Navbar() {
