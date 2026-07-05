@@ -272,6 +272,10 @@ function AdminPage() {
               </Field>
             </Section>
 
+            <SiteAccounting />
+
+
+
             <div className="sticky bottom-4 flex gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur">
               <button
                 onClick={save}
