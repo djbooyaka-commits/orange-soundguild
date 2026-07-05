@@ -29,6 +29,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [refCode, setRefCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [agreedTos, setAgreedTos] = useState(false);
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/" });
