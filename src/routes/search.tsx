@@ -41,6 +41,12 @@ type ProfileRow = {
   avatar_url: string | null;
   account_type: string | null;
 };
+type PlaylistRow = {
+  id: string;
+  name: string;
+  user_id: string;
+  profiles: { username: string | null } | null;
+};
 
 function SearchPage() {
   const { q } = Route.useSearch();
@@ -48,6 +54,7 @@ function SearchPage() {
   const [input, setInput] = useState(q);
   const [tracks, setTracks] = useState<TrackRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [playlists, setPlaylists] = useState<PlaylistRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => setInput(q), [q]);
@@ -57,13 +64,14 @@ function SearchPage() {
     if (!term) {
       setTracks([]);
       setProfiles([]);
+      setPlaylists([]);
       return;
     }
     let cancelled = false;
     setLoading(true);
     const like = `%${term.replace(/[%_]/g, (m: string) => "\\" + m)}%`;
     (async () => {
-      const [t, p] = await Promise.all([
+      const [t, p, pl] = await Promise.all([
         supabase
           .from("tracks")
           .select("id,title,genre,cover_art_url,user_id,plays_count")
@@ -75,10 +83,16 @@ function SearchPage() {
           .select("id,username,avatar_url,account_type")
           .ilike("username", like)
           .limit(30),
+        supabase
+          .from("playlists")
+          .select("id,name,user_id,profiles(username)")
+          .ilike("name", like)
+          .limit(30),
       ]);
       if (cancelled) return;
       setTracks((t.data as TrackRow[]) ?? []);
       setProfiles((p.data as ProfileRow[]) ?? []);
+      setPlaylists((pl.data as unknown as PlaylistRow[]) ?? []);
       setLoading(false);
     })();
     return () => {
@@ -105,7 +119,7 @@ function SearchPage() {
             autoFocus
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Search artists, tracks, genres…"
+            placeholder="Search artists, tracks, playlists…"
             className="h-12 w-full rounded-full border border-border bg-muted/60 pl-12 pr-4 text-base outline-none focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/30"
           />
         </form>
@@ -178,6 +192,50 @@ function SearchPage() {
                       </Link>
                     </li>
                   ))}
+                </ul>
+              )}
+            </section>
+
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Playlists</h2>
+              {playlists.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No playlists found.</p>
+              ) : (
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {playlists.map((pl) => {
+                    const owner = pl.profiles?.username ?? null;
+                    return (
+                      <li key={pl.id}>
+                        {owner ? (
+                          <Link
+                            to="/u/$handle"
+                            params={{ handle: owner }}
+                            className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-muted"
+                          >
+                            <div className="flex h-10 w-10 items-center justify-center rounded bg-primary/10 text-sm font-semibold text-primary">
+                              {pl.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate font-medium">{pl.name}</div>
+                              <div className="truncate text-xs text-muted-foreground">
+                                by @{owner}
+                              </div>
+                            </div>
+                          </Link>
+                        ) : (
+                          <div className="flex items-center gap-3 rounded-lg border border-border p-3 opacity-60">
+                            <div className="flex h-10 w-10 items-center justify-center rounded bg-primary/10 text-sm font-semibold text-primary">
+                              {pl.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate font-medium">{pl.name}</div>
+                              <div className="truncate text-xs text-muted-foreground">Playlist</div>
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>

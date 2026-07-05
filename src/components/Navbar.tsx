@@ -53,7 +53,7 @@ export function Navbar() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               type="search"
-              placeholder="Search artists, tracks, genres…"
+              placeholder="Search artists, tracks, playlists…"
               className="h-10 w-full rounded-full border border-border bg-muted/60 pl-10 pr-4 text-sm outline-none transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/30"
             />
           </form>
