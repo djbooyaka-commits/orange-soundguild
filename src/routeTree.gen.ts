@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as Top100RouteImport } from './routes/top100'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
@@ -24,6 +25,11 @@ const UpgradeRoute = UpgradeRouteImport.update({
 const Top100Route = Top100RouteImport.update({
   id: '/top100',
   path: '/top100',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -50,6 +56,7 @@ const TTrackIdRoute = TTrackIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
   '/t/$trackId': typeof TTrackIdRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
   '/t/$trackId': typeof TTrackIdRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
   '/t/$trackId': typeof TTrackIdRoute
@@ -77,16 +86,25 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/terms'
     | '/top100'
     | '/upgrade'
     | '/t/$trackId'
     | '/u/$handle'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/top100' | '/upgrade' | '/t/$trackId' | '/u/$handle'
+  to:
+    | '/'
+    | '/auth'
+    | '/terms'
+    | '/top100'
+    | '/upgrade'
+    | '/t/$trackId'
+    | '/u/$handle'
   id:
     | '__root__'
     | '/'
     | '/auth'
+    | '/terms'
     | '/top100'
     | '/upgrade'
     | '/t/$trackId'
@@ -96,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  TermsRoute: typeof TermsRoute
   Top100Route: typeof Top100Route
   UpgradeRoute: typeof UpgradeRoute
   TTrackIdRoute: typeof TTrackIdRoute
@@ -116,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/top100'
       fullPath: '/top100'
       preLoaderRoute: typeof Top100RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -152,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  TermsRoute: TermsRoute,
   Top100Route: Top100Route,
   UpgradeRoute: UpgradeRoute,
   TTrackIdRoute: TTrackIdRoute,
