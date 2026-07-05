@@ -69,10 +69,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = new Audio();
     audio.preload = "metadata";
     audio.volume = volume;
+    // NOTE: no crossOrigin — Supabase signed URLs stream fine without it
+    // iOS/mobile: inline playback + no autoplay hijacking
+    audio.setAttribute("playsinline", "true");
+    audio.setAttribute("webkit-playsinline", "true");
     audio.setAttribute("aria-hidden", "true");
     audio.style.display = "none";
     document.body.appendChild(audio);
     audioRef.current = audio;
+
 
     const onTime = () => setCurrentTime(audio.currentTime);
     const onMeta = () => setDuration(audio.duration || 0);
@@ -160,6 +165,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
       if (current?.id !== t.id) {
         audio.src = t.src;
+        audio.load(); // iOS/mobile: prime the element inside the user gesture
         setCurrent(t);
         currentRef.current = t;
         setCurrentTime(0);
@@ -169,7 +175,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setCurrentTime(0);
         countedRef.current = false;
       }
-      audio.play().catch(() => setIsPlaying(false));
+      // Must be called synchronously in the user gesture for mobile browsers
+      const p = audio.play();
+      if (p && typeof p.catch === "function") p.catch(() => setIsPlaying(false));
     },
     [current?.id],
   );
@@ -183,9 +191,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setCurrentTime(0);
         countedRef.current = false;
       }
-      audio.play().catch(() => {});
+      const p = audio.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
     } else audio.pause();
   }, [current]);
+
 
   const seek = useCallback(
     (ratio: number) => {
@@ -215,11 +225,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current;
     if (!audio) return;
     audio.src = t.src;
+    audio.load();
     setCurrent(t);
     currentRef.current = t;
     setCurrentTime(0);
     countedRef.current = false;
-    audio.play().catch(() => setIsPlaying(false));
+    const p = audio.play();
+    if (p && typeof p.catch === "function") p.catch(() => setIsPlaying(false));
+
   }, []);
 
   const next = useCallback(() => {
