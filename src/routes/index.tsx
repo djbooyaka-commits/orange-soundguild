@@ -5,8 +5,9 @@ import { TrackCard } from "@/components/TrackCard";
 import { useAllTracks } from "@/lib/feed";
 import { useIsAdmin, adminDeleteTrack } from "@/hooks/useIsAdmin";
 import { useOnlineCount } from "@/hooks/useOnlineCount";
+import { useTotalUsers } from "@/hooks/useTotalUsers";
 import { toast } from "sonner";
-import { Flame, TrendingUp, Users } from "lucide-react";
+import { Flame, TrendingUp, Users, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,6 +29,7 @@ function Index() {
   const { tracks: uploaded } = useAllTracks();
   const isAdmin = useIsAdmin();
   const onlineCount = useOnlineCount();
+  const totalUsers = useTotalUsers();
   const [genre, setGenre] = useState("All");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
@@ -73,16 +75,27 @@ function Index() {
               <p className="mt-3 max-w-xl text-sm text-white/70">
                 A community of producers, bedroom artists and labels. Fresh tracks, every minute — straight to your queue.
               </p>
-              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/85 backdrop-blur">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                </span>
-                <Users className="h-3.5 w-3.5 text-primary" />
-                <span>
-                  <span className="tabular-nums font-semibold text-white">{onlineCount.toLocaleString()}</span>{" "}
-                  {onlineCount === 1 ? "listener" : "listeners"} online now
-                </span>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/85 backdrop-blur">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                  </span>
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                  <span>
+                    <span className="tabular-nums font-semibold text-white">{onlineCount.toLocaleString()}</span>{" "}
+                    {onlineCount === 1 ? "listener" : "listeners"} online now
+                  </span>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/85 backdrop-blur">
+                  <UserPlus className="h-3.5 w-3.5 text-primary" />
+                  <span>
+                    <span className="tabular-nums font-semibold text-white">
+                      {totalUsers === null ? "—" : totalUsers.toLocaleString()}
+                    </span>{" "}
+                    {totalUsers === 1 ? "member" : "members"} joined
+                  </span>
+                </div>
               </div>
             </div>
           </div>
