@@ -209,11 +209,13 @@ function ProfilePage() {
                       <Pencil className="h-4 w-4" /> Edit profile
                     </button>
                   </EditProfileDialog>
-                  <UploadDialog>
-                    <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
-                      <Upload className="h-4 w-4" /> Upload
-                    </button>
-                  </UploadDialog>
+                  {isArtist && (
+                    <UploadDialog>
+                      <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
+                        <Upload className="h-4 w-4" /> Upload
+                      </button>
+                    </UploadDialog>
+                  )}
                 </>
               ) : (
                 <>
