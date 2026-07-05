@@ -132,7 +132,7 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                 </div>
                 {open ? <ChevronUp className="ml-auto h-4 w-4 text-muted-foreground" /> : <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />}
               </button>
-              {isOwner && (
+              {isOwner ? (
                 <button
                   onClick={() => {
                     if (window.confirm(`Delete playlist "${pl.name}"?`)) void deletePlaylist(pl.id);
@@ -141,6 +141,17 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                   className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-destructive hover:text-destructive-foreground"
                 >
                   <Trash2 className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => void handleSave(pl.id, pl.name)}
+                  disabled={savingId === pl.id || pl.tracks.length === 0}
+                  aria-label="Save playlist to your library"
+                  title="Save to your library"
+                  className="inline-flex h-8 items-center gap-1 rounded-full border border-border bg-background px-3 text-xs font-semibold text-foreground transition hover:border-primary hover:text-primary disabled:opacity-50"
+                >
+                  <BookmarkPlus className="h-3.5 w-3.5" />
+                  {savingId === pl.id ? "Saving…" : "Save"}
                 </button>
               )}
             </div>
