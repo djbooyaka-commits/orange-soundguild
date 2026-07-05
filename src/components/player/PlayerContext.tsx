@@ -164,8 +164,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (!audio) return;
       if (queue && queue.length) {
         queueRef.current = queue;
+        playedRef.current = new Set();
       } else if (!queueRef.current.some((x) => x.id === t.id)) {
         queueRef.current = [t];
+        playedRef.current = new Set();
       }
       if (current?.id !== t.id) {
         audio.src = t.src;
