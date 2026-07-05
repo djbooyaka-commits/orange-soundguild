@@ -102,6 +102,11 @@ function Index() {
           </div>
         </section>
 
+        {/* Ad banner (free users only) */}
+        <AdSlot variant="banner" className="mt-6" />
+
+
+
         {/* Genre tag bar */}
         <nav
           aria-label="Filter by genre"
