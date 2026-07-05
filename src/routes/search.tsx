@@ -71,13 +71,7 @@ function SearchPage() {
     setLoading(true);
     const like = `%${term.replace(/[%_]/g, (m: string) => "\\" + m)}%`;
     (async () => {
-      const [t, p, pl] = await Promise.all([
-        supabase
-          .from("tracks")
-          .select("id,title,genre,cover_art_url,user_id,plays_count")
-          .or(`title.ilike.${like},genre.ilike.${like}`)
-          .order("plays_count", { ascending: false })
-          .limit(50),
+      const [p, pl] = await Promise.all([
         supabase
           .from("profiles")
           .select("id,username,avatar_url,account_type")
@@ -90,6 +84,23 @@ function SearchPage() {
           .limit(30),
       ]);
       if (cancelled) return;
+
+      const matchedProfiles = (p.data as ProfileRow[]) ?? [];
+      const artistIds = matchedProfiles.map((r) => r.id);
+
+      // Tracks: match by title, genre, OR by artist (user_id in matched profiles)
+      const orClauses = [`title.ilike.${like}`, `genre.ilike.${like}`];
+      if (artistIds.length > 0) {
+        orClauses.push(`user_id.in.(${artistIds.join(",")})`);
+      }
+      const { data: tData } = await supabase
+        .from("tracks")
+        .select("id,title,genre,cover_art_url,user_id,plays_count")
+        .or(orClauses.join(","))
+        .order("plays_count", { ascending: false })
+        .limit(50);
+      if (cancelled) return;
+
       const rawPlaylists = (pl.data as { id: string; name: string; user_id: string }[]) ?? [];
       const ownerIds = Array.from(new Set(rawPlaylists.map((r) => r.user_id)));
       let ownerMap = new Map<string, string | null>();
@@ -102,8 +113,8 @@ function SearchPage() {
           ownerMap.set(o.id, o.username);
         });
       }
-      setTracks((t.data as TrackRow[]) ?? []);
-      setProfiles((p.data as ProfileRow[]) ?? []);
+      setTracks((tData as TrackRow[]) ?? []);
+      setProfiles(matchedProfiles);
       setPlaylists(
         rawPlaylists.map((r) => ({
           id: r.id,
