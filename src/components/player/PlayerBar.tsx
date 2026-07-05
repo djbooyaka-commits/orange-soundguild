@@ -1,6 +1,7 @@
 import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle } from "lucide-react";
 import { formatTime, usePlayer } from "./PlayerContext";
 import { Waveform } from "./Waveform";
+import { AdSlot } from "@/components/AdSlot";
 
 export function PlayerBar() {
   const { current, isPlaying, toggle, progress, currentTime, duration, seek, volume, setVolume, shuffle, toggleShuffle, next, prev } = usePlayer();
@@ -9,6 +10,9 @@ export function PlayerBar() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-secondary text-secondary-foreground">
+      {/* Ad strip (free users only) */}
+      <AdSlot variant="player" />
+
       {/* Waveform across the top */}
       <div className="border-b border-white/5 px-4 py-2 sm:px-6">
         <Waveform
