@@ -13,16 +13,15 @@ export default defineConfig({
     }),
   ],
   vite: {
-    resolve: {
-      alias: [
-        {
-          find: /^rpc-websockets$/,
-          replacement: "rpc-websockets/dist/index.browser.mjs",
-        },
-      ],
-    },
     optimizeDeps: {
       include: ["@solana/web3.js", "@solana/spl-token", "buffer"],
+      esbuildOptions: {
+        conditions: ["browser", "module", "import", "default"],
+        mainFields: ["browser", "module", "main"],
+      },
+    },
+    resolve: {
+      conditions: ["browser", "module", "import", "default"],
     },
   },
 });
