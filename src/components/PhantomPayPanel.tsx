@@ -117,12 +117,30 @@ export function PhantomPayPanel() {
                 Open Phantom on your phone, tap Scan, and confirm the payment.
               </p>
               {payUrl && (
-                <a
-                  href={payUrl}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const ua = navigator.userAgent || "";
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
+                    if (isMobile) {
+                      // Try native Solana Pay protocol handler first
+                      window.location.href = payUrl;
+                      // Fallback to Phantom universal link after a short delay
+                      setTimeout(() => {
+                        const ul = `https://phantom.app/ul/v1/pay?request=${encodeURIComponent(payUrl)}`;
+                        window.location.href = ul;
+                      }, 800);
+                    } else {
+                      navigator.clipboard?.writeText(payUrl).catch(() => {});
+                      toast.info(
+                        "Payment link copied. Open Phantom on your phone and paste it, or scan the QR above.",
+                      );
+                    }
+                  }}
                   className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                 >
                   Or open Phantom directly <ExternalLink className="h-3 w-3" />
-                </a>
+                </button>
               )}
             </div>
           ) : (
