@@ -32,10 +32,15 @@ type PlayerState = {
 
 const Ctx = createContext<PlayerState | null>(null);
 
-const TAB_ID =
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2);
+let _tabId: string | null = null;
+const getTabId = () => {
+  if (_tabId) return _tabId;
+  _tabId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+  return _tabId;
+};
 const PLAYBACK_CHANNEL = "soundwave:playback";
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
