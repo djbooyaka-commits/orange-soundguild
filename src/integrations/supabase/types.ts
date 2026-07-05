@@ -199,6 +199,8 @@ export type Database = {
           referral_code: string | null
           referred_by: string | null
           royalty_test_override: boolean
+          tos_accepted: boolean
+          tos_accepted_at: string | null
           updated_at: string
           username: string | null
         }
@@ -213,6 +215,8 @@ export type Database = {
           referral_code?: string | null
           referred_by?: string | null
           royalty_test_override?: boolean
+          tos_accepted?: boolean
+          tos_accepted_at?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -227,6 +231,8 @@ export type Database = {
           referral_code?: string | null
           referred_by?: string | null
           royalty_test_override?: boolean
+          tos_accepted?: boolean
+          tos_accepted_at?: string | null
           updated_at?: string
           username?: string | null
         }
