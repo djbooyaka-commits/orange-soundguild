@@ -109,7 +109,7 @@ function Top100() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-40">
       <Navbar />
       <main className="mx-auto max-w-5xl px-4 sm:px-6">
         {/* Hero */}
