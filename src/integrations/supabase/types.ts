@@ -643,7 +643,7 @@ export type Database = {
       }
     }
     Enums: {
-      account_type: "fan" | "artist" | "superfan"
+      account_type: "fan" | "artist" | "superfan" | "pioneer"
       ad_mode: "track" | "custom"
       ad_package: "bronze" | "silver" | "gold"
       ad_status: "pending" | "active" | "expired" | "refunded"
@@ -777,7 +777,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      account_type: ["fan", "artist", "superfan"],
+      account_type: ["fan", "artist", "superfan", "pioneer"],
       ad_mode: ["track", "custom"],
       ad_package: ["bronze", "silver", "gold"],
       ad_status: ["pending", "active", "expired", "refunded"],
