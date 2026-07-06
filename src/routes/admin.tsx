@@ -272,9 +272,12 @@ function AdminPage() {
               </Field>
             </Section>
 
+            <UsersAdmin />
+
             <PioneerInvites />
 
             <SiteAccounting />
+
 
 
 
