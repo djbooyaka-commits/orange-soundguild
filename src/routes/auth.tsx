@@ -62,7 +62,7 @@ function AuthPage() {
     }
   }, [user, loading, navigate]);
 
-  // Capture ?ref=CODE from URL and remember it (so it survives Google OAuth round-trip too)
+  // Capture ?ref=CODE and ?pioneer=CODE from URL and remember them (survive Google OAuth round-trip)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -80,6 +80,24 @@ function AuthPage() {
       try {
         const stored = window.sessionStorage.getItem("ref_code");
         if (stored) setRefCode(stored);
+      } catch {
+        /* ignore */
+      }
+    }
+    const pi = params.get("pioneer");
+    if (pi) {
+      const cleanPi = pi.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 16);
+      setPioneerCode(cleanPi);
+      try {
+        window.sessionStorage.setItem("pioneer_code", cleanPi);
+      } catch {
+        /* ignore */
+      }
+      setMode("signup");
+    } else {
+      try {
+        const stored = window.sessionStorage.getItem("pioneer_code");
+        if (stored) setPioneerCode(stored);
       } catch {
         /* ignore */
       }
