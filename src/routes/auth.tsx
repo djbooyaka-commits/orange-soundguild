@@ -122,12 +122,14 @@ function AuthPage() {
               tos_accepted: true,
               tos_accepted_at: new Date().toISOString(),
               ...(refCode ? { ref_code: refCode } : {}),
+              ...(pioneerCode ? { pioneer_code: pioneerCode } : {}),
             },
           },
         });
         if (error) throw error;
         try {
           window.sessionStorage.removeItem("ref_code");
+          window.sessionStorage.removeItem("pioneer_code");
         } catch {
           /* ignore */
         }
