@@ -319,14 +319,18 @@ function ProfilePage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {userTracks.map((t) => (
-                  <TrackCard
-                    key={t.id}
-                    track={t}
-                    canEdit={isMe}
-                    onDelete={isMe ? removeUpload : isAdmin ? handleAdminDelete : undefined}
-                  />
-                ))}
+                {groupFeed(userTracks).map((item) =>
+                  item.type === "album" ? (
+                    <AlbumCard key={item.album.key} album={item.album} />
+                  ) : (
+                    <TrackCard
+                      key={item.track.id}
+                      track={item.track}
+                      canEdit={isMe}
+                      onDelete={isMe ? removeUpload : isAdmin ? handleAdminDelete : undefined}
+                    />
+                  ),
+                )}
               </div>
             )}
           </>
