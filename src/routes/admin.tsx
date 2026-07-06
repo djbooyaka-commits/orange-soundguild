@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt } from "lucide-react";
+import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt, Ticket, Copy } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
