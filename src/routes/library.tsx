@@ -22,7 +22,7 @@ function LibraryPage() {
   const { user, loading } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-40">
       <Navbar />
       <main className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
         <h1 className="mb-6 text-2xl font-bold tracking-tight sm:text-3xl">Your Library</h1>

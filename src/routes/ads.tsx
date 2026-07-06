@@ -168,7 +168,7 @@ function AdsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-40">
       <Navbar />
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <header>
