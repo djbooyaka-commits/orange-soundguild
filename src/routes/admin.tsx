@@ -557,3 +557,153 @@ function SiteAccounting() {
   );
 }
 
+type PioneerInvite = {
+  id: string;
+  code: string;
+  used_by: string | null;
+  used_at: string | null;
+  created_at: string;
+};
+
+function PioneerInvites() {
+  const [rows, setRows] = useState<PioneerInvite[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  async function reload() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("pioneer_invites")
+      .select("id, code, used_by, used_at, created_at")
+      .order("created_at", { ascending: false });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setRows((data ?? []) as PioneerInvite[]);
+  }
+
+  useEffect(() => {
+    void reload();
+  }, []);
+
+  async function createInvite() {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("create_pioneer_invite");
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Invite created: ${data}`);
+    void reload();
+  }
+
+  async function removeInvite(id: string) {
+    if (!confirm("Delete this invite?")) return;
+    const { error } = await supabase.from("pioneer_invites").delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setRows((r) => r.filter((x) => x.id !== id));
+  }
+
+  async function copyLink(code: string) {
+    const url = `${window.location.origin}/auth?pioneer=${encodeURIComponent(code)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Invite link copied");
+    } catch {
+      toast.error("Copy failed");
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-border bg-card/50 p-5">
+      <div className="mb-4 flex items-center gap-2">
+        <Ticket className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold">Pioneer invites</h2>
+      </div>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Pioneer accounts can upload up to 5 tracks and use the referral system.
+        They must upgrade to Artist to unlock more uploads or once they become
+        royalty-eligible.
+      </p>
+
+      <button
+        onClick={createInvite}
+        disabled={busy}
+        className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+      >
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+        Generate invite code
+      </button>
+
+      <div className="overflow-hidden rounded-xl border border-border">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            No invites yet.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">Code</th>
+                <th className="px-3 py-2 text-left">Status</th>
+                <th className="px-3 py-2 text-left">Created</th>
+                <th className="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-border">
+                  <td className="px-3 py-2 font-mono text-xs">{r.code}</td>
+                  <td className="px-3 py-2">
+                    {r.used_by ? (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        Used {r.used_at ? new Date(r.used_at).toLocaleDateString() : ""}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600">
+                        Available
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                    {new Date(r.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <div className="inline-flex gap-1">
+                      <button
+                        onClick={() => copyLink(r.code)}
+                        className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label="Copy invite link"
+                        title="Copy invite link"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => removeInvite(r.id)}
+                        className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
+  );
+}
+
