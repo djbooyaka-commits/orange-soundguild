@@ -9,7 +9,8 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
-  const { isArtist } = useAccountType();
+  const { isArtist, accountType } = useAccountType();
+  const canUpload = isArtist || accountType === "pioneer";
   const isAdmin = useIsAdmin();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -91,7 +92,7 @@ export function Navbar() {
           <Bell className="h-4 w-4" />
         </button>
 
-        {(!user || isArtist) && (
+        {(!user || canUpload) && (
           <UploadDialog>
             <button
               type="button"
@@ -103,7 +104,7 @@ export function Navbar() {
             </button>
           </UploadDialog>
         )}
-        {user && !isArtist && (
+        {user && !canUpload && (
           <Link
             to="/upgrade"
             className="inline-flex h-10 items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 text-sm font-semibold text-primary transition hover:bg-primary/20"
