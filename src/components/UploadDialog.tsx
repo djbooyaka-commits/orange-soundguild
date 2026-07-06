@@ -196,6 +196,15 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
+        {isPioneer && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <span className="font-semibold text-primary">Pioneer</span> — {uploads.length}/{PIONEER_LIMIT} tracks used.
+            {remaining > 0
+              ? ` ${remaining} slot${remaining === 1 ? "" : "s"} left.`
+              : " Upgrade to Artist to upload more."}
+          </div>
+        )}
+
         <form onSubmit={onSubmit} className="space-y-4">
           {mode === "single" ? (
             <>
