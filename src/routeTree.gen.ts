@@ -19,6 +19,7 @@ import { Route as RoyaltiesRouteImport } from './routes/royalties'
 import { Route as ReferralsRouteImport } from './routes/referrals'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LibraryRouteImport } from './routes/library'
+import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ArtistWelcomeRouteImport } from './routes/artist-welcome'
 import { Route as AdsRouteImport } from './routes/ads'
@@ -78,6 +79,11 @@ const LibraryRoute = LibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiscoverRoute = DiscoverRouteImport.update({
+  id: '/discover',
+  path: '/discover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/ads': typeof AdsRoute
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
+  '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
   '/referrals': typeof ReferralsRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/ads': typeof AdsRoute
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
+  '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
   '/referrals': typeof ReferralsRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/ads': typeof AdsRoute
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
+  '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
   '/referrals': typeof ReferralsRoute
@@ -188,6 +197,7 @@ export interface FileRouteTypes {
     | '/ads'
     | '/artist-welcome'
     | '/auth'
+    | '/discover'
     | '/library'
     | '/messages'
     | '/referrals'
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/ads'
     | '/artist-welcome'
     | '/auth'
+    | '/discover'
     | '/library'
     | '/messages'
     | '/referrals'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/ads'
     | '/artist-welcome'
     | '/auth'
+    | '/discover'
     | '/library'
     | '/messages'
     | '/referrals'
@@ -249,6 +261,7 @@ export interface RootRouteChildren {
   AdsRoute: typeof AdsRoute
   ArtistWelcomeRoute: typeof ArtistWelcomeRoute
   AuthRoute: typeof AuthRoute
+  DiscoverRoute: typeof DiscoverRoute
   LibraryRoute: typeof LibraryRoute
   MessagesRoute: typeof MessagesRoute
   ReferralsRoute: typeof ReferralsRoute
@@ -336,6 +349,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/discover': {
+      id: '/discover'
+      path: '/discover'
+      fullPath: '/discover'
+      preLoaderRoute: typeof DiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -401,6 +421,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdsRoute: AdsRoute,
   ArtistWelcomeRoute: ArtistWelcomeRoute,
   AuthRoute: AuthRoute,
+  DiscoverRoute: DiscoverRoute,
   LibraryRoute: LibraryRoute,
   MessagesRoute: MessagesRoute,
   ReferralsRoute: ReferralsRoute,
