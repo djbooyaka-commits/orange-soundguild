@@ -307,7 +307,7 @@ function ProfilePage() {
                     ? "You haven't uploaded anything yet. Click Upload to share your first track."
                     : `${displayName} hasn't uploaded any tracks yet.`}
                 </p>
-                {isMe && isArtist && (
+                {isMe && (isArtist || accountType === "pioneer") && (
                   <div className="mt-4 inline-block">
                     <UploadDialog>
                       <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
