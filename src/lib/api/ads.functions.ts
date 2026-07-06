@@ -175,8 +175,9 @@ export const captureAdPaypalOrder = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: draft } = await supabase
+    const { data: draft } = await supabaseAdmin
       .from("ad_campaigns" as never)
       .select("id, user_id, package, status")
       .eq("paypal_order_id", data.orderId)
