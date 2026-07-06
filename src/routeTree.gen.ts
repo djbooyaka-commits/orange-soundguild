@@ -25,6 +25,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
+import { Route as AlbumHandleAlbumRouteImport } from './routes/album.$handle.$album'
 
 const UpgradeRoute = UpgradeRouteImport.update({
   id: '/upgrade',
@@ -106,6 +107,11 @@ const TTrackIdRoute = TTrackIdRouteImport.update({
   path: '/t/$trackId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AlbumHandleAlbumRoute = AlbumHandleAlbumRouteImport.update({
+  id: '/album/$handle/$album',
+  path: '/album/$handle/$album',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/upgrade': typeof UpgradeRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
+  '/album/$handle/$album': typeof AlbumHandleAlbumRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/upgrade': typeof UpgradeRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
+  '/album/$handle/$album': typeof AlbumHandleAlbumRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/upgrade': typeof UpgradeRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
+  '/album/$handle/$album': typeof AlbumHandleAlbumRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/t/$trackId'
     | '/u/$handle'
+    | '/album/$handle/$album'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/t/$trackId'
     | '/u/$handle'
+    | '/album/$handle/$album'
   id:
     | '__root__'
     | '/'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/t/$trackId'
     | '/u/$handle'
+    | '/album/$handle/$album'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -236,6 +248,7 @@ export interface RootRouteChildren {
   UpgradeRoute: typeof UpgradeRoute
   TTrackIdRoute: typeof TTrackIdRoute
   UHandleRoute: typeof UHandleRoute
+  AlbumHandleAlbumRoute: typeof AlbumHandleAlbumRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TTrackIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/album/$handle/$album': {
+      id: '/album/$handle/$album'
+      path: '/album/$handle/$album'
+      fullPath: '/album/$handle/$album'
+      preLoaderRoute: typeof AlbumHandleAlbumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -372,6 +392,7 @@ const rootRouteChildren: RootRouteChildren = {
   UpgradeRoute: UpgradeRoute,
   TTrackIdRoute: TTrackIdRoute,
   UHandleRoute: UHandleRoute,
+  AlbumHandleAlbumRoute: AlbumHandleAlbumRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
