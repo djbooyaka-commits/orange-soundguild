@@ -43,15 +43,18 @@ export async function signMany(items: { bucket: Bucket; path: string | null | un
   );
 
   if (needServer.length > 0) {
-    try {
-      const { results } = await signMediaUrls({
-        data: { items: needServer.map(({ bucket, path }) => ({ bucket, path })) },
-      });
-      needServer.forEach((it, i) => {
-        out[it.idx] = results[i]?.url ?? null;
-      });
-    } catch {
-      // Unauthenticated or server error — leave as null so callers fall back to defaults.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      try {
+        const { results } = await signMediaUrls({
+          data: { items: needServer.map(({ bucket, path }) => ({ bucket, path })) },
+        });
+        needServer.forEach((it, i) => {
+          out[it.idx] = results[i]?.url ?? null;
+        });
+      } catch {
+        // Server error — leave as null so callers fall back to defaults.
+      }
     }
   }
   return out;
