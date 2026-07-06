@@ -214,6 +214,11 @@ function ProfilePage() {
               <div className="pb-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{displayName}</h1>
+                  {((isMe ? accountType : profile?.account_type) === "pioneer") && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-500 ring-1 ring-amber-500/30">
+                      ★ Pioneer
+                    </span>
+                  )}
                   <RoyaltyBadge userId={profileUserId} />
                 </div>
                 <p className="text-sm text-muted-foreground">@{handle}</p>
