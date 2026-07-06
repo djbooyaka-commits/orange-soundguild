@@ -21,6 +21,7 @@ import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
 import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck, Award, Globe, Instagram, Twitter, Youtube, Music } from "lucide-react";
 import { useRoyaltyProgress } from "@/hooks/useRoyaltyProgress";
+import { FriendButton } from "@/components/FriendButton";
 
 export const Route = createFileRoute("/u/$handle")({
   head: ({ params }) => {
