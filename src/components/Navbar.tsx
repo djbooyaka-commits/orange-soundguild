@@ -6,6 +6,8 @@ import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { FriendRequestsBell } from "./FriendRequestsBell";
+
 
 export function Navbar() {
   const { user, signOut } = useAuth();
