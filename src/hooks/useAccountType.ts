@@ -42,5 +42,5 @@ export function useAccountType() {
     setAccountType("artist");
   }, [user]);
 
-  return { accountType, isArtist: accountType === "artist", isFan: accountType === "fan", loading, upgradeToArtist };
+  return { accountType, isArtist: accountType === "artist", isFan: accountType === "fan", isPioneer: accountType === "pioneer", loading, upgradeToArtist };
 }
