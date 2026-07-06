@@ -13,6 +13,8 @@ export async function signOne(bucket: Bucket, path: string | null | undefined): 
   if (!path) return null;
   if (path.startsWith("http")) return path;
   if (bucket === "avatars") return signAvatarDirect(path);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null;
   try {
     const { results } = await signMediaUrls({ data: { items: [{ bucket, path }] } });
     return results[0]?.url ?? null;
