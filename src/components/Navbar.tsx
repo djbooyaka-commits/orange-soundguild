@@ -6,6 +6,8 @@ import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { FriendRequestsBell } from "./FriendRequestsBell";
+
 
 export function Navbar() {
   const { user, signOut } = useAuth();
@@ -89,13 +91,18 @@ export function Navbar() {
           </form>
         </div>
 
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="hidden h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:flex"
-        >
-          <Bell className="h-4 w-4" />
-        </button>
+        {user ? (
+          <FriendRequestsBell />
+        ) : (
+          <button
+            type="button"
+            aria-label="Notifications"
+            className="hidden h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:flex"
+          >
+            <Bell className="h-4 w-4" />
+          </button>
+        )}
+
 
         {(!user || canUpload) && (
           <UploadDialog>
