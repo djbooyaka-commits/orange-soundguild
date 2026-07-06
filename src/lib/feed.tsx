@@ -24,6 +24,8 @@ type Row = {
   created_at: string;
   user_id: string;
   plays_count: number | null;
+  album: string | null;
+  track_number: number | null;
   profiles: { username: string | null } | null;
 };
 
@@ -44,6 +46,8 @@ async function hydrate(rows: Row[]): Promise<Track[]> {
     uploadedAt: timeAgo(row.created_at),
     plays: row.plays_count ?? 0,
     genre: row.genre,
+    album: row.album ?? null,
+    trackNumber: row.track_number ?? null,
   }));
 }
 
