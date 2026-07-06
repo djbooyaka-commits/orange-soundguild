@@ -296,7 +296,7 @@ function ProfilePage() {
           <SuperfanPublicProfile userId={profileUserId} displayName="you" />
         )}
 
-        {(isMe ? isArtist : profile?.account_type === "artist") && (
+        {(isMe ? (isArtist || accountType === "pioneer") : (profile?.account_type === "artist" || profile?.account_type === "pioneer")) && (
           <>
             <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
 
