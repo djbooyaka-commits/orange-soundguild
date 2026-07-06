@@ -229,9 +229,17 @@ export function EditProfileDialog({
                   onChange={(e) =>
                     setSocials((prev) => ({ ...prev, [s.key as string]: e.target.value }))
                   }
+                  onPaste={(e) => {
+                    if ((socials[s.key as string] ?? "").length > 0) {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData("text");
+                      setSocials((prev) => ({ ...prev, [s.key as string]: pasted.trim() }));
+                    }
+                  }}
                   placeholder={s.placeholder}
                   className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
                 />
+
               </div>
             ))}
           </div>
