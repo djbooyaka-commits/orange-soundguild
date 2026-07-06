@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -150,6 +151,8 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { location } = useRouterState();
+  const isAuthPage = location.pathname === "/auth";
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -159,7 +162,7 @@ function RootComponent() {
             <UploadsProvider>
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
               <Outlet />
-              <PlayerBar />
+              {!isAuthPage && <PlayerBar />}
               <Toaster />
             </UploadsProvider>
           </LikesProvider>
