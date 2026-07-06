@@ -63,11 +63,9 @@ function RoyaltiesPage() {
       .limit(24)
       .then(({ data }) => setPayouts((data ?? []) as Payout[]));
     supabase
-      .from("profiles")
-      .select("credit_balance_cents")
-      .eq("id", user.id)
+      .rpc("get_my_referral_info")
       .maybeSingle()
-      .then(({ data }) => setBalanceCents(Number(data?.credit_balance_cents ?? 0)));
+      .then(({ data }) => setBalanceCents(Number((data as { balance_cents?: number } | null)?.balance_cents ?? 0)));
     supabase
       .from("payout_requests")
       .select("id, method, destination, amount_cents, status, admin_note, created_at, processed_at")
