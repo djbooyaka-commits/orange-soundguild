@@ -175,8 +175,9 @@ export const captureAdPaypalOrder = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: draft } = await supabase
+    const { data: draft } = await supabaseAdmin
       .from("ad_campaigns" as never)
       .select("id, user_id, package, status")
       .eq("paypal_order_id", data.orderId)
@@ -229,8 +230,9 @@ export const captureAdPaypalOrder = createServerFn({ method: "POST" })
 export const listMyCampaigns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data } = await supabase
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
       .from("ad_campaigns" as never)
       .select("id, package, placements, mode, track_id, image_url, headline, dest_url, amount_cents, status, starts_at, ends_at, created_at")
       .eq("user_id", userId)
