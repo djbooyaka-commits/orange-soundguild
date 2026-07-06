@@ -73,7 +73,7 @@ function AlbumPage() {
 
   const playAlbum = () => {
     if (activeInAlbum) toggle();
-    else if (first) play(first);
+    else if (first) play(first, tracks);
   };
 
   return (
@@ -158,7 +158,7 @@ function AlbumPage() {
                   }`}
                 >
                   <button
-                    onClick={() => (isCurrent ? toggle() : play(t))}
+                    onClick={() => (isCurrent ? toggle() : play(t, tracks))}
                     aria-label={isThisPlaying ? "Pause" : "Play"}
                     className="flex h-8 w-8 items-center justify-center rounded-full text-right tabular-nums text-sm text-muted-foreground hover:bg-primary/10 hover:text-primary"
                   >
