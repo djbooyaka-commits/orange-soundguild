@@ -1,0 +1,2 @@
+REVOKE SELECT (credit_balance_cents, referral_code, referred_by, is_banned, royalty_test_override) ON public.profiles FROM authenticated;
+REVOKE SELECT (credit_balance_cents, referral_code, referred_by, is_banned, royalty_test_override) ON public.profiles FROM anon;
