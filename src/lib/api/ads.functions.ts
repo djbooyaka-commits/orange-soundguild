@@ -11,21 +11,21 @@ export const AD_PACKAGES: Record<
 > = {
   bronze: {
     label: "Bronze",
-    priceUsd: 10,
+    priceUsd: 5,
     days: 7,
     maxPlacements: 1,
     blurb: "1 placement · 7 days",
   },
   silver: {
     label: "Silver",
-    priceUsd: 25,
+    priceUsd: 12.5,
     days: 21,
     maxPlacements: 2,
     blurb: "Up to 2 placements · 21 days",
   },
   gold: {
     label: "Gold",
-    priceUsd: 60,
+    priceUsd: 30,
     days: 30,
     maxPlacements: 2,
     blurb: "Up to 2 placements · 30 days",
