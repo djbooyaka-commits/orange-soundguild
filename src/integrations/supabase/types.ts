@@ -199,6 +199,33 @@ export type Database = {
         }
         Relationships: []
       }
+      pioneer_invites: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          id: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          id?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       playlist_tracks: {
         Row: {
           added_at: string
@@ -586,6 +613,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_pioneer_invite: { Args: never; Returns: string }
       credit_referral: {
         Args: {
           _referred_user: string
