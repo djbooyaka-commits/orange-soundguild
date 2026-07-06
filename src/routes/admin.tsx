@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt, Ticket, Copy } from "lucide-react";
+import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt, Ticket, Copy, Users } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -272,9 +272,12 @@ function AdminPage() {
               </Field>
             </Section>
 
+            <UsersAdmin />
+
             <PioneerInvites />
 
             <SiteAccounting />
+
 
 
 
@@ -695,6 +698,139 @@ function PioneerInvites() {
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
+  );
+}
+
+type AdminUser = {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+  account_type: "fan" | "artist" | "superfan" | "pioneer";
+  created_at: string;
+};
+
+const ACCOUNT_TYPES: AdminUser["account_type"][] = ["fan", "artist", "superfan", "pioneer"];
+
+function UsersAdmin() {
+  const [rows, setRows] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  async function reload() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url, account_type, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setRows((data ?? []) as AdminUser[]);
+  }
+
+  useEffect(() => {
+    void reload();
+  }, []);
+
+  async function changeType(id: string, next: AdminUser["account_type"]) {
+    setSavingId(id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ account_type: next })
+      .eq("id", id);
+    setSavingId(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setRows((r) => r.map((u) => (u.id === id ? { ...u, account_type: next } : u)));
+    toast.success(`Account changed to ${next}`);
+  }
+
+  const filtered = q.trim()
+    ? rows.filter((u) => (u.username ?? "").toLowerCase().includes(q.trim().toLowerCase()))
+    : rows;
+
+  return (
+    <section className="rounded-2xl border border-border bg-card/50 p-5">
+      <div className="mb-4 flex items-center gap-2">
+        <Users className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold">Users</h2>
+      </div>
+      <p className="mb-4 text-sm text-muted-foreground">
+        View every user and change their account type. Set anyone to Pioneer to grant upload access (5-track limit).
+      </p>
+
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Search username…"
+        className={`${inputCls} mb-4`}
+      />
+
+      <div className="overflow-hidden rounded-xl border border-border">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">No users match.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">User</th>
+                <th className="px-3 py-2 text-left">Joined</th>
+                <th className="px-3 py-2 text-left">Account type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((u) => (
+                <tr key={u.id} className="border-t border-border">
+                  <td className="px-3 py-2">
+                    <Link
+                      to="/u/$handle"
+                      params={{ handle: u.username ?? u.id.slice(0, 8) }}
+                      className="font-medium hover:text-primary"
+                    >
+                      {u.username ?? "(no name)"}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                    {new Date(u.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="inline-flex items-center gap-2">
+                      <select
+                        value={u.account_type}
+                        onChange={(e) =>
+                          changeType(u.id, e.target.value as AdminUser["account_type"])
+                        }
+                        disabled={savingId === u.id}
+                        className="rounded-md border border-border bg-background px-2 py-1 text-sm capitalize"
+                      >
+                        {ACCOUNT_TYPES.map((t) => (
+                          <option key={t} value={t} className="capitalize">
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                      {savingId === u.id && (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
                     </div>
                   </td>
                 </tr>
