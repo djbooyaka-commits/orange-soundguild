@@ -221,6 +221,15 @@ function AuthPage() {
             />
           )}
           {mode === "signup" && (
+            <input
+              type="text"
+              placeholder="Pioneer invite code (optional)"
+              value={pioneerCode}
+              onChange={(e) => setPioneerCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 16))}
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+            />
+          )}
+          {mode === "signup" && (
             <div className="space-y-2">
               <div className="text-xs font-medium text-foreground">
                 Please read the Terms of Service before agreeing:
