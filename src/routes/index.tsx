@@ -4,6 +4,8 @@ import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
 import { AdSlot } from "@/components/AdSlot";
 import { useAllTracks } from "@/lib/feed";
+import { groupFeed } from "@/lib/albums";
+import { AlbumCard } from "@/components/AlbumCard";
 import { useIsAdmin, adminDeleteTrack } from "@/hooks/useIsAdmin";
 import { useOnlineCount } from "@/hooks/useOnlineCount";
 import { useTotalUsers } from "@/hooks/useTotalUsers";
@@ -150,9 +152,17 @@ function Index() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {feed.map((t) => (
-                <TrackCard key={t.id} track={t} onDelete={isAdmin ? handleAdminDelete : undefined} />
-              ))}
+              {groupFeed(feed).map((item) =>
+                item.type === "album" ? (
+                  <AlbumCard key={item.album.key} album={item.album} />
+                ) : (
+                  <TrackCard
+                    key={item.track.id}
+                    track={item.track}
+                    onDelete={isAdmin ? handleAdminDelete : undefined}
+                  />
+                ),
+              )}
             </div>
           )}
         </section>

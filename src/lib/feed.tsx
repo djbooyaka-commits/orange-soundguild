@@ -24,6 +24,8 @@ type Row = {
   created_at: string;
   user_id: string;
   plays_count: number | null;
+  album: string | null;
+  track_number: number | null;
   profiles: { username: string | null } | null;
 };
 
@@ -44,6 +46,8 @@ async function hydrate(rows: Row[]): Promise<Track[]> {
     uploadedAt: timeAgo(row.created_at),
     plays: row.plays_count ?? 0,
     genre: row.genre,
+    album: row.album ?? null,
+    trackNumber: row.track_number ?? null,
   }));
 }
 
@@ -63,7 +67,7 @@ export function useAllTracks() {
       const { data } = await supabase
         .from("tracks")
         .select(
-          "id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, profiles(username)",
+          "id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, album, track_number, profiles(username)",
         )
         .order("created_at", { ascending: false });
       if (cancelled) return;
@@ -106,7 +110,7 @@ export function useUserTracks(userId: string | null) {
       const { data } = await supabase
         .from("tracks")
         .select(
-          "id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, profiles(username)",
+          "id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, album, track_number, profiles(username)",
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
