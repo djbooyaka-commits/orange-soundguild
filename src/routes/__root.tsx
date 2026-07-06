@@ -153,6 +153,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { location } = useRouterState();
   const isAuthPage = location.pathname === "/auth";
+  const hidePlayer = isAuthPage || location.pathname === "/royalties" || location.pathname === "/referrals";
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -162,7 +163,7 @@ function RootComponent() {
             <UploadsProvider>
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
               <Outlet />
-              {!isAuthPage && <PlayerBar />}
+              {!hidePlayer && <PlayerBar />}
               <Toaster />
             </UploadsProvider>
           </LikesProvider>
