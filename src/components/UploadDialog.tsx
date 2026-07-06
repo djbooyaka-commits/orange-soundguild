@@ -25,10 +25,10 @@ function defaultTitleFromFile(name: string) {
 }
 
 export function UploadDialog({ children }: { children: React.ReactNode }) {
-  const { addUpload, addAlbum } = useUploads();
+  const { addUpload, addAlbum, uploads } = useUploads();
   const { play } = usePlayer();
   const { user } = useAuth();
-  const { isFan } = useAccountType();
+  const { isFan, isPioneer } = useAccountType();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("single");
@@ -50,6 +50,9 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const albumRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
 
+  const PIONEER_LIMIT = 5;
+  const remaining = PIONEER_LIMIT - uploads.length;
+
   const reset = () => {
     setMode("single");
     setTitle("");
@@ -67,6 +70,10 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     }
     if (o && isFan) {
       toast.error("Fan accounts can't upload. Upgrade to an artist account first.");
+      return;
+    }
+    if (o && isPioneer && remaining <= 0) {
+      toast.error("Pioneer accounts are limited to 5 tracks. Upgrade to Artist to upload more.");
       return;
     }
     setOpen(o);
@@ -106,6 +113,10 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     try {
       if (mode === "single") {
         if (!title.trim() || !file) return;
+        if (isPioneer && remaining <= 0) {
+          toast.error("Pioneer accounts are limited to 5 tracks. Upgrade to Artist.");
+          return;
+        }
         const track = await addUpload({ title: title.trim(), genre, file, coverFile });
         toast.success("Track published");
         setOpen(false);
@@ -118,6 +129,10 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
         }
         if (albumRows.length === 0) {
           toast.error("Add at least one track to the album.");
+          return;
+        }
+        if (isPioneer && albumRows.length > remaining) {
+          toast.error(`Pioneer accounts can only upload ${remaining} more track${remaining === 1 ? "" : "s"}.`);
           return;
         }
         const created = await addAlbum({
@@ -180,6 +195,15 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
             <Disc3 className="h-3.5 w-3.5" /> Album / EP
           </button>
         </div>
+
+        {isPioneer && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <span className="font-semibold text-primary">Pioneer</span> — {uploads.length}/{PIONEER_LIMIT} tracks used.
+            {remaining > 0
+              ? ` ${remaining} slot${remaining === 1 ? "" : "s"} left.`
+              : " Upgrade to Artist to upload more."}
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="space-y-4">
           {mode === "single" ? (

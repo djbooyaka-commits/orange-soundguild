@@ -29,6 +29,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [refCode, setRefCode] = useState("");
+  const [pioneerCode, setPioneerCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [agreedTos, setAgreedTos] = useState(false);
   const [tosScrolled, setTosScrolled] = useState(false);
@@ -61,7 +62,7 @@ function AuthPage() {
     }
   }, [user, loading, navigate]);
 
-  // Capture ?ref=CODE from URL and remember it (so it survives Google OAuth round-trip too)
+  // Capture ?ref=CODE and ?pioneer=CODE from URL and remember them (survive Google OAuth round-trip)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -79,6 +80,24 @@ function AuthPage() {
       try {
         const stored = window.sessionStorage.getItem("ref_code");
         if (stored) setRefCode(stored);
+      } catch {
+        /* ignore */
+      }
+    }
+    const pi = params.get("pioneer");
+    if (pi) {
+      const cleanPi = pi.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 16);
+      setPioneerCode(cleanPi);
+      try {
+        window.sessionStorage.setItem("pioneer_code", cleanPi);
+      } catch {
+        /* ignore */
+      }
+      setMode("signup");
+    } else {
+      try {
+        const stored = window.sessionStorage.getItem("pioneer_code");
+        if (stored) setPioneerCode(stored);
       } catch {
         /* ignore */
       }
@@ -103,12 +122,14 @@ function AuthPage() {
               tos_accepted: true,
               tos_accepted_at: new Date().toISOString(),
               ...(refCode ? { ref_code: refCode } : {}),
+              ...(pioneerCode ? { pioneer_code: pioneerCode } : {}),
             },
           },
         });
         if (error) throw error;
         try {
           window.sessionStorage.removeItem("ref_code");
+          window.sessionStorage.removeItem("pioneer_code");
         } catch {
           /* ignore */
         }
@@ -196,6 +217,15 @@ function AuthPage() {
               placeholder="Referral code (optional)"
               value={refCode}
               onChange={(e) => setRefCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12))}
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+            />
+          )}
+          {mode === "signup" && (
+            <input
+              type="text"
+              placeholder="Pioneer invite code (optional)"
+              value={pioneerCode}
+              onChange={(e) => setPioneerCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 16))}
               className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
             />
           )}
