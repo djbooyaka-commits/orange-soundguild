@@ -283,7 +283,7 @@ function ProfilePage() {
             userId={profileUserId}
             trackCount={userTracks.length}
             playCount={userTracks.reduce((n, t) => n + t.plays, 0)}
-            isArtist={isMe ? isArtist : profile?.account_type === "artist"}
+            isArtist={isMe ? (isArtist || accountType === "pioneer") : (profile?.account_type === "artist" || profile?.account_type === "pioneer")}
           />
 
 
