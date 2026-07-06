@@ -25,10 +25,10 @@ function defaultTitleFromFile(name: string) {
 }
 
 export function UploadDialog({ children }: { children: React.ReactNode }) {
-  const { addUpload, addAlbum } = useUploads();
+  const { addUpload, addAlbum, uploads } = useUploads();
   const { play } = usePlayer();
   const { user } = useAuth();
-  const { isFan } = useAccountType();
+  const { isFan, isPioneer } = useAccountType();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("single");
@@ -50,6 +50,9 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const albumRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
 
+  const PIONEER_LIMIT = 5;
+  const remaining = PIONEER_LIMIT - uploads.length;
+
   const reset = () => {
     setMode("single");
     setTitle("");
@@ -67,6 +70,10 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     }
     if (o && isFan) {
       toast.error("Fan accounts can't upload. Upgrade to an artist account first.");
+      return;
+    }
+    if (o && isPioneer && remaining <= 0) {
+      toast.error("Pioneer accounts are limited to 5 tracks. Upgrade to Artist to upload more.");
       return;
     }
     setOpen(o);
