@@ -183,7 +183,7 @@ function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-40">
       <Navbar />
 
       {/* Banner */}

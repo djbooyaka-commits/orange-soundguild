@@ -56,7 +56,7 @@ function TrackPage() {
 
   if (!track) {
     return (
-      <div className="min-h-screen bg-background pb-28">
+      <div className="min-h-screen bg-background pb-40">
         <Navbar />
         <main className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
           <p className="text-sm text-muted-foreground">
@@ -76,7 +76,7 @@ function TrackPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-40">
       <Navbar />
 
       <main className="mx-auto max-w-4xl px-4 sm:px-6">
