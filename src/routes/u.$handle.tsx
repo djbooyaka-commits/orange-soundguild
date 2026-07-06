@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
+import { AlbumCard } from "@/components/AlbumCard";
+import { groupFeed } from "@/lib/albums";
 import { useUserTracks } from "@/lib/feed";
 import { CURRENT_USER, useUploads } from "@/lib/uploads";
 import { UploadDialog } from "@/components/UploadDialog";
