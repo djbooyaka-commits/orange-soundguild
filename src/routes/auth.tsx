@@ -29,6 +29,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [refCode, setRefCode] = useState("");
+  const [pioneerCode, setPioneerCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [agreedTos, setAgreedTos] = useState(false);
   const [tosScrolled, setTosScrolled] = useState(false);
