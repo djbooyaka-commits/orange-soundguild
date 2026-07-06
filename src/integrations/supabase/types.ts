@@ -142,6 +142,33 @@ export type Database = {
         }
         Relationships: []
       }
+      direct_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -157,6 +184,33 @@ export type Database = {
           created_at?: string
           follower_id?: string
           following_id?: string
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: Database["public"]["Enums"]["friend_status"]
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: Database["public"]["Enums"]["friend_status"]
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: Database["public"]["Enums"]["friend_status"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -619,6 +673,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
       create_pioneer_invite: { Args: never; Returns: string }
       credit_referral: {
         Args: {
@@ -682,6 +737,7 @@ export type Database = {
       ad_package: "bronze" | "silver" | "gold"
       ad_status: "pending" | "active" | "expired" | "refunded"
       app_role: "admin" | "user"
+      friend_status: "pending" | "accepted" | "declined"
       payout_method: "paypal" | "phantom"
       payout_status: "pending" | "processing" | "paid" | "rejected"
     }
@@ -816,6 +872,7 @@ export const Constants = {
       ad_package: ["bronze", "silver", "gold"],
       ad_status: ["pending", "active", "expired", "refunded"],
       app_role: ["admin", "user"],
+      friend_status: ["pending", "accepted", "declined"],
       payout_method: ["paypal", "phantom"],
       payout_status: ["pending", "processing", "paid", "rejected"],
     },

@@ -17,6 +17,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as RoyaltiesRouteImport } from './routes/royalties'
 import { Route as ReferralsRouteImport } from './routes/referrals'
+import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ArtistWelcomeRouteImport } from './routes/artist-welcome'
@@ -65,6 +66,11 @@ const RoyaltiesRoute = RoyaltiesRouteImport.update({
 const ReferralsRoute = ReferralsRouteImport.update({
   id: '/referrals',
   path: '/referrals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
+  '/messages': typeof MessagesRoute
   '/referrals': typeof ReferralsRoute
   '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
+  '/messages': typeof MessagesRoute
   '/referrals': typeof ReferralsRoute
   '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
+  '/messages': typeof MessagesRoute
   '/referrals': typeof ReferralsRoute
   '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/artist-welcome'
     | '/auth'
     | '/library'
+    | '/messages'
     | '/referrals'
     | '/royalties'
     | '/search'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/artist-welcome'
     | '/auth'
     | '/library'
+    | '/messages'
     | '/referrals'
     | '/royalties'
     | '/search'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/artist-welcome'
     | '/auth'
     | '/library'
+    | '/messages'
     | '/referrals'
     | '/royalties'
     | '/search'
@@ -238,6 +250,7 @@ export interface RootRouteChildren {
   ArtistWelcomeRoute: typeof ArtistWelcomeRoute
   AuthRoute: typeof AuthRoute
   LibraryRoute: typeof LibraryRoute
+  MessagesRoute: typeof MessagesRoute
   ReferralsRoute: typeof ReferralsRoute
   RoyaltiesRoute: typeof RoyaltiesRoute
   SearchRoute: typeof SearchRoute
@@ -307,6 +320,13 @@ declare module '@tanstack/react-router' {
       path: '/referrals'
       fullPath: '/referrals'
       preLoaderRoute: typeof ReferralsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -382,6 +402,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArtistWelcomeRoute: ArtistWelcomeRoute,
   AuthRoute: AuthRoute,
   LibraryRoute: LibraryRoute,
+  MessagesRoute: MessagesRoute,
   ReferralsRoute: ReferralsRoute,
   RoyaltiesRoute: RoyaltiesRoute,
   SearchRoute: SearchRoute,
