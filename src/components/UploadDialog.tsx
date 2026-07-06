@@ -113,6 +113,10 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     try {
       if (mode === "single") {
         if (!title.trim() || !file) return;
+        if (isPioneer && remaining <= 0) {
+          toast.error("Pioneer accounts are limited to 5 tracks. Upgrade to Artist.");
+          return;
+        }
         const track = await addUpload({ title: title.trim(), genre, file, coverFile });
         toast.success("Track published");
         setOpen(false);
@@ -125,6 +129,10 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
         }
         if (albumRows.length === 0) {
           toast.error("Add at least one track to the album.");
+          return;
+        }
+        if (isPioneer && albumRows.length > remaining) {
+          toast.error(`Pioneer accounts can only upload ${remaining} more track${remaining === 1 ? "" : "s"}.`);
           return;
         }
         const created = await addAlbum({
