@@ -255,6 +255,7 @@ function ProfilePage() {
               ) : (
                 <>
                   <FollowButton targetUserId={profileUserId} />
+                  <FriendButton targetUserId={profileUserId} />
                   {isAdmin && profileUserId && (
                     <button
                       onClick={handleBanToggle}
