@@ -43,6 +43,11 @@ export function Navbar() {
           </Link>
           <Link to="/library" className="rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
           {user && (
+            <Link to="/messages" className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 hover:bg-muted">
+              <MessageCircle className="h-4 w-4" /> Messages
+            </Link>
+          )}
+          {user && (
             <Link to="/referrals" className="rounded-md px-3 py-1.5 hover:bg-muted">
               Referrals
             </Link>
