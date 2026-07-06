@@ -205,24 +205,30 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          max_uses: number | null
           used_at: string | null
           used_by: string | null
+          uses_count: number
         }
         Insert: {
           code: string
           created_at?: string
           created_by: string
           id?: string
+          max_uses?: number | null
           used_at?: string | null
           used_by?: string | null
+          uses_count?: number
         }
         Update: {
           code?: string
           created_at?: string
           created_by?: string
           id?: string
+          max_uses?: number | null
           used_at?: string | null
           used_by?: string | null
+          uses_count?: number
         }
         Relationships: []
       }
