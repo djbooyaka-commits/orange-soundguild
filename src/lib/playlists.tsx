@@ -3,8 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { type Track } from "./tracks";
 import cover2 from "@/assets/cover2.jpg";
-
-const SIGNED_TTL = 60 * 60 * 24 * 365;
+import { signMany } from "./signMedia";
 
 export type Playlist = {
   id: string;
@@ -14,13 +13,6 @@ export type Playlist = {
 };
 
 export type PlaylistWithTracks = Playlist & { tracks: Track[] };
-
-async function signed(bucket: string, path: string | null): Promise<string | null> {
-  if (!path) return null;
-  if (path.startsWith("http")) return path;
-  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, SIGNED_TTL);
-  return data?.signedUrl ?? null;
-}
 
 export async function resolveTracksByIds(ids: string[]): Promise<Track[]> {
   if (!ids.length) return [];
@@ -32,32 +24,38 @@ export async function resolveTracksByIds(ids: string[]): Promise<Track[]> {
       .select("id, title, genre, audio_url, cover_art_url, profiles(username)")
       .in("id", uuids);
     if (data) {
-      for (const row of data as Array<{
+      const rows = data as Array<{
         id: string;
         title: string;
         genre: string;
         audio_url: string;
         cover_art_url: string | null;
         profiles: { username: string | null } | null;
-      }>) {
-        const src = (await signed("audio", row.audio_url)) ?? "";
-        const cover = row.cover_art_url ? ((await signed("covers", row.cover_art_url)) ?? cover2) : cover2;
+      }>;
+      const items: { bucket: "audio" | "covers"; path: string | null | undefined }[] = [];
+      rows.forEach((row) => {
+        items.push({ bucket: "audio", path: row.audio_url });
+        items.push({ bucket: "covers", path: row.cover_art_url });
+      });
+      const urls = await signMany(items);
+      rows.forEach((row, i) => {
         dbMap.set(row.id, {
           id: row.id,
           title: row.title,
           artist: row.profiles?.username ?? "Artist",
-          cover,
-          src,
+          cover: urls[i * 2 + 1] ?? cover2,
+          src: urls[i * 2] ?? "",
           durationLabel: "—:—",
           uploadedAt: "",
           plays: 0,
           genre: row.genre,
         });
-      }
+      });
     }
   }
   return ids.map((id) => dbMap.get(id)).filter(Boolean) as Track[];
 }
+
 
 export function useMyPlaylists() {
   const { user } = useAuth();
