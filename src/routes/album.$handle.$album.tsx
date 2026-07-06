@@ -73,7 +73,7 @@ function AlbumPage() {
 
   const playAlbum = () => {
     if (activeInAlbum) toggle();
-    else if (first) play(first);
+    else if (first) play(first, tracks);
   };
 
   return (
