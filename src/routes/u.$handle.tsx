@@ -283,7 +283,7 @@ function ProfilePage() {
             userId={profileUserId}
             trackCount={userTracks.length}
             playCount={userTracks.reduce((n, t) => n + t.plays, 0)}
-            isArtist={isMe ? isArtist : profile?.account_type === "artist"}
+            isArtist={isMe ? (isArtist || accountType === "pioneer") : (profile?.account_type === "artist" || profile?.account_type === "pioneer")}
           />
 
 
@@ -296,7 +296,7 @@ function ProfilePage() {
           <SuperfanPublicProfile userId={profileUserId} displayName="you" />
         )}
 
-        {(isMe ? isArtist : profile?.account_type === "artist") && (
+        {(isMe ? (isArtist || accountType === "pioneer") : (profile?.account_type === "artist" || profile?.account_type === "pioneer")) && (
           <>
             <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
 
@@ -307,7 +307,7 @@ function ProfilePage() {
                     ? "You haven't uploaded anything yet. Click Upload to share your first track."
                     : `${displayName} hasn't uploaded any tracks yet.`}
                 </p>
-                {isMe && isArtist && (
+                {isMe && (isArtist || accountType === "pioneer") && (
                   <div className="mt-4 inline-block">
                     <UploadDialog>
                       <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
