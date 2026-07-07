@@ -579,7 +579,7 @@ function ChatPane({
                       </a>
                     )
                   )}
-                  {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
+                  {m.body && <div className="whitespace-pre-wrap break-words">{renderWithLinks(m.body, mine)}</div>}
                   <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                     {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                   </div>
