@@ -166,7 +166,7 @@ function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-40">
       <Navbar />
       <main className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 py-8 sm:px-6 md:grid-cols-[320px_1fr]">
         {/* Sidebar */}
