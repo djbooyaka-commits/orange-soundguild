@@ -171,6 +171,17 @@ function AuthPage() {
           {mode === "signin" ? "Sign in to upload and like tracks." : "Join to share your sound."}
         </p>
 
+        {mode === "signup" && (
+          <div className="mt-4 rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <div className="mb-1 font-semibold text-foreground">How to join:</div>
+            <ol className="list-decimal space-y-0.5 pl-4">
+              <li>Tick the box to agree to the Terms of Service.</li>
+              <li>Continue with Google, or enter an email and a password (6+ characters).</li>
+              <li>Tap <span className="font-medium text-foreground">Sign up</span>. If asked, confirm via the email we send you.</li>
+            </ol>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={onGoogle}
