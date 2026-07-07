@@ -75,25 +75,26 @@ export function Navbar() {
         </nav>
 
 
-        <div className="flex flex-1 items-center">
+        <div className="flex min-w-0 flex-1 items-center justify-end md:justify-start">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               const term = q.trim();
               if (term) navigate({ to: "/search", search: { q: term } });
             }}
-            className="relative w-full max-w-md"
+            className="relative w-full max-w-xs"
           >
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               type="search"
-              placeholder="Search artists, tracks, playlists…"
+              placeholder="Search…"
               className="h-10 w-full rounded-full border border-border bg-muted/60 pl-10 pr-4 text-sm outline-none transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/30"
             />
           </form>
         </div>
+
 
         {user ? (
           <FriendRequestsBell />
