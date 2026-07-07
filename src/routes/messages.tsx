@@ -543,24 +543,41 @@ function ChatPane({
                   }`}
                 >
                   {m.image_url && (
-                    <a
-                      href={signed ?? "#"}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mb-1 block overflow-hidden rounded-lg"
-                    >
-                      {signed ? (
-                        <img
-                          src={signed}
-                          alt="Sent photo"
-                          className="max-h-72 w-auto max-w-full rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-40 w-56 items-center justify-center bg-black/10">
-                          <Loader2 className="h-5 w-5 animate-spin opacity-70" />
-                        </div>
-                      )}
-                    </a>
+                    isVideoPath(m.image_url) ? (
+                      <div className="mb-1 overflow-hidden rounded-lg">
+                        {signed ? (
+                          <video
+                            src={signed}
+                            controls
+                            playsInline
+                            className="max-h-72 w-auto max-w-full rounded-lg"
+                          />
+                        ) : (
+                          <div className="flex h-40 w-56 items-center justify-center bg-black/10">
+                            <Loader2 className="h-5 w-5 animate-spin opacity-70" />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <a
+                        href={signed ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mb-1 block overflow-hidden rounded-lg"
+                      >
+                        {signed ? (
+                          <img
+                            src={signed}
+                            alt="Sent photo"
+                            className="max-h-72 w-auto max-w-full rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-40 w-56 items-center justify-center bg-black/10">
+                            <Loader2 className="h-5 w-5 animate-spin opacity-70" />
+                          </div>
+                        )}
+                      </a>
+                    )
                   )}
                   {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
                   <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
