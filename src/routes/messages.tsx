@@ -1,7 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { Send, Check, X, MessageCircle, Loader2, ImagePlus } from "lucide-react";
+import { Send, Check, X, MessageCircle, Loader2, ImagePlus, Video } from "lucide-react";
+
+const VIDEO_EXTS = ["mp4", "webm", "mov", "m4v", "ogg"];
+const MAX_VIDEO_SECONDS = 20;
+const isVideoPath = (p: string) => {
+  const ext = p.split(".").pop()?.toLowerCase() ?? "";
+  return VIDEO_EXTS.includes(ext);
+};
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
