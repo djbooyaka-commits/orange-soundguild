@@ -18,81 +18,83 @@ export function Navbar() {
   const [q, setQ] = useState("");
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2 font-bold tracking-tight">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
+        <Link to="/" className="flex shrink-0 items-center gap-2 font-bold tracking-tight">
           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Music2 className="h-4 w-4" />
           </span>
-          <span className="hidden text-lg sm:inline">Orange Sound Guild</span>
+          <span className="hidden whitespace-nowrap text-lg xl:inline">Orange Sound Guild</span>
         </Link>
 
-        <nav className="hidden items-center gap-1 text-sm text-muted-foreground md:flex">
-          <Link to="/" className="rounded-md px-3 py-1.5 font-medium text-foreground hover:bg-muted" activeOptions={{ exact: true }}>
+        <nav className="hidden min-w-0 items-center gap-1 text-sm text-muted-foreground md:flex">
+          <Link to="/" className="whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-foreground hover:bg-muted" activeOptions={{ exact: true }}>
             Home
           </Link>
-          <Link to="/top100" className="rounded-md px-3 py-1.5 hover:bg-muted">
+          <Link to="/top100" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
             Top 100
           </Link>
-          <Link to="/superfans" className="rounded-md px-3 py-1.5 hover:bg-muted">
+          <Link to="/superfans" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
             Superfans
           </Link>
-          <Link to="/discover" className="rounded-md px-3 py-1.5 hover:bg-muted">
+          <Link to="/discover" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
             Discover
           </Link>
           <Link
             to="/u/$handle"
             params={{ handle: CURRENT_USER.handle }}
-            className="rounded-md px-3 py-1.5 hover:bg-muted"
+            className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted"
           >
             Profile
           </Link>
-          <Link to="/library" className="rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
+          <Link to="/library" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
           {user && (
-            <Link to="/messages" className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 hover:bg-muted">
+            <Link to="/messages" className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
               <MessageCircle className="h-4 w-4" /> Messages
             </Link>
           )}
           {user && (
-            <Link to="/referrals" className="rounded-md px-3 py-1.5 hover:bg-muted">
+            <Link to="/referrals" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
               Referrals
             </Link>
           )}
           {user && isArtist && (
-            <Link to="/royalties" className="rounded-md px-3 py-1.5 hover:bg-muted">
+            <Link to="/royalties" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
               Royalties
             </Link>
           )}
           {user && isArtist && (
-            <Link to="/ads" className="rounded-md px-3 py-1.5 hover:bg-muted">
+            <Link to="/ads" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
               Ads
             </Link>
           )}
           {isAdmin && (
-            <Link to="/admin" className="rounded-md px-3 py-1.5 font-medium text-primary hover:bg-muted">
+            <Link to="/admin" className="whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-primary hover:bg-muted">
               Admin
             </Link>
           )}
         </nav>
 
-        <div className="flex flex-1 items-center">
+
+        <div className="flex min-w-0 flex-1 items-center justify-end md:justify-start">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               const term = q.trim();
               if (term) navigate({ to: "/search", search: { q: term } });
             }}
-            className="relative w-full max-w-md"
+            className="relative w-full max-w-xs"
           >
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               type="search"
-              placeholder="Search artists, tracks, playlists…"
+              placeholder="Search…"
               className="h-10 w-full rounded-full border border-border bg-muted/60 pl-10 pr-4 text-sm outline-none transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/30"
             />
           </form>
         </div>
+
 
         {user ? (
           <FriendRequestsBell />
