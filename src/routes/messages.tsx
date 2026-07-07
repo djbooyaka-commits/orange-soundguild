@@ -592,15 +592,19 @@ function ChatPane({
 
       {pendingPreview && (
         <div className="flex items-center gap-3 border-t border-border bg-muted/40 p-3">
-          <img src={pendingPreview} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
+          {pendingFile?.type.startsWith("video/") ? (
+            <video src={pendingPreview} className="h-16 w-16 rounded-lg object-cover" muted playsInline />
+          ) : (
+            <img src={pendingPreview} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
+          )}
           <div className="flex-1 truncate text-xs text-muted-foreground">
             {pendingFile?.name}
           </div>
           <button
             type="button"
-            onClick={() => pickFile(null)}
+            onClick={() => void pickFile(null)}
             className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background hover:bg-muted"
-            aria-label="Remove photo"
+            aria-label="Remove attachment"
           >
             <X className="h-4 w-4" />
           </button>
