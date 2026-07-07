@@ -361,6 +361,35 @@ function renderWithLinks(text: string, mine: boolean) {
   });
 }
 
+const SPOTIFY_TYPES = new Set(["track", "album", "playlist", "episode", "show", "artist"]);
+function spotifyEmbeds(text: string): { key: string; type: string; id: string }[] {
+  const found: { key: string; type: string; id: string }[] = [];
+  const seen = new Set<string>();
+  const matches = text.match(URL_RE) ?? [];
+  for (const raw of matches) {
+    const safe = safeHttpUrl(raw);
+    if (!safe) continue;
+    try {
+      const u = new URL(safe);
+      if (u.hostname !== "open.spotify.com" && u.hostname !== "www.open.spotify.com") continue;
+      const parts = u.pathname.split("/").filter(Boolean);
+      // Support optional locale prefix like /intl-en/track/{id}
+      const typeIdx = parts.findIndex((p) => SPOTIFY_TYPES.has(p));
+      if (typeIdx === -1 || !parts[typeIdx + 1]) continue;
+      const type = parts[typeIdx];
+      const id = parts[typeIdx + 1].split("?")[0];
+      if (!/^[A-Za-z0-9]{16,32}$/.test(id)) continue;
+      const key = `${type}:${id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      found.push({ key, type, id });
+    } catch {
+      /* ignore */
+    }
+  }
+  return found;
+}
+
 function ChatPane({
   me,
   other,
