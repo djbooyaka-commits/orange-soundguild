@@ -230,43 +230,21 @@ function AuthPage() {
             />
           )}
           {mode === "signup" && (
-            <div className="space-y-2">
-              <div className="text-xs font-medium text-foreground">
-                Please read the Terms of Service before agreeing:
-              </div>
-              <div
-                ref={tosBoxRef}
-                onScroll={handleTosScroll}
-                className="h-56 overflow-y-auto rounded-md border border-border bg-background/50 p-3"
-              >
-                <TermsContent />
-              </div>
-              {!tosScrolled && (
-                <div className="text-[11px] text-muted-foreground">
-                  Scroll to the bottom of the terms to enable agreement.
-                </div>
-              )}
-              <label
-                className={`flex items-start gap-2 text-xs ${
-                  tosScrolled ? "text-muted-foreground" : "text-muted-foreground/60"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={agreedTos}
-                  disabled={!tosScrolled}
-                  onChange={(e) => setAgreedTos(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-border accent-primary disabled:cursor-not-allowed"
-                />
-                <span>
-                  I have read and agree to the{" "}
-                  <Link to="/terms" target="_blank" className="font-medium text-primary hover:underline">
-                    Terms of Service
-                  </Link>
-                  .
-                </span>
-              </label>
-            </div>
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={agreedTos}
+                onChange={(e) => setAgreedTos(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+              />
+              <span>
+                I agree to the{" "}
+                <Link to="/terms" target="_blank" className="font-medium text-primary hover:underline">
+                  Terms of Service
+                </Link>
+                .
+              </span>
+            </label>
           )}
           <button
             type="submit"
