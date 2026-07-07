@@ -313,6 +313,27 @@ function otherOf(f: Friendship, me: string) {
   return f.requester_id === me ? f.addressee_id : f.requester_id;
 }
 
+const URL_RE = /(https?:\/\/[^\s]+)/gi;
+function renderWithLinks(text: string, mine: boolean) {
+  const parts = text.split(URL_RE);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noreferrer noopener"
+          className={`underline break-all ${mine ? "text-primary-foreground" : "text-primary"}`}
+        >
+          {part}
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 function ChatPane({
   me,
   other,
@@ -579,7 +600,7 @@ function ChatPane({
                       </a>
                     )
                   )}
-                  {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
+                  {m.body && <div className="whitespace-pre-wrap break-words">{renderWithLinks(m.body, mine)}</div>}
                   <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                     {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                   </div>
