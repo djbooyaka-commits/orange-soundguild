@@ -155,22 +155,33 @@ function MessagesPage() {
     void loadAll();
   };
 
-  if (!loading && !user) {
+  if (loading || !user) {
+    if (!loading && !user) {
+      return (
+        <div className="min-h-screen bg-background">
+          <Navbar />
+          <main className="mx-auto max-w-2xl px-4 py-24 text-center">
+            <h1 className="text-3xl font-bold">Sign in to message friends</h1>
+            <Link
+              to="/auth"
+              className="mt-6 inline-flex h-10 items-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground"
+            >
+              Sign in
+            </Link>
+          </main>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <main className="mx-auto max-w-2xl px-4 py-24 text-center">
-          <h1 className="text-3xl font-bold">Sign in to message friends</h1>
-          <Link
-            to="/auth"
-            className="mt-6 inline-flex h-10 items-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground"
-          >
-            Sign in
-          </Link>
+        <main className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </main>
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-background pb-40">
