@@ -361,6 +361,35 @@ function renderWithLinks(text: string, mine: boolean) {
   });
 }
 
+const SPOTIFY_TYPES = new Set(["track", "album", "playlist", "episode", "show", "artist"]);
+function spotifyEmbeds(text: string): { key: string; type: string; id: string }[] {
+  const found: { key: string; type: string; id: string }[] = [];
+  const seen = new Set<string>();
+  const matches = text.match(URL_RE) ?? [];
+  for (const raw of matches) {
+    const safe = safeHttpUrl(raw);
+    if (!safe) continue;
+    try {
+      const u = new URL(safe);
+      if (u.hostname !== "open.spotify.com" && u.hostname !== "www.open.spotify.com") continue;
+      const parts = u.pathname.split("/").filter(Boolean);
+      // Support optional locale prefix like /intl-en/track/{id}
+      const typeIdx = parts.findIndex((p) => SPOTIFY_TYPES.has(p));
+      if (typeIdx === -1 || !parts[typeIdx + 1]) continue;
+      const type = parts[typeIdx];
+      const id = parts[typeIdx + 1].split("?")[0];
+      if (!/^[A-Za-z0-9]{16,32}$/.test(id)) continue;
+      const key = `${type}:${id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      found.push({ key, type, id });
+    } catch {
+      /* ignore */
+    }
+  }
+  return found;
+}
+
 function ChatPane({
   me,
   other,
@@ -628,9 +657,23 @@ function ChatPane({
                     )
                   )}
                   {m.body && <div className="whitespace-pre-wrap break-words">{renderWithLinks(m.body, mine)}</div>}
+                  {m.body && spotifyEmbeds(m.body).map((s) => (
+                    <iframe
+                      key={s.key}
+                      src={`https://open.spotify.com/embed/${s.type}/${s.id}`}
+                      title={`Spotify ${s.type}`}
+                      loading="lazy"
+                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
+                      className="mt-2 block w-full rounded-xl border-0"
+                      style={{ height: s.type === "track" || s.type === "episode" ? 152 : 352 }}
+                    />
+                  ))}
                   <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                     {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                   </div>
+
                 </div>
               </div>
             );
