@@ -615,18 +615,19 @@ function ChatPane({
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           className="hidden"
-          onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => void pickFile(e.target.files?.[0] ?? null)}
         />
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={sending}
           className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
-          aria-label="Attach photo"
+          aria-label="Attach photo or video (max 20s)"
+          title="Attach photo or video (max 20s)"
         >
-          <ImagePlus className="h-4 w-4" />
+          {pendingFile?.type.startsWith("video/") ? <Video className="h-4 w-4" /> : <ImagePlus className="h-4 w-4" />}
         </button>
         <input
           ref={inputRef}
