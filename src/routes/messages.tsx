@@ -334,39 +334,40 @@ const BLOCKED_TLDS = new Set<string>([
   "work", "gq", "ml", "cf", "tk",
 ]);
 
-function isBlockedHost(host: string): boolean {
+type LinkCheckResult =
+  | { status: "ok"; url: string }
+  | { status: "blocked"; reason: string }
+  | { status: "invalid" };
+
+function getBlockReason(host: string): string | null {
   const h = host.toLowerCase();
-  if (BLOCKED_HOSTS.has(h)) return true;
-  // Block subdomains of blocked hosts too
+  if (BLOCKED_HOSTS.has(h)) return "This link was blocked because it leads to a known unsafe domain.";
   for (const b of BLOCKED_HOSTS) {
-    if (h.endsWith("." + b)) return true;
+    if (h.endsWith("." + b)) return "This link was blocked because it leads to a known unsafe domain.";
   }
   const tld = h.split(".").pop() ?? "";
-  if (BLOCKED_TLDS.has(tld)) return true;
-  // Raw IPv4 or IPv6 hosts
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return true;
-  if (h.startsWith("[") && h.endsWith("]")) return true;
-  // Punycode / IDN homograph attempts
-  if (h.includes("xn--")) return true;
-  return false;
+  if (BLOCKED_TLDS.has(tld)) return "This link was blocked because it uses a suspicious domain type.";
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return "This link was blocked because IP address links are not allowed.";
+  if (h.startsWith("[") && h.endsWith("]")) return "This link was blocked because IP address links are not allowed.";
+  if (h.includes("xn--")) return "This link was blocked because it uses suspicious domain encoding.";
+  return null;
 }
 
-function safeHttpUrl(raw: string): string | null {
+function safeHttpUrl(raw: string): LinkCheckResult {
   let candidate = raw.replace(TRAILING_PUNCT_RE, "");
-  // Balance trailing ')' only when the URL contains a matching '('
   while (candidate.endsWith(")") && (candidate.match(/\(/g)?.length ?? 0) < (candidate.match(/\)/g)?.length ?? 0)) {
     candidate = candidate.slice(0, -1);
   }
   try {
     const u = new URL(candidate);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
-    if (!u.hostname) return null;
-    // Block URLs that smuggle credentials (user:pass@host)
-    if (u.username || u.password) return null;
-    if (isBlockedHost(u.hostname)) return null;
-    return u.toString();
+    if (u.protocol !== "http:" && u.protocol !== "https:") return { status: "invalid" };
+    if (!u.hostname) return { status: "invalid" };
+    if (u.username || u.password) return { status: "invalid" };
+    const reason = getBlockReason(u.hostname);
+    if (reason) return { status: "blocked", reason };
+    return { status: "ok", url: u.toString() };
   } catch {
-    return null;
+    return { status: "invalid" };
   }
 }
 
