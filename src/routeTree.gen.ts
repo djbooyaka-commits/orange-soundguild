@@ -29,6 +29,7 @@ import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
 import { Route as AlbumHandleAlbumRouteImport } from './routes/album.$handle.$album'
 import { Route as ApiPublicHooksCleanupChatMediaRouteImport } from './routes/api/public/hooks/cleanup-chat-media'
+import { Route as ApiPublicHooksCleanupChatLinksRouteImport } from './routes/api/public/hooks/cleanup-chat-links'
 
 const UpgradeRoute = UpgradeRouteImport.update({
   id: '/upgrade',
@@ -131,6 +132,12 @@ const ApiPublicHooksCleanupChatMediaRoute =
     path: '/api/public/hooks/cleanup-chat-media',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksCleanupChatLinksRoute =
+  ApiPublicHooksCleanupChatLinksRouteImport.update({
+    id: '/api/public/hooks/cleanup-chat-links',
+    path: '/api/public/hooks/cleanup-chat-links',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
+  '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
 }
 export interface FileRoutesByTo {
@@ -174,6 +182,7 @@ export interface FileRoutesByTo {
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
+  '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
 }
 export interface FileRoutesById {
@@ -197,6 +206,7 @@ export interface FileRoutesById {
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
+  '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
 }
 export interface FileRouteTypes {
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/t/$trackId'
     | '/u/$handle'
     | '/album/$handle/$album'
+    | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -243,6 +254,7 @@ export interface FileRouteTypes {
     | '/t/$trackId'
     | '/u/$handle'
     | '/album/$handle/$album'
+    | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
   id:
     | '__root__'
@@ -265,6 +277,7 @@ export interface FileRouteTypes {
     | '/t/$trackId'
     | '/u/$handle'
     | '/album/$handle/$album'
+    | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
   fileRoutesById: FileRoutesById
 }
@@ -288,6 +301,7 @@ export interface RootRouteChildren {
   TTrackIdRoute: typeof TTrackIdRoute
   UHandleRoute: typeof UHandleRoute
   AlbumHandleAlbumRoute: typeof AlbumHandleAlbumRoute
+  ApiPublicHooksCleanupChatLinksRoute: typeof ApiPublicHooksCleanupChatLinksRoute
   ApiPublicHooksCleanupChatMediaRoute: typeof ApiPublicHooksCleanupChatMediaRoute
 }
 
@@ -433,6 +447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCleanupChatMediaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/cleanup-chat-links': {
+      id: '/api/public/hooks/cleanup-chat-links'
+      path: '/api/public/hooks/cleanup-chat-links'
+      fullPath: '/api/public/hooks/cleanup-chat-links'
+      preLoaderRoute: typeof ApiPublicHooksCleanupChatLinksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -456,6 +477,7 @@ const rootRouteChildren: RootRouteChildren = {
   TTrackIdRoute: TTrackIdRoute,
   UHandleRoute: UHandleRoute,
   AlbumHandleAlbumRoute: AlbumHandleAlbumRoute,
+  ApiPublicHooksCleanupChatLinksRoute: ApiPublicHooksCleanupChatLinksRoute,
   ApiPublicHooksCleanupChatMediaRoute: ApiPublicHooksCleanupChatMediaRoute,
 }
 export const routeTree = rootRouteImport
