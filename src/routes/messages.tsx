@@ -1,7 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { Send, Check, X, MessageCircle, Loader2, ImagePlus } from "lucide-react";
+import { Send, Check, X, MessageCircle, Loader2, ImagePlus, Video } from "lucide-react";
+
+const VIDEO_EXTS = ["mp4", "webm", "mov", "m4v", "ogg"];
+const MAX_VIDEO_SECONDS = 20;
+const isVideoPath = (p: string) => {
+  const ext = p.split(".").pop()?.toLowerCase() ?? "";
+  return VIDEO_EXTS.includes(ext);
+};
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
@@ -410,19 +417,40 @@ function ChatPane({
       .in("id", unread);
   }, [messages, me]);
 
-  const pickFile = (f: File | null) => {
+  const pickFile = async (f: File | null) => {
     if (pendingPreview) URL.revokeObjectURL(pendingPreview);
     if (!f) {
       setPendingFile(null);
       setPendingPreview(null);
       return;
     }
-    if (!f.type.startsWith("image/")) {
-      toast.error("Please pick an image file.");
+    const isImg = f.type.startsWith("image/");
+    const isVid = f.type.startsWith("video/");
+    if (!isImg && !isVid) {
+      toast.error("Please pick an image or video file.");
       return;
     }
-    if (f.size > 10 * 1024 * 1024) {
-      toast.error("Image is too large (max 10MB).");
+    const maxBytes = isVid ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (f.size > maxBytes) {
+      toast.error(isVid ? "Video is too large (max 50MB)." : "Image is too large (max 10MB).");
+      return;
+    }
+    if (isVid) {
+      const url = URL.createObjectURL(f);
+      const duration = await new Promise<number>((resolve) => {
+        const v = document.createElement("video");
+        v.preload = "metadata";
+        v.onloadedmetadata = () => resolve(v.duration || 0);
+        v.onerror = () => resolve(0);
+        v.src = url;
+      });
+      if (!duration || duration > MAX_VIDEO_SECONDS + 0.5) {
+        URL.revokeObjectURL(url);
+        toast.error(`Videos must be ${MAX_VIDEO_SECONDS} seconds or less.`);
+        return;
+      }
+      setPendingFile(f);
+      setPendingPreview(url);
       return;
     }
     setPendingFile(f);
@@ -515,24 +543,41 @@ function ChatPane({
                   }`}
                 >
                   {m.image_url && (
-                    <a
-                      href={signed ?? "#"}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mb-1 block overflow-hidden rounded-lg"
-                    >
-                      {signed ? (
-                        <img
-                          src={signed}
-                          alt="Sent photo"
-                          className="max-h-72 w-auto max-w-full rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-40 w-56 items-center justify-center bg-black/10">
-                          <Loader2 className="h-5 w-5 animate-spin opacity-70" />
-                        </div>
-                      )}
-                    </a>
+                    isVideoPath(m.image_url) ? (
+                      <div className="mb-1 overflow-hidden rounded-lg">
+                        {signed ? (
+                          <video
+                            src={signed}
+                            controls
+                            playsInline
+                            className="max-h-72 w-auto max-w-full rounded-lg"
+                          />
+                        ) : (
+                          <div className="flex h-40 w-56 items-center justify-center bg-black/10">
+                            <Loader2 className="h-5 w-5 animate-spin opacity-70" />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <a
+                        href={signed ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mb-1 block overflow-hidden rounded-lg"
+                      >
+                        {signed ? (
+                          <img
+                            src={signed}
+                            alt="Sent photo"
+                            className="max-h-72 w-auto max-w-full rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-40 w-56 items-center justify-center bg-black/10">
+                            <Loader2 className="h-5 w-5 animate-spin opacity-70" />
+                          </div>
+                        )}
+                      </a>
+                    )
                   )}
                   {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
                   <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
@@ -547,15 +592,19 @@ function ChatPane({
 
       {pendingPreview && (
         <div className="flex items-center gap-3 border-t border-border bg-muted/40 p-3">
-          <img src={pendingPreview} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
+          {pendingFile?.type.startsWith("video/") ? (
+            <video src={pendingPreview} className="h-16 w-16 rounded-lg object-cover" muted playsInline />
+          ) : (
+            <img src={pendingPreview} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
+          )}
           <div className="flex-1 truncate text-xs text-muted-foreground">
             {pendingFile?.name}
           </div>
           <button
             type="button"
-            onClick={() => pickFile(null)}
+            onClick={() => void pickFile(null)}
             className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background hover:bg-muted"
-            aria-label="Remove photo"
+            aria-label="Remove attachment"
           >
             <X className="h-4 w-4" />
           </button>
@@ -566,18 +615,19 @@ function ChatPane({
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           className="hidden"
-          onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => void pickFile(e.target.files?.[0] ?? null)}
         />
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={sending}
           className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
-          aria-label="Attach photo"
+          aria-label="Attach photo or video (max 20s)"
+          title="Attach photo or video (max 20s)"
         >
-          <ImagePlus className="h-4 w-4" />
+          {pendingFile?.type.startsWith("video/") ? <Video className="h-4 w-4" /> : <ImagePlus className="h-4 w-4" />}
         </button>
         <input
           ref={inputRef}
