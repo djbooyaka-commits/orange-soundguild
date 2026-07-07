@@ -317,6 +317,40 @@ function otherOf(f: Friendship, me: string) {
 const URL_RE = /(https?:\/\/[^\s<>"']+)/gi;
 const TRAILING_PUNCT_RE = /[)\].,;:!?'"]+$/;
 
+// Domains blocked from being rendered as clickable links in chat.
+// Covers known malware/phishing/scam TLDs, adult/hate hubs, and common
+// URL shorteners frequently abused to hide the true destination.
+const BLOCKED_HOSTS = new Set<string>([
+  // Shorteners that hide destinations
+  "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly",
+  "shorturl.at", "cutt.ly", "rebrand.ly", "adf.ly", "bc.vc", "shorte.st",
+  "linkvertise.com", "ouo.io", "clk.sh",
+  // Known malware/phishing hubs (non-exhaustive; add as needed)
+  "grabify.link", "iplogger.org", "iplogger.com", "iplogger.ru", "yip.su",
+  "blasze.com", "2no.co",
+]);
+const BLOCKED_TLDS = new Set<string>([
+  "zip", "mov", "xyz", "top", "click", "quest", "cyou", "country", "kim",
+  "work", "gq", "ml", "cf", "tk",
+]);
+
+function isBlockedHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (BLOCKED_HOSTS.has(h)) return true;
+  // Block subdomains of blocked hosts too
+  for (const b of BLOCKED_HOSTS) {
+    if (h.endsWith("." + b)) return true;
+  }
+  const tld = h.split(".").pop() ?? "";
+  if (BLOCKED_TLDS.has(tld)) return true;
+  // Raw IPv4 or IPv6 hosts
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return true;
+  if (h.startsWith("[") && h.endsWith("]")) return true;
+  // Punycode / IDN homograph attempts
+  if (h.includes("xn--")) return true;
+  return false;
+}
+
 function safeHttpUrl(raw: string): string | null {
   let candidate = raw.replace(TRAILING_PUNCT_RE, "");
   // Balance trailing ')' only when the URL contains a matching '('
@@ -327,6 +361,9 @@ function safeHttpUrl(raw: string): string | null {
     const u = new URL(candidate);
     if (u.protocol !== "http:" && u.protocol !== "https:") return null;
     if (!u.hostname) return null;
+    // Block URLs that smuggle credentials (user:pass@host)
+    if (u.username || u.password) return null;
+    if (isBlockedHost(u.hostname)) return null;
     return u.toString();
   } catch {
     return null;
