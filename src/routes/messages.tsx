@@ -657,9 +657,23 @@ function ChatPane({
                     )
                   )}
                   {m.body && <div className="whitespace-pre-wrap break-words">{renderWithLinks(m.body, mine)}</div>}
+                  {m.body && spotifyEmbeds(m.body).map((s) => (
+                    <iframe
+                      key={s.key}
+                      src={`https://open.spotify.com/embed/${s.type}/${s.id}`}
+                      title={`Spotify ${s.type}`}
+                      loading="lazy"
+                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
+                      className="mt-2 block w-full rounded-xl border-0"
+                      style={{ height: s.type === "track" || s.type === "episode" ? 152 : 352 }}
+                    />
+                  ))}
                   <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                     {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                   </div>
+
                 </div>
               </div>
             );
