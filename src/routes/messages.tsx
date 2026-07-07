@@ -310,7 +310,7 @@ function MessagesAuthed({ userId }: { userId: string }) {
           {activeId ? (
             <ChatPane
               key={activeId}
-              me={user!.id}
+              me={userId}
               other={profiles[activeId] ?? { id: activeId, username: null, avatar_url: null, avatar_signed: defaultAvatar }}
             />
           ) : (
