@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { Send, Check, X, MessageCircle, Loader2 } from "lucide-react";
+import { Send, Check, X, MessageCircle, Loader2, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,7 +38,8 @@ type Message = {
   id: string;
   sender_id: string;
   recipient_id: string;
-  body: string;
+  body: string | null;
+  image_url: string | null;
   created_at: string;
   read_at: string | null;
 };
@@ -313,17 +314,21 @@ function ChatPane({
   other: ProfileMini & { avatar_signed: string };
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
       .from("direct_messages")
-      .select("id, sender_id, recipient_id, body, created_at, read_at")
+      .select("id, sender_id, recipient_id, body, image_url, created_at, read_at")
       .or(
         `and(sender_id.eq.${me},recipient_id.eq.${other.id}),` +
           `and(sender_id.eq.${other.id},recipient_id.eq.${me})`,
@@ -362,6 +367,34 @@ function ChatPane({
     };
   }, [me, other.id]);
 
+  // Sign image URLs as they come in
+  useEffect(() => {
+    const needed = messages
+      .map((m) => m.image_url)
+      .filter((p): p is string => !!p && !imageUrls[p]);
+    if (needed.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        needed.map(async (path) => {
+          const { data } = await supabase.storage
+            .from("chat-images")
+            .createSignedUrl(path, 60 * 60 * 24);
+          return [path, data?.signedUrl ?? ""] as const;
+        }),
+      );
+      if (cancelled) return;
+      setImageUrls((prev) => {
+        const next = { ...prev };
+        for (const [p, u] of entries) if (u) next[p] = u;
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [messages, imageUrls]);
+
   // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -377,20 +410,63 @@ function ChatPane({
       .in("id", unread);
   }, [messages, me]);
 
+  const pickFile = (f: File | null) => {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    if (!f) {
+      setPendingFile(null);
+      setPendingPreview(null);
+      return;
+    }
+    if (!f.type.startsWith("image/")) {
+      toast.error("Please pick an image file.");
+      return;
+    }
+    if (f.size > 10 * 1024 * 1024) {
+      toast.error("Image is too large (max 10MB).");
+      return;
+    }
+    setPendingFile(f);
+    setPendingPreview(URL.createObjectURL(f));
+  };
+
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
     const body = input.trim();
-    if (!body || sending) return;
+    if ((!body && !pendingFile) || sending) return;
     setSending(true);
+
+    let imagePath: string | null = null;
+    if (pendingFile) {
+      const ext = (pendingFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const path = `${me}/${crypto.randomUUID()}.${ext || "jpg"}`;
+      const { error: upErr } = await supabase.storage
+        .from("chat-images")
+        .upload(path, pendingFile, { contentType: pendingFile.type, upsert: false });
+      if (upErr) {
+        setSending(false);
+        return toast.error(upErr.message);
+      }
+      imagePath = path;
+    }
+
     const { data, error } = await supabase
       .from("direct_messages")
-      .insert({ sender_id: me, recipient_id: other.id, body })
-      .select("id, sender_id, recipient_id, body, created_at, read_at")
+      .insert({
+        sender_id: me,
+        recipient_id: other.id,
+        body: body || null,
+        image_url: imagePath,
+      })
+      .select("id, sender_id, recipient_id, body, image_url, created_at, read_at")
       .maybeSingle();
     setSending(false);
     if (error) return toast.error(error.message);
     if (data) setMessages((prev) => (prev.some((x) => x.id === data.id) ? prev : [...prev, data as Message]));
     setInput("");
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    setPendingFile(null);
+    setPendingPreview(null);
+    if (fileRef.current) fileRef.current.value = "";
     inputRef.current?.focus();
   };
 
@@ -428,6 +504,7 @@ function ChatPane({
         ) : (
           messages.map((m) => {
             const mine = m.sender_id === me;
+            const signed = m.image_url ? imageUrls[m.image_url] : null;
             return (
               <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div
@@ -437,7 +514,27 @@ function ChatPane({
                       : "bg-muted text-foreground"
                   }`}
                 >
-                  <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                  {m.image_url && (
+                    <a
+                      href={signed ?? "#"}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mb-1 block overflow-hidden rounded-lg"
+                    >
+                      {signed ? (
+                        <img
+                          src={signed}
+                          alt="Sent photo"
+                          className="max-h-72 w-auto max-w-full rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-40 w-56 items-center justify-center bg-black/10">
+                          <Loader2 className="h-5 w-5 animate-spin opacity-70" />
+                        </div>
+                      )}
+                    </a>
+                  )}
+                  {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
                   <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                     {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                   </div>
@@ -448,7 +545,40 @@ function ChatPane({
         )}
       </div>
 
+      {pendingPreview && (
+        <div className="flex items-center gap-3 border-t border-border bg-muted/40 p-3">
+          <img src={pendingPreview} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
+          <div className="flex-1 truncate text-xs text-muted-foreground">
+            {pendingFile?.name}
+          </div>
+          <button
+            type="button"
+            onClick={() => pickFile(null)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background hover:bg-muted"
+            aria-label="Remove photo"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={send} className="flex items-center gap-2 border-t border-border p-3">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={sending}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+          aria-label="Attach photo"
+        >
+          <ImagePlus className="h-4 w-4" />
+        </button>
         <input
           ref={inputRef}
           value={input}
@@ -459,11 +589,11 @@ function ChatPane({
         />
         <button
           type="submit"
-          disabled={sending || !input.trim()}
+          disabled={sending || (!input.trim() && !pendingFile)}
           className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:brightness-105 disabled:opacity-50"
           aria-label="Send"
         >
-          <Send className="h-4 w-4" />
+          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </button>
       </form>
     </div>
