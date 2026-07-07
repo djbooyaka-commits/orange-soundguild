@@ -247,7 +247,7 @@ function MessagesAuthed({ userId }: { userId: string }) {
             ) : (
               <ul className="space-y-1">
                 {accepted.map((f) => {
-                  const otherId = otherOf(f, user!.id);
+                  const otherId = otherOf(f, userId);
                   const p = profiles[otherId];
                   const active = activeId === otherId;
                   return (
