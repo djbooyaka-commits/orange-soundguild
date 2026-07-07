@@ -375,14 +375,14 @@ function renderWithLinks(text: string, mine: boolean) {
   const parts = text.split(URL_RE);
   return parts.map((part, i) => {
     if (i % 2 === 1) {
-      const safe = safeHttpUrl(part);
-      if (safe) {
-        const trimmed = part.slice(0, safe.length === part.length ? part.length : part.replace(TRAILING_PUNCT_RE, "").length);
+      const result = safeHttpUrl(part);
+      if (result.status === "ok") {
+        const trimmed = part.slice(0, result.url.length === part.length ? part.length : part.replace(TRAILING_PUNCT_RE, "").length);
         const tail = part.slice(trimmed.length);
         return (
           <span key={i}>
             <a
-              href={safe}
+              href={result.url}
               target="_blank"
               rel="noreferrer noopener nofollow ugc"
               className={`underline break-all ${mine ? "text-primary-foreground" : "text-primary"}`}
@@ -390,6 +390,20 @@ function renderWithLinks(text: string, mine: boolean) {
               {trimmed}
             </a>
             {tail}
+          </span>
+        );
+      }
+      if (result.status === "blocked") {
+        const trimmed = part.replace(TRAILING_PUNCT_RE, "");
+        return (
+          <span key={i} className="inline-flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-0.5 text-xs text-destructive">
+              <ShieldAlert className="h-3 w-3" />
+              Link blocked
+            </span>
+            <span className="text-xs text-muted-foreground" title={result.reason}>
+              {trimmed}
+            </span>
           </span>
         );
       }
@@ -405,10 +419,10 @@ function spotifyEmbeds(text: string): { key: string; type: string; id: string }[
   const seen = new Set<string>();
   const matches = text.match(URL_RE) ?? [];
   for (const raw of matches) {
-    const safe = safeHttpUrl(raw);
-    if (!safe) continue;
+    const result = safeHttpUrl(raw);
+    if (result.status !== "ok") continue;
     try {
-      const u = new URL(safe);
+      const u = new URL(result.url);
       if (u.hostname !== "open.spotify.com" && u.hostname !== "www.open.spotify.com") continue;
       const parts = u.pathname.split("/").filter(Boolean);
       // Support optional locale prefix like /intl-en/track/{id}
