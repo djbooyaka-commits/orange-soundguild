@@ -62,6 +62,42 @@ async function resolveAvatar(v: string | null | undefined): Promise<string> {
 
 function MessagesPage() {
   const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </main>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="mx-auto max-w-2xl px-4 py-24 text-center">
+          <h1 className="text-3xl font-bold">Sign in to message friends</h1>
+          <Link
+            to="/auth"
+            className="mt-6 inline-flex h-10 items-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground"
+          >
+            Sign in
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
+  // Auth is fully resolved and user is guaranteed non-null past this point.
+  // Remount the authed subtree on user change so no stale state can leak
+  // across sign-in/sign-out transitions.
+  return <MessagesAuthed key={user.id} userId={user.id} />;
+}
+
+function MessagesAuthed({ userId }: { userId: string }) {
   const search = Route.useSearch();
   const navigate = useNavigate();
 
@@ -69,18 +105,16 @@ function MessagesPage() {
   const [profiles, setProfiles] = useState<Record<string, ProfileMini & { avatar_signed: string }>>({});
   const [activeId, setActiveId] = useState<string | null>(search.with ?? null);
 
-  // Load friendships + profiles
   const loadAll = async () => {
-    if (!user) return;
     const { data: fs } = await supabase
       .from("friendships")
       .select("id, requester_id, addressee_id, status, created_at")
-      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+      .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
       .order("created_at", { ascending: false });
     const rows = (fs ?? []) as Friendship[];
     setFriendships(rows);
     const otherIds = Array.from(
-      new Set(rows.map((r) => (r.requester_id === user.id ? r.addressee_id : r.requester_id))),
+      new Set(rows.map((r) => (r.requester_id === userId ? r.addressee_id : r.requester_id))),
     );
     if (otherIds.length > 0) {
       const { data: ps } = await supabase
@@ -99,15 +133,13 @@ function MessagesPage() {
   };
 
   useEffect(() => {
-    if (!loading && user) void loadAll();
+    void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, loading]);
+  }, [userId]);
 
-  // Realtime friendships
   useEffect(() => {
-    if (!user) return;
     const ch = supabase
-      .channel(`friendships:${user.id}`)
+      .channel(`friendships:${userId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "friendships" },
@@ -118,31 +150,29 @@ function MessagesPage() {
       supabase.removeChannel(ch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [userId]);
 
   const accepted = useMemo(
     () => friendships.filter((f) => f.status === "accepted"),
     [friendships],
   );
   const incoming = useMemo(
-    () => friendships.filter((f) => f.status === "pending" && f.addressee_id === user?.id),
-    [friendships, user?.id],
+    () => friendships.filter((f) => f.status === "pending" && f.addressee_id === userId),
+    [friendships, userId],
   );
   const outgoing = useMemo(
-    () => friendships.filter((f) => f.status === "pending" && f.requester_id === user?.id),
-    [friendships, user?.id],
+    () => friendships.filter((f) => f.status === "pending" && f.requester_id === userId),
+    [friendships, userId],
   );
 
-  // Ensure active friend is a real accepted one
   useEffect(() => {
-    if (!user) return;
-    if (search.with && accepted.some((f) => otherOf(f, user.id) === search.with)) {
+    if (search.with && accepted.some((f) => otherOf(f, userId) === search.with)) {
       setActiveId(search.with);
     } else if (!activeId && accepted.length > 0) {
-      setActiveId(otherOf(accepted[0], user.id));
+      setActiveId(otherOf(accepted[0], userId));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accepted, search.with, user?.id]);
+  }, [accepted, search.with, userId]);
 
   const respond = async (id: string, next: "accepted" | "declined") => {
     if (next === "declined") {
@@ -155,32 +185,7 @@ function MessagesPage() {
     void loadAll();
   };
 
-  if (loading || !user) {
-    if (!loading && !user) {
-      return (
-        <div className="min-h-screen bg-background">
-          <Navbar />
-          <main className="mx-auto max-w-2xl px-4 py-24 text-center">
-            <h1 className="text-3xl font-bold">Sign in to message friends</h1>
-            <Link
-              to="/auth"
-              className="mt-6 inline-flex h-10 items-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground"
-            >
-              Sign in
-            </Link>
-          </main>
-        </div>
-      );
-    }
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="flex min-h-[60vh] items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </main>
-      </div>
-    );
-  }
+
 
 
   return (
