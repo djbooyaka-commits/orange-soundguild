@@ -1,11 +1,11 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Music2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { TermsContent } from "@/components/TermsContent";
+
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -32,16 +32,7 @@ function AuthPage() {
   const [pioneerCode, setPioneerCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [agreedTos, setAgreedTos] = useState(false);
-  const [tosScrolled, setTosScrolled] = useState(false);
-  const tosBoxRef = useRef<HTMLDivElement>(null);
 
-  const handleTosScroll = () => {
-    const el = tosBoxRef.current;
-    if (!el) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) {
-      setTosScrolled(true);
-    }
-  };
 
   useEffect(() => {
     if (!loading && user) {
@@ -180,6 +171,17 @@ function AuthPage() {
           {mode === "signin" ? "Sign in to upload and like tracks." : "Join to share your sound."}
         </p>
 
+        {mode === "signup" && (
+          <div className="mt-4 rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <div className="mb-1 font-semibold text-foreground">How to join:</div>
+            <ol className="list-decimal space-y-0.5 pl-4">
+              <li>Tick the box to agree to the Terms of Service.</li>
+              <li>Continue with Google, or enter an email and a password (6+ characters).</li>
+              <li>Tap <span className="font-medium text-foreground">Sign up</span>. If asked, confirm via the email we send you.</li>
+            </ol>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={onGoogle}
@@ -230,43 +232,21 @@ function AuthPage() {
             />
           )}
           {mode === "signup" && (
-            <div className="space-y-2">
-              <div className="text-xs font-medium text-foreground">
-                Please read the Terms of Service before agreeing:
-              </div>
-              <div
-                ref={tosBoxRef}
-                onScroll={handleTosScroll}
-                className="h-56 overflow-y-auto rounded-md border border-border bg-background/50 p-3"
-              >
-                <TermsContent />
-              </div>
-              {!tosScrolled && (
-                <div className="text-[11px] text-muted-foreground">
-                  Scroll to the bottom of the terms to enable agreement.
-                </div>
-              )}
-              <label
-                className={`flex items-start gap-2 text-xs ${
-                  tosScrolled ? "text-muted-foreground" : "text-muted-foreground/60"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={agreedTos}
-                  disabled={!tosScrolled}
-                  onChange={(e) => setAgreedTos(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-border accent-primary disabled:cursor-not-allowed"
-                />
-                <span>
-                  I have read and agree to the{" "}
-                  <Link to="/terms" target="_blank" className="font-medium text-primary hover:underline">
-                    Terms of Service
-                  </Link>
-                  .
-                </span>
-              </label>
-            </div>
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={agreedTos}
+                onChange={(e) => setAgreedTos(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+              />
+              <span>
+                I agree to the{" "}
+                <Link to="/terms" target="_blank" className="font-medium text-primary hover:underline">
+                  Terms of Service
+                </Link>
+                .
+              </span>
+            </label>
           )}
           <button
             type="submit"
