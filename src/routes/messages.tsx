@@ -417,19 +417,40 @@ function ChatPane({
       .in("id", unread);
   }, [messages, me]);
 
-  const pickFile = (f: File | null) => {
+  const pickFile = async (f: File | null) => {
     if (pendingPreview) URL.revokeObjectURL(pendingPreview);
     if (!f) {
       setPendingFile(null);
       setPendingPreview(null);
       return;
     }
-    if (!f.type.startsWith("image/")) {
-      toast.error("Please pick an image file.");
+    const isImg = f.type.startsWith("image/");
+    const isVid = f.type.startsWith("video/");
+    if (!isImg && !isVid) {
+      toast.error("Please pick an image or video file.");
       return;
     }
-    if (f.size > 10 * 1024 * 1024) {
-      toast.error("Image is too large (max 10MB).");
+    const maxBytes = isVid ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (f.size > maxBytes) {
+      toast.error(isVid ? "Video is too large (max 50MB)." : "Image is too large (max 10MB).");
+      return;
+    }
+    if (isVid) {
+      const url = URL.createObjectURL(f);
+      const duration = await new Promise<number>((resolve) => {
+        const v = document.createElement("video");
+        v.preload = "metadata";
+        v.onloadedmetadata = () => resolve(v.duration || 0);
+        v.onerror = () => resolve(0);
+        v.src = url;
+      });
+      if (!duration || duration > MAX_VIDEO_SECONDS + 0.5) {
+        URL.revokeObjectURL(url);
+        toast.error(`Videos must be ${MAX_VIDEO_SECONDS} seconds or less.`);
+        return;
+      }
+      setPendingFile(f);
+      setPendingPreview(url);
       return;
     }
     setPendingFile(f);
