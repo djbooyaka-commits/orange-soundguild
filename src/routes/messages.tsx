@@ -313,22 +313,49 @@ function otherOf(f: Friendship, me: string) {
   return f.requester_id === me ? f.addressee_id : f.requester_id;
 }
 
-const URL_RE = /(https?:\/\/[^\s]+)/gi;
+// Match bare http(s) URLs; trailing punctuation is trimmed before validation.
+const URL_RE = /(https?:\/\/[^\s<>"']+)/gi;
+const TRAILING_PUNCT_RE = /[)\].,;:!?'"]+$/;
+
+function safeHttpUrl(raw: string): string | null {
+  let candidate = raw.replace(TRAILING_PUNCT_RE, "");
+  // Balance trailing ')' only when the URL contains a matching '('
+  while (candidate.endsWith(")") && (candidate.match(/\(/g)?.length ?? 0) < (candidate.match(/\)/g)?.length ?? 0)) {
+    candidate = candidate.slice(0, -1);
+  }
+  try {
+    const u = new URL(candidate);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    if (!u.hostname) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 function renderWithLinks(text: string, mine: boolean) {
   const parts = text.split(URL_RE);
   return parts.map((part, i) => {
     if (i % 2 === 1) {
-      return (
-        <a
-          key={i}
-          href={part}
-          target="_blank"
-          rel="noreferrer noopener"
-          className={`underline break-all ${mine ? "text-primary-foreground" : "text-primary"}`}
-        >
-          {part}
-        </a>
-      );
+      const safe = safeHttpUrl(part);
+      if (safe) {
+        const trimmed = part.slice(0, safe.length === part.length ? part.length : part.replace(TRAILING_PUNCT_RE, "").length);
+        const tail = part.slice(trimmed.length);
+        return (
+          <span key={i}>
+            <a
+              href={safe}
+              target="_blank"
+              rel="noreferrer noopener nofollow ugc"
+              className={`underline break-all ${mine ? "text-primary-foreground" : "text-primary"}`}
+            >
+              {trimmed}
+            </a>
+            {tail}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
     }
     return <span key={i}>{part}</span>;
   });
