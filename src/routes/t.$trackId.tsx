@@ -56,6 +56,63 @@ function TrackPage() {
   const active = current?.id === trackId;
   const playing = active && isPlaying;
 
+  // Capture ?ref=CODE from track share links so signup credits the artist
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      const clean = ref.trim().toUpperCase().slice(0, 32);
+      if (clean) window.sessionStorage.setItem("ref_code", clean);
+    }
+  }, []);
+
+  // Fetch the artist's referral code so we can build a share link
+  const [artistRefCode, setArtistRefCode] = useState<string | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase
+        .from("tracks")
+        .select("profiles(referral_code)")
+        .eq("id", trackId)
+        .maybeSingle();
+      const code = (data as { profiles: { referral_code: string | null } | null } | null)
+        ?.profiles?.referral_code ?? null;
+      if (!cancel) setArtistRefCode(code);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [trackId]);
+
+  const shareUrl = useMemo(() => {
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://orange-soundguild.lovable.app";
+    return artistRefCode
+      ? `${origin}/t/${trackId}?ref=${artistRefCode}`
+      : `${origin}/t/${trackId}`;
+  }, [artistRefCode, trackId]);
+
+  const copyShare = () => {
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => toast.success("Share link copied"))
+      .catch(() => toast.error("Copy failed"));
+  };
+
+  const shareTrack = () => {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      navigator
+        .share({ title: track?.title ?? "Track", url: shareUrl })
+        .catch(() => {});
+    } else {
+      copyShare();
+    }
+  };
+
   if (!track) {
     return (
       <div className="min-h-screen bg-background pb-40">
