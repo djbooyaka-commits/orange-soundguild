@@ -708,6 +708,7 @@ export type Database = {
         }[]
       }
       get_total_users: { Args: never; Returns: number }
+      get_track_share_ref: { Args: { _track_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
