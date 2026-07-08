@@ -41,7 +41,8 @@ const getTabId = () => {
       : Math.random().toString(36).slice(2);
   return _tabId;
 };
-const PLAYBACK_CHANNEL = "soundwave:playback";
+// Cross-tab single-player coordination is intentionally disabled so that
+// separate logins in different tabs/windows/profiles can play at the same time.
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
