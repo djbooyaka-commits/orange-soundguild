@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Play, Pause, Heart, ArrowLeft, Share2, Copy } from "lucide-react";
+import { Play, Pause, Heart, ArrowLeft, Share2, Copy, Download, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { Comments } from "@/components/Comments";
@@ -8,8 +9,15 @@ import { useAllTracks } from "@/lib/feed";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
+import { BuyTrackDialog } from "@/components/BuyTrackDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { getTrackShareMeta } from "@/lib/api/track-share.functions";
+import {
+  getTrackForPurchase,
+  ownsTrack,
+  getTrackDownloadUrl,
+} from "@/lib/api/track-sales.functions";
 
 export const Route = createFileRoute("/t/$trackId")({
   loader: ({ params }) => getTrackShareMeta({ data: { trackId: params.trackId } }),
