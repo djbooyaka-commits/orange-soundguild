@@ -42,12 +42,15 @@ export async function signMany(items: { bucket: Bucket; path: string | null | un
 
   if (needServer.length > 0) {
     try {
-      const { results } = await signMediaUrls({
-        data: { items: needServer.map(({ bucket, path }) => ({ bucket, path })) },
-      });
-      needServer.forEach((it, i) => {
-        out[it.idx] = results[i]?.url ?? null;
-      });
+      for (let start = 0; start < needServer.length; start += 100) {
+        const batch = needServer.slice(start, start + 100);
+        const { results } = await signMediaUrls({
+          data: { items: batch.map(({ bucket, path }) => ({ bucket, path })) },
+        });
+        batch.forEach((it, i) => {
+          out[it.idx] = results[i]?.url ?? null;
+        });
+      }
     } catch {
       // Server error — leave as null so callers fall back to defaults.
     }
