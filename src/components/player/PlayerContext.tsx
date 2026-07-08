@@ -32,6 +32,10 @@ type PlayerState = {
 
 const Ctx = createContext<PlayerState | null>(null);
 
+const PLAYBACK_CHANNEL = "soundwave:playback";
+const PLAYBACK_STARTED_EVENT = "playback-started";
+const PLAYBACK_STORAGE_KEY = "soundwave:active-player";
+
 let _tabId: string | null = null;
 const getTabId = () => {
   if (_tabId) return _tabId;
@@ -41,8 +45,10 @@ const getTabId = () => {
       : Math.random().toString(36).slice(2);
   return _tabId;
 };
-// Cross-tab single-player coordination is intentionally disabled so that
-// separate logins in different tabs/windows/profiles can play at the same time.
+type PlaybackStartedPayload = {
+  playerId: string;
+  startedAt: number;
+};
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -52,7 +58,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const queueRef = useRef<Track[]>([]);
   const shuffleRef = useRef(false);
   const playedRef = useRef<Set<string>>(new Set());
-  const channelRef = useRef<BroadcastChannel | null>(null);
+  const localChannelRef = useRef<BroadcastChannel | null>(null);
+  const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -61,7 +68,29 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
 
   const announcePlaying = useCallback(() => {
-    // no-op: cross-tab pausing disabled so multiple accounts can play concurrently
+    const payload: PlaybackStartedPayload = {
+      playerId: getTabId(),
+      startedAt: Date.now(),
+    };
+
+    localChannelRef.current?.postMessage({
+      type: PLAYBACK_STARTED_EVENT,
+      payload,
+    });
+
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(PLAYBACK_STORAGE_KEY, JSON.stringify(payload));
+      } catch {
+        // Private browsing/storage restrictions should not break playback.
+      }
+    }
+
+    void realtimeChannelRef.current?.send({
+      type: "broadcast",
+      event: PLAYBACK_STARTED_EVENT,
+      payload,
+    });
   }, []);
 
   const pickNext = useCallback((q: Track[], curId: string | undefined): Track | undefined => {
@@ -161,9 +190,39 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
     const onPause = () => setIsPlaying(false);
 
-    // Cross-tab coordination intentionally disabled: allow multiple accounts to
-    // play music simultaneously in different tabs/windows.
-    const channel: BroadcastChannel | null = null;
+    const pauseForOtherPlayer = (payload: PlaybackStartedPayload | null | undefined) => {
+      if (!payload || payload.playerId === getTabId()) return;
+      if (!audio.paused) audio.pause();
+      setIsPlaying(false);
+    };
+
+    const onLocalMessage = (event: MessageEvent) => {
+      if (event.data?.type !== PLAYBACK_STARTED_EVENT) return;
+      pauseForOtherPlayer(event.data.payload as PlaybackStartedPayload | undefined);
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== PLAYBACK_STORAGE_KEY || !event.newValue) return;
+      try {
+        pauseForOtherPlayer(JSON.parse(event.newValue) as PlaybackStartedPayload);
+      } catch {
+        // Ignore malformed coordination payloads.
+      }
+    };
+
+    const localChannel =
+      typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(PLAYBACK_CHANNEL) : null;
+    localChannel?.addEventListener("message", onLocalMessage);
+    localChannelRef.current = localChannel;
+    window.addEventListener("storage", onStorage);
+
+    const realtimeChannel = supabase
+      .channel(PLAYBACK_CHANNEL, { config: { broadcast: { self: false } } })
+      .on("broadcast", { event: PLAYBACK_STARTED_EVENT }, ({ payload }) => {
+        pauseForOtherPlayer(payload as PlaybackStartedPayload | undefined);
+      })
+      .subscribe();
+    realtimeChannelRef.current = realtimeChannel;
 
     audio.addEventListener("timeupdate", onTimeWithCompletionCheck);
     audio.addEventListener("loadedmetadata", onMeta);
@@ -177,7 +236,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("ended", onEnd);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
-      void channel;
+      localChannel?.removeEventListener("message", onLocalMessage);
+      localChannel?.close();
+      localChannelRef.current = null;
+      window.removeEventListener("storage", onStorage);
+      void supabase.removeChannel(realtimeChannel);
+      realtimeChannelRef.current = null;
 
       audio.remove();
     };
