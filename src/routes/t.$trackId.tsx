@@ -123,7 +123,7 @@ function TrackPage() {
     const origin =
       typeof window !== "undefined"
         ? window.location.origin
-        : "https://orange-soundguild.lovable.app";
+        : "https://orangesoundguild.com";
     return artistRefCode
       ? `${origin}/t/${trackId}?ref=${artistRefCode}`
       : `${origin}/t/${trackId}`;
