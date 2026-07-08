@@ -161,25 +161,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
     const onPause = () => setIsPlaying(false);
 
-    // Cross-tab coordination: only one player may be active at once.
-    let channel: BroadcastChannel | null = null;
-    const handleForeignPlaying = (foreignTabId: string) => {
-      if (foreignTabId === getTabId()) return;
-      if (!audio.paused) audio.pause();
-    };
-    if (typeof BroadcastChannel !== "undefined") {
-      channel = new BroadcastChannel(PLAYBACK_CHANNEL);
-      channel.onmessage = (ev) => {
-        if (ev.data?.type === "playing") handleForeignPlaying(ev.data.tabId);
-      };
-      channelRef.current = channel;
-    }
-    const onStorage = (ev: StorageEvent) => {
-      if (ev.key === "soundwave:active-player" && ev.newValue) {
-        handleForeignPlaying(ev.newValue);
-      }
-    };
-    window.addEventListener("storage", onStorage);
+    // Cross-tab coordination intentionally disabled: allow multiple accounts to
+    // play music simultaneously in different tabs/windows.
+    const channel: BroadcastChannel | null = null;
 
     audio.addEventListener("timeupdate", onTimeWithCompletionCheck);
     audio.addEventListener("loadedmetadata", onMeta);
