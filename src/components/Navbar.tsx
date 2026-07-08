@@ -71,22 +71,8 @@ export function Navbar() {
               <MessageCircle className="h-4 w-4" /> Messages
             </Link>
           )}
-          {user && (
-            <Link to="/referrals" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
-              Referrals
-            </Link>
-          )}
-          {user && isArtist && (
-            <Link to="/royalties" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
-              Royalties
-            </Link>
-          )}
-          {user && isArtist && (
-            <Link to="/ads" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
-              Ads
-            </Link>
-          )}
           {isAdmin && (
+
             <Link to="/admin" className="whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-primary hover:bg-muted">
               Admin
             </Link>
@@ -160,6 +146,19 @@ export function Navbar() {
               <DropdownMenuItem asChild>
                 <Link to="/messages">Messages</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/referrals">Referrals</Link>
+              </DropdownMenuItem>
+              {isArtist && (
+                <DropdownMenuItem asChild>
+                  <Link to="/royalties">Royalties</Link>
+                </DropdownMenuItem>
+              )}
+              {isArtist && (
+                <DropdownMenuItem asChild>
+                  <Link to="/ads">Ads</Link>
+                </DropdownMenuItem>
+              )}
               {isAdmin && (
                 <>
                   <DropdownMenuSeparator />
@@ -198,16 +197,8 @@ export function Navbar() {
             <MessageCircle className="h-4 w-4" /> Messages
           </Link>
         )}
-        {user && (
-          <Link to="/referrals" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Referrals</Link>
-        )}
-        {user && isArtist && (
-          <Link to="/royalties" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Royalties</Link>
-        )}
-        {user && isArtist && (
-          <Link to="/ads" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Ads</Link>
-        )}
         {isAdmin && (
+
           <Link to="/admin" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-primary hover:bg-muted">Admin</Link>
         )}
       </nav>
