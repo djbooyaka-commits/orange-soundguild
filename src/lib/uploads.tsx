@@ -98,6 +98,30 @@ function incrementTrackPlays(tracks: Track[], trackId: string) {
 export function UploadsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [uploads, setUploads] = useState<Track[]>([]);
+  const [username, setUsername] = useState<string>(CURRENT_USER.name);
+
+  // Fetch the signed-in user's real username so uploaded tracks are attributed
+  // to it (matching what other views load via profiles.username). Without this
+  // the tracks fall back to the "You" placeholder, and album links from the
+  // own-profile page point at /album/You/<album> and 404.
+  useEffect(() => {
+    if (!user) {
+      setUsername(CURRENT_USER.name);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!cancelled && data?.username) setUsername(data.username);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Load this user's tracks from the database on auth changes.
   useEffect(() => {
@@ -134,7 +158,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
           const track: Track = {
             id: row.id,
             title: row.title,
-            artist: CURRENT_USER.name,
+            artist: username,
             cover,
             src,
             durationLabel: "—:—",
@@ -213,7 +237,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       const track: Track = {
         id: row.id,
         title,
-        artist: CURRENT_USER.name,
+        artist: username,
         cover: coverUrl ?? cover2,
         src: audioUrl,
         durationLabel: "—:—",
@@ -285,7 +309,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         created.push({
           id: row.id,
           title,
-          artist: CURRENT_USER.name,
+          artist: username,
           cover: sharedCoverUrl ?? cover2,
           src: audioUrl,
           durationLabel: "—:—",
