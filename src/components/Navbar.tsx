@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User } from "lucide-react";
+import { useEffect, useState } from "react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import defaultAvatar from "@/assets/avatar.jpg";
+
 
 
 export function Navbar() {
