@@ -124,7 +124,7 @@ function PaypalBuy({
 
   useEffect(() => {
     loadCfg()
-      .then((c) => setCfg({ clientId: c.clientId, mode: c.mode }))
+      .then((c: { clientId: string; mode: "sandbox" | "live" }) => setCfg({ clientId: c.clientId, mode: c.mode }))
       .catch(() => setCfg({ clientId: "", mode: "sandbox" }));
   }, [loadCfg]);
 
