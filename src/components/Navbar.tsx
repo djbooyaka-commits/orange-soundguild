@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User } from "lucide-react";
+import { useEffect, useState } from "react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,7 +14,20 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import defaultAvatar from "@/assets/avatar.jpg";
 
+
+
+const SIGNED_TTL = 60 * 60 * 24 * 365;
+
+async function resolveAvatar(value: string | null | undefined): Promise<string> {
+  if (!value) return defaultAvatar;
+  if (value.startsWith("http")) return value;
+  const { data } = await supabase.storage.from("avatars").createSignedUrl(value, SIGNED_TTL);
+  return data?.signedUrl ?? defaultAvatar;
+}
 
 export function Navbar() {
   const { user, signOut } = useAuth();
@@ -23,7 +36,31 @@ export function Navbar() {
   const isAdmin = useIsAdmin();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
+
+  useEffect(() => {
+    if (!user) {
+      setAvatarUrl(defaultAvatar);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const url = await resolveAvatar(data?.avatar_url);
+      if (!cancelled) setAvatarUrl(url);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   return (
+
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
         {user ? (
@@ -130,12 +167,19 @@ export function Navbar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="h-9 w-9 rounded-full bg-secondary text-center text-sm font-semibold uppercase leading-9 text-secondary-foreground"
+                className="h-9 w-9 overflow-hidden rounded-full bg-secondary"
                 aria-label="Account menu"
               >
-                {(user.email ?? "U").charAt(0)}
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src={avatarUrl} alt={(user.email ?? "User") + " avatar"} className="object-cover" />
+                  <AvatarFallback className="bg-secondary text-secondary-foreground">
+                    <User className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
               </button>
             </DropdownMenuTrigger>
+
+
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem asChild>
                 <Link to="/u/$handle" params={{ handle: CURRENT_USER.handle }}>Profile</Link>
