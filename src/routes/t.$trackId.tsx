@@ -22,15 +22,11 @@ export const Route = createFileRoute("/t/$trackId")({
     const description = meta?.title
       ? `Listen to "${trackTitle}" by ${artist} on Orange Sound Guild.`
       : `Stream this track on Orange Sound Guild — discover music from independent artists.`;
-    const image = meta?.coverUrl ?? null;
-    const imageType = image
-      ? /\.png(\?|$)/i.test(image)
-        ? "image/png"
-        : /\.webp(\?|$)/i.test(image)
-          ? "image/webp"
-          : /\.gif(\?|$)/i.test(image)
-            ? "image/gif"
-            : "image/jpeg"
+    // Stable, cookie-less image URL served from our own domain. Social card
+    // scrapers (X/Twitter especially) cache by URL, so the URL must not
+    // change across scrapes — signed Supabase URLs rotate on every fetch.
+    const image = meta?.coverUrl
+      ? `https://orangesoundguild.com/api/public/og/track/${params.trackId}`
       : null;
     return {
       meta: [
@@ -44,7 +40,7 @@ export const Route = createFileRoute("/t/$trackId")({
           ? [
               { property: "og:image", content: image },
               { property: "og:image:secure_url", content: image },
-              { property: "og:image:type", content: imageType as string },
+              { property: "og:image:type", content: "image/jpeg" },
               { property: "og:image:width", content: "1200" },
               { property: "og:image:height", content: "1200" },
               { property: "og:image:alt", content: `${trackTitle} cover art` },
