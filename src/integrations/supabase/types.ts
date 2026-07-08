@@ -545,6 +545,44 @@ export type Database = {
         }
         Relationships: []
       }
+      track_claim_codes: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          code: string
+          created_at: string
+          created_by: string
+          id: string
+          track_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          code: string
+          created_at?: string
+          created_by: string
+          id?: string
+          track_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_claim_codes_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       track_likes: {
         Row: {
           created_at: string
@@ -595,15 +633,58 @@ export type Database = {
           },
         ]
       }
+      track_purchases: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          price_cents: number
+          track_id: string
+          tx_ref: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method: string
+          price_cents?: number
+          track_id: string
+          tx_ref: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          price_cents?: number
+          track_id?: string
+          tx_ref?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_purchases_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tracks: {
         Row: {
           album: string | null
           audio_url: string
           cover_art_url: string | null
           created_at: string
+          download_lossless_url: string | null
           genre: string
           id: string
           plays_count: number
+          price_cents: number | null
           title: string
           track_number: number | null
           user_id: string
@@ -613,9 +694,11 @@ export type Database = {
           audio_url: string
           cover_art_url?: string | null
           created_at?: string
+          download_lossless_url?: string | null
           genre: string
           id?: string
           plays_count?: number
+          price_cents?: number | null
           title: string
           track_number?: number | null
           user_id: string
@@ -625,9 +708,11 @@ export type Database = {
           audio_url?: string
           cover_art_url?: string | null
           created_at?: string
+          download_lossless_url?: string | null
           genre?: string
           id?: string
           plays_count?: number
+          price_cents?: number | null
           title?: string
           track_number?: number | null
           user_id?: string
@@ -678,6 +763,7 @@ export type Database = {
       }
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
       claim_referral: { Args: { _code: string }; Returns: boolean }
+      claim_track_code: { Args: { _code: string }; Returns: string }
       create_pioneer_invite: { Args: never; Returns: string }
       credit_referral: {
         Args: {
@@ -687,7 +773,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      credit_track_sale: {
+        Args: { _amount_cents: number; _track_id: string }
+        Returns: undefined
+      }
       generate_referral_code: { Args: never; Returns: string }
+      generate_track_codes: {
+        Args: { _count: number; _track_id: string }
+        Returns: string[]
+      }
       get_monthly_listeners: { Args: { _artist_id: string }; Returns: number }
       get_my_referral_info: {
         Args: never

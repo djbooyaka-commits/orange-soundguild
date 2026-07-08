@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Play, Pause, Heart, ArrowLeft, Share2, Copy } from "lucide-react";
+import { Play, Pause, Heart, ArrowLeft, Share2, Copy, Download, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { Comments } from "@/components/Comments";
@@ -8,8 +9,15 @@ import { useAllTracks } from "@/lib/feed";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
+import { BuyTrackDialog } from "@/components/BuyTrackDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { getTrackShareMeta } from "@/lib/api/track-share.functions";
+import {
+  getTrackForPurchase,
+  ownsTrack,
+  getTrackDownloadUrl,
+} from "@/lib/api/track-sales.functions";
 
 export const Route = createFileRoute("/t/$trackId")({
   loader: ({ params }) => getTrackShareMeta({ data: { trackId: params.trackId } }),
@@ -115,6 +123,54 @@ function TrackPage() {
     };
   }, [trackId]);
 
+  // Sale info + ownership
+  const { user } = useAuth();
+  const loadSale = useServerFn(getTrackForPurchase);
+  const checkOwns = useServerFn(ownsTrack);
+  const getDownload = useServerFn(getTrackDownloadUrl);
+  const [priceCents, setPriceCents] = useState<number | null>(null);
+  const [owns, setOwns] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    let cancel = false;
+    loadSale({ data: { trackId } })
+      .then((r) => {
+        if (!cancel) setPriceCents(r.priceCents);
+      })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, [trackId, loadSale]);
+
+  useEffect(() => {
+    let cancel = false;
+    if (!user) { setOwns(false); return; }
+    checkOwns({ data: { trackId } })
+      .then((r) => { if (!cancel) setOwns(r.owns); })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, [trackId, user, checkOwns]);
+
+  const isOwnTrack = user && track && (track as { artist?: string }).artist && user.id ? false : false;
+  void isOwnTrack;
+
+  const doDownload = async () => {
+    setDownloading(true);
+    try {
+      const { url, filename } = await getDownload({ data: { trackId } });
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const shareUrl = useMemo(() => {
     const origin =
       typeof window !== "undefined"
@@ -197,7 +253,7 @@ function TrackPage() {
               {track.uploadedAt} · {track.plays.toLocaleString()} plays
             </p>
 
-            <div className="mt-auto flex items-center gap-3 pt-6">
+            <div className="mt-auto flex flex-wrap items-center gap-3 pt-6">
               <button
                 onClick={onPlay}
                 className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] transition hover:brightness-105"
@@ -232,6 +288,40 @@ function TrackPage() {
               >
                 <Copy className="h-4 w-4" />
               </button>
+
+              {owns ? (
+                <button
+                  onClick={doDownload}
+                  disabled={downloading}
+                  className="inline-flex h-12 items-center gap-2 rounded-full bg-green-600 px-5 text-sm font-semibold text-white transition hover:brightness-105 disabled:opacity-60"
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading ? "Preparing…" : "Download"}
+                </button>
+              ) : priceCents && priceCents >= 100 ? (
+                <BuyTrackDialog
+                  trackId={track.id}
+                  priceCents={priceCents}
+                  title={track.title}
+                  onOwned={() => setOwns(true)}
+                >
+                  <button className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:brightness-105">
+                    <ShoppingCart className="h-4 w-4" />
+                    Buy ${(priceCents / 100).toFixed(2)}
+                  </button>
+                </BuyTrackDialog>
+              ) : (
+                <BuyTrackDialog
+                  trackId={track.id}
+                  priceCents={priceCents ?? 0}
+                  title={track.title}
+                  onOwned={() => setOwns(true)}
+                >
+                  <button className="inline-flex h-12 items-center gap-1.5 rounded-full border border-border px-5 text-sm font-medium transition hover:border-primary/40">
+                    Have a code?
+                  </button>
+                </BuyTrackDialog>
+              )}
             </div>
           </div>
         </section>

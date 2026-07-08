@@ -34,7 +34,14 @@ type AlbumArgs = {
   tracks: AlbumTrackInput[];
   coverFile?: File | null;
 };
-type UpdateArgs = { id: string; title: string; genre: string; coverFile?: File | null };
+type UpdateArgs = {
+  id: string;
+  title: string;
+  genre: string;
+  coverFile?: File | null;
+  priceCents?: number | null;
+  losslessFile?: File | null;
+};
 
 type UploadsState = {
   uploads: Track[];
@@ -359,14 +366,14 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
   );
 
   const updateUpload = useCallback(
-    async ({ id, title, genre, coverFile }: UpdateArgs) => {
+    async ({ id, title, genre, coverFile, priceCents, losslessFile }: UpdateArgs) => {
       const { data: userData, error: userErr } = await supabase.auth.getUser();
       if (userErr || !userData.user) throw new Error("You need to be signed in.");
       const userId = userData.user.id;
 
       const { data: row, error: fetchErr } = await supabase
         .from("tracks")
-        .select("cover_art_url")
+        .select("cover_art_url, download_lossless_url")
         .eq("id", id)
         .maybeSingle();
       if (fetchErr) throw fetchErr;
@@ -383,17 +390,49 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         newCoverPath = path;
       }
 
-      const patch: { title: string; genre: string; cover_art_url?: string } = { title, genre };
+      let newLosslessPath: string | null | undefined = undefined;
+      if (losslessFile) {
+        const stamp = Date.now();
+        const safe = losslessFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${userId}/lossless-${stamp}-${safe}`;
+        const { error: upErr } = await supabase.storage
+          .from("audio")
+          .upload(path, losslessFile, {
+            contentType: losslessFile.type || "audio/wav",
+            upsert: false,
+          });
+        if (upErr) throw upErr;
+        newLosslessPath = path;
+      }
+
+      const patch: {
+        title: string;
+        genre: string;
+        cover_art_url?: string;
+        price_cents?: number | null;
+        download_lossless_url?: string;
+      } = { title, genre };
       if (newCoverPath) patch.cover_art_url = newCoverPath;
+      if (priceCents !== undefined) patch.price_cents = priceCents;
+      if (newLosslessPath) patch.download_lossless_url = newLosslessPath;
 
       const { error: updErr } = await supabase.from("tracks").update(patch).eq("id", id);
       if (updErr) throw updErr;
 
-      // Remove old cover file if replaced
       if (newCoverPath && row?.cover_art_url) {
         const oldPath = storagePathFromValue("covers", row.cover_art_url);
         if (oldPath && !oldPath.startsWith("http")) {
           await supabase.storage.from("covers").remove([oldPath]);
+        }
+      }
+      if (newLosslessPath) {
+        const rowExt = row as { download_lossless_url?: string | null };
+        const oldLossless = rowExt?.download_lossless_url ?? null;
+        if (oldLossless) {
+          const oldPath = storagePathFromValue("audio", oldLossless);
+          if (oldPath && !oldPath.startsWith("http")) {
+            await supabase.storage.from("audio").remove([oldPath]);
+          }
         }
       }
 
