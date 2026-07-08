@@ -7,6 +7,31 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/api/public/og/track/$trackId")({
   server: {
     handlers: {
+      HEAD: async ({ params }) => {
+        const trackId = params.trackId;
+        if (!/^[0-9a-f-]{36}$/i.test(trackId)) {
+          return new Response(null, { status: 404 });
+        }
+
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: row } = await supabaseAdmin
+          .from("tracks")
+          .select("cover_art_url")
+          .eq("id", trackId)
+          .maybeSingle();
+
+        if (!row?.cover_art_url) {
+          return new Response(null, { status: 404 });
+        }
+
+        return new Response(null, {
+          status: 200,
+          headers: {
+            "Content-Type": "image/jpeg",
+            "Cache-Control": "public, max-age=86400, s-maxage=86400, immutable",
+          },
+        });
+      },
       GET: async ({ params }) => {
         const trackId = params.trackId;
         if (!/^[0-9a-f-]{36}$/i.test(trackId)) {
