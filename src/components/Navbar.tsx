@@ -19,12 +19,24 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
+        {user ? (
+          <FriendRequestsBell />
+        ) : (
+          <button
+            type="button"
+            aria-label="Notifications"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <Bell className="h-4 w-4" />
+          </button>
+        )}
         <Link to="/" className="flex shrink-0 items-center gap-2 font-bold tracking-tight">
           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Music2 className="h-4 w-4" />
           </span>
           <span className="hidden whitespace-nowrap text-lg xl:inline">Orange Sound Guild</span>
         </Link>
+
 
         <nav className="hidden min-w-0 items-center gap-1 text-sm text-muted-foreground md:flex">
           <Link to="/" className="whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-foreground hover:bg-muted" activeOptions={{ exact: true }}>
@@ -96,17 +108,7 @@ export function Navbar() {
         </div>
 
 
-        {user ? (
-          <FriendRequestsBell />
-        ) : (
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="hidden h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:flex"
-          >
-            <Bell className="h-4 w-4" />
-          </button>
-        )}
+
 
 
         {(!user || canUpload) && (
