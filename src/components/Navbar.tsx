@@ -146,6 +146,19 @@ export function Navbar() {
               <DropdownMenuItem asChild>
                 <Link to="/messages">Messages</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/referrals">Referrals</Link>
+              </DropdownMenuItem>
+              {isArtist && (
+                <DropdownMenuItem asChild>
+                  <Link to="/royalties">Royalties</Link>
+                </DropdownMenuItem>
+              )}
+              {isArtist && (
+                <DropdownMenuItem asChild>
+                  <Link to="/ads">Ads</Link>
+                </DropdownMenuItem>
+              )}
               {isAdmin && (
                 <>
                   <DropdownMenuSeparator />
