@@ -187,6 +187,22 @@ function TrackPage() {
                 {like.count}
               </button>
               <AddToPlaylistMenu trackId={track.id} trackTitle={track.title} variant="inline" />
+              <button
+                onClick={shareTrack}
+                className="inline-flex h-12 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium transition hover:border-primary/40"
+                title={shareUrl}
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+              <button
+                onClick={copyShare}
+                aria-label="Copy share link"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border text-sm transition hover:border-primary/40"
+                title={shareUrl}
+              >
+                <Copy className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </section>
