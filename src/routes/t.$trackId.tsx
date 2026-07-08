@@ -9,12 +9,20 @@ import { usePlayer } from "@/components/player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
 import { supabase } from "@/integrations/supabase/client";
+import { getTrackShareMeta } from "@/lib/api/track-share.functions";
 
 export const Route = createFileRoute("/t/$trackId")({
-  head: ({ params }) => {
+  loader: ({ params }) => getTrackShareMeta({ data: { trackId: params.trackId } }),
+  head: ({ params, loaderData }) => {
     const url = `https://orange-soundguild.lovable.app/t/${params.trackId}`;
-    const title = `Track on Orange Sound Guild`;
-    const description = `Stream this track on Orange Sound Guild — discover music from independent artists.`;
+    const meta = loaderData ?? null;
+    const trackTitle = meta?.title ?? "Track";
+    const artist = meta?.artist ?? "Independent artist";
+    const title = `${trackTitle} — ${artist} · Orange Sound Guild`;
+    const description = meta?.title
+      ? `Listen to "${trackTitle}" by ${artist} on Orange Sound Guild.`
+      : `Stream this track on Orange Sound Guild — discover music from independent artists.`;
+    const image = meta?.coverUrl ?? null;
     return {
       meta: [
         { title },
@@ -23,6 +31,17 @@ export const Route = createFileRoute("/t/$trackId")({
         { property: "og:description", content: description },
         { property: "og:type", content: "music.song" },
         { property: "og:url", content: url },
+        ...(image
+          ? [
+              { property: "og:image", content: image },
+              { property: "og:image:width", content: "1200" },
+              { property: "og:image:height", content: "1200" },
+              { name: "twitter:card", content: "summary_large_image" },
+              { name: "twitter:title", content: title },
+              { name: "twitter:description", content: description },
+              { name: "twitter:image", content: image },
+            ]
+          : [{ name: "twitter:card", content: "summary" }]),
       ],
       links: [{ rel: "canonical", href: url }],
       scripts: [
@@ -32,6 +51,9 @@ export const Route = createFileRoute("/t/$trackId")({
             "@context": "https://schema.org",
             "@type": "MusicRecording",
             url,
+            name: meta?.title ?? undefined,
+            byArtist: meta?.artist ? { "@type": "MusicGroup", name: meta.artist } : undefined,
+            image: image ?? undefined,
             identifier: params.trackId,
           }),
         },
