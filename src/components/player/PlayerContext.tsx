@@ -177,11 +177,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("ended", onEnd);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
-      window.removeEventListener("storage", onStorage);
-      if (channel) {
-        channel.close();
-        channelRef.current = null;
-      }
+      void channel;
+
       audio.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
