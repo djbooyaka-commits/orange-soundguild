@@ -61,12 +61,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
 
   const announcePlaying = useCallback(() => {
-    channelRef.current?.postMessage({ type: "playing", tabId: getTabId() });
-    try {
-      localStorage.setItem("soundwave:active-player", getTabId());
-    } catch {
-      // ignore
-    }
+    // no-op: cross-tab pausing disabled so multiple accounts can play concurrently
   }, []);
 
   const pickNext = useCallback((q: Track[], curId: string | undefined): Track | undefined => {
