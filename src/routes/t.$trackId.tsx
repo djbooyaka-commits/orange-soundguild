@@ -253,7 +253,7 @@ function TrackPage() {
               {track.uploadedAt} · {track.plays.toLocaleString()} plays
             </p>
 
-            <div className="mt-auto flex items-center gap-3 pt-6">
+            <div className="mt-auto flex flex-wrap items-center gap-3 pt-6">
               <button
                 onClick={onPlay}
                 className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] transition hover:brightness-105"
