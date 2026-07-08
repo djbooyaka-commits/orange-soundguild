@@ -34,7 +34,14 @@ type AlbumArgs = {
   tracks: AlbumTrackInput[];
   coverFile?: File | null;
 };
-type UpdateArgs = { id: string; title: string; genre: string; coverFile?: File | null };
+type UpdateArgs = {
+  id: string;
+  title: string;
+  genre: string;
+  coverFile?: File | null;
+  priceCents?: number | null;
+  losslessFile?: File | null;
+};
 
 type UploadsState = {
   uploads: Track[];
