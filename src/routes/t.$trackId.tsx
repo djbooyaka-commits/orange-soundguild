@@ -123,6 +123,54 @@ function TrackPage() {
     };
   }, [trackId]);
 
+  // Sale info + ownership
+  const { user } = useAuth();
+  const loadSale = useServerFn(getTrackForPurchase);
+  const checkOwns = useServerFn(ownsTrack);
+  const getDownload = useServerFn(getTrackDownloadUrl);
+  const [priceCents, setPriceCents] = useState<number | null>(null);
+  const [owns, setOwns] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    let cancel = false;
+    loadSale({ data: { trackId } })
+      .then((r) => {
+        if (!cancel) setPriceCents(r.priceCents);
+      })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, [trackId, loadSale]);
+
+  useEffect(() => {
+    let cancel = false;
+    if (!user) { setOwns(false); return; }
+    checkOwns({ data: { trackId } })
+      .then((r) => { if (!cancel) setOwns(r.owns); })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, [trackId, user, checkOwns]);
+
+  const isOwnTrack = user && track && (track as { artist?: string }).artist && user.id ? false : false;
+  void isOwnTrack;
+
+  const doDownload = async () => {
+    setDownloading(true);
+    try {
+      const { url, filename } = await getDownload({ data: { trackId } });
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const shareUrl = useMemo(() => {
     const origin =
       typeof window !== "undefined"
