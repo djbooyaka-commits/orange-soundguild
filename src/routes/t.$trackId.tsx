@@ -72,14 +72,12 @@ function TrackPage() {
   useEffect(() => {
     let cancel = false;
     (async () => {
-      const { data } = await supabase
-        .from("tracks")
-        .select("profiles(referral_code)")
-        .eq("id", trackId)
-        .maybeSingle();
-      const code = (data as { profiles: { referral_code: string | null } | null } | null)
-        ?.profiles?.referral_code ?? null;
-      if (!cancel) setArtistRefCode(code);
+      // referral_code is not readable directly from profiles (private column).
+      // Use the SECURITY DEFINER RPC that returns only this track's artist code.
+      const { data } = await supabase.rpc("get_track_share_ref", {
+        _track_id: trackId,
+      });
+      if (!cancel) setArtistRefCode((data as string | null) ?? null);
     })();
     return () => {
       cancel = true;
