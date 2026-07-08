@@ -1,12 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { Play, Pause, Heart, ArrowLeft } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Play, Pause, Heart, ArrowLeft, Share2, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { Comments } from "@/components/Comments";
 import { useAllTracks } from "@/lib/feed";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/t/$trackId")({
   head: ({ params }) => {
