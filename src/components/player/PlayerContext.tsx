@@ -41,7 +41,8 @@ const getTabId = () => {
       : Math.random().toString(36).slice(2);
   return _tabId;
 };
-const PLAYBACK_CHANNEL = "soundwave:playback";
+// Cross-tab single-player coordination is intentionally disabled so that
+// separate logins in different tabs/windows/profiles can play at the same time.
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -60,12 +61,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
 
   const announcePlaying = useCallback(() => {
-    channelRef.current?.postMessage({ type: "playing", tabId: getTabId() });
-    try {
-      localStorage.setItem("soundwave:active-player", getTabId());
-    } catch {
-      // ignore
-    }
+    // no-op: cross-tab pausing disabled so multiple accounts can play concurrently
   }, []);
 
   const pickNext = useCallback((q: Track[], curId: string | undefined): Track | undefined => {
@@ -165,25 +161,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
     const onPause = () => setIsPlaying(false);
 
-    // Cross-tab coordination: only one player may be active at once.
-    let channel: BroadcastChannel | null = null;
-    const handleForeignPlaying = (foreignTabId: string) => {
-      if (foreignTabId === getTabId()) return;
-      if (!audio.paused) audio.pause();
-    };
-    if (typeof BroadcastChannel !== "undefined") {
-      channel = new BroadcastChannel(PLAYBACK_CHANNEL);
-      channel.onmessage = (ev) => {
-        if (ev.data?.type === "playing") handleForeignPlaying(ev.data.tabId);
-      };
-      channelRef.current = channel;
-    }
-    const onStorage = (ev: StorageEvent) => {
-      if (ev.key === "soundwave:active-player" && ev.newValue) {
-        handleForeignPlaying(ev.newValue);
-      }
-    };
-    window.addEventListener("storage", onStorage);
+    // Cross-tab coordination intentionally disabled: allow multiple accounts to
+    // play music simultaneously in different tabs/windows.
+    const channel: BroadcastChannel | null = null;
 
     audio.addEventListener("timeupdate", onTimeWithCompletionCheck);
     audio.addEventListener("loadedmetadata", onMeta);
@@ -197,11 +177,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("ended", onEnd);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
-      window.removeEventListener("storage", onStorage);
-      if (channel) {
-        channel.close();
-        channelRef.current = null;
-      }
+      void channel;
+
       audio.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
