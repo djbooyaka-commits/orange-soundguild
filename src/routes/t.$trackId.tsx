@@ -1,12 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { Play, Pause, Heart, ArrowLeft } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Play, Pause, Heart, ArrowLeft, Share2, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { Comments } from "@/components/Comments";
 import { useAllTracks } from "@/lib/feed";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/t/$trackId")({
   head: ({ params }) => {
@@ -53,6 +55,63 @@ function TrackPage() {
   const like = useTrackLike(trackId);
   const active = current?.id === trackId;
   const playing = active && isPlaying;
+
+  // Capture ?ref=CODE from track share links so signup credits the artist
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      const clean = ref.trim().toUpperCase().slice(0, 32);
+      if (clean) window.sessionStorage.setItem("ref_code", clean);
+    }
+  }, []);
+
+  // Fetch the artist's referral code so we can build a share link
+  const [artistRefCode, setArtistRefCode] = useState<string | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase
+        .from("tracks")
+        .select("profiles(referral_code)")
+        .eq("id", trackId)
+        .maybeSingle();
+      const code = (data as { profiles: { referral_code: string | null } | null } | null)
+        ?.profiles?.referral_code ?? null;
+      if (!cancel) setArtistRefCode(code);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [trackId]);
+
+  const shareUrl = useMemo(() => {
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://orange-soundguild.lovable.app";
+    return artistRefCode
+      ? `${origin}/t/${trackId}?ref=${artistRefCode}`
+      : `${origin}/t/${trackId}`;
+  }, [artistRefCode, trackId]);
+
+  const copyShare = () => {
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => toast.success("Share link copied"))
+      .catch(() => toast.error("Copy failed"));
+  };
+
+  const shareTrack = () => {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      navigator
+        .share({ title: track?.title ?? "Track", url: shareUrl })
+        .catch(() => {});
+    } else {
+      copyShare();
+    }
+  };
 
   if (!track) {
     return (
@@ -128,6 +187,22 @@ function TrackPage() {
                 {like.count}
               </button>
               <AddToPlaylistMenu trackId={track.id} trackTitle={track.title} variant="inline" />
+              <button
+                onClick={shareTrack}
+                className="inline-flex h-12 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium transition hover:border-primary/40"
+                title={shareUrl}
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+              <button
+                onClick={copyShare}
+                aria-label="Copy share link"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border text-sm transition hover:border-primary/40"
+                title={shareUrl}
+              >
+                <Copy className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </section>
