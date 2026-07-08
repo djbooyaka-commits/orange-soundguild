@@ -167,7 +167,7 @@ export function Navbar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="h-9 w-9 rounded-full bg-secondary text-center text-sm font-semibold uppercase leading-9 text-secondary-foreground"
+                className="h-9 w-9 overflow-hidden rounded-full bg-secondary"
                 aria-label="Account menu"
               >
                 <Avatar className="h-9 w-9">
@@ -178,6 +178,7 @@ export function Navbar() {
                 </Avatar>
               </button>
             </DropdownMenuTrigger>
+
 
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem asChild>
