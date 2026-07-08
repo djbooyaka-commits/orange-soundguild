@@ -14,7 +14,7 @@ import { getTrackShareMeta } from "@/lib/api/track-share.functions";
 export const Route = createFileRoute("/t/$trackId")({
   loader: ({ params }) => getTrackShareMeta({ data: { trackId: params.trackId } }),
   head: ({ params, loaderData }) => {
-    const url = `https://orange-soundguild.lovable.app/t/${params.trackId}`;
+    const url = `https://orangesoundguild.com/t/${params.trackId}`;
     const meta = loaderData ?? null;
     const trackTitle = meta?.title ?? "Track";
     const artist = meta?.artist ?? "Independent artist";
@@ -23,6 +23,15 @@ export const Route = createFileRoute("/t/$trackId")({
       ? `Listen to "${trackTitle}" by ${artist} on Orange Sound Guild.`
       : `Stream this track on Orange Sound Guild — discover music from independent artists.`;
     const image = meta?.coverUrl ?? null;
+    const imageType = image
+      ? /\.png(\?|$)/i.test(image)
+        ? "image/png"
+        : /\.webp(\?|$)/i.test(image)
+          ? "image/webp"
+          : /\.gif(\?|$)/i.test(image)
+            ? "image/gif"
+            : "image/jpeg"
+      : null;
     return {
       meta: [
         { title },
@@ -34,12 +43,16 @@ export const Route = createFileRoute("/t/$trackId")({
         ...(image
           ? [
               { property: "og:image", content: image },
+              { property: "og:image:secure_url", content: image },
+              { property: "og:image:type", content: imageType as string },
               { property: "og:image:width", content: "1200" },
               { property: "og:image:height", content: "1200" },
+              { property: "og:image:alt", content: `${trackTitle} cover art` },
               { name: "twitter:card", content: "summary_large_image" },
               { name: "twitter:title", content: title },
               { name: "twitter:description", content: description },
               { name: "twitter:image", content: image },
+              { name: "twitter:image:alt", content: `${trackTitle} cover art` },
             ]
           : [{ name: "twitter:card", content: "summary" }]),
       ],
@@ -110,7 +123,7 @@ function TrackPage() {
     const origin =
       typeof window !== "undefined"
         ? window.location.origin
-        : "https://orange-soundguild.lovable.app";
+        : "https://orangesoundguild.com";
     return artistRefCode
       ? `${origin}/t/${trackId}?ref=${artistRefCode}`
       : `${origin}/t/${trackId}`;
