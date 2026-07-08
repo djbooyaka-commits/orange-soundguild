@@ -134,23 +134,40 @@ export function Navbar() {
         )}
 
         {user ? (
-          <>
-            <Link
-              to="/u/$handle"
-              params={{ handle: CURRENT_USER.handle }}
-              className="h-9 w-9 rounded-full bg-secondary text-center text-sm font-semibold uppercase leading-9 text-secondary-foreground"
-              aria-label="Your profile"
-            >
-              {(user.email ?? "U").charAt(0)}
-            </Link>
-            <button
-              onClick={() => signOut()}
-              className="hidden h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:flex"
-              aria-label="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="h-9 w-9 rounded-full bg-secondary text-center text-sm font-semibold uppercase leading-9 text-secondary-foreground"
+                aria-label="Account menu"
+              >
+                {(user.email ?? "U").charAt(0)}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem asChild>
+                <Link to="/u/$handle" params={{ handle: CURRENT_USER.handle }}>Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/library">Library</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/messages">Messages</Link>
+              </DropdownMenuItem>
+              {isAdmin && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="font-medium text-primary">Admin</Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => signOut()}>
+                <LogOut className="mr-2 h-4 w-4" /> Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
         ) : (
           <Link
             to="/auth"
