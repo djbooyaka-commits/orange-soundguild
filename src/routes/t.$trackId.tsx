@@ -288,6 +288,40 @@ function TrackPage() {
               >
                 <Copy className="h-4 w-4" />
               </button>
+
+              {owns ? (
+                <button
+                  onClick={doDownload}
+                  disabled={downloading}
+                  className="inline-flex h-12 items-center gap-2 rounded-full bg-green-600 px-5 text-sm font-semibold text-white transition hover:brightness-105 disabled:opacity-60"
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading ? "Preparing…" : "Download"}
+                </button>
+              ) : priceCents && priceCents >= 100 ? (
+                <BuyTrackDialog
+                  trackId={track.id}
+                  priceCents={priceCents}
+                  title={track.title}
+                  onOwned={() => setOwns(true)}
+                >
+                  <button className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:brightness-105">
+                    <ShoppingCart className="h-4 w-4" />
+                    Buy ${(priceCents / 100).toFixed(2)}
+                  </button>
+                </BuyTrackDialog>
+              ) : (
+                <BuyTrackDialog
+                  trackId={track.id}
+                  priceCents={priceCents ?? 0}
+                  title={track.title}
+                  onOwned={() => setOwns(true)}
+                >
+                  <button className="inline-flex h-12 items-center gap-1.5 rounded-full border border-border px-5 text-sm font-medium transition hover:border-primary/40">
+                    Have a code?
+                  </button>
+                </BuyTrackDialog>
+              )}
             </div>
           </div>
         </section>
