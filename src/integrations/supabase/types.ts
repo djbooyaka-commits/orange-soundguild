@@ -677,6 +677,7 @@ export type Database = {
         Returns: undefined
       }
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      claim_referral: { Args: { _code: string }; Returns: boolean }
       create_pioneer_invite: { Args: never; Returns: string }
       credit_referral: {
         Args: {
