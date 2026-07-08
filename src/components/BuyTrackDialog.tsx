@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useServerFn } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import QRCode from "qrcode";
 import { Loader2, ShoppingCart, Ticket, ExternalLink, Copy, Sparkles, CheckCircle2 } from "lucide-react";
