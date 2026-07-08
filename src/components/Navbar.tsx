@@ -20,6 +20,15 @@ import defaultAvatar from "@/assets/avatar.jpg";
 
 
 
+const SIGNED_TTL = 60 * 60 * 24 * 365;
+
+async function resolveAvatar(value: string | null | undefined): Promise<string> {
+  if (!value) return defaultAvatar;
+  if (value.startsWith("http")) return value;
+  const { data } = await supabase.storage.from("avatars").createSignedUrl(value, SIGNED_TTL);
+  return data?.signedUrl ?? defaultAvatar;
+}
+
 export function Navbar() {
   const { user, signOut } = useAuth();
   const { isArtist, accountType } = useAccountType();
@@ -27,7 +36,31 @@ export function Navbar() {
   const isAdmin = useIsAdmin();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
+
+  useEffect(() => {
+    if (!user) {
+      setAvatarUrl(defaultAvatar);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const url = await resolveAvatar(data?.avatar_url);
+      if (!cancelled) setAvatarUrl(url);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   return (
+
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
         {user ? (
