@@ -158,7 +158,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
           const track: Track = {
             id: row.id,
             title: row.title,
-            artist: CURRENT_USER.name,
+            artist: username,
             cover,
             src,
             durationLabel: "—:—",
@@ -237,7 +237,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       const track: Track = {
         id: row.id,
         title,
-        artist: CURRENT_USER.name,
+        artist: username,
         cover: coverUrl ?? cover2,
         src: audioUrl,
         durationLabel: "—:—",
@@ -309,7 +309,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         created.push({
           id: row.id,
           title,
-          artist: CURRENT_USER.name,
+          artist: username,
           cover: sharedCoverUrl ?? cover2,
           src: audioUrl,
           durationLabel: "—:—",
