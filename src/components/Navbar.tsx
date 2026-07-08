@@ -170,9 +170,15 @@ export function Navbar() {
                 className="h-9 w-9 rounded-full bg-secondary text-center text-sm font-semibold uppercase leading-9 text-secondary-foreground"
                 aria-label="Account menu"
               >
-                {(user.email ?? "U").charAt(0)}
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src={avatarUrl} alt={(user.email ?? "User") + " avatar"} className="object-cover" />
+                  <AvatarFallback className="bg-secondary text-secondary-foreground">
+                    <User className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
               </button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem asChild>
                 <Link to="/u/$handle" params={{ handle: CURRENT_USER.handle }}>Profile</Link>
