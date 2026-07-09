@@ -13,6 +13,8 @@ import type { Track } from "@/lib/tracks";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
+import { useAccountType } from "@/hooks/useAccountType";
 import {
   listMyTrackCodes,
   generateTrackCodes,
