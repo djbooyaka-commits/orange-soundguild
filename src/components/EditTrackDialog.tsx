@@ -13,6 +13,8 @@ import type { Track } from "@/lib/tracks";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
+import { useAccountType } from "@/hooks/useAccountType";
 import {
   listMyTrackCodes,
   generateTrackCodes,
@@ -42,6 +44,7 @@ export function EditTrackDialog({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(track.title);
   const [genre, setGenre] = useState(track.genre);
+  const { isArtist, isPioneer } = useAccountType();
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [priceInput, setPriceInput] = useState<string>("");
   const [forSale, setForSale] = useState(false);
@@ -98,15 +101,17 @@ export function EditTrackDialog({
     e.preventDefault();
     if (!title.trim()) return;
     let priceCents: number | null | undefined = undefined;
-    if (forSale) {
-      const p = Math.round(Number(priceInput) * 100);
-      if (!Number.isFinite(p) || p < 100) {
-        toast.error("Price must be at least $1.00");
-        return;
+    if (isArtist) {
+      if (forSale) {
+        const p = Math.round(Number(priceInput) * 100);
+        if (!Number.isFinite(p) || p < 100) {
+          toast.error("Price must be at least $1.00");
+          return;
+        }
+        priceCents = p;
+      } else {
+        priceCents = null;
       }
-      priceCents = p;
-    } else {
-      priceCents = null;
     }
     setBusy(true);
     try {
@@ -227,25 +232,39 @@ export function EditTrackDialog({
             </button>
           </div>
 
-          {/* Sell this track */}
+          {/* Sell this track — Artist accounts only */}
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Music2 className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold">Sell this track</span>
               </div>
-              <label className="inline-flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={forSale}
-                  onChange={(e) => setForSale(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                <span className="text-xs text-muted-foreground">For sale</span>
-              </label>
+              {isArtist ? (
+                <label className="inline-flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={forSale}
+                    onChange={(e) => setForSale(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-xs text-muted-foreground">For sale</span>
+                </label>
+              ) : isPioneer ? (
+                <Link to="/upgrade" className="text-xs font-medium text-primary hover:underline">
+                  Upgrade to Artist
+                </Link>
+              ) : null}
             </div>
 
-            {forSale && (
+            {!isArtist && (
+              <p className="text-xs text-muted-foreground">
+                {isPioneer
+                  ? "Pioneer accounts can give away free download codes, but selling tracks requires an Artist account."
+                  : "Selling tracks is available on Artist accounts."}
+              </p>
+            )}
+
+            {isArtist && forSale && (
               <>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Price (USD, min $1.00)</label>
