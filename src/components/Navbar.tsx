@@ -193,7 +193,11 @@ export function Navbar() {
               <DropdownMenuItem asChild>
                 <Link to="/referrals">Referrals</Link>
               </DropdownMenuItem>
-              {isArtist && (
+              {accountType === "superfan" && (
+                <DropdownMenuItem asChild>
+                  <Link to="/curator">Curator</Link>
+                </DropdownMenuItem>
+              )}
                 <DropdownMenuItem asChild>
                   <Link to="/royalties">Royalties</Link>
                 </DropdownMenuItem>
