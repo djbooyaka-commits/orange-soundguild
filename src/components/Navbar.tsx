@@ -6,6 +6,7 @@ import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { FriendRequestsBell } from "./FriendRequestsBell";
 import {
   DropdownMenu,
@@ -34,6 +35,7 @@ export function Navbar() {
   const { isArtist, accountType } = useAccountType();
   const canUpload = isArtist || accountType === "pioneer";
   const isAdmin = useIsAdmin();
+  const unreadMessages = useUnreadMessages();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
@@ -104,8 +106,13 @@ export function Navbar() {
           </Link>
           <Link to="/library" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
           {user && (
-            <Link to="/messages" className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+            <Link to="/messages" className="relative inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
               <MessageCircle className="h-4 w-4" /> Messages
+              {unreadMessages > 0 && (
+                <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                  {unreadMessages > 99 ? "99+" : unreadMessages}
+                </span>
+              )}
             </Link>
           )}
           {isAdmin && (
@@ -188,7 +195,14 @@ export function Navbar() {
                 <Link to="/library">Library</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/messages">Messages</Link>
+                <Link to="/messages" className="flex items-center justify-between">
+                  <span>Messages</span>
+                  {unreadMessages > 0 && (
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                      {unreadMessages > 99 ? "99+" : unreadMessages}
+                    </span>
+                  )}
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/referrals">Referrals</Link>
@@ -242,8 +256,13 @@ export function Navbar() {
         <Link to="/u/$handle" params={{ handle: CURRENT_USER.handle }} className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Profile</Link>
         <Link to="/library" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
         {user && (
-          <Link to="/messages" className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+          <Link to="/messages" className="relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
             <MessageCircle className="h-4 w-4" /> Messages
+            {unreadMessages > 0 && (
+              <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                {unreadMessages > 99 ? "99+" : unreadMessages}
+              </span>
+            )}
           </Link>
         )}
         {isAdmin && (
