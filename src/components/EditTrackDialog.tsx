@@ -101,15 +101,17 @@ export function EditTrackDialog({
     e.preventDefault();
     if (!title.trim()) return;
     let priceCents: number | null | undefined = undefined;
-    if (forSale) {
-      const p = Math.round(Number(priceInput) * 100);
-      if (!Number.isFinite(p) || p < 100) {
-        toast.error("Price must be at least $1.00");
-        return;
+    if (isArtist) {
+      if (forSale) {
+        const p = Math.round(Number(priceInput) * 100);
+        if (!Number.isFinite(p) || p < 100) {
+          toast.error("Price must be at least $1.00");
+          return;
+        }
+        priceCents = p;
+      } else {
+        priceCents = null;
       }
-      priceCents = p;
-    } else {
-      priceCents = null;
     }
     setBusy(true);
     try {
