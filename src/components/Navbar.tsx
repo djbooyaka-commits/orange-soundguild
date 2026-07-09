@@ -198,6 +198,7 @@ export function Navbar() {
                   <Link to="/curator">Curator</Link>
                 </DropdownMenuItem>
               )}
+              {isArtist && (
                 <DropdownMenuItem asChild>
                   <Link to="/royalties">Royalties</Link>
                 </DropdownMenuItem>
