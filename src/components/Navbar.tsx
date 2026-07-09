@@ -195,7 +195,14 @@ export function Navbar() {
                 <Link to="/library">Library</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/messages">Messages</Link>
+                <Link to="/messages" className="flex items-center justify-between">
+                  <span>Messages</span>
+                  {unreadMessages > 0 && (
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                      {unreadMessages > 99 ? "99+" : unreadMessages}
+                    </span>
+                  )}
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/referrals">Referrals</Link>
