@@ -44,6 +44,7 @@ export function EditTrackDialog({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(track.title);
   const [genre, setGenre] = useState(track.genre);
+  const { isArtist, isPioneer } = useAccountType();
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [priceInput, setPriceInput] = useState<string>("");
   const [forSale, setForSale] = useState(false);
