@@ -256,8 +256,13 @@ export function Navbar() {
         <Link to="/u/$handle" params={{ handle: CURRENT_USER.handle }} className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Profile</Link>
         <Link to="/library" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
         {user && (
-          <Link to="/messages" className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+          <Link to="/messages" className="relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
             <MessageCircle className="h-4 w-4" /> Messages
+            {unreadMessages > 0 && (
+              <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                {unreadMessages > 99 ? "99+" : unreadMessages}
+              </span>
+            )}
           </Link>
         )}
         {isAdmin && (
