@@ -230,25 +230,39 @@ export function EditTrackDialog({
             </button>
           </div>
 
-          {/* Sell this track */}
+          {/* Sell this track — Artist accounts only */}
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Music2 className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold">Sell this track</span>
               </div>
-              <label className="inline-flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={forSale}
-                  onChange={(e) => setForSale(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                <span className="text-xs text-muted-foreground">For sale</span>
-              </label>
+              {isArtist ? (
+                <label className="inline-flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={forSale}
+                    onChange={(e) => setForSale(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-xs text-muted-foreground">For sale</span>
+                </label>
+              ) : isPioneer ? (
+                <Link to="/upgrade" className="text-xs font-medium text-primary hover:underline">
+                  Upgrade to Artist
+                </Link>
+              ) : null}
             </div>
 
-            {forSale && (
+            {!isArtist && (
+              <p className="text-xs text-muted-foreground">
+                {isPioneer
+                  ? "Pioneer accounts can give away free download codes, but selling tracks requires an Artist account."
+                  : "Selling tracks is available on Artist accounts."}
+              </p>
+            )}
+
+            {isArtist && forSale && (
               <>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Price (USD, min $1.00)</label>
