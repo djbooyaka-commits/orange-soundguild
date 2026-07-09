@@ -6,6 +6,7 @@ import { CURRENT_USER } from "@/lib/uploads";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { FriendRequestsBell } from "./FriendRequestsBell";
 import {
   DropdownMenu,
