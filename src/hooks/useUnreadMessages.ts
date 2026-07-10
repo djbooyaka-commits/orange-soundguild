@@ -44,12 +44,15 @@ export function useUnreadMessages() {
 
     // Refresh when tab regains focus (covers marking-read from another tab)
     const onFocus = () => void load();
+    const onDmRead = () => void load();
     window.addEventListener("focus", onFocus);
+    window.addEventListener("dm-read", onDmRead);
 
     return () => {
       cancelled = true;
       supabase.removeChannel(ch);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("dm-read", onDmRead);
     };
   }, [user]);
 
