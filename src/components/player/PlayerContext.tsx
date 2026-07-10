@@ -71,6 +71,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
 
   const announcePlaying = useCallback(() => {
+    if (!isFreeRef.current) return;
     const payload: PlaybackStartedPayload = {
       playerId: getTabId(),
       startedAt: Date.now(),
