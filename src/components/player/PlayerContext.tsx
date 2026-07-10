@@ -60,6 +60,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playedRef = useRef<Set<string>>(new Set());
   const localChannelRef = useRef<BroadcastChannel | null>(null);
   const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Single-player lock only applies to free (fan) accounts and signed-out visitors.
+  // Paid tiers (artist, superfan, pioneer) can play simultaneously across accounts/tabs.
+  const isFreeRef = useRef(true);
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -68,6 +71,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
 
   const announcePlaying = useCallback(() => {
+    if (!isFreeRef.current) return;
     const payload: PlaybackStartedPayload = {
       playerId: getTabId(),
       startedAt: Date.now(),
@@ -191,6 +195,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onPause = () => setIsPlaying(false);
 
     const pauseForOtherPlayer = (payload: PlaybackStartedPayload | null | undefined) => {
+      if (!isFreeRef.current) return;
       if (!payload || payload.playerId === getTabId()) return;
       if (!audio.paused) audio.pause();
       setIsPlaying(false);
@@ -246,6 +251,35 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track the signed-in user's account tier so the single-player lock only
+  // engages for free (fan) accounts and signed-out visitors.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    const PAID_TIERS = new Set(["artist", "superfan", "pioneer"]);
+    const refresh = async (userId: string | undefined) => {
+      if (!userId) {
+        if (!cancelled) isFreeRef.current = true;
+        return;
+      }
+      const { data } = await supabase
+        .from("profiles")
+        .select("account_type")
+        .eq("id", userId)
+        .maybeSingle();
+      if (cancelled) return;
+      isFreeRef.current = !PAID_TIERS.has((data?.account_type as string) ?? "fan");
+    };
+    supabase.auth.getSession().then(({ data }) => refresh(data.session?.user?.id));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      void refresh(session?.user?.id);
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const play = useCallback(
