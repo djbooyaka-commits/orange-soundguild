@@ -556,10 +556,13 @@ function ChatPane({
   useEffect(() => {
     const unread = messages.filter((m) => m.recipient_id === me && !m.read_at).map((m) => m.id);
     if (unread.length === 0) return;
-    void supabase
-      .from("direct_messages")
-      .update({ read_at: new Date().toISOString() })
-      .in("id", unread);
+    void (async () => {
+      await supabase
+        .from("direct_messages")
+        .update({ read_at: new Date().toISOString() })
+        .in("id", unread);
+      window.dispatchEvent(new Event("dm-read"));
+    })();
   }, [messages, me]);
 
   const pickFile = async (f: File | null) => {
