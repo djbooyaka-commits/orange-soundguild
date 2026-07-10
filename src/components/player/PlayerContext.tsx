@@ -253,6 +253,35 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Track the signed-in user's account tier so the single-player lock only
+  // engages for free (fan) accounts and signed-out visitors.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    const PAID_TIERS = new Set(["artist", "superfan", "pioneer"]);
+    const refresh = async (userId: string | undefined) => {
+      if (!userId) {
+        if (!cancelled) isFreeRef.current = true;
+        return;
+      }
+      const { data } = await supabase
+        .from("profiles")
+        .select("account_type")
+        .eq("id", userId)
+        .maybeSingle();
+      if (cancelled) return;
+      isFreeRef.current = !PAID_TIERS.has((data?.account_type as string) ?? "fan");
+    };
+    supabase.auth.getSession().then(({ data }) => refresh(data.session?.user?.id));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      void refresh(session?.user?.id);
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
   const play = useCallback(
     (t: Track, queue?: Track[]) => {
       const audio = audioRef.current;
