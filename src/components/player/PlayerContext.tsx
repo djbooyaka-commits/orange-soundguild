@@ -60,6 +60,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playedRef = useRef<Set<string>>(new Set());
   const localChannelRef = useRef<BroadcastChannel | null>(null);
   const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Single-player lock only applies to free (fan) accounts and signed-out visitors.
+  // Paid tiers (artist, superfan, pioneer) can play simultaneously across accounts/tabs.
+  const isFreeRef = useRef(true);
   const [current, setCurrent] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
