@@ -195,6 +195,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onPause = () => setIsPlaying(false);
 
     const pauseForOtherPlayer = (payload: PlaybackStartedPayload | null | undefined) => {
+      if (!isFreeRef.current) return;
       if (!payload || payload.playerId === getTabId()) return;
       if (!audio.paused) audio.pause();
       setIsPlaying(false);
