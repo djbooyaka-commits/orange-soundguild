@@ -11,8 +11,11 @@ import {
 } from "@/lib/api/spotify.functions";
 
 function spotifyPollMessage(result: { added?: number; error?: string | null }) {
-  if (result.error === "spotify_account_not_allowed" || result.error === "spotify_403") {
-    return "Spotify blocked tracking: this account is not on the app's allowed-user list. This is NOT a Premium or Web API issue. In the Spotify Developer Dashboard, open your app → Settings → User Management, and add this email to the allowed users list. Or use your own app below to skip the 5-user cap.";
+  if (result.error === "spotify_account_not_allowed") {
+    return "Spotify blocked tracking: this account is not on the app's allowed-user list. In the Spotify Developer Dashboard, open your app → Settings → User Management, and add this email to the allowed users list. Or use your own app below to skip the 5-user cap.";
+  }
+  if (result.error === "spotify_403") {
+    return "Spotify blocked tracking: the connected Spotify account needs a Premium subscription to use the Web API. Upgrade to Spotify Premium, then disconnect and reconnect here.";
   }
   if (result.error) return `Spotify sync error: ${result.error}`;
   return result.added ? `+${result.added} new stream point${result.added === 1 ? "" : "s"}` : "Up to date";
