@@ -108,7 +108,7 @@ export const reviewCuratorSubmission = createServerFn({ method: "POST" })
     const { error } = await context.supabase.rpc("review_curator_submission", {
       _submission_id: data.id,
       _approve: data.approve,
-      _note: data.note ?? null,
+      _note: data.note ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
