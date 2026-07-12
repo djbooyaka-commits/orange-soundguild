@@ -71,7 +71,6 @@ export const Route = createFileRoute("/api/public/spotify/callback")({
 
         const expiresAt = new Date(Date.now() + (tok.expires_in as number) * 1000).toISOString();
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { error: upErr } = await supabaseAdmin
           .from("spotify_connections")
           .upsert(
