@@ -373,10 +373,19 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
 
       const { data: row, error: fetchErr } = await supabase
         .from("tracks")
-        .select("cover_art_url, download_lossless_url")
+        .select("cover_art_url")
         .eq("id", id)
         .maybeSingle();
       if (fetchErr) throw fetchErr;
+      let oldLosslessPath: string | null = null;
+      if (losslessFile) {
+        try {
+          const info = await getMyTrackPrivateFields({ data: { trackId: id } });
+          oldLosslessPath = info.losslessPath ?? null;
+        } catch {
+          oldLosslessPath = null;
+        }
+      }
 
       let newCoverPath: string | null | undefined = undefined;
       if (coverFile) {
