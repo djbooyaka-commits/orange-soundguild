@@ -8,6 +8,14 @@ import {
   disconnectSpotify,
 } from "@/lib/api/spotify.functions";
 
+function spotifyPollMessage(result: { added?: number; error?: string | null }) {
+  if (result.error === "spotify_account_not_allowed") {
+    return "Spotify blocked tracking for this account because it is not added as an allowed user in the Spotify app settings.";
+  }
+  if (result.error) return `Spotify sync error: ${result.error}`;
+  return result.added ? `+${result.added} new stream point${result.added === 1 ? "" : "s"}` : "Up to date";
+}
+
 export function SpotifyConnectCard() {
   const authUrlFn = useServerFn(getSpotifyAuthUrl);
   const statusFn = useServerFn(getMySpotifyStatus);
@@ -39,8 +47,8 @@ export function SpotifyConnectCard() {
       if (s?.connected) {
         try {
           const r = await pollFn();
-          if (r.added && r.added > 0) {
-            setMsg(`+${r.added} new stream point${r.added === 1 ? "" : "s"}`);
+          if (r.error || (r.added && r.added > 0)) {
+            setMsg(spotifyPollMessage(r));
             await refresh();
           }
         } catch {
@@ -72,7 +80,7 @@ export function SpotifyConnectCard() {
     setMsg(null);
     try {
       const r = await pollFn();
-      setMsg(r.added ? `+${r.added} new stream point${r.added === 1 ? "" : "s"}` : "Up to date");
+      setMsg(spotifyPollMessage(r));
       await refresh();
     } catch (e: any) {
       setMsg(e?.message ?? "Poll failed");
