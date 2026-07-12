@@ -1,35 +1,49 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Music2, Loader2, CheckCircle2, RefreshCw } from "lucide-react";
+import { Music2, Loader2, CheckCircle2, RefreshCw, Settings2, ChevronDown } from "lucide-react";
 import {
   getSpotifyAuthUrl,
   getMySpotifyStatus,
   pollSpotifyRecent,
   disconnectSpotify,
+  setMySpotifyApp,
+  deleteMySpotifyApp,
 } from "@/lib/api/spotify.functions";
 
 function spotifyPollMessage(result: { added?: number; error?: string | null }) {
   if (result.error === "spotify_account_not_allowed") {
-    return "Spotify blocked tracking for this account. In the Spotify Developer Dashboard, open your app → Settings → User Management, and add this email to the allowed users list.";
+    return "Spotify blocked tracking for this account. In the Spotify Developer Dashboard, open your app → Settings → User Management, and add this email to the allowed users list. Or use your own app below to skip the 25-user cap.";
   }
   if (result.error) return `Spotify sync error: ${result.error}`;
   return result.added ? `+${result.added} new stream point${result.added === 1 ? "" : "s"}` : "Up to date";
 }
+
+const REDIRECT_URI_HINT =
+  typeof window !== "undefined"
+    ? `${window.location.origin}/api/public/spotify/callback`
+    : "https://orangesoundguild.com/api/public/spotify/callback";
 
 export function SpotifyConnectCard() {
   const authUrlFn = useServerFn(getSpotifyAuthUrl);
   const statusFn = useServerFn(getMySpotifyStatus);
   const pollFn = useServerFn(pollSpotifyRecent);
   const disconnectFn = useServerFn(disconnectSpotify);
+  const setAppFn = useServerFn(setMySpotifyApp);
+  const deleteAppFn = useServerFn(deleteMySpotifyApp);
 
   const [status, setStatus] = useState<{
     connected: boolean;
     points: number;
     lastPolledAt: string | null;
     spotifyUserId: string | null;
+    hasCustomApp: boolean;
+    customClientId: string | null;
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [showApp, setShowApp] = useState(false);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
 
   const refresh = async () => {
     try {
@@ -56,7 +70,6 @@ export function SpotifyConnectCard() {
         }
       }
     })();
-    // Show flash from ?spotify=connected
     const params = new URLSearchParams(window.location.search);
     const flag = params.get("spotify");
     if (flag === "connected") setMsg("Spotify connected!");
@@ -95,6 +108,33 @@ export function SpotifyConnectCard() {
       await disconnectFn();
       await refresh();
       setMsg("Spotify disconnected");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveApp = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await setAppFn({ data: { clientId: clientId.trim(), clientSecret: clientSecret.trim() } });
+      setClientId("");
+      setClientSecret("");
+      await refresh();
+      setMsg("Your Spotify app is saved. Click Connect Spotify to authorize with it.");
+    } catch (e: any) {
+      setMsg(e?.message ?? "Failed to save app");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeApp = async () => {
+    setBusy(true);
+    try {
+      await deleteAppFn();
+      await refresh();
+      setMsg("Custom app removed. Reconnect to use the default site app.");
     } finally {
       setBusy(false);
     }
@@ -154,6 +194,94 @@ export function SpotifyConnectCard() {
       )}
 
       {msg && <p className="mt-3 text-xs text-muted-foreground">{msg}</p>}
+
+      {/* Advanced: bring-your-own Spotify app */}
+      <div className="mt-5 border-t border-border pt-4">
+        <button
+          type="button"
+          onClick={() => setShowApp((v) => !v)}
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          <Settings2 className="h-4 w-4" />
+          Use your own Spotify app (skip the 25-user cap)
+          <ChevronDown className={`h-4 w-4 transition ${showApp ? "rotate-180" : ""}`} />
+        </button>
+
+        {showApp && (
+          <div className="mt-3 space-y-3 rounded-lg bg-muted/30 p-4 text-sm">
+            {status?.hasCustomApp ? (
+              <>
+                <p className="text-muted-foreground">
+                  Using your own Spotify app.{" "}
+                  <span className="font-mono text-xs">Client ID: {status.customClientId}</span>
+                </p>
+                <button
+                  onClick={removeApp}
+                  disabled={busy}
+                  className="rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:bg-muted disabled:opacity-50"
+                >
+                  Remove custom app
+                </button>
+              </>
+            ) : (
+              <>
+                <ol className="ml-4 list-decimal space-y-1 text-xs text-muted-foreground">
+                  <li>
+                    Go to{" "}
+                    <a
+                      href="https://developer.spotify.com/dashboard"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary underline"
+                    >
+                      developer.spotify.com/dashboard
+                    </a>{" "}
+                    and create an app.
+                  </li>
+                  <li>
+                    Add this Redirect URI to the app settings:
+                    <code className="mt-1 block break-all rounded bg-background px-2 py-1 font-mono text-[10px]">
+                      {REDIRECT_URI_HINT}
+                    </code>
+                  </li>
+                  <li>Under APIs used, check <b>Web API</b>. Save.</li>
+                  <li>Copy the Client ID and Client Secret and paste them below.</li>
+                </ol>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    placeholder="Client ID (32 hex chars)"
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-mono"
+                  />
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="Client Secret (32 hex chars)"
+                    value={clientSecret}
+                    onChange={(e) => setClientSecret(e.target.value)}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-mono"
+                  />
+                  <button
+                    onClick={saveApp}
+                    disabled={busy || !clientId.trim() || !clientSecret.trim()}
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                  >
+                    {busy && <Loader2 className="h-3 w-3 animate-spin" />}
+                    Save my Spotify app
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Your Client Secret is stored server-side and never sent back to the browser. Since you own the app,
+                  you're auto-allowed — no 25-user cap.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
