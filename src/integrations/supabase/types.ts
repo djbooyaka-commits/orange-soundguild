@@ -881,6 +881,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_curator_invite_by_link: {
+        Args: { _curator_id: string }
+        Returns: string
+      }
       admin_update_payout_status: {
         Args: {
           _new_status: Database["public"]["Enums"]["payout_status"]
