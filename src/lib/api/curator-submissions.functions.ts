@@ -165,7 +165,7 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
       _playlist_id: data.playlistId,
       _spotify_track_id: trackId,
       _spotify_track_url: trackUrl,
-      _spotify_track_name: trackMeta.name ?? null,
+      _spotify_track_name: trackMeta.name ?? undefined,
       _followed_all: followedAll,
     });
     if (error) throw new Error(error.message);
