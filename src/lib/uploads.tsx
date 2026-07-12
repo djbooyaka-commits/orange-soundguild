@@ -435,14 +435,10 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
           await supabase.storage.from("covers").remove([oldPath]);
         }
       }
-      if (newLosslessPath) {
-        const rowExt = row as { download_lossless_url?: string | null };
-        const oldLossless = rowExt?.download_lossless_url ?? null;
-        if (oldLossless) {
-          const oldPath = storagePathFromValue("audio", oldLossless);
-          if (oldPath && !oldPath.startsWith("http")) {
-            await supabase.storage.from("audio").remove([oldPath]);
-          }
+      if (newLosslessPath && oldLosslessPath) {
+        const oldPath = storagePathFromValue("audio", oldLosslessPath);
+        if (oldPath && !oldPath.startsWith("http")) {
+          await supabase.storage.from("audio").remove([oldPath]);
         }
       }
 
