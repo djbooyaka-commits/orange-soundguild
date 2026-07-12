@@ -122,6 +122,7 @@ function CuratorPage() {
           <>
             <CuratorPlaylistManager />
             <CuratorInviteManager />
+            <CuratorSubmissionsQueue />
           </>
         ) : (
           <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center">
@@ -140,6 +141,8 @@ function CuratorPage() {
             </Link>
           </div>
         )}
+
+        <SubmitTrackCard />
 
         <section className="rounded-xl border border-dashed border-border bg-muted/30 p-6">
           <h2 className="text-sm font-semibold">How it works</h2>
