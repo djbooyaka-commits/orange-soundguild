@@ -10,7 +10,7 @@ import {
 
 function spotifyPollMessage(result: { added?: number; error?: string | null }) {
   if (result.error === "spotify_account_not_allowed") {
-    return "Spotify blocked tracking for this account because it is not added as an allowed user in the Spotify app settings.";
+    return "Spotify blocked tracking for this account. In the Spotify Developer Dashboard, open your app → Settings → User Management, and add this email to the allowed users list.";
   }
   if (result.error) return `Spotify sync error: ${result.error}`;
   return result.added ? `+${result.added} new stream point${result.added === 1 ? "" : "s"}` : "Up to date";
