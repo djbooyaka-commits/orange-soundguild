@@ -22,10 +22,19 @@ export const Route = createFileRoute("/api/public/spotify/callback")({
           return Response.redirect(`${origin}/curator?spotify=badstate`, 302);
         }
 
-        const clientId = process.env.SPOTIFY_CLIENT_ID!;
-        const clientSecret = process.env.SPOTIFY_CLIENT_SECRET!;
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+        // Prefer per-user app credentials, else fall back to site-wide env creds.
+        const { data: appRow } = await supabaseAdmin
+          .from("spotify_user_apps")
+          .select("client_id, client_secret")
+          .eq("user_id", userId)
+          .maybeSingle();
+        const clientId = appRow?.client_id ?? process.env.SPOTIFY_CLIENT_ID!;
+        const clientSecret = appRow?.client_secret ?? process.env.SPOTIFY_CLIENT_SECRET!;
         const redirectUri = `${origin}/api/public/spotify/callback`;
         const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+
 
         const tokRes = await fetch("https://accounts.spotify.com/api/token", {
           method: "POST",
@@ -62,7 +71,6 @@ export const Route = createFileRoute("/api/public/spotify/callback")({
 
         const expiresAt = new Date(Date.now() + (tok.expires_in as number) * 1000).toISOString();
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { error: upErr } = await supabaseAdmin
           .from("spotify_connections")
           .upsert(
