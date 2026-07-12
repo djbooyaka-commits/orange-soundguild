@@ -169,7 +169,7 @@ export function SpotifyConnectCard() {
           <div>
             <h2 className="font-semibold">Spotify stream tracking</h2>
             <p className="text-sm text-muted-foreground">
-              Connect Spotify. Every full stream from a submitted Curator playlist earns 1 point.
+              Connect Spotify. Every full stream from a submitted Curator playlist earns 1 point. A Spotify Premium subscription is required to use the Web API.
             </p>
           </div>
         </div>
