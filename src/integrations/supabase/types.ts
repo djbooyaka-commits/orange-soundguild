@@ -142,6 +142,33 @@ export type Database = {
         }
         Relationships: []
       }
+      curator_invites: {
+        Row: {
+          created_at: string
+          curator_id: string
+          id: string
+          responded_at: string | null
+          status: Database["public"]["Enums"]["curator_invite_status"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          id?: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["curator_invite_status"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          id?: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["curator_invite_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       curator_playlists: {
         Row: {
           created_at: string
@@ -863,6 +890,10 @@ export type Database = {
         Returns: undefined
       }
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      cancel_curator_invite: {
+        Args: { _invite_id: string }
+        Returns: undefined
+      }
       claim_referral: { Args: { _code: string }; Returns: boolean }
       claim_track_code: { Args: { _code: string }; Returns: string }
       create_pioneer_invite: { Args: never; Returns: string }
@@ -917,9 +948,36 @@ export type Database = {
         }
         Returns: boolean
       }
+      invite_curator_user: { Args: { _username: string }; Returns: string }
+      is_accepted_invitee: {
+        Args: { _curator: string; _user: string }
+        Returns: boolean
+      }
       is_artist: { Args: { _user_id: string }; Returns: boolean }
       is_banned: { Args: { _user_id: string }; Returns: boolean }
       is_royalty_eligible: { Args: { _user_id: string }; Returns: boolean }
+      list_curator_invites_for_me: {
+        Args: never
+        Returns: {
+          created_at: string
+          curator_avatar: string
+          curator_id: string
+          curator_username: string
+          id: string
+          status: Database["public"]["Enums"]["curator_invite_status"]
+        }[]
+      }
+      list_my_curator_invitees: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["curator_invite_status"]
+          user_id: string
+          username: string
+        }[]
+      }
       record_track_play: { Args: { p_track_id: string }; Returns: undefined }
       request_payout: {
         Args: {
@@ -928,6 +986,10 @@ export type Database = {
           _method: Database["public"]["Enums"]["payout_method"]
         }
         Returns: string
+      }
+      respond_curator_invite: {
+        Args: { _accept: boolean; _invite_id: string }
+        Returns: undefined
       }
       run_monthly_royalty_payout: {
         Args: { p_period_start?: string }
@@ -943,6 +1005,7 @@ export type Database = {
       ad_package: "bronze" | "silver" | "gold"
       ad_status: "pending" | "active" | "expired" | "refunded"
       app_role: "admin" | "user"
+      curator_invite_status: "pending" | "accepted" | "declined"
       friend_status: "pending" | "accepted" | "declined"
       payout_method: "paypal" | "phantom"
       payout_status: "pending" | "processing" | "paid" | "rejected"
@@ -1078,6 +1141,7 @@ export const Constants = {
       ad_package: ["bronze", "silver", "gold"],
       ad_status: ["pending", "active", "expired", "refunded"],
       app_role: ["admin", "user"],
+      curator_invite_status: ["pending", "accepted", "declined"],
       friend_status: ["pending", "accepted", "declined"],
       payout_method: ["paypal", "phantom"],
       payout_status: ["pending", "processing", "paid", "rejected"],
