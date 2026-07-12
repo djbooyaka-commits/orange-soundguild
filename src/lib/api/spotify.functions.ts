@@ -193,12 +193,19 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
     if (!res.ok) {
       const t = await res.text();
       console.error(`Spotify recently-played failed [${res.status}]: ${t}`);
+      const lower = t.toLowerCase();
       const isUnregisteredSpotifyUser =
-        res.status === 403 && t.toLowerCase().includes("not registered for this application");
+        res.status === 403 && lower.includes("not registered for this application");
+      const isPremiumRequired =
+        res.status === 403 && (lower.includes("premium subscription") || lower.includes("premium to access"));
       return {
         added: 0,
         connected: true,
-        error: isUnregisteredSpotifyUser ? "spotify_account_not_allowed" : `spotify_${res.status}`,
+        error: isUnregisteredSpotifyUser
+          ? "spotify_account_not_allowed"
+          : isPremiumRequired
+            ? "spotify_premium_required"
+            : `spotify_${res.status}`,
       };
     }
     const body = await res.json();
