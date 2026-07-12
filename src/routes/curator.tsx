@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { SpotifyConnectCard } from "@/components/SpotifyConnectCard";
 import { CuratorPlaylistManager } from "@/components/CuratorPlaylistManager";
+import { CuratorInviteManager } from "@/components/CuratorInviteManager";
+import { CuratorInvitesInbox } from "@/components/CuratorInvitesInbox";
 
 export const Route = createFileRoute("/curator")({
   head: () => ({
@@ -49,8 +51,13 @@ function CuratorPage() {
       <div className="space-y-6">
         <SpotifyConnectCard />
 
+        <CuratorInvitesInbox />
+
         {isSuperfan ? (
-          <CuratorPlaylistManager />
+          <>
+            <CuratorPlaylistManager />
+            <CuratorInviteManager />
+          </>
         ) : (
           <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center">
             <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -72,9 +79,10 @@ function CuratorPage() {
         <section className="rounded-xl border border-dashed border-border bg-muted/30 p-6">
           <h2 className="text-sm font-semibold">How it works</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>Superfans add Spotify playlists they curate.</li>
-            <li>Any user connects Spotify to opt in to tracking.</li>
-            <li>When you stream a track (over 30s) inside a Curator playlist on Spotify, you earn 1 point.</li>
+            <li>Superfans (Curators) add Spotify playlists they curate.</li>
+            <li>Curators invite specific users by username — only invited users are tracked.</li>
+            <li>Invited users connect Spotify and accept the invite from this page.</li>
+            <li>When an invited user streams a track (over 30s) inside that Curator's playlist on Spotify, they earn 1 point.</li>
             <li>Spotify only reports streams played long enough to count — we don&apos;t see skips.</li>
           </ul>
         </section>
