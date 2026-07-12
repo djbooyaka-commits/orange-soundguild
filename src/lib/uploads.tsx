@@ -12,6 +12,7 @@ import cover2 from "@/assets/cover2.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { signOne, signMany } from "./signMedia";
+import { getMyTrackPrivateFields } from "./api/track-sales.functions";
 
 export const CURRENT_USER = {
   handle: "me",
