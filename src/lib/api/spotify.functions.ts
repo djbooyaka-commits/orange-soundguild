@@ -128,7 +128,13 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
     if (!res.ok) {
       const t = await res.text();
       console.error(`Spotify recently-played failed [${res.status}]: ${t}`);
-      return { added: 0, connected: true, error: `spotify_${res.status}` };
+      const isUnregisteredSpotifyUser =
+        res.status === 403 && t.toLowerCase().includes("not registered for this application");
+      return {
+        added: 0,
+        connected: true,
+        error: isUnregisteredSpotifyUser ? "spotify_account_not_allowed" : `spotify_${res.status}`,
+      };
     }
     const body = await res.json();
     const items: any[] = body.items ?? [];
