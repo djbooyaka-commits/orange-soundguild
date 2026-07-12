@@ -155,18 +155,44 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       return ok;
     };
 
+    // Sort ascending by played_at so items[i+1] is chronologically the next track
+    const sorted = [...items].sort(
+      (a, b) => new Date(a.played_at).getTime() - new Date(b.played_at).getTime(),
+    );
+
     let added = 0;
-    for (const item of items) {
+    let skippedPartial = 0;
+    let skippedNotCurated = 0;
+    let maxEvaluatedAt: number | null = null;
+
+    // Only evaluate items that have a chronological successor (so we know how
+    // long the track actually played). The newest item is deferred to the next
+    // poll — that's when we'll know its play length.
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const item = sorted[i];
+      const next = sorted[i + 1];
+      const playedAtMs = new Date(item.played_at).getTime();
+      maxEvaluatedAt = Math.max(maxEvaluatedAt ?? 0, playedAtMs);
+
       const ctx = item.context;
-      if (!ctx || ctx.type !== "playlist") continue;
+      if (!ctx || ctx.type !== "playlist") { skippedNotCurated++; continue; }
       const uri: string = ctx.uri || "";
       const m = uri.match(/^spotify:playlist:([A-Za-z0-9]+)$/);
-      if (!m) continue;
+      if (!m) { skippedNotCurated++; continue; }
       const match = byId.get(m[1]);
-      if (!match) continue;
-      if (!(await isInvitee(match.curatorId))) continue;
+      if (!match) { skippedNotCurated++; continue; }
+      if (!(await isInvitee(match.curatorId))) { skippedNotCurated++; continue; }
+
       const track = item.track;
-      if (!track?.id) continue;
+      if (!track?.id || !track?.duration_ms) continue;
+
+      // Full-play check: elapsed time until the next track started must cover
+      // at least 95% of this track's duration. Anything less (skip after 30s,
+      // partial listen) does not count.
+      const nextStartedMs = new Date(next.played_at).getTime();
+      const elapsedMs = nextStartedMs - playedAtMs;
+      if (elapsedMs < track.duration_ms * 0.95) { skippedPartial++; continue; }
+
       const { error } = await supabaseAdmin.from("stream_points").insert({
         user_id: context.userId,
         curator_playlist_id: match.cpId,
@@ -177,10 +203,23 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       if (!error) added += 1;
     }
 
+    // Advance last_polled_at only past items we've fully evaluated. The newest
+    // item stays reprocessable next poll so we can confirm its full-play length.
+    const newLastPolled =
+      maxEvaluatedAt != null
+        ? new Date(maxEvaluatedAt).toISOString()
+        : new Date().toISOString();
+
     await supabaseAdmin
       .from("spotify_connections")
-      .update({ last_polled_at: new Date().toISOString() })
+      .update({ last_polled_at: newLastPolled })
       .eq("user_id", context.userId);
 
-    return { added, connected: true };
+    return {
+      added,
+      connected: true,
+      scanned: sorted.length,
+      skippedPartial,
+      skippedNotCurated,
+    };
   });
