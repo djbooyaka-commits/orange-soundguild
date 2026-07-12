@@ -49,7 +49,15 @@ function AuthPage() {
             });
         }
       } catch { /* ignore */ }
-      navigate({ to: "/" });
+      let dest: string = "/";
+      try {
+        const pendingInvite = window.sessionStorage.getItem("pending_curator_invite");
+        if (pendingInvite) {
+          window.sessionStorage.removeItem("pending_curator_invite");
+          dest = `/curator?invite=${encodeURIComponent(pendingInvite)}`;
+        }
+      } catch { /* ignore */ }
+      navigate({ to: dest });
     }
   }, [user, loading, navigate]);
 
