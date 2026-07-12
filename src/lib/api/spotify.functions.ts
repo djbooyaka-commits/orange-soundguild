@@ -133,12 +133,27 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
     const body = await res.json();
     const items: any[] = body.items ?? [];
 
-    // Load all curator playlists once
+    // Load all curator playlists once, along with their curator_id (needed for invitee check)
     const { data: playlists } = await supabaseAdmin
       .from("curator_playlists")
-      .select("id, spotify_playlist_id");
-    const byId = new Map<string, string>();
-    for (const p of playlists ?? []) byId.set(p.spotify_playlist_id, p.id);
+      .select("id, spotify_playlist_id, curator_id");
+    const byId = new Map<string, { cpId: string; curatorId: string }>();
+    for (const p of playlists ?? []) byId.set(p.spotify_playlist_id, { cpId: p.id, curatorId: p.curator_id });
+
+    // Cache invitee status per curator so we hit the DB at most once per curator
+    const inviteeCache = new Map<string, boolean>();
+    const isInvitee = async (curatorId: string) => {
+      if (curatorId === context.userId) return true; // curator's own streams always count
+      const cached = inviteeCache.get(curatorId);
+      if (cached !== undefined) return cached;
+      const { data } = await supabaseAdmin.rpc("is_accepted_invitee", {
+        _curator: curatorId,
+        _user: context.userId,
+      });
+      const ok = !!data;
+      inviteeCache.set(curatorId, ok);
+      return ok;
+    };
 
     let added = 0;
     for (const item of items) {
@@ -147,13 +162,14 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       const uri: string = ctx.uri || "";
       const m = uri.match(/^spotify:playlist:([A-Za-z0-9]+)$/);
       if (!m) continue;
-      const cpId = byId.get(m[1]);
-      if (!cpId) continue;
+      const match = byId.get(m[1]);
+      if (!match) continue;
+      if (!(await isInvitee(match.curatorId))) continue;
       const track = item.track;
       if (!track?.id) continue;
       const { error } = await supabaseAdmin.from("stream_points").insert({
         user_id: context.userId,
-        curator_playlist_id: cpId,
+        curator_playlist_id: match.cpId,
         spotify_track_id: track.id,
         spotify_track_name: track.name ?? null,
         played_at: item.played_at,
