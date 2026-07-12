@@ -12,7 +12,7 @@ import {
 
 function spotifyPollMessage(result: { added?: number; error?: string | null }) {
   if (result.error === "spotify_account_not_allowed") {
-    return "Spotify blocked tracking for this account. In the Spotify Developer Dashboard, open your app → Settings → User Management, and add this email to the allowed users list. Or use your own app below to skip the 25-user cap.";
+    return "Spotify blocked tracking for this account. In the Spotify Developer Dashboard, open your app → Settings → User Management, and add this email to the allowed users list. Or use your own app below to skip the 5-user cap.";
   }
   if (result.error) return `Spotify sync error: ${result.error}`;
   return result.added ? `+${result.added} new stream point${result.added === 1 ? "" : "s"}` : "Up to date";
@@ -41,7 +41,7 @@ export function SpotifyConnectCard() {
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [showApp, setShowApp] = useState(false);
+  const [showApp, setShowApp] = useState(true);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
 
@@ -56,6 +56,10 @@ export function SpotifyConnectCard() {
   };
 
   useEffect(() => {
+    const storedPanelState = window.localStorage.getItem("spotifyAppSetupOpen");
+    if (storedPanelState === "closed") setShowApp(false);
+    if (storedPanelState === "open") setShowApp(true);
+
     void (async () => {
       const s = await refresh();
       if (s?.connected) {
@@ -76,6 +80,14 @@ export function SpotifyConnectCard() {
     else if (flag && flag !== "connected") setMsg(`Spotify error: ${flag}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const toggleAppSetup = () => {
+    setShowApp((current) => {
+      const next = !current;
+      window.localStorage.setItem("spotifyAppSetupOpen", next ? "open" : "closed");
+      return next;
+    });
+  };
 
   const connect = async () => {
     setBusy(true);
@@ -199,11 +211,11 @@ export function SpotifyConnectCard() {
       <div className="mt-5 border-t border-border pt-4">
         <button
           type="button"
-          onClick={() => setShowApp((v) => !v)}
+          onClick={toggleAppSetup}
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <Settings2 className="h-4 w-4" />
-          Use your own Spotify app (skip the 25-user cap)
+          Use your own Spotify app (skip the 5-user cap)
           <ChevronDown className={`h-4 w-4 transition ${showApp ? "rotate-180" : ""}`} />
         </button>
 
@@ -275,7 +287,7 @@ export function SpotifyConnectCard() {
                 </div>
                 <p className="text-[11px] text-muted-foreground">
                   Your Client Secret is stored server-side and never sent back to the browser. Since you own the app,
-                  you're auto-allowed — no 25-user cap.
+                  you're auto-allowed — no 5-user cap.
                 </p>
               </>
             )}
