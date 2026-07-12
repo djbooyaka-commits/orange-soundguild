@@ -71,20 +71,21 @@ export function EditTrackDialog({
       setLosslessFile(null);
       setCodesLoading(true);
 
-      const { data } = await supabase
-        .from("tracks")
-        .select("price_cents, download_lossless_url")
-        .eq("id", track.id)
-        .maybeSingle();
-      const row = data as { price_cents: number | null; download_lossless_url: string | null } | null;
-      if (row?.price_cents && row.price_cents >= 100) {
-        setForSale(true);
-        setPriceInput((row.price_cents / 100).toFixed(2));
-      } else {
+      try {
+        const info = await loadPrivate({ data: { trackId: track.id } });
+        if (info.priceCents && info.priceCents >= 100) {
+          setForSale(true);
+          setPriceInput((info.priceCents / 100).toFixed(2));
+        } else {
+          setForSale(false);
+          setPriceInput("");
+        }
+        setHasLossless(!!info.losslessPath);
+      } catch {
         setForSale(false);
         setPriceInput("");
+        setHasLossless(false);
       }
-      setHasLossless(!!row?.download_lossless_url);
 
       try {
         const { codes: rows } = await loadCodes({ data: { trackId: track.id } });
