@@ -196,6 +196,62 @@ export type Database = {
         }
         Relationships: []
       }
+      curator_submissions: {
+        Row: {
+          cost_points: number
+          created_at: string
+          curator_id: string
+          curator_note: string | null
+          curator_playlist_id: string
+          followed_all_artists: boolean
+          id: string
+          reviewed_at: string | null
+          spotify_track_id: string
+          spotify_track_name: string | null
+          spotify_track_url: string
+          status: Database["public"]["Enums"]["curator_submission_status"]
+          submitter_user_id: string
+        }
+        Insert: {
+          cost_points: number
+          created_at?: string
+          curator_id: string
+          curator_note?: string | null
+          curator_playlist_id: string
+          followed_all_artists?: boolean
+          id?: string
+          reviewed_at?: string | null
+          spotify_track_id: string
+          spotify_track_name?: string | null
+          spotify_track_url: string
+          status?: Database["public"]["Enums"]["curator_submission_status"]
+          submitter_user_id: string
+        }
+        Update: {
+          cost_points?: number
+          created_at?: string
+          curator_id?: string
+          curator_note?: string | null
+          curator_playlist_id?: string
+          followed_all_artists?: boolean
+          id?: string
+          reviewed_at?: string | null
+          spotify_track_id?: string
+          spotify_track_name?: string | null
+          spotify_track_url?: string
+          status?: Database["public"]["Enums"]["curator_submission_status"]
+          submitter_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curator_submissions_curator_playlist_id_fkey"
+            columns: ["curator_playlist_id"]
+            isOneToOne: false
+            referencedRelation: "curator_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       direct_messages: {
         Row: {
           body: string | null
@@ -954,6 +1010,10 @@ export type Database = {
         }[]
       }
       get_my_stream_points: { Args: never; Returns: number }
+      get_playlist_available_points: {
+        Args: { _playlist_id: string }
+        Returns: number
+      }
       get_playlist_earned_points: {
         Args: { _playlist_id: string }
         Returns: number
@@ -995,6 +1055,25 @@ export type Database = {
           status: Database["public"]["Enums"]["curator_invite_status"]
         }[]
       }
+      list_curator_submissions_for_me: {
+        Args: never
+        Returns: {
+          cost_points: number
+          created_at: string
+          curator_note: string
+          curator_playlist_id: string
+          followed_all_artists: boolean
+          id: string
+          playlist_name: string
+          reviewed_at: string
+          spotify_track_id: string
+          spotify_track_name: string
+          spotify_track_url: string
+          status: Database["public"]["Enums"]["curator_submission_status"]
+          submitter_user_id: string
+          submitter_username: string
+        }[]
+      }
       list_my_curator_invitees: {
         Args: never
         Returns: {
@@ -1004,6 +1083,35 @@ export type Database = {
           status: Database["public"]["Enums"]["curator_invite_status"]
           user_id: string
           username: string
+        }[]
+      }
+      list_my_track_submissions: {
+        Args: never
+        Returns: {
+          cost_points: number
+          created_at: string
+          curator_note: string
+          curator_playlist_id: string
+          followed_all_artists: boolean
+          id: string
+          playlist_name: string
+          reviewed_at: string
+          spotify_track_id: string
+          spotify_track_name: string
+          spotify_track_url: string
+          status: Database["public"]["Enums"]["curator_submission_status"]
+        }[]
+      }
+      list_playlists_for_submission: {
+        Args: never
+        Returns: {
+          available_points: number
+          curator_id: string
+          curator_username: string
+          id: string
+          image_url: string
+          name: string
+          spotify_playlist_id: string
         }[]
       }
       record_track_play: { Args: { p_track_id: string }; Returns: undefined }
@@ -1019,12 +1127,26 @@ export type Database = {
         Args: { _accept: boolean; _invite_id: string }
         Returns: undefined
       }
+      review_curator_submission: {
+        Args: { _approve: boolean; _note?: string; _submission_id: string }
+        Returns: undefined
+      }
       run_monthly_royalty_payout: {
         Args: { p_period_start?: string }
         Returns: {
           paid_amount_cents: number
           paid_user_id: string
         }[]
+      }
+      submit_curator_track: {
+        Args: {
+          _followed_all: boolean
+          _playlist_id: string
+          _spotify_track_id: string
+          _spotify_track_name: string
+          _spotify_track_url: string
+        }
+        Returns: string
       }
     }
     Enums: {
@@ -1034,6 +1156,7 @@ export type Database = {
       ad_status: "pending" | "active" | "expired" | "refunded"
       app_role: "admin" | "user"
       curator_invite_status: "pending" | "accepted" | "declined"
+      curator_submission_status: "pending" | "approved" | "rejected"
       friend_status: "pending" | "accepted" | "declined"
       payout_method: "paypal" | "phantom"
       payout_status: "pending" | "processing" | "paid" | "rejected"
@@ -1170,6 +1293,7 @@ export const Constants = {
       ad_status: ["pending", "active", "expired", "refunded"],
       app_role: ["admin", "user"],
       curator_invite_status: ["pending", "accepted", "declined"],
+      curator_submission_status: ["pending", "approved", "rejected"],
       friend_status: ["pending", "accepted", "declined"],
       payout_method: ["paypal", "phantom"],
       payout_status: ["pending", "processing", "paid", "rejected"],
