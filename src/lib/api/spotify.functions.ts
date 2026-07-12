@@ -11,11 +11,29 @@ function getRedirectUri(): string {
   return `${proto}://${host}/api/public/spotify/callback`;
 }
 
+async function getSpotifyCredsForUser(
+  userId: string,
+  supabaseAdmin: any,
+): Promise<{ clientId: string; clientSecret: string; custom: boolean }> {
+  const { data } = await supabaseAdmin
+    .from("spotify_user_apps")
+    .select("client_id, client_secret")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (data?.client_id && data?.client_secret) {
+    return { clientId: data.client_id, clientSecret: data.client_secret, custom: true };
+  }
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  if (!clientId || !clientSecret) throw new Error("Spotify not configured");
+  return { clientId, clientSecret, custom: false };
+}
+
 export const getSpotifyAuthUrl = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const clientId = process.env.SPOTIFY_CLIENT_ID;
-    if (!clientId) throw new Error("Spotify not configured");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { clientId } = await getSpotifyCredsForUser(context.userId, supabaseAdmin);
     const redirectUri = getRedirectUri();
     const state = signState(context.userId, Date.now() + 10 * 60 * 1000);
     const url = new URL("https://accounts.spotify.com/authorize");
@@ -37,13 +55,58 @@ export const getMySpotifyStatus = createServerFn({ method: "GET" })
       .eq("user_id", context.userId)
       .maybeSingle();
 
+    const { data: appRow } = await supabaseAdmin
+      .from("spotify_user_apps")
+      .select("client_id, created_at")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+
     const { data: pts } = await context.supabase.rpc("get_my_stream_points");
     return {
       connected: !!data,
       spotifyUserId: data?.spotify_user_id ?? null,
       lastPolledAt: data?.last_polled_at ?? null,
       points: (pts as number | null) ?? 0,
+      hasCustomApp: !!appRow,
+      customClientId: appRow?.client_id ?? null,
     };
+  });
+
+export const setMySpotifyApp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { clientId: string; clientSecret: string }) => {
+    const clientId = String(data?.clientId ?? "").trim();
+    const clientSecret = String(data?.clientSecret ?? "").trim();
+    if (!/^[a-f0-9]{32}$/i.test(clientId)) throw new Error("Client ID must be 32 hex characters");
+    if (!/^[a-f0-9]{32}$/i.test(clientSecret)) throw new Error("Client Secret must be 32 hex characters");
+    return { clientId, clientSecret };
+  })
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Changing app invalidates the current connection (tokens were issued by the old app)
+    await supabaseAdmin.from("spotify_connections").delete().eq("user_id", context.userId);
+    const { error } = await supabaseAdmin
+      .from("spotify_user_apps")
+      .upsert(
+        {
+          user_id: context.userId,
+          client_id: data.clientId,
+          client_secret: data.clientSecret,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteMySpotifyApp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("spotify_connections").delete().eq("user_id", context.userId);
+    await supabaseAdmin.from("spotify_user_apps").delete().eq("user_id", context.userId);
+    return { ok: true };
   });
 
 export const disconnectSpotify = createServerFn({ method: "POST" })
@@ -54,17 +117,19 @@ export const disconnectSpotify = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-async function refreshIfNeeded(conn: {
-  user_id: string;
-  access_token: string;
-  refresh_token: string;
-  expires_at: string;
-}, supabaseAdmin: any) {
+async function refreshIfNeeded(
+  conn: {
+    user_id: string;
+    access_token: string;
+    refresh_token: string;
+    expires_at: string;
+  },
+  supabaseAdmin: any,
+) {
   const expiresAt = new Date(conn.expires_at).getTime();
   if (Date.now() < expiresAt - 30_000) return conn.access_token;
 
-  const clientId = process.env.SPOTIFY_CLIENT_ID!;
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET!;
+  const { clientId, clientSecret } = await getSpotifyCredsForUser(conn.user_id, supabaseAdmin);
   const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
   const res = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
@@ -139,17 +204,15 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
     const body = await res.json();
     const items: any[] = body.items ?? [];
 
-    // Load all curator playlists once, along with their curator_id (needed for invitee check)
     const { data: playlists } = await supabaseAdmin
       .from("curator_playlists")
       .select("id, spotify_playlist_id, curator_id");
     const byId = new Map<string, { cpId: string; curatorId: string }>();
     for (const p of playlists ?? []) byId.set(p.spotify_playlist_id, { cpId: p.id, curatorId: p.curator_id });
 
-    // Cache invitee status per curator so we hit the DB at most once per curator
     const inviteeCache = new Map<string, boolean>();
     const isInvitee = async (curatorId: string) => {
-      if (curatorId === context.userId) return true; // curator's own streams always count
+      if (curatorId === context.userId) return true;
       const cached = inviteeCache.get(curatorId);
       if (cached !== undefined) return cached;
       const { data } = await supabaseAdmin.rpc("is_accepted_invitee", {
@@ -161,7 +224,6 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       return ok;
     };
 
-    // Sort ascending by played_at so items[i+1] is chronologically the next track
     const sorted = [...items].sort(
       (a, b) => new Date(a.played_at).getTime() - new Date(b.played_at).getTime(),
     );
@@ -171,9 +233,6 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
     let skippedNotCurated = 0;
     let maxEvaluatedAt: number | null = null;
 
-    // Only evaluate items that have a chronological successor (so we know how
-    // long the track actually played). The newest item is deferred to the next
-    // poll — that's when we'll know its play length.
     for (let i = 0; i < sorted.length - 1; i++) {
       const item = sorted[i];
       const next = sorted[i + 1];
@@ -192,9 +251,6 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       const track = item.track;
       if (!track?.id || !track?.duration_ms) continue;
 
-      // Full-play check: elapsed time until the next track started must cover
-      // at least 95% of this track's duration. Anything less (skip after 30s,
-      // partial listen) does not count.
       const nextStartedMs = new Date(next.played_at).getTime();
       const elapsedMs = nextStartedMs - playedAtMs;
       if (elapsedMs < track.duration_ms * 0.95) { skippedPartial++; continue; }
@@ -209,8 +265,6 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       if (!error) added += 1;
     }
 
-    // Advance last_polled_at only past items we've fully evaluated. The newest
-    // item stays reprocessable next poll so we can confirm its full-play length.
     const newLastPolled =
       maxEvaluatedAt != null
         ? new Date(maxEvaluatedAt).toISOString()
