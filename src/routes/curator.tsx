@@ -1,11 +1,13 @@
-import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Sparkles, Star } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { SpotifyConnectCard } from "@/components/SpotifyConnectCard";
 import { CuratorPlaylistManager } from "@/components/CuratorPlaylistManager";
 import { CuratorInviteManager } from "@/components/CuratorInviteManager";
-import { CuratorInvitesInbox } from "@/components/CuratorInvitesInbox";
+import { acceptCuratorInviteByLink } from "@/lib/api/curator-invites.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/curator")({
   head: () => ({
@@ -23,6 +25,57 @@ export const Route = createFileRoute("/curator")({
 function CuratorPage() {
   const { user, loading: authLoading } = useAuth();
   const { accountType, loading } = useAccountType();
+  const navigate = useNavigate();
+  const [joining, setJoining] = useState(false);
+
+  // Handle ?invite=<curatorId> link
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const invite = params.get("invite");
+    if (!invite) return;
+
+    if (authLoading) return;
+
+    if (!user) {
+      // Remember invite and send them to sign in / up
+      try {
+        window.sessionStorage.setItem("pending_curator_invite", invite);
+      } catch {
+        /* ignore */
+      }
+      navigate({ to: "/auth" });
+      return;
+    }
+
+    if (user.id === invite) {
+      // Curator opened own link — just clean it
+      const url = new URL(window.location.href);
+      url.searchParams.delete("invite");
+      window.history.replaceState({}, "", url.toString());
+      return;
+    }
+
+    setJoining(true);
+    acceptCuratorInviteByLink({ data: { curatorId: invite } })
+      .then(() => {
+        toast.success("You're now being tracked for this curator's playlists.");
+      })
+      .catch((e: any) => {
+        toast.error(e?.message ?? "Could not join curator");
+      })
+      .finally(() => {
+        setJoining(false);
+        try {
+          window.sessionStorage.removeItem("pending_curator_invite");
+        } catch {
+          /* ignore */
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.delete("invite");
+        window.history.replaceState({}, "", url.toString());
+      });
+  }, [user, authLoading, navigate]);
 
   if (authLoading || loading) {
     return (
@@ -30,7 +83,13 @@ function CuratorPage() {
     );
   }
 
-  if (!user) return <Navigate to="/auth" />;
+  if (!user) {
+    return (
+      <main className="mx-auto max-w-5xl px-4 py-10 text-sm text-muted-foreground">
+        Redirecting…
+      </main>
+    );
+  }
 
   const isSuperfan = accountType === "superfan";
 
@@ -48,10 +107,14 @@ function CuratorPage() {
         </div>
       </header>
 
+      {joining && (
+        <div className="mb-4 rounded-md border border-border bg-muted/40 p-3 text-sm">
+          Joining curator…
+        </div>
+      )}
+
       <div className="space-y-6">
         <SpotifyConnectCard />
-
-        <CuratorInvitesInbox />
 
         {isSuperfan ? (
           <>
@@ -79,10 +142,10 @@ function CuratorPage() {
         <section className="rounded-xl border border-dashed border-border bg-muted/30 p-6">
           <h2 className="text-sm font-semibold">How it works</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>Superfans (Curators) add Spotify playlists they curate.</li>
-            <li>Curators invite specific users by username — only invited users are tracked.</li>
-            <li>Invited users connect Spotify and accept the invite from this page.</li>
-            <li>When an invited user streams a track (over 30s) inside that Curator's playlist on Spotify, they earn 1 point.</li>
+            <li>Curators (Superfans) add Spotify playlists they curate.</li>
+            <li>Curators share their invite link with fans.</li>
+            <li>Opening the link (after signing in) enrolls that user for tracking.</li>
+            <li>When an enrolled user streams a track (over 30s) inside that Curator's playlist on Spotify, they earn 1 point.</li>
             <li>Spotify only reports streams played long enough to count — we don&apos;t see skips.</li>
           </ul>
         </section>

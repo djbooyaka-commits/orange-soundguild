@@ -49,6 +49,14 @@ function AuthPage() {
             });
         }
       } catch { /* ignore */ }
+      try {
+        const pendingInvite = window.sessionStorage.getItem("pending_curator_invite");
+        if (pendingInvite) {
+          window.sessionStorage.removeItem("pending_curator_invite");
+          window.location.assign(`/curator?invite=${encodeURIComponent(pendingInvite)}`);
+          return;
+        }
+      } catch { /* ignore */ }
       navigate({ to: "/" });
     }
   }, [user, loading, navigate]);

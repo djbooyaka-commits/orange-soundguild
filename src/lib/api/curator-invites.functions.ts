@@ -1,6 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export const acceptCuratorInviteByLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { curatorId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const { data: id, error } = await context.supabase.rpc("accept_curator_invite_by_link", {
+      _curator_id: data.curatorId,
+    });
+    if (error) throw new Error(error.message);
+    return { id };
+  });
+
 export const inviteCuratorUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { username: string }) => data)
