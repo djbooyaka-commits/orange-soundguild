@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { verifyState } from "@/lib/api/spotify.functions";
+import { verifyState } from "@/lib/api/spotify-state.server";
 
 export const Route = createFileRoute("/api/public/spotify/callback")({
   server: {
