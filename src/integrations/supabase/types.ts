@@ -142,6 +142,33 @@ export type Database = {
         }
         Relationships: []
       }
+      curator_playlists: {
+        Row: {
+          created_at: string
+          curator_id: string
+          id: string
+          image_url: string | null
+          name: string
+          spotify_playlist_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          id?: string
+          image_url?: string | null
+          name: string
+          spotify_playlist_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          spotify_playlist_id?: string
+        }
+        Relationships: []
+      }
       direct_messages: {
         Row: {
           body: string | null
@@ -545,6 +572,80 @@ export type Database = {
         }
         Relationships: []
       }
+      spotify_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          last_polled_at: string | null
+          refresh_token: string
+          scope: string | null
+          spotify_user_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          last_polled_at?: string | null
+          refresh_token: string
+          scope?: string | null
+          spotify_user_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          last_polled_at?: string | null
+          refresh_token?: string
+          scope?: string | null
+          spotify_user_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stream_points: {
+        Row: {
+          created_at: string
+          curator_playlist_id: string
+          id: string
+          played_at: string
+          spotify_track_id: string
+          spotify_track_name: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_playlist_id: string
+          id?: string
+          played_at: string
+          spotify_track_id: string
+          spotify_track_name?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_playlist_id?: string
+          id?: string
+          played_at?: string
+          spotify_track_id?: string
+          spotify_track_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_points_curator_playlist_id_fkey"
+            columns: ["curator_playlist_id"]
+            isOneToOne: false
+            referencedRelation: "curator_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       track_claim_codes: {
         Row: {
           claimed_at: string | null
@@ -782,6 +883,7 @@ export type Database = {
         Args: { _count: number; _track_id: string }
         Returns: string[]
       }
+      get_curator_earned_points: { Args: never; Returns: number }
       get_monthly_listeners: { Args: { _artist_id: string }; Returns: number }
       get_my_referral_info: {
         Args: never
@@ -791,6 +893,11 @@ export type Database = {
           referral_code: string
           referred_count: number
         }[]
+      }
+      get_my_stream_points: { Args: never; Returns: number }
+      get_playlist_earned_points: {
+        Args: { _playlist_id: string }
+        Returns: number
       }
       get_royalty_progress: {
         Args: { _user_id: string }
