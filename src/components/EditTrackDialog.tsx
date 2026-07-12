@@ -62,6 +62,8 @@ export function EditTrackDialog({
 
   const loadCodes = useServerFn(listMyTrackCodes);
   const genCodes = useServerFn(generateTrackCodes);
+  const loadPrivate = useServerFn(getMyTrackPrivateFields);
+
 
   const onOpenChange = async (o: boolean) => {
     setOpen(o);
