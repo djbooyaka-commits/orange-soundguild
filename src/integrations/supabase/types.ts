@@ -635,6 +635,30 @@ export type Database = {
         }
         Relationships: []
       }
+      spotify_user_apps: {
+        Row: {
+          client_id: string
+          client_secret: string
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          client_secret: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          client_secret?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stream_points: {
         Row: {
           created_at: string
