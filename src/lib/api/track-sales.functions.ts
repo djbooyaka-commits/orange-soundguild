@@ -145,6 +145,26 @@ export const ownsTrack = createServerFn({ method: "POST" })
     return { owns: Array.isArray(rows) && rows.length > 0 };
   });
 
+// Owner-only read of private track fields (lossless path, price).
+// Needed because SELECT on download_lossless_url is revoked from anon/authenticated.
+export const getMyTrackPrivateFields = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { trackId: string }) => ({ trackId: d.trackId }))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: t } = await supabaseAdmin
+      .from("tracks")
+      .select("user_id, price_cents, download_lossless_url")
+      .eq("id", data.trackId)
+      .maybeSingle();
+    if (!t) throw new Error("Track not found");
+    if (t.user_id !== context.userId) throw new Error("Not your track");
+    return {
+      priceCents: (t as { price_cents: number | null }).price_cents,
+      losslessPath: (t as { download_lossless_url: string | null }).download_lossless_url,
+    };
+  });
+
 // --- Download URL ---
 
 export const getTrackDownloadUrl = createServerFn({ method: "POST" })

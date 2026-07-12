@@ -12,6 +12,7 @@ import cover2 from "@/assets/cover2.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { signOne, signMany } from "./signMedia";
+import { getMyTrackPrivateFields } from "./api/track-sales.functions";
 
 export const CURRENT_USER = {
   handle: "me",
@@ -373,10 +374,19 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
 
       const { data: row, error: fetchErr } = await supabase
         .from("tracks")
-        .select("cover_art_url, download_lossless_url")
+        .select("cover_art_url")
         .eq("id", id)
         .maybeSingle();
       if (fetchErr) throw fetchErr;
+      let oldLosslessPath: string | null = null;
+      if (losslessFile) {
+        try {
+          const info = await getMyTrackPrivateFields({ data: { trackId: id } });
+          oldLosslessPath = info.losslessPath ?? null;
+        } catch {
+          oldLosslessPath = null;
+        }
+      }
 
       let newCoverPath: string | null | undefined = undefined;
       if (coverFile) {
@@ -425,14 +435,10 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
           await supabase.storage.from("covers").remove([oldPath]);
         }
       }
-      if (newLosslessPath) {
-        const rowExt = row as { download_lossless_url?: string | null };
-        const oldLossless = rowExt?.download_lossless_url ?? null;
-        if (oldLossless) {
-          const oldPath = storagePathFromValue("audio", oldLossless);
-          if (oldPath && !oldPath.startsWith("http")) {
-            await supabase.storage.from("audio").remove([oldPath]);
-          }
+      if (newLosslessPath && oldLosslessPath) {
+        const oldPath = storagePathFromValue("audio", oldLosslessPath);
+        if (oldPath && !oldPath.startsWith("http")) {
+          await supabase.storage.from("audio").remove([oldPath]);
         }
       }
 

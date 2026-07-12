@@ -11,13 +11,14 @@ import {
 import { useUploads } from "@/lib/uploads";
 import type { Track } from "@/lib/tracks";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { useAccountType } from "@/hooks/useAccountType";
 import {
   listMyTrackCodes,
   generateTrackCodes,
+  getMyTrackPrivateFields,
 } from "@/lib/api/track-sales.functions";
 
 const GENRES = [
@@ -61,6 +62,8 @@ export function EditTrackDialog({
 
   const loadCodes = useServerFn(listMyTrackCodes);
   const genCodes = useServerFn(generateTrackCodes);
+  const loadPrivate = useServerFn(getMyTrackPrivateFields);
+
 
   const onOpenChange = async (o: boolean) => {
     setOpen(o);
@@ -71,20 +74,21 @@ export function EditTrackDialog({
       setLosslessFile(null);
       setCodesLoading(true);
 
-      const { data } = await supabase
-        .from("tracks")
-        .select("price_cents, download_lossless_url")
-        .eq("id", track.id)
-        .maybeSingle();
-      const row = data as { price_cents: number | null; download_lossless_url: string | null } | null;
-      if (row?.price_cents && row.price_cents >= 100) {
-        setForSale(true);
-        setPriceInput((row.price_cents / 100).toFixed(2));
-      } else {
+      try {
+        const info = await loadPrivate({ data: { trackId: track.id } });
+        if (info.priceCents && info.priceCents >= 100) {
+          setForSale(true);
+          setPriceInput((info.priceCents / 100).toFixed(2));
+        } else {
+          setForSale(false);
+          setPriceInput("");
+        }
+        setHasLossless(!!info.losslessPath);
+      } catch {
         setForSale(false);
         setPriceInput("");
+        setHasLossless(false);
       }
-      setHasLossless(!!row?.download_lossless_url);
 
       try {
         const { codes: rows } = await loadCodes({ data: { trackId: track.id } });
