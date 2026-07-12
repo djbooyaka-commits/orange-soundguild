@@ -60,6 +60,9 @@ export function SpotifyConnectCard() {
     if (storedPanelState === "closed") setShowApp(false);
     if (storedPanelState === "open") setShowApp(true);
 
+    const storedClientId = window.localStorage.getItem("spotifyAppClientIdDraft");
+    if (storedClientId) setClientId(storedClientId);
+
     void (async () => {
       const s = await refresh();
       if (s?.connected) {
@@ -130,6 +133,7 @@ export function SpotifyConnectCard() {
     setMsg(null);
     try {
       await setAppFn({ data: { clientId: clientId.trim(), clientSecret: clientSecret.trim() } });
+      window.localStorage.removeItem("spotifyAppClientIdDraft");
       setClientId("");
       setClientSecret("");
       await refresh();
@@ -265,7 +269,15 @@ export function SpotifyConnectCard() {
                     autoComplete="off"
                     placeholder="Client ID (32 hex chars)"
                     value={clientId}
-                    onChange={(e) => setClientId(e.target.value)}
+                    onChange={(e) => {
+                      const nextClientId = e.target.value;
+                      setClientId(nextClientId);
+                      if (nextClientId.trim()) {
+                        window.localStorage.setItem("spotifyAppClientIdDraft", nextClientId);
+                      } else {
+                        window.localStorage.removeItem("spotifyAppClientIdDraft");
+                      }
+                    }}
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-mono"
                   />
                   <input
@@ -287,7 +299,7 @@ export function SpotifyConnectCard() {
                 </div>
                 <p className="text-[11px] text-muted-foreground">
                   Your Client Secret is stored server-side and never sent back to the browser. Since you own the app,
-                  you're auto-allowed — no 5-user cap.
+                  you're auto-allowed — no 5-user cap. Paste the Client ID first; it stays here if the tab refreshes.
                 </p>
               </>
             )}
