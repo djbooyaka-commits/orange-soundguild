@@ -26,7 +26,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const GENRES = ["All", "Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Hip Hop", "Lo-fi", "Indie", "Ambient", "Jazz", "Techno", "Podcasts"];
+const GENRES = ["All", "Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Hip-Hop", "Lo-fi", "Indie", "Ambient", "Jazz", "Techno", "POP", "Rock", "R&B"];
 
 function Index() {
   const { tracks: uploaded } = useAllTracks();
