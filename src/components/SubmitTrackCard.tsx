@@ -41,6 +41,14 @@ export function SubmitTrackCard() {
   const [playlistId, setPlaylistId] = useState<string>("");
   const [trackUrl, setTrackUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [receipt, setReceipt] = useState<{
+    playlistName: string;
+    trackName: string | null;
+    cost: number;
+    followedAll: boolean;
+    newBalance: number;
+  } | null>(null);
+
 
   const refresh = async () => {
     const [pl, m] = await Promise.all([listPlaylists(), listMine()]);
