@@ -76,6 +76,13 @@ export function SubmitTrackCard() {
       toast.success(
         `Submitted — ${res.cost} points spent${res.followedAll ? " (follow bonus applied)" : ""}`,
       );
+      setReceipt({
+        playlistName: res.playlistName,
+        trackName: res.trackName,
+        cost: res.cost,
+        followedAll: res.followedAll,
+        newBalance: res.newBalance,
+      });
       setTrackUrl("");
       await refresh();
     } catch (ex: any) {
@@ -84,6 +91,7 @@ export function SubmitTrackCard() {
       setBusy(false);
     }
   };
+
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
