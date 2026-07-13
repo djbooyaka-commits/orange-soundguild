@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User } from "lucide-react";
+import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User, Radio } from "lucide-react";
 import { useEffect, useState } from "react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useHasStRooms } from "@/hooks/useHasStRooms";
 import { FriendRequestsBell } from "./FriendRequestsBell";
 import {
   DropdownMenu,
