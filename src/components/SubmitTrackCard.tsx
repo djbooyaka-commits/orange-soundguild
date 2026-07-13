@@ -64,8 +64,11 @@ export function SubmitTrackCard() {
 
   const selected = playlists.find((p) => p.id === playlistId);
   const recentCount = mine.filter(
-    (s) => Date.now() - new Date(s.created_at).getTime() < 24 * 60 * 60 * 1000,
+    (s) =>
+      Date.now() - new Date(s.created_at).getTime() < 24 * 60 * 60 * 1000 &&
+      s.playlist_name === selected?.name,
   ).length;
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,7 +183,7 @@ export function SubmitTrackCard() {
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <div>
               Cost: <b>50 pts</b>, or <b>45 pts</b> if you follow every artist on the playlist on
-              Spotify. Max 2 submissions per 24 hours ({recentCount}/2 used).
+              Spotify. Max 2 submissions per playlist every 24 hours ({recentCount}/2 used on this playlist).
               {selected && (
                 <>
                   {" "}
