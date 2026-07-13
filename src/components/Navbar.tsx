@@ -214,6 +214,13 @@ export function Navbar() {
                   <Link to="/curator">Curator</Link>
                 </DropdownMenuItem>
               )}
+              {hasStRooms && (
+                <DropdownMenuItem asChild>
+                  <Link to="/st-rooms" className="flex items-center gap-2">
+                    <Radio className="h-4 w-4" /> S.T. Room
+                  </Link>
+                </DropdownMenuItem>
+              )}
               {isArtist && (
                 <DropdownMenuItem asChild>
                   <Link to="/royalties">Royalties</Link>
