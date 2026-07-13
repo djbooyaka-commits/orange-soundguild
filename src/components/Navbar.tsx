@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User } from "lucide-react";
+import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User, Radio } from "lucide-react";
 import { useEffect, useState } from "react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useHasStRooms } from "@/hooks/useHasStRooms";
 import { FriendRequestsBell } from "./FriendRequestsBell";
 import {
   DropdownMenu,
@@ -36,6 +37,7 @@ export function Navbar() {
   const canUpload = isArtist || accountType === "pioneer";
   const isAdmin = useIsAdmin();
   const unreadMessages = useUnreadMessages();
+  const hasStRooms = useHasStRooms();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
@@ -210,6 +212,13 @@ export function Navbar() {
               {accountType === "superfan" && (
                 <DropdownMenuItem asChild>
                   <Link to="/curator">Curator</Link>
+                </DropdownMenuItem>
+              )}
+              {hasStRooms && (
+                <DropdownMenuItem asChild>
+                  <Link to="/st-rooms" className="flex items-center gap-2">
+                    <Radio className="h-4 w-4" /> S.T. Room
+                  </Link>
                 </DropdownMenuItem>
               )}
               {isArtist && (

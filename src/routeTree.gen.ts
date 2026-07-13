@@ -13,6 +13,7 @@ import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as Top100RouteImport } from './routes/top100'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SuperfansRouteImport } from './routes/superfans'
+import { Route as StRoomsRouteImport } from './routes/st-rooms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as RoyaltiesRouteImport } from './routes/royalties'
@@ -52,6 +53,11 @@ const TermsRoute = TermsRouteImport.update({
 const SuperfansRoute = SuperfansRouteImport.update({
   id: '/superfans',
   path: '/superfans',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StRoomsRoute = StRoomsRouteImport.update({
+  id: '/st-rooms',
+  path: '/st-rooms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/st-rooms': typeof StRoomsRoute
   '/superfans': typeof SuperfansRoute
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/st-rooms': typeof StRoomsRoute
   '/superfans': typeof SuperfansRoute
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/st-rooms': typeof StRoomsRoute
   '/superfans': typeof SuperfansRoute
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/royalties'
     | '/search'
     | '/sitemap.xml'
+    | '/st-rooms'
     | '/superfans'
     | '/terms'
     | '/top100'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/royalties'
     | '/search'
     | '/sitemap.xml'
+    | '/st-rooms'
     | '/superfans'
     | '/terms'
     | '/top100'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/royalties'
     | '/search'
     | '/sitemap.xml'
+    | '/st-rooms'
     | '/superfans'
     | '/terms'
     | '/top100'
@@ -332,6 +344,7 @@ export interface RootRouteChildren {
   RoyaltiesRoute: typeof RoyaltiesRoute
   SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  StRoomsRoute: typeof StRoomsRoute
   SuperfansRoute: typeof SuperfansRoute
   TermsRoute: typeof TermsRoute
   Top100Route: typeof Top100Route
@@ -373,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: '/superfans'
       fullPath: '/superfans'
       preLoaderRoute: typeof SuperfansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/st-rooms': {
+      id: '/st-rooms'
+      path: '/st-rooms'
+      fullPath: '/st-rooms'
+      preLoaderRoute: typeof StRoomsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -532,6 +552,7 @@ const rootRouteChildren: RootRouteChildren = {
   RoyaltiesRoute: RoyaltiesRoute,
   SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  StRoomsRoute: StRoomsRoute,
   SuperfansRoute: SuperfansRoute,
   TermsRoute: TermsRoute,
   Top100Route: Top100Route,
