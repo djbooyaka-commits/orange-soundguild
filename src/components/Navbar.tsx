@@ -37,6 +37,7 @@ export function Navbar() {
   const canUpload = isArtist || accountType === "pioneer";
   const isAdmin = useIsAdmin();
   const unreadMessages = useUnreadMessages();
+  const hasStRooms = useHasStRooms();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
