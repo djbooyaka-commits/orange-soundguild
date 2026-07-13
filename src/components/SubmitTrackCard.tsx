@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Send, Loader2, Music, Info } from "lucide-react";
+import { Send, Loader2, Music, Info, CheckCircle2, X } from "lucide-react";
+
 import {
   listPlaylistsForSubmission,
   listMyTrackSubmissions,
@@ -40,6 +41,14 @@ export function SubmitTrackCard() {
   const [playlistId, setPlaylistId] = useState<string>("");
   const [trackUrl, setTrackUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [receipt, setReceipt] = useState<{
+    playlistName: string;
+    trackName: string | null;
+    cost: number;
+    followedAll: boolean;
+    newBalance: number;
+  } | null>(null);
+
 
   const refresh = async () => {
     const [pl, m] = await Promise.all([listPlaylists(), listMine()]);
@@ -67,6 +76,13 @@ export function SubmitTrackCard() {
       toast.success(
         `Submitted — ${res.cost} points spent${res.followedAll ? " (follow bonus applied)" : ""}`,
       );
+      setReceipt({
+        playlistName: res.playlistName,
+        trackName: res.trackName,
+        cost: res.cost,
+        followedAll: res.followedAll,
+        newBalance: res.newBalance,
+      });
       setTrackUrl("");
       await refresh();
     } catch (ex: any) {
@@ -75,6 +91,7 @@ export function SubmitTrackCard() {
       setBusy(false);
     }
   };
+
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -90,6 +107,42 @@ export function SubmitTrackCard() {
           </p>
         </div>
       </div>
+
+      {receipt && (
+        <div className="mt-4 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-4">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+            <div className="flex-1 text-sm">
+              <div className="font-semibold text-emerald-500">Submission received</div>
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-muted-foreground">
+                {receipt.trackName && (
+                  <>
+                    <dt>Track</dt>
+                    <dd className="text-foreground">{receipt.trackName}</dd>
+                  </>
+                )}
+                <dt>Paid from</dt>
+                <dd className="text-foreground">{receipt.playlistName}</dd>
+                <dt>Charged</dt>
+                <dd className="text-foreground">
+                  {receipt.cost} pts{receipt.followedAll ? " (follow bonus)" : ""}
+                </dd>
+                <dt>Balance on this playlist</dt>
+                <dd className="text-foreground font-semibold">{receipt.newBalance} pts</dd>
+              </dl>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReceipt(null)}
+              className="rounded p-1 text-muted-foreground hover:bg-muted"
+              aria-label="Dismiss receipt"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
 
       {playlists.length === 0 ? (
         <div className="mt-4 rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
