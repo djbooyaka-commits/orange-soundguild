@@ -282,7 +282,6 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       added,
       connected: true,
       scanned: sorted.length,
-      skippedPartial,
       skippedNotCurated,
     };
   });
