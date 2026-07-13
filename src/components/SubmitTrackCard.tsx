@@ -64,8 +64,11 @@ export function SubmitTrackCard() {
 
   const selected = playlists.find((p) => p.id === playlistId);
   const recentCount = mine.filter(
-    (s) => Date.now() - new Date(s.created_at).getTime() < 24 * 60 * 60 * 1000,
+    (s) =>
+      Date.now() - new Date(s.created_at).getTime() < 24 * 60 * 60 * 1000 &&
+      s.playlist_name === selected?.name,
   ).length;
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
