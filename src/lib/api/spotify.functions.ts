@@ -236,13 +236,10 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
     );
 
     let added = 0;
-    let skippedPartial = 0;
     let skippedNotCurated = 0;
     let maxEvaluatedAt: number | null = null;
 
-    for (let i = 0; i < sorted.length - 1; i++) {
-      const item = sorted[i];
-      const next = sorted[i + 1];
+    for (const item of sorted) {
       const playedAtMs = new Date(item.played_at).getTime();
       maxEvaluatedAt = Math.max(maxEvaluatedAt ?? 0, playedAtMs);
 
@@ -256,12 +253,10 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       if (!(await isInvitee(match.curatorId))) { skippedNotCurated++; continue; }
 
       const track = item.track;
-      if (!track?.id || !track?.duration_ms) continue;
+      if (!track?.id) continue;
 
-      const nextStartedMs = new Date(next.played_at).getTime();
-      const elapsedMs = nextStartedMs - playedAtMs;
-      if (elapsedMs < track.duration_ms * 0.95) { skippedPartial++; continue; }
-
+      // Spotify's recently-played only reports tracks played long enough to count,
+      // so we credit every match. Dedup handled by unique (user_id, spotify_track_id, played_at).
       const { error } = await supabaseAdmin.from("stream_points").insert({
         user_id: context.userId,
         curator_playlist_id: match.cpId,
@@ -271,6 +266,7 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       });
       if (!error) added += 1;
     }
+
 
     const newLastPolled =
       maxEvaluatedAt != null
