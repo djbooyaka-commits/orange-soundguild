@@ -169,5 +169,27 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
       _followed_all: followedAll,
     });
     if (error) throw new Error(error.message);
-    return { id: submissionId as string, cost: followedAll ? 45 : 50, followedAll };
+
+    const cost = followedAll ? 45 : 50;
+
+    // Fetch playlist name for the receipt
+    const { data: plMeta } = await supabaseAdmin
+      .from("curator_playlists")
+      .select("name")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+
+    // Updated available balance for this playlist
+    const { data: newBalance } = await context.supabase.rpc("get_playlist_available_points", {
+      _playlist_id: data.playlistId,
+    });
+
+    return {
+      id: submissionId as string,
+      cost,
+      followedAll,
+      playlistName: plMeta?.name ?? "playlist",
+      trackName: trackMeta.name ?? null,
+      newBalance: (newBalance as number | null) ?? 0,
+    };
   });
