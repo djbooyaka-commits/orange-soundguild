@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Send, Loader2, Music, Info } from "lucide-react";
+import { Send, Loader2, Music, Info, CheckCircle2, X } from "lucide-react";
+
 import {
   listPlaylistsForSubmission,
   listMyTrackSubmissions,
