@@ -163,6 +163,8 @@ function StRoomsPage() {
           ))}
         </div>
       )}
+
+      <AdBannerScriptSt className="mt-8" />
     </main>
   );
 }
