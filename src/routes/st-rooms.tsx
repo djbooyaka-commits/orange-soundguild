@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Radio, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { listPlaylistsForSubmission } from "@/lib/api/curator-submissions.functions";
+import { AdBannerScriptSt } from "@/components/AdBannerScriptSt";
 
 export const Route = createFileRoute("/st-rooms")({
   head: () => ({
