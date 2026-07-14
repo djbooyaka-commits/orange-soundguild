@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
 import { AdSlot } from "@/components/AdSlot";
+import { AdBannerScript } from "@/components/AdBannerScript";
 import { useAllTracks } from "@/lib/feed";
 import { groupFeed } from "@/lib/albums";
 import { AlbumCard } from "@/components/AlbumCard";
@@ -104,8 +105,9 @@ function Index() {
           </div>
         </section>
 
-        {/* Ad banner (free users only) */}
-        <AdSlot variant="banner" className="mt-6" />
+        {/* Ad banner */}
+        <AdBannerScript className="mt-6" />
+
 
 
 
