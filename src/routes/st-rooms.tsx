@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Radio, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { listPlaylistsForSubmission } from "@/lib/api/curator-submissions.functions";
+import { AdBannerScriptSt } from "@/components/AdBannerScriptSt";
 
 export const Route = createFileRoute("/st-rooms")({
   head: () => ({
@@ -101,6 +102,8 @@ function StRoomsPage() {
         </div>
       </header>
 
+      <AdBannerScriptSt className="mb-6" />
+
       {groups.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
           You haven't joined any Curator rooms yet. Open a Curator invite link to get started.
@@ -160,6 +163,8 @@ function StRoomsPage() {
           ))}
         </div>
       )}
+
+      <AdBannerScriptSt className="mt-8" />
     </main>
   );
 }
