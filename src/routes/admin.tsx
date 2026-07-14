@@ -747,10 +747,10 @@ function UsersAdmin() {
 
   async function changeType(id: string, next: AdminUser["account_type"]) {
     setSavingId(id);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ account_type: next })
-      .eq("id", id);
+    const { error } = await supabase.rpc("admin_set_account_type", {
+      _user_id: id,
+      _type: next,
+    });
     setSavingId(null);
     if (error) {
       toast.error(error.message);

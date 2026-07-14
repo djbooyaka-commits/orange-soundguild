@@ -965,6 +965,17 @@ export type Database = {
         Args: { _curator_id: string }
         Returns: string
       }
+      admin_set_account_type: {
+        Args: {
+          _type: Database["public"]["Enums"]["account_type"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      admin_set_banned: {
+        Args: { _banned: boolean; _user_id: string }
+        Returns: undefined
+      }
       admin_update_payout_status: {
         Args: {
           _new_status: Database["public"]["Enums"]["payout_status"]
