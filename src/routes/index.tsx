@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
 import { AdSlot } from "@/components/AdSlot";
+import { AdBannerScript } from "@/components/AdBannerScript";
 import { useAllTracks } from "@/lib/feed";
 import { groupFeed } from "@/lib/albums";
 import { AlbumCard } from "@/components/AlbumCard";
