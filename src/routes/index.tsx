@@ -105,8 +105,9 @@ function Index() {
           </div>
         </section>
 
-        {/* Ad banner (free users only) */}
-        <AdSlot variant="banner" className="mt-6" />
+        {/* Ad banner */}
+        <AdBannerScript className="mt-6" />
+
 
 
 
