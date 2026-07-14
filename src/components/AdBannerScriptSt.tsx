@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { AD_SCRIPT_ST as AD_SCRIPT } from "./adScriptSt";
 
+const AD_SCRIPT = `(function(gaqqoz){ var d = document, s = d.createElement('script'), l = d.scripts[d.scripts.length - 1]; s.settings = gaqqoz || {}; s.src = "//quarrelsomebitter.com/b.XxVos/dlGMlM0/YWWNcJ/heOmK9NuPZcUllUknP/Tmc/ytMdjfAO0XMQjMk/tiNAzPICyIM_DXQIzvM/wd"; s.async = true; s.referrerPolicy = 'no-referrer-when-downgrade'; l.parentNode.insertBefore(s, l); })({})`;
 
 /**
  * Ad slot for the S.T. Rooms page. Uses a real <script> element so the
