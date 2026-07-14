@@ -84,6 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "referrer", content: "no-referrer-when-downgrade" },
       { name: "c0557b9e294e90ea4bd1772ce9ef6bc1903982e0", content: "c0557b9e294e90ea4bd1772ce9ef6bc1903982e0" },
       { title: "Orange Sound Guild" },
       { name: "description", content: "Orange Sound Guild is a modern music streaming web app for uploading, discovering, and playing audio tracks." },
