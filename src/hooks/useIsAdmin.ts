@@ -46,9 +46,9 @@ export async function adminDeleteTrack(id: string) {
 }
 
 export async function setUserBanned(userId: string, banned: boolean) {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ is_banned: banned })
-    .eq("id", userId);
+  const { error } = await supabase.rpc("admin_set_banned", {
+    _user_id: userId,
+    _banned: banned,
+  });
   if (error) throw error;
 }
