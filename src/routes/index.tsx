@@ -68,7 +68,7 @@ function Index() {
                 "radial-gradient(900px 300px at 85% -10%, oklch(0.72 0.19 45 / 0.55), transparent 60%), radial-gradient(600px 250px at 10% 110%, oklch(0.72 0.19 45 / 0.25), transparent 60%)",
             }}
           />
-          <div className="relative grid gap-6 p-8 sm:p-12 md:grid-cols-[1fr_auto] md:items-end">
+          <div className="relative grid gap-6 p-8 sm:p-12 md:grid-cols-[1fr_320px] md:items-end">
             <div>
               <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white/80">
                 <Flame className="h-3 w-3 text-primary" /> What's new today
@@ -102,11 +102,15 @@ function Index() {
                 </div>
               </div>
             </div>
+            <div className="hidden md:block">
+              <AdBannerScript className="border-white/10 bg-black/30 text-white/80" />
+            </div>
           </div>
         </section>
 
-        {/* Ad banner */}
-        <AdBannerScript className="mt-6" />
+        {/* Ad banner (mobile only — desktop shows it in the hero) */}
+        <AdBannerScript className="mt-6 md:hidden" />
+
 
 
 
