@@ -36,11 +36,16 @@ function Index() {
   const onlineCount = useOnlineCount();
   const totalUsers = useTotalUsers();
   const [genre, setGenre] = useState("All");
+  const [afroOpen, setAfroOpen] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const feed = useMemo(() => {
     const all = uploaded.filter((t) => !hidden.has(t.id));
     if (genre === "All") return all;
+    if (genre === "Afro") {
+      const subs = AFRO_SUBGENRES.map((s) => s.toLowerCase());
+      return all.filter((t) => subs.includes(t.genre.toLowerCase()));
+    }
     return all.filter((t) => t.genre.toLowerCase() === genre.toLowerCase());
   }, [uploaded, genre, hidden]);
 
