@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-const AD_SCRIPT = `(function(gaqqoz){ var d = document, s = d.createElement('script'), l = d.scripts[d.scripts.length - 1]; s.settings = gaqqoz || {}; s.src = "//quarrelsomebitter.com/b.XxVos/dlGMlM0/YWWNcJ/heOmK9NuPZcUllUknP/Tmc/ytMdjfAO0XMQjMk/tiNAzPICyIM_DXQIzvM/wd"; s.async = true; s.referrerPolicy = 'no-referrer-when-downgrade'; l.parentNode.insertBefore(s, l); })({})`;
+const DEFAULT_AD_SCRIPT = `(function(gaqqoz){ var d = document, s = d.createElement('script'), l = d.scripts[d.scripts.length - 1]; s.settings = gaqqoz || {}; s.src = "//quarrelsomebitter.com/b.XxVos/dlGMlM0/YWWNcJ/heOmK9NuPZcUllUknP/Tmc/ytMdjfAO0XMQjMk/tiNAzPICyIM_DXQIzvM/wd"; s.async = true; s.referrerPolicy = 'no-referrer-when-downgrade'; l.parentNode.insertBefore(s, l); })({})`;
 
 /**
- * Ad slot for the S.T. Rooms page. Uses a real <script> element so the
- * third-party loader actually executes (innerHTML scripts don't run).
+ * S.T. Rooms ad slot. Loads the script body from site_content
+ * (key: "ad_script_st_rooms") so admins can update it live; falls back
+ * to the default script if unset.
  */
 export function AdBannerScriptSt({ className = "" }: { className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -12,14 +14,38 @@ export function AdBannerScriptSt({ className = "" }: { className?: string }) {
   useEffect(() => {
     const container = ref.current;
     if (!container) return;
-    const script = document.createElement("script");
-    script.text = AD_SCRIPT;
-    container.appendChild(script);
-    return () => {
+    let injected: HTMLScriptElement | null = null;
+    let cancelled = false;
+
+    (async () => {
+      let code = DEFAULT_AD_SCRIPT;
       try {
-        container.removeChild(script);
+        const { data } = await supabase
+          .from("site_content")
+          .select("value")
+          .eq("key", "ad_script_st_rooms")
+          .maybeSingle();
+        const v = (data?.value ?? null) as { code?: string } | string | null;
+        const stored = typeof v === "string" ? v : v?.code;
+        if (stored && stored.trim()) code = stored;
       } catch {
-        /* ignore */
+        /* fall back to default */
+      }
+      if (cancelled || !ref.current) return;
+      const script = document.createElement("script");
+      script.text = code;
+      container.appendChild(script);
+      injected = script;
+    })();
+
+    return () => {
+      cancelled = true;
+      if (injected && injected.parentNode) {
+        try {
+          injected.parentNode.removeChild(injected);
+        } catch {
+          /* ignore */
+        }
       }
     };
   }, []);
