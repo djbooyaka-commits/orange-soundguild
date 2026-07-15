@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt, Ticket, Copy, Users } from "lucide-react";
+import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt, Ticket, Copy, Users, Megaphone } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -274,9 +274,15 @@ function AdminPage() {
 
             <UsersAdmin />
 
+            <AdScriptsAdmin />
+
             <PioneerInvites />
 
             <SiteAccounting />
+
+
+
+
 
 
 
@@ -842,4 +848,171 @@ function UsersAdmin() {
     </section>
   );
 }
+
+type AdSlotDef = {
+  key: string;
+  label: string;
+  description: string;
+};
+
+const AD_SLOTS: AdSlotDef[] = [
+  {
+    key: "ad_script_home",
+    label: "Home page banner",
+    description: "Injected into the ad slot on the home page hero (and mobile fallback).",
+  },
+  {
+    key: "ad_script_st_rooms",
+    label: "S.T. Rooms banners",
+    description: "Injected at the top and bottom of the S.T. Rooms page.",
+  },
+];
+
+function AdScriptsAdmin() {
+  const { user } = useAuth();
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [initial, setInitial] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("site_content")
+        .select("key, value")
+        .in(
+          "key",
+          AD_SLOTS.map((s) => s.key),
+        );
+      if (cancelled) return;
+      setLoading(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      const next: Record<string, string> = {};
+      for (const row of data ?? []) {
+        const v = row.value as { code?: string } | string | null;
+        next[row.key as string] =
+          typeof v === "string" ? v : (v?.code ?? "");
+      }
+      setValues(next);
+      setInitial(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function saveSlot(key: string) {
+    if (!user) return;
+    setSavingKey(key);
+    const code = values[key] ?? "";
+    const { error } = await supabase
+      .from("site_content")
+      .upsert(
+        {
+          key,
+          value: { code } as never,
+          updated_by: user.id,
+        },
+        { onConflict: "key" },
+      );
+    setSavingKey(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setInitial((s) => ({ ...s, [key]: code }));
+    toast.success("Ad code saved. Reload pages to see changes.");
+  }
+
+  function clearSlot(key: string) {
+    setValues((v) => ({ ...v, [key]: "" }));
+  }
+
+  return (
+    <section className="rounded-2xl border border-border bg-card/50 p-5">
+      <div className="mb-4 flex items-center gap-2">
+        <Megaphone className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold">Ad scripts</h2>
+      </div>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Paste the raw JavaScript from your ad network for each slot. Leave a
+        slot empty to fall back to the built-in default. Do NOT include the{" "}
+        <code className="rounded bg-muted px-1 py-0.5 text-xs">
+          &lt;script&gt;
+        </code>{" "}
+        tags — just the JS body.
+      </p>
+
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {AD_SLOTS.map((slot) => {
+            const val = values[slot.key] ?? "";
+            const dirty = val !== (initial[slot.key] ?? "");
+            return (
+              <div key={slot.key} className="rounded-lg border border-border p-4">
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="font-medium">{slot.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {slot.description}
+                    </div>
+                  </div>
+                  <code className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    {slot.key}
+                  </code>
+                </div>
+                <textarea
+                  rows={8}
+                  spellCheck={false}
+                  className={`${inputCls} mt-3 font-mono text-xs`}
+                  placeholder="// Paste ad network JavaScript here"
+                  value={val}
+                  onChange={(e) =>
+                    setValues((v) => ({ ...v, [slot.key]: e.target.value }))
+                  }
+                />
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => saveSlot(slot.key)}
+                    disabled={savingKey === slot.key || !dirty}
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                  >
+                    {savingKey === slot.key ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5" />
+                    )}
+                    Save
+                  </button>
+                  <button
+                    onClick={() => clearSlot(slot.key)}
+                    className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-semibold hover:bg-muted"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Clear
+                  </button>
+                  {dirty && (
+                    <span className="text-xs text-muted-foreground">
+                      Unsaved changes
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 
