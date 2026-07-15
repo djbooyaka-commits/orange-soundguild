@@ -11,7 +11,7 @@ import { useIsAdmin, adminDeleteTrack } from "@/hooks/useIsAdmin";
 import { useOnlineCount } from "@/hooks/useOnlineCount";
 import { useTotalUsers } from "@/hooks/useTotalUsers";
 import { toast } from "sonner";
-import { Flame, TrendingUp, Users, UserPlus } from "lucide-react";
+import { Flame, TrendingUp, Users, UserPlus, ChevronDown } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,7 +27,8 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const GENRES = ["All", "Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Hip-Hop", "Lo-fi", "Indie", "Ambient", "Jazz", "Techno", "POP", "Rock", "R&B"];
+const AFRO_SUBGENRES = ["Afro House", "Afrobeats", "Amapiano"];
+const GENRES = ["All", "Electronic", "House", "Tech House", "Drum and Bass", "Afro", "Hip-Hop", "Lo-fi", "Indie", "Ambient", "Jazz", "Techno", "POP", "Rock", "R&B"];
 
 function Index() {
   const { tracks: uploaded } = useAllTracks();
@@ -35,11 +36,16 @@ function Index() {
   const onlineCount = useOnlineCount();
   const totalUsers = useTotalUsers();
   const [genre, setGenre] = useState("All");
+  const [afroOpen, setAfroOpen] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const feed = useMemo(() => {
     const all = uploaded.filter((t) => !hidden.has(t.id));
     if (genre === "All") return all;
+    if (genre === "Afro") {
+      const subs = AFRO_SUBGENRES.map((s) => s.toLowerCase());
+      return all.filter((t) => subs.includes(t.genre.toLowerCase()));
+    }
     return all.filter((t) => t.genre.toLowerCase() === genre.toLowerCase());
   }, [uploaded, genre, hidden]);
 
@@ -121,6 +127,45 @@ function Index() {
           className="mt-6 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
         >
           {GENRES.map((g) => {
+            if (g === "Afro") {
+              const active = genre === "Afro" || AFRO_SUBGENRES.includes(genre);
+              const label = AFRO_SUBGENRES.includes(genre) ? `Afro · ${genre}` : "Afro";
+              return (
+                <div key={g} className="relative shrink-0">
+                  <button
+                    onClick={() => setAfroOpen((v) => !v)}
+                    onBlur={() => setTimeout(() => setAfroOpen(false), 150)}
+                    className={`inline-flex items-center gap-1 rounded-full border px-4 py-1.5 text-xs font-medium transition ${
+                      active
+                        ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                    }`}
+                  >
+                    {label}
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                  {afroOpen && (
+                    <div className="absolute left-0 top-full z-20 mt-1 min-w-[160px] rounded-lg border border-border bg-card p-1 shadow-lg">
+                      <button
+                        onMouseDown={(e) => { e.preventDefault(); setGenre("Afro"); setAfroOpen(false); }}
+                        className={`block w-full rounded px-3 py-1.5 text-left text-xs hover:bg-muted ${genre === "Afro" ? "text-primary" : ""}`}
+                      >
+                        All Afro
+                      </button>
+                      {AFRO_SUBGENRES.map((s) => (
+                        <button
+                          key={s}
+                          onMouseDown={(e) => { e.preventDefault(); setGenre(s); setAfroOpen(false); }}
+                          className={`block w-full rounded px-3 py-1.5 text-left text-xs hover:bg-muted ${genre === s ? "text-primary" : ""}`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
             const active = g === genre;
             return (
               <button
