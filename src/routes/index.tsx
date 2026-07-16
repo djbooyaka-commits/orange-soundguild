@@ -124,45 +124,44 @@ function Index() {
         {/* Genre tag bar */}
         <nav
           aria-label="Filter by genre"
-          className="mt-6 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
+          className="mt-6 -mx-4 flex flex-wrap gap-2 px-4 pb-1 sm:mx-0 sm:px-0"
         >
           {GENRES.map((g) => {
             if (g === "Afro") {
               const active = genre === "Afro" || AFRO_SUBGENRES.includes(genre);
-              const label = AFRO_SUBGENRES.includes(genre) ? `Afro · ${genre}` : "Afro";
               return (
-                <div key={g} className="relative shrink-0">
+                <div key={g} className="inline-flex flex-wrap items-center gap-2">
                   <button
-                    onClick={() => setAfroOpen((v) => !v)}
-                    onBlur={() => setTimeout(() => setAfroOpen(false), 150)}
-                    className={`inline-flex items-center gap-1 rounded-full border px-4 py-1.5 text-xs font-medium transition ${
+                    onClick={() => {
+                      setAfroOpen((v) => !v);
+                      if (!active) setGenre("Afro");
+                    }}
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-4 py-1.5 text-xs font-medium transition ${
                       active
                         ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
                         : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                     }`}
+                    aria-expanded={afroOpen}
                   >
-                    {label}
-                    <ChevronDown className="h-3 w-3" />
+                    Afro
+                    <ChevronDown className={`h-3 w-3 transition-transform ${afroOpen ? "rotate-180" : ""}`} />
                   </button>
-                  {afroOpen && (
-                    <div className="absolute left-0 top-full z-20 mt-1 min-w-[160px] rounded-lg border border-border bg-card p-1 shadow-lg">
+                  {(afroOpen || AFRO_SUBGENRES.includes(genre)) && AFRO_SUBGENRES.map((s) => {
+                    const subActive = genre === s;
+                    return (
                       <button
-                        onMouseDown={(e) => { e.preventDefault(); setGenre("Afro"); setAfroOpen(false); }}
-                        className={`block w-full rounded px-3 py-1.5 text-left text-xs hover:bg-muted ${genre === "Afro" ? "text-primary" : ""}`}
+                        key={s}
+                        onClick={() => setGenre(s)}
+                        className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                          subActive
+                            ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
+                            : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        }`}
                       >
-                        All Afro
+                        {s}
                       </button>
-                      {AFRO_SUBGENRES.map((s) => (
-                        <button
-                          key={s}
-                          onMouseDown={(e) => { e.preventDefault(); setGenre(s); setAfroOpen(false); }}
-                          className={`block w-full rounded px-3 py-1.5 text-left text-xs hover:bg-muted ${genre === s ? "text-primary" : ""}`}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
               );
             }
@@ -170,7 +169,10 @@ function Index() {
             return (
               <button
                 key={g}
-                onClick={() => setGenre(g)}
+                onClick={() => {
+                  setGenre(g);
+                  setAfroOpen(false);
+                }}
                 className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-medium transition ${
                   active
                     ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
