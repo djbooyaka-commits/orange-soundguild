@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { toast } from "sonner";
 
-const GENRES = ["Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other"];
+const GENRES = ["Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Afrobeats", "Amapiano", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other"];
 
 type Mode = "single" | "album";
 type AlbumRow = { file: File; title: string };
