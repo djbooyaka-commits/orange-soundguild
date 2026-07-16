@@ -97,12 +97,18 @@ function MessagesPage() {
   return <MessagesAuthed key={user.id} userId={user.id} />;
 }
 
+type MessageMeta = {
+  lastMessageAt: string | null;
+  unreadCount: number;
+};
+
 function MessagesAuthed({ userId }: { userId: string }) {
   const search = Route.useSearch();
   const navigate = useNavigate();
 
   const [friendships, setFriendships] = useState<Friendship[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileMini & { avatar_signed: string }>>({});
+  const [messageMeta, setMessageMeta] = useState<Record<string, MessageMeta>>({});
   const [activeId, setActiveId] = useState<string | null>(search.with ?? null);
 
   const loadAll = async () => {
@@ -117,10 +123,27 @@ function MessagesAuthed({ userId }: { userId: string }) {
       new Set(rows.map((r) => (r.requester_id === userId ? r.addressee_id : r.requester_id))),
     );
     if (otherIds.length > 0) {
-      const { data: ps } = await supabase
-        .from("profiles")
-        .select("id, username, avatar_url")
-        .in("id", otherIds);
+      const [{ data: ps }, { data: latest }, { data: unread }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, username, avatar_url")
+          .in("id", otherIds),
+        supabase
+          .from("direct_messages")
+          .select("sender_id, recipient_id, created_at")
+          .or(
+            `and(sender_id.eq.${userId},recipient_id.in.(${otherIds.join(",")})),` +
+              `and(recipient_id.eq.${userId},sender_id.in.(${otherIds.join(",")}))`,
+          )
+          .order("created_at", { ascending: false })
+          .limit(1000),
+        supabase
+          .from("direct_messages")
+          .select("sender_id, recipient_id, read_at")
+          .eq("recipient_id", userId)
+          .is("read_at", null)
+          .limit(1000),
+      ]);
       const list = (ps ?? []) as ProfileMini[];
       const next: Record<string, ProfileMini & { avatar_signed: string }> = {};
       await Promise.all(
@@ -129,6 +152,26 @@ function MessagesAuthed({ userId }: { userId: string }) {
         }),
       );
       setProfiles(next);
+
+      const meta: Record<string, MessageMeta> = {};
+      for (const id of otherIds) {
+        meta[id] = { lastMessageAt: null, unreadCount: 0 };
+      }
+      for (const m of latest ?? []) {
+        const other = m.sender_id === userId ? m.recipient_id : m.sender_id;
+        if (!meta[other]?.lastMessageAt) {
+          meta[other].lastMessageAt = m.created_at;
+        }
+      }
+      for (const m of unread ?? []) {
+        if (m.sender_id !== userId) {
+          meta[m.sender_id].unreadCount += 1;
+        }
+      }
+      setMessageMeta(meta);
+    } else {
+      setProfiles({});
+      setMessageMeta({});
     }
   };
 
@@ -152,9 +195,47 @@ function MessagesAuthed({ userId }: { userId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
+  useEffect(() => {
+    const ch = supabase
+      .channel(`dm-all:${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "direct_messages", filter: `sender_id=eq.${userId}` },
+        () => void loadAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "direct_messages", filter: `recipient_id=eq.${userId}` },
+        () => void loadAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "direct_messages", filter: `recipient_id=eq.${userId}` },
+        () => void loadAll(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
   const accepted = useMemo(
-    () => friendships.filter((f) => f.status === "accepted"),
-    [friendships],
+    () =>
+      friendships
+        .filter((f) => f.status === "accepted")
+        .sort((a, b) => {
+          const metaA = messageMeta[otherOf(a, userId)] ?? { lastMessageAt: null, unreadCount: 0 };
+          const metaB = messageMeta[otherOf(b, userId)] ?? { lastMessageAt: null, unreadCount: 0 };
+          // Unread friends first, then most recent message first.
+          if (metaB.unreadCount !== metaA.unreadCount) {
+            return metaB.unreadCount - metaA.unreadCount;
+          }
+          const ta = metaA.lastMessageAt ? new Date(metaA.lastMessageAt).getTime() : 0;
+          const tb = metaB.lastMessageAt ? new Date(metaB.lastMessageAt).getTime() : 0;
+          return tb - ta;
+        }),
+    [friendships, messageMeta, userId],
   );
   const incoming = useMemo(
     () => friendships.filter((f) => f.status === "pending" && f.addressee_id === userId),
