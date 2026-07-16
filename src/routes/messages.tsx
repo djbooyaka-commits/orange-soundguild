@@ -272,9 +272,9 @@ function MessagesAuthed({ userId }: { userId: string }) {
   return (
     <div className="min-h-screen bg-background pb-40">
       <Navbar />
-      <main className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 py-8 sm:px-6 md:grid-cols-[320px_1fr]">
+      <main className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 py-4 sm:px-6 md:h-[calc(100vh-9rem)] md:grid-cols-[320px_1fr] md:py-6">
         {/* Sidebar */}
-        <aside className="space-y-6">
+        <aside className="space-y-6 md:h-full md:overflow-y-auto md:pr-2">
           {incoming.length > 0 && (
             <section>
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -387,7 +387,7 @@ function MessagesAuthed({ userId }: { userId: string }) {
         </aside>
 
         {/* Chat pane */}
-        <section className="min-h-[70vh] rounded-2xl border border-border bg-card">
+        <section className="min-h-[70vh] overflow-hidden rounded-2xl border border-border bg-card md:h-full md:min-h-0">
           {activeId ? (
             <ChatPane
               key={activeId}
@@ -728,7 +728,7 @@ function ChatPane({
   };
 
   return (
-    <div className="flex h-full min-h-[70vh] flex-col">
+    <div className="flex h-full min-h-[70vh] flex-col md:min-h-0">
       <div className="flex items-center gap-3 border-b border-border p-4">
         <img
           src={other.avatar_signed ?? defaultAvatar}
