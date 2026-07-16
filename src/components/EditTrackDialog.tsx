@@ -22,7 +22,7 @@ import {
 } from "@/lib/api/track-sales.functions";
 
 const GENRES = [
-  "Electronic", "House", "Tech House", "Drum and Bass", "Afro House",
+  "Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Afrobeats", "Amapiano",
   "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other",
 ];
 
