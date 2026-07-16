@@ -387,7 +387,7 @@ function MessagesAuthed({ userId }: { userId: string }) {
         </aside>
 
         {/* Chat pane */}
-        <section className="min-h-[70vh] rounded-2xl border border-border bg-card">
+        <section className="min-h-[70vh] overflow-hidden rounded-2xl border border-border bg-card md:h-full md:min-h-0">
           {activeId ? (
             <ChatPane
               key={activeId}
