@@ -728,7 +728,7 @@ function ChatPane({
   };
 
   return (
-    <div className="flex h-full min-h-[70vh] flex-col">
+    <div className="flex h-full min-h-[70vh] flex-col md:min-h-0">
       <div className="flex items-center gap-3 border-b border-border p-4">
         <img
           src={other.avatar_signed ?? defaultAvatar}
