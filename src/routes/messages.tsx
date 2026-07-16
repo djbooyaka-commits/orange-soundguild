@@ -272,9 +272,9 @@ function MessagesAuthed({ userId }: { userId: string }) {
   return (
     <div className="min-h-screen bg-background pb-40">
       <Navbar />
-      <main className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 py-8 sm:px-6 md:grid-cols-[320px_1fr]">
+      <main className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 py-4 sm:px-6 md:h-[calc(100vh-9rem)] md:grid-cols-[320px_1fr] md:py-6">
         {/* Sidebar */}
-        <aside className="space-y-6">
+        <aside className="space-y-6 md:h-full md:overflow-y-auto md:pr-2">
           {incoming.length > 0 && (
             <section>
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
