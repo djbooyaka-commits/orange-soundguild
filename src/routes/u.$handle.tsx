@@ -306,7 +306,10 @@ function ProfilePage() {
 
         {(isMe ? (isArtist || accountType === "pioneer") : (profile?.account_type === "artist" || profile?.account_type === "pioneer")) && (
           <>
-            <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-bold tracking-tight">Uploaded tracks</h2>
+              {userTracks.length > 0 && <CatalogPlayControls tracks={userTracks} />}
+            </div>
 
             {userTracks.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
