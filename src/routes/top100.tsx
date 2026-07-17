@@ -97,6 +97,13 @@ function Top100() {
     play(tracks[0], tracks);
   };
 
+  const shufflePlay = () => {
+    if (!tracks.length) return;
+    if (!shuffle) toggleShuffle();
+    const idx = Math.floor(Math.random() * tracks.length);
+    play(tracks[idx], tracks);
+  };
+
   const rowPlay = (t: Track) => {
     if (current?.id === t.id) toggle();
     else play(t, tracks);
