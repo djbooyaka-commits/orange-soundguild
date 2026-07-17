@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Play, Pause, Trophy, Headphones } from "lucide-react";
+import { Play, Pause, Trophy, Headphones, Shuffle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { signMany } from "@/lib/signMedia";
