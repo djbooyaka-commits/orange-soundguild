@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Play, Pause, Trophy, Headphones } from "lucide-react";
+import { Play, Pause, Trophy, Headphones, Shuffle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { signMany } from "@/lib/signMedia";
@@ -50,7 +50,7 @@ type Row = {
 function Top100() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
-  const { current, isPlaying, play, toggle } = usePlayer();
+  const { current, isPlaying, play, toggle, shuffle, toggleShuffle } = usePlayer();
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +97,13 @@ function Top100() {
     play(tracks[0], tracks);
   };
 
+  const shufflePlay = () => {
+    if (!tracks.length) return;
+    if (!shuffle) toggleShuffle();
+    const idx = Math.floor(Math.random() * tracks.length);
+    play(tracks[idx], tracks);
+  };
+
   const rowPlay = (t: Track) => {
     if (current?.id === t.id) toggle();
     else play(t, tracks);
@@ -134,14 +141,25 @@ function Top100() {
                 The 100 most-played tracks on soundwave, updated in real time as listeners finish tracks.
               </p>
             </div>
-            <button
-              onClick={playAll}
-              disabled={!tracks.length}
-              className="inline-flex h-12 items-center gap-2 self-start rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] transition hover:brightness-105 active:scale-[0.98] disabled:opacity-50 sm:self-auto"
-            >
-              <Play className="h-4 w-4 fill-current" />
-              Play all
-            </button>
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              <button
+                onClick={playAll}
+                disabled={!tracks.length}
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] transition hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
+              >
+                <Play className="h-4 w-4 fill-current" />
+                Play all
+              </button>
+              <button
+                onClick={shufflePlay}
+                disabled={!tracks.length}
+                aria-pressed={shuffle}
+                className="inline-flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-[0.98] disabled:opacity-50"
+              >
+                <Shuffle className="h-4 w-4" />
+                Shuffle
+              </button>
+            </div>
           </div>
         </section>
 

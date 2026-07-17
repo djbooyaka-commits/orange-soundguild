@@ -19,7 +19,8 @@ import { SuperfanPublicProfile } from "@/components/SuperfanPublicProfile";
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
-import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck, Award, Globe, Instagram, Twitter, Youtube, Music } from "lucide-react";
+import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck, Award, Globe, Instagram, Twitter, Youtube, Music, Play, Shuffle } from "lucide-react";
+import { usePlayer } from "@/components/player/PlayerContext";
 import { useRoyaltyProgress } from "@/hooks/useRoyaltyProgress";
 import { FriendButton } from "@/components/FriendButton";
 
@@ -305,7 +306,10 @@ function ProfilePage() {
 
         {(isMe ? (isArtist || accountType === "pioneer") : (profile?.account_type === "artist" || profile?.account_type === "pioneer")) && (
           <>
-            <h2 className="mb-5 text-lg font-bold tracking-tight">Uploaded tracks</h2>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-bold tracking-tight">Uploaded tracks</h2>
+              {userTracks.length > 0 && <CatalogPlayControls tracks={userTracks} />}
+            </div>
 
             {userTracks.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
@@ -360,6 +364,37 @@ function ProfilePage() {
           <Link to="/" className="hover:text-primary">← Back to feed</Link>
         </div>
       </main>
+    </div>
+  );
+}
+
+function CatalogPlayControls({ tracks }: { tracks: import("@/lib/tracks").Track[] }) {
+  const { play, shuffle, toggleShuffle } = usePlayer();
+  const playAll = () => {
+    if (!tracks.length) return;
+    play(tracks[0], tracks);
+  };
+  const shufflePlay = () => {
+    if (!tracks.length) return;
+    if (!shuffle) toggleShuffle();
+    const idx = Math.floor(Math.random() * tracks.length);
+    play(tracks[idx], tracks);
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        onClick={playAll}
+        className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105"
+      >
+        <Play className="h-4 w-4 fill-current" /> Play all
+      </button>
+      <button
+        onClick={shufflePlay}
+        aria-pressed={shuffle}
+        className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-semibold hover:bg-muted"
+      >
+        <Shuffle className="h-4 w-4" /> Shuffle
+      </button>
     </div>
   );
 }
