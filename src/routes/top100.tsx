@@ -50,7 +50,7 @@ type Row = {
 function Top100() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
-  const { current, isPlaying, play, toggle } = usePlayer();
+  const { current, isPlaying, play, toggle, shuffle, toggleShuffle } = usePlayer();
 
   useEffect(() => {
     let cancelled = false;
