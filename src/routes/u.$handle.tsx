@@ -368,6 +368,37 @@ function ProfilePage() {
   );
 }
 
+function CatalogPlayControls({ tracks }: { tracks: import("@/lib/tracks").Track[] }) {
+  const { play, shuffle, toggleShuffle } = usePlayer();
+  const playAll = () => {
+    if (!tracks.length) return;
+    play(tracks[0], tracks);
+  };
+  const shufflePlay = () => {
+    if (!tracks.length) return;
+    if (!shuffle) toggleShuffle();
+    const idx = Math.floor(Math.random() * tracks.length);
+    play(tracks[idx], tracks);
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        onClick={playAll}
+        className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105"
+      >
+        <Play className="h-4 w-4 fill-current" /> Play all
+      </button>
+      <button
+        onClick={shufflePlay}
+        aria-pressed={shuffle}
+        className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-semibold hover:bg-muted"
+      >
+        <Shuffle className="h-4 w-4" /> Shuffle
+      </button>
+    </div>
+  );
+}
+
 function FollowButton({ targetUserId }: { targetUserId: string | null }) {
   const { user } = useAuth();
   const { isFollowing, toggle, loading, canFollow } = useFollow(targetUserId);
