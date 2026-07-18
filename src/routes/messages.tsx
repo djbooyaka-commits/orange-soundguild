@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { Send, Check, X, MessageCircle, Loader2, ImagePlus, Video, ShieldAlert } from "lucide-react";
+import { Send, Check, X, MessageCircle, Loader2, ImagePlus, Video, ShieldAlert, Pencil, Trash2 } from "lucide-react";
 
 const VIDEO_EXTS = ["mp4", "webm", "mov", "m4v", "ogg"];
 const MAX_VIDEO_SECONDS = 20;
