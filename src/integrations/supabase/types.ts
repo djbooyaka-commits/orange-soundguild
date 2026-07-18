@@ -256,6 +256,7 @@ export type Database = {
         Row: {
           body: string | null
           created_at: string
+          edited_at: string | null
           id: string
           image_url: string | null
           read_at: string | null
@@ -265,6 +266,7 @@ export type Database = {
         Insert: {
           body?: string | null
           created_at?: string
+          edited_at?: string | null
           id?: string
           image_url?: string | null
           read_at?: string | null
@@ -274,6 +276,7 @@ export type Database = {
         Update: {
           body?: string | null
           created_at?: string
+          edited_at?: string | null
           id?: string
           image_url?: string | null
           read_at?: string | null
