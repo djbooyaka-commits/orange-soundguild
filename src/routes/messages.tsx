@@ -558,11 +558,14 @@ function ChatPane({
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
       .from("direct_messages")
-      .select("id, sender_id, recipient_id, body, image_url, created_at, read_at")
+      .select("id, sender_id, recipient_id, body, image_url, created_at, read_at, edited_at")
       .or(
         `and(sender_id.eq.${me},recipient_id.eq.${other.id}),` +
           `and(sender_id.eq.${other.id},recipient_id.eq.${me})`,
