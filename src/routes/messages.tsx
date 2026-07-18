@@ -49,6 +49,7 @@ type Message = {
   image_url: string | null;
   created_at: string;
   read_at: string | null;
+  edited_at: string | null;
 };
 
 const SIGNED_TTL = 60 * 60 * 24;
