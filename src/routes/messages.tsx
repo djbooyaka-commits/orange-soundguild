@@ -735,7 +735,7 @@ function ChatPane({
         body: body || null,
         image_url: imagePath,
       })
-      .select("id, sender_id, recipient_id, body, image_url, created_at, read_at")
+      .select("id, sender_id, recipient_id, body, image_url, created_at, read_at, edited_at")
       .maybeSingle();
     setSending(false);
     if (error) return toast.error(error.message);
@@ -746,6 +746,50 @@ function ChatPane({
     setPendingPreview(null);
     if (fileRef.current) fileRef.current.value = "";
     inputRef.current?.focus();
+  };
+
+  const startEdit = (m: Message) => {
+    setEditingId(m.id);
+    setEditValue(m.body ?? "");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValue("");
+  };
+
+  const saveEdit = async (m: Message) => {
+    const next = editValue.trim();
+    if (!next) return toast.error("Message cannot be empty. Delete it instead.");
+    if (next === (m.body ?? "")) {
+      cancelEdit();
+      return;
+    }
+    const { data, error } = await supabase
+      .from("direct_messages")
+      .update({ body: next })
+      .eq("id", m.id)
+      .select("id, sender_id, recipient_id, body, image_url, created_at, read_at, edited_at")
+      .maybeSingle();
+    if (error) return toast.error(error.message);
+    if (data) setMessages((prev) => prev.map((x) => (x.id === data.id ? (data as Message) : x)));
+    cancelEdit();
+  };
+
+  const deleteMessage = async (m: Message) => {
+    if (!window.confirm("Delete this message?")) return;
+    // Optimistic remove; realtime DELETE will keep other clients in sync.
+    setMessages((prev) => prev.filter((x) => x.id !== m.id));
+    const { error } = await supabase.from("direct_messages").delete().eq("id", m.id);
+    if (error) {
+      toast.error(error.message);
+      void load();
+      return;
+    }
+    if (m.image_url) {
+      // Best-effort cleanup of the stored asset; ignore failure.
+      await supabase.storage.from("chat-images").remove([m.image_url]);
+    }
   };
 
   return (
