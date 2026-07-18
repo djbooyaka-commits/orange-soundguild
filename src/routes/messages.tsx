@@ -598,6 +598,23 @@ function ChatPane({
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "direct_messages" },
+        (payload) => {
+          const m = payload.new as Message;
+          setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, ...m } : x)));
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "direct_messages" },
+        (payload) => {
+          const oldRow = payload.old as { id?: string };
+          if (!oldRow.id) return;
+          setMessages((prev) => prev.filter((x) => x.id !== oldRow.id));
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
