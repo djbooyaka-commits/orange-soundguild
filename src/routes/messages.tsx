@@ -827,8 +827,33 @@ function ChatPane({
           messages.map((m) => {
             const mine = m.sender_id === me;
             const signed = m.image_url ? imageUrls[m.image_url] : null;
+            const isEditing = editingId === m.id;
             return (
-              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+              <div key={m.id} className={`group flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
+                {mine && !isEditing && (
+                  <div className="flex flex-col gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+                    {m.body && !m.image_url && (
+                      <button
+                        type="button"
+                        onClick={() => startEdit(m)}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground"
+                        aria-label="Edit message"
+                        title="Edit"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void deleteMessage(m)}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-destructive"
+                      aria-label="Delete message"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
                 <div
                   className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
                     mine
@@ -873,23 +898,64 @@ function ChatPane({
                       </a>
                     )
                   )}
-                  {m.body && <div className="whitespace-pre-wrap break-words">{renderWithLinks(m.body, mine)}</div>}
-                  {m.body && spotifyEmbeds(m.body).map((s) => (
-                    <iframe
-                      key={s.key}
-                      src={`https://open.spotify.com/embed/${s.type}/${s.id}`}
-                      title={`Spotify ${s.type}`}
-                      loading="lazy"
-                      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
-                      className="mt-2 block w-full rounded-xl border-0"
-                      style={{ height: s.type === "track" || s.type === "episode" ? 152 : 352 }}
-                    />
-                  ))}
-                  <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                    {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                  </div>
+                  {isEditing ? (
+                    <div className="flex flex-col gap-2">
+                      <textarea
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        maxLength={4000}
+                        rows={2}
+                        className="w-full min-w-[220px] resize-y rounded-lg border border-border bg-background px-2 py-1 text-sm text-foreground outline-none focus:border-primary"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void saveEdit(m);
+                          } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            cancelEdit();
+                          }
+                        }}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-muted"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void saveEdit(m)}
+                          className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:brightness-110"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {m.body && <div className="whitespace-pre-wrap break-words">{renderWithLinks(m.body, mine)}</div>}
+                      {m.body && spotifyEmbeds(m.body).map((s) => (
+                        <iframe
+                          key={s.key}
+                          src={`https://open.spotify.com/embed/${s.type}/${s.id}`}
+                          title={`Spotify ${s.type}`}
+                          loading="lazy"
+                          allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
+                          className="mt-2 block w-full rounded-xl border-0"
+                          style={{ height: s.type === "track" || s.type === "episode" ? 152 : 352 }}
+                        />
+                      ))}
+                      <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                        {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                        {m.edited_at && <span className="ml-1 italic">· edited</span>}
+                      </div>
+                    </>
+                  )}
 
                 </div>
               </div>
