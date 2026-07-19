@@ -114,8 +114,65 @@ export function EditTrackDialog({
       } finally {
         setCodesLoading(false);
       }
+
+      try {
+        const { collaborators } = await loadCollabs({ data: { trackId: track.id } });
+        setCollabs(collaborators);
+      } catch {
+        setCollabs([]);
+      }
+      setCollabQuery("");
+      setCollabResults([]);
     }
   };
+
+  // Debounced username search
+  useEffect(() => {
+    if (!open) return;
+    const q = collabQuery.trim();
+    if (q.length < 2) {
+      setCollabResults([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      try {
+        const { results } = await searchUsersFn({ data: { q } });
+        const existing = new Set(collabs.map((c) => c.id));
+        setCollabResults(results.filter((r) => !existing.has(r.id)));
+      } catch {
+        setCollabResults([]);
+      }
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [collabQuery, open, collabs, searchUsersFn]);
+
+  const addCollab = async (user: Collab) => {
+    setCollabBusy(true);
+    try {
+      await addCollabFn({ data: { trackId: track.id, userId: user.id } });
+      setCollabs((prev) => [...prev, user]);
+      setCollabQuery("");
+      setCollabResults([]);
+      toast.success(`Added ${user.username}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to add collaborator");
+    } finally {
+      setCollabBusy(false);
+    }
+  };
+
+  const removeCollab = async (user: Collab) => {
+    setCollabBusy(true);
+    try {
+      await removeCollabFn({ data: { trackId: track.id, userId: user.id } });
+      setCollabs((prev) => prev.filter((c) => c.id !== user.id));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to remove collaborator");
+    } finally {
+      setCollabBusy(false);
+    }
+  };
+
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
