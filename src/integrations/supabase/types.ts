@@ -794,6 +794,38 @@ export type Database = {
           },
         ]
       }
+      track_collaborators: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          track_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position?: number
+          track_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          track_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_collaborators_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       track_likes: {
         Row: {
           created_at: string
@@ -1150,6 +1182,14 @@ export type Database = {
         Returns: {
           paid_amount_cents: number
           paid_user_id: string
+        }[]
+      }
+      search_profiles_by_username: {
+        Args: { _q: string }
+        Returns: {
+          avatar_url: string
+          id: string
+          username: string
         }[]
       }
       submit_curator_track: {
