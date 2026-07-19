@@ -85,14 +85,29 @@ export function TrackCard({ track, onDelete, canEdit }: { track: Track; onDelete
             <h3 className={`truncate text-sm font-semibold ${active ? "text-primary" : "text-foreground"}`}>
               {track.title}
             </h3>
-            <Link
-              to="/u/$handle"
-              params={{ handle: track.artist }}
-              onClick={(e) => e.stopPropagation()}
-              className="truncate text-xs text-muted-foreground hover:text-primary"
-            >
-              {track.artist}
-            </Link>
+            <div className="truncate text-xs text-muted-foreground">
+              <Link
+                to="/u/$handle"
+                params={{ handle: track.artist }}
+                onClick={(e) => e.stopPropagation()}
+                className="hover:text-primary"
+              >
+                {track.artist}
+              </Link>
+              {(track.collaborators ?? []).map((c) => (
+                <span key={c.id}>
+                  {" & "}
+                  <Link
+                    to="/u/$handle"
+                    params={{ handle: c.username }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="hover:text-primary"
+                  >
+                    {c.username}
+                  </Link>
+                </span>
+              ))}
+            </div>
           </div>
           <span className="shrink-0 text-[11px] text-muted-foreground">{track.uploadedAt}</span>
         </div>
