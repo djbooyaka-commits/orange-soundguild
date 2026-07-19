@@ -66,9 +66,19 @@ export function EditTrackDialog({
   const [codesLoading, setCodesLoading] = useState(false);
   const [codesBusy, setCodesBusy] = useState(false);
 
+  type Collab = { id: string; username: string; avatar_url: string | null };
+  const [collabs, setCollabs] = useState<Collab[]>([]);
+  const [collabQuery, setCollabQuery] = useState("");
+  const [collabResults, setCollabResults] = useState<Collab[]>([]);
+  const [collabBusy, setCollabBusy] = useState(false);
+
   const loadCodes = useServerFn(listMyTrackCodes);
   const genCodes = useServerFn(generateTrackCodes);
   const loadPrivate = useServerFn(getMyTrackPrivateFields);
+  const loadCollabs = useServerFn(listTrackCollaborators);
+  const searchUsersFn = useServerFn(searchUsers);
+  const addCollabFn = useServerFn(addTrackCollaborator);
+  const removeCollabFn = useServerFn(removeTrackCollaborator);
 
 
   const onOpenChange = async (o: boolean) => {
