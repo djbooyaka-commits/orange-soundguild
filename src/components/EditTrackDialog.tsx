@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pencil, Image as ImageIcon, X, Music2, Ticket, Copy, Plus } from "lucide-react";
+import { Pencil, Image as ImageIcon, X, Music2, Ticket, Copy, Plus, Users, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,12 @@ import {
   generateTrackCodes,
   getMyTrackPrivateFields,
 } from "@/lib/api/track-sales.functions";
+import {
+  listTrackCollaborators,
+  searchUsers,
+  addTrackCollaborator,
+  removeTrackCollaborator,
+} from "@/lib/api/collaborators.functions";
 
 const GENRES = [
   "Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Afrobeats", "Amapiano",
