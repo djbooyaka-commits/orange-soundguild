@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Track } from "./tracks";
 import cover2 from "@/assets/cover2.jpg";
 import { signMany } from "./signMedia";
+import { fetchCollaboratorsFor, fetchTrackIdsWhereCollaborator } from "./collaborators";
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -36,6 +37,7 @@ async function hydrate(rows: Row[]): Promise<Track[]> {
     items.push({ bucket: "covers", path: row.cover_art_url });
   });
   const urls = await signMany(items);
+  const collabs = await fetchCollaboratorsFor(rows.map((r) => r.id));
   return rows.map((row, i) => ({
     id: row.id,
     title: row.title,
@@ -48,6 +50,7 @@ async function hydrate(rows: Row[]): Promise<Track[]> {
     genre: row.genre,
     album: row.album ?? null,
     trackNumber: row.track_number ?? null,
+    collaborators: collabs.get(row.id) ?? [],
   }));
 }
 
@@ -107,15 +110,39 @@ export function useUserTracks(userId: string | null) {
     }
     setLoading(true);
     (async () => {
-      const { data } = await supabase
+      // Owned tracks
+      const ownedRes = await supabase
         .from("tracks")
         .select(
           "id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, album, track_number, profiles(username)",
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
+
+      // Tracks where this user is a collaborator
+      const collabIds = await fetchTrackIdsWhereCollaborator(userId);
+      let collabRows: Row[] = [];
+      if (collabIds.length) {
+        const res = await supabase
+          .from("tracks")
+          .select(
+            "id, title, genre, audio_url, cover_art_url, created_at, user_id, plays_count, album, track_number, profiles(username)",
+          )
+          .in("id", collabIds);
+        collabRows = (res.data ?? []) as Row[];
+      }
+
+      const seen = new Set<string>();
+      const merged: Row[] = [];
+      [...((ownedRes.data ?? []) as Row[]), ...collabRows].forEach((r) => {
+        if (seen.has(r.id)) return;
+        seen.add(r.id);
+        merged.push(r);
+      });
+      merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
       if (cancelled) return;
-      const hydrated = data ? await hydrate(data as Row[]) : [];
+      const hydrated = await hydrate(merged);
       if (!cancelled) {
         setTracks(hydrated);
         setLoading(false);

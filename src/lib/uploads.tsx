@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { signOne, signMany } from "./signMedia";
 import { getMyTrackPrivateFields } from "./api/track-sales.functions";
+import { fetchCollaboratorsFor } from "./collaborators";
 
 export const CURRENT_USER = {
   handle: "me",
@@ -146,6 +147,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         .order("created_at", { ascending: false });
       if (error || !data || cancelled) return;
 
+      const collabs = await fetchCollaboratorsFor(data.map((r) => r.id));
       const hydrated = await Promise.all(
         data.map(async (row) => {
           let src = "";
@@ -175,6 +177,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
             genre: row.genre,
             album: rowExt.album ?? null,
             trackNumber: rowExt.track_number ?? null,
+            collaborators: collabs.get(row.id) ?? [],
           };
           return track;
         }),
