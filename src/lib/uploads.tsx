@@ -244,6 +244,16 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         .single();
       if (dbErr) throw dbErr;
 
+      // Insert collaborators (uploader is not a collaborator).
+      if (collaboratorIds && collaboratorIds.length) {
+        const rows = collaboratorIds
+          .filter((uid) => uid && uid !== userId)
+          .map((uid, idx) => ({ track_id: row.id, user_id: uid, position: idx }));
+        if (rows.length) {
+          await supabase.from("track_collaborators").insert(rows);
+        }
+      }
+
       const audioUrl = (await signOne("audio", audioPath)) ?? "";
       const coverUrl = coverPath ? await signOne("covers", coverPath) : null;
 
