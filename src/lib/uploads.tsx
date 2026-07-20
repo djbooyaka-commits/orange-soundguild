@@ -201,7 +201,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addUpload = useCallback(
-    async ({ title, genre, file, coverFile, album, trackNumber }: UploadArgs): Promise<Track> => {
+    async ({ title, genre, file, coverFile, album, trackNumber, collaboratorIds }: UploadArgs): Promise<Track> => {
       const { data: userData, error: userErr } = await supabase.auth.getUser();
       if (userErr || !userData.user) {
         throw new Error("You need to be signed in to upload.");
