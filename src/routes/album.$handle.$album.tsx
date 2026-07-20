@@ -1,10 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Play, Pause, ArrowLeft, Disc3, Shuffle } from "lucide-react";
+import { Play, Pause, ArrowLeft, Disc3, Shuffle, Pencil } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useAllTracks } from "@/lib/feed";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
+import { EditTrackDialog } from "@/components/EditTrackDialog";
+import { useUploads } from "@/lib/uploads";
+
 
 export const Route = createFileRoute("/album/$handle/$album")({
   head: ({ params }) => {
