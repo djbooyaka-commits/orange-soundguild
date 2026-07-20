@@ -28,6 +28,7 @@ type UploadArgs = {
   coverFile?: File | null;
   album?: string | null;
   trackNumber?: number | null;
+  collaboratorIds?: string[];
 };
 type AlbumTrackInput = { title: string; file: File };
 type AlbumArgs = {
@@ -35,6 +36,7 @@ type AlbumArgs = {
   genre: string;
   tracks: AlbumTrackInput[];
   coverFile?: File | null;
+  collaboratorIds?: string[];
 };
 type UpdateArgs = {
   id: string;
