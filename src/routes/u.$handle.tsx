@@ -159,7 +159,7 @@ function ProfilePage() {
     : profile?.username?.trim() || decodeURIComponent(handle).replace(/-/g, " ");
   const bio = isMe
     ? profile?.bio?.trim() || CURRENT_USER.bio
-    : profile?.bio?.trim() || "Artist on soundwave.";
+    : profile?.bio?.trim() || "Artist on Orange Sound Guild.";
 
   const { tracks: artistTracks } = useUserTracks(!isMe ? profileUserId : null);
   const userTracks = (isMe ? uploads : artistTracks).filter((t) => !hidden.has(t.id));
