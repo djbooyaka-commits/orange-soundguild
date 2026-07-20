@@ -45,11 +45,11 @@ function AlbumPage() {
 
   const tracks = useMemo(() => {
     return all
-      .filter(
-        (t) =>
-          t.artist === decodedHandle &&
-          (t.album?.trim() ?? "") === decodedAlbum,
-      )
+      .filter((t) => {
+        const albumName = t.album?.trim() ?? "";
+        const artists = [t.artist, ...(t.collaborators ?? []).map((c) => c.username)];
+        return albumName === decodedAlbum && artists.includes(decodedHandle);
+      })
       .sort((a, b) => {
         const an = a.trackNumber ?? 999;
         const bn = b.trackNumber ?? 999;
