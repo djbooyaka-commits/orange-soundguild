@@ -4,12 +4,21 @@ import { usePlayer } from "./player/PlayerContext";
 import type { AlbumGroup } from "@/lib/albums";
 import { formatArtistLine } from "@/lib/tracks";
 
-export function AlbumCard({ album, canEdit = false }: { album: AlbumGroup; canEdit?: boolean }) {
+export function AlbumCard({
+  album,
+  canEdit = false,
+  linkHandle,
+}: {
+  album: AlbumGroup;
+  canEdit?: boolean;
+  linkHandle?: string;
+}) {
   const { current, isPlaying, play, toggle } = usePlayer();
   const navigate = useNavigate();
   const active = album.tracks.some((t) => t.id === current?.id);
   const playing = active && isPlaying;
   const artistLine = formatArtistLine(album.artist, album.tracks[0]?.collaborators);
+  const albumHandle = linkHandle ?? album.artist;
 
   const onPlay = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -33,7 +42,7 @@ export function AlbumCard({ album, canEdit = false }: { album: AlbumGroup; canEd
   return (
     <Link
       to="/album/$handle/$album"
-      params={{ handle: album.artist, album: album.album }}
+      params={{ handle: albumHandle, album: album.album }}
       className="group block overflow-hidden rounded-xl border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-elegant)]"
     >
       <div className="relative aspect-square overflow-hidden">
