@@ -37,7 +37,10 @@ function AlbumPage() {
   const decodedHandle = decodeURIComponent(handle);
   const decodedAlbum = decodeURIComponent(album);
   const { tracks: all, loading } = useAllTracks();
+  const { uploads } = useUploads();
+  const ownedIds = useMemo(() => new Set(uploads.map((u) => u.id)), [uploads]);
   const { current, isPlaying, play, toggle, toggleShuffle, shuffle } = usePlayer();
+
   const navigate = useNavigate();
 
   const tracks = useMemo(() => {
