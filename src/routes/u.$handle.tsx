@@ -332,7 +332,11 @@ function ProfilePage() {
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {groupFeed(userTracks).map((item) =>
                   item.type === "album" ? (
-                    <AlbumCard key={item.album.key} album={item.album} />
+                    <AlbumCard
+                      key={item.album.key}
+                      album={isMe ? { ...item.album, artist: displayName } : item.album}
+                      canEdit={isMe}
+                    />
                   ) : (
                     <TrackCard
                       key={item.track.id}
