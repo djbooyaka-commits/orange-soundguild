@@ -130,7 +130,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, username]);
 
   // Load this user's tracks from the database on auth changes.
   useEffect(() => {
@@ -261,7 +261,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       setUploads((prev) => [track, ...prev]);
       return track;
     },
-    [],
+    [username],
   );
 
   const addAlbum = useCallback(
@@ -335,7 +335,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       setUploads((prev) => [...created, ...prev]);
       return created;
     },
-    [],
+    [username],
   );
 
 
