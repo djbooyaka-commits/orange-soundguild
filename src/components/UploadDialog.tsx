@@ -48,6 +48,12 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
 
+  type Collab = { id: string; username: string; avatar_url: string | null };
+  const [collabs, setCollabs] = useState<Collab[]>([]);
+  const [collabQuery, setCollabQuery] = useState("");
+  const [collabResults, setCollabResults] = useState<Collab[]>([]);
+  const searchUsersFn = useServerFn(searchUsers);
+
   const singleRef = useRef<HTMLInputElement>(null);
   const albumRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -63,6 +69,9 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     setAlbumRows([]);
     setGenre(GENRES[0]);
     setCoverFile(null);
+    setCollabs([]);
+    setCollabQuery("");
+    setCollabResults([]);
   };
 
   const onOpenChange = (o: boolean) => {
