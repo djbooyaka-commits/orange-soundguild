@@ -328,6 +328,15 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
           .single();
         if (dbErr) throw dbErr;
 
+        if (collaboratorIds && collaboratorIds.length) {
+          const rows = collaboratorIds
+            .filter((uid) => uid && uid !== userId)
+            .map((uid, idx) => ({ track_id: row.id, user_id: uid, position: idx }));
+          if (rows.length) {
+            await supabase.from("track_collaborators").insert(rows);
+          }
+        }
+
         const audioUrl = (await signOne("audio", audioPath)) ?? "";
         created.push({
           id: row.id,
