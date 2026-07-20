@@ -184,9 +184,21 @@ function AlbumPage() {
                   <div className="hidden text-right text-sm tabular-nums text-muted-foreground sm:block">
                     {t.plays.toLocaleString()}
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-end gap-1">
+                    {ownedIds.has(t.id) && (
+                      <EditTrackDialog track={t}>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="Edit track"
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      </EditTrackDialog>
+                    )}
                     <AddToPlaylistMenu trackId={t.id} trackTitle={t.title} variant="inline" />
                   </div>
+
                 </li>
               );
             })}
