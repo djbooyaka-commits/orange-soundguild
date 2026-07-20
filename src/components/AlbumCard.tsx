@@ -1,10 +1,11 @@
-import { Play, Pause, Disc3 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Play, Pause, Disc3, Pencil } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { usePlayer } from "./player/PlayerContext";
 import type { AlbumGroup } from "@/lib/albums";
 
-export function AlbumCard({ album }: { album: AlbumGroup }) {
+export function AlbumCard({ album, canEdit = false }: { album: AlbumGroup; canEdit?: boolean }) {
   const { current, isPlaying, play, toggle } = usePlayer();
+  const navigate = useNavigate();
   const active = album.tracks.some((t) => t.id === current?.id);
   const playing = active && isPlaying;
 
@@ -16,6 +17,15 @@ export function AlbumCard({ album }: { album: AlbumGroup }) {
       return;
     }
     play(album.tracks[0]);
+  };
+
+  const onEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate({
+      to: "/album/$handle/$album",
+      params: { handle: album.artist, album: album.album },
+    });
   };
 
   return (
@@ -45,6 +55,15 @@ export function AlbumCard({ album }: { album: AlbumGroup }) {
         <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur">
           <Disc3 className="h-3 w-3" /> Album · {album.tracks.length}
         </span>
+        {canEdit && (
+          <button
+            onClick={onEdit}
+            aria-label="Edit album tracks"
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/85 text-foreground backdrop-blur transition hover:bg-primary hover:text-primary-foreground"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        )}
       </div>
       <div className="space-y-2 p-4">
         <div className="flex items-start justify-between gap-2">
