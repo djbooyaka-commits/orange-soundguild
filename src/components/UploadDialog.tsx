@@ -118,17 +118,47 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     setAlbumRows((prev) => prev.map((r, i) => (i === idx ? { ...r, title: value } : r)));
   };
 
+  // Debounced collaborator search
+  useEffect(() => {
+    if (!open) return;
+    const q = collabQuery.trim();
+    if (q.length < 2) {
+      setCollabResults([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      try {
+        const { results } = await searchUsersFn({ data: { q } });
+        const existing = new Set(collabs.map((c) => c.id));
+        setCollabResults(results.filter((r) => !existing.has(r.id)));
+      } catch {
+        setCollabResults([]);
+      }
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [collabQuery, open, collabs, searchUsersFn]);
+
+  const addCollab = (user: Collab) => {
+    setCollabs((prev) => [...prev, user]);
+    setCollabQuery("");
+    setCollabResults([]);
+  };
+  const removeCollab = (id: string) => {
+    setCollabs((prev) => prev.filter((c) => c.id !== id));
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
+      const collaboratorIds = collabs.map((c) => c.id);
       if (mode === "single") {
         if (!title.trim() || !file) return;
         if (isPioneer && remaining <= 0) {
           toast.error("Pioneer accounts are limited to 5 tracks. Upgrade to Artist.");
           return;
         }
-        const track = await addUpload({ title: title.trim(), genre, file, coverFile });
+        const track = await addUpload({ title: title.trim(), genre, file, coverFile, collaboratorIds });
         toast.success("Track published");
         setOpen(false);
         reset();
@@ -151,6 +181,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
           genre,
           coverFile,
           tracks: albumRows.map((r) => ({ title: r.title, file: r.file })),
+          collaboratorIds,
         });
         toast.success(`Album published — ${created.length} track${created.length === 1 ? "" : "s"}`);
         setOpen(false);
