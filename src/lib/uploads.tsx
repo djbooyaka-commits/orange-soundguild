@@ -446,12 +446,18 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       }
 
       const newCoverUrl = newCoverPath ? await signOne("covers", newCoverPath) : null;
+      const nextCover = newCoverUrl ?? undefined;
       setUploads((prev) =>
         prev.map((t) =>
           t.id === id
-            ? { ...t, title, genre, cover: newCoverUrl ?? t.cover }
+            ? { ...t, title, genre, cover: nextCover ?? t.cover }
             : t,
         ),
+      );
+      window.dispatchEvent(
+        new CustomEvent("soundwave:track-updated", {
+          detail: { trackId: id, title, genre, cover: nextCover },
+        }),
       );
     },
     [],
