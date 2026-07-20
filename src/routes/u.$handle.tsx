@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
 import { AlbumCard } from "@/components/AlbumCard";
@@ -161,8 +161,14 @@ function ProfilePage() {
     ? profile?.bio?.trim() || CURRENT_USER.bio
     : profile?.bio?.trim() || "Artist on Orange Sound Guild.";
 
-  const { tracks: artistTracks } = useUserTracks(!isMe ? profileUserId : null);
-  const userTracks = (isMe ? uploads : artistTracks).filter((t) => !hidden.has(t.id));
+  const { tracks: artistTracks } = useUserTracks(profileUserId);
+  const ownedTrackIds = useMemo(() => new Set(uploads.map((track) => track.id)), [uploads]);
+  const userTracks = useMemo(() => {
+    const byId = new Map<string, (typeof artistTracks)[number]>();
+    if (isMe) uploads.forEach((track) => byId.set(track.id, track));
+    artistTracks.forEach((track) => byId.set(track.id, track));
+    return Array.from(byId.values()).filter((t) => !hidden.has(t.id));
+  }, [artistTracks, hidden, isMe, uploads]);
 
   const handleAdminDelete = async (id: string) => {
     try {
@@ -335,14 +341,15 @@ function ProfilePage() {
                     <AlbumCard
                       key={item.album.key}
                       album={item.album}
-                      canEdit={isMe && item.album.tracks.every((t) => t.artist === displayName)}
+                      canEdit={isMe && item.album.tracks.every((t) => ownedTrackIds.has(t.id))}
+                      linkHandle={displayName}
                     />
                   ) : (
                     <TrackCard
                       key={item.track.id}
                       track={item.track}
-                      canEdit={isMe}
-                      onDelete={isMe ? removeUpload : isAdmin ? handleAdminDelete : undefined}
+                      canEdit={isMe && ownedTrackIds.has(item.track.id)}
+                      onDelete={isMe && ownedTrackIds.has(item.track.id) ? removeUpload : isAdmin ? handleAdminDelete : undefined}
                     />
                   ),
                 )}
