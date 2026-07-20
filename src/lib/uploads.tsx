@@ -277,7 +277,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
   );
 
   const addAlbum = useCallback(
-    async ({ album, genre, tracks, coverFile }: AlbumArgs): Promise<Track[]> => {
+    async ({ album, genre, tracks, coverFile, collaboratorIds }: AlbumArgs): Promise<Track[]> => {
       const name = album.trim();
       if (!name) throw new Error("Album name is required.");
       if (!tracks.length) throw new Error("Add at least one track.");
