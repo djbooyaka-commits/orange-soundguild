@@ -29,7 +29,7 @@ import {
 
 const GENRES = [
   "Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Afrobeats", "Amapiano",
-  "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other",
+  "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Psytrance", "Hip-hop", "Other",
 ];
 
 type CodeRow = {
