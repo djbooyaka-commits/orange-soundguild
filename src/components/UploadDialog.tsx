@@ -416,6 +416,63 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
             </>
           )}
 
+          {/* Collaborating artists */}
+          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">Collaborating artists (optional)</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Add other artists. {mode === "album" ? "The whole album" : "This track"} will show up on their profile too, credited as "You &amp; Them".
+            </p>
+            {collabs.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {collabs.map((c) => (
+                  <span
+                    key={c.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium"
+                  >
+                    @{c.username}
+                    <button
+                      type="button"
+                      onClick={() => removeCollab(c.id)}
+                      aria-label={`Remove ${c.username}`}
+                      className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="relative">
+              <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  value={collabQuery}
+                  onChange={(e) => setCollabQuery(e.target.value)}
+                  placeholder="Search users by username…"
+                  className="h-10 flex-1 bg-transparent text-sm outline-none"
+                />
+              </div>
+              {collabResults.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-border bg-background shadow-lg">
+                  {collabResults.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => addCollab(r)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                    >
+                      <span className="font-medium">@{r.username}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-foreground">Genre</label>
             <select
