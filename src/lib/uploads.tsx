@@ -106,6 +106,12 @@ function incrementTrackPlays(tracks: Track[], trackId: string) {
   );
 }
 
+function collaboratorRows(trackId: string, collaboratorIds: string[] | undefined, userId: string) {
+  return Array.from(new Set(collaboratorIds ?? []))
+    .filter((uid) => uid && uid !== userId)
+    .map((uid, idx) => ({ track_id: trackId, user_id: uid, position: idx }));
+}
+
 export function UploadsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [uploads, setUploads] = useState<Track[]>([]);
@@ -245,13 +251,10 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       if (dbErr) throw dbErr;
 
       // Insert collaborators (uploader is not a collaborator).
-      if (collaboratorIds && collaboratorIds.length) {
-        const rows = collaboratorIds
-          .filter((uid) => uid && uid !== userId)
-          .map((uid, idx) => ({ track_id: row.id, user_id: uid, position: idx }));
-        if (rows.length) {
-          await supabase.from("track_collaborators").insert(rows);
-        }
+      const rows = collaboratorRows(row.id, collaboratorIds, userId);
+      if (rows.length) {
+        const { error: collabErr } = await supabase.from("track_collaborators").insert(rows);
+        if (collabErr) throw collabErr;
       }
 
       const audioUrl = (await signOne("audio", audioPath)) ?? "";
@@ -328,13 +331,10 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
           .single();
         if (dbErr) throw dbErr;
 
-        if (collaboratorIds && collaboratorIds.length) {
-          const rows = collaboratorIds
-            .filter((uid) => uid && uid !== userId)
-            .map((uid, idx) => ({ track_id: row.id, user_id: uid, position: idx }));
-          if (rows.length) {
-            await supabase.from("track_collaborators").insert(rows);
-          }
+        const rows = collaboratorRows(row.id, collaboratorIds, userId);
+        if (rows.length) {
+          const { error: collabErr } = await supabase.from("track_collaborators").insert(rows);
+          if (collabErr) throw collabErr;
         }
 
         const audioUrl = (await signOne("audio", audioPath)) ?? "";
