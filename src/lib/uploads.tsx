@@ -28,6 +28,7 @@ type UploadArgs = {
   coverFile?: File | null;
   album?: string | null;
   trackNumber?: number | null;
+  collaboratorIds?: string[];
 };
 type AlbumTrackInput = { title: string; file: File };
 type AlbumArgs = {
@@ -35,6 +36,7 @@ type AlbumArgs = {
   genre: string;
   tracks: AlbumTrackInput[];
   coverFile?: File | null;
+  collaboratorIds?: string[];
 };
 type UpdateArgs = {
   id: string;
@@ -199,7 +201,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addUpload = useCallback(
-    async ({ title, genre, file, coverFile, album, trackNumber }: UploadArgs): Promise<Track> => {
+    async ({ title, genre, file, coverFile, album, trackNumber, collaboratorIds }: UploadArgs): Promise<Track> => {
       const { data: userData, error: userErr } = await supabase.auth.getUser();
       if (userErr || !userData.user) {
         throw new Error("You need to be signed in to upload.");
@@ -242,6 +244,16 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         .single();
       if (dbErr) throw dbErr;
 
+      // Insert collaborators (uploader is not a collaborator).
+      if (collaboratorIds && collaboratorIds.length) {
+        const rows = collaboratorIds
+          .filter((uid) => uid && uid !== userId)
+          .map((uid, idx) => ({ track_id: row.id, user_id: uid, position: idx }));
+        if (rows.length) {
+          await supabase.from("track_collaborators").insert(rows);
+        }
+      }
+
       const audioUrl = (await signOne("audio", audioPath)) ?? "";
       const coverUrl = coverPath ? await signOne("covers", coverPath) : null;
 
@@ -265,7 +277,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
   );
 
   const addAlbum = useCallback(
-    async ({ album, genre, tracks, coverFile }: AlbumArgs): Promise<Track[]> => {
+    async ({ album, genre, tracks, coverFile, collaboratorIds }: AlbumArgs): Promise<Track[]> => {
       const name = album.trim();
       if (!name) throw new Error("Album name is required.");
       if (!tracks.length) throw new Error("Add at least one track.");
@@ -315,6 +327,15 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
           .select()
           .single();
         if (dbErr) throw dbErr;
+
+        if (collaboratorIds && collaboratorIds.length) {
+          const rows = collaboratorIds
+            .filter((uid) => uid && uid !== userId)
+            .map((uid, idx) => ({ track_id: row.id, user_id: uid, position: idx }));
+          if (rows.length) {
+            await supabase.from("track_collaborators").insert(rows);
+          }
+        }
 
         const audioUrl = (await signOne("audio", audioPath)) ?? "";
         created.push({

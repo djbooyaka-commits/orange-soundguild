@@ -334,8 +334,8 @@ function ProfilePage() {
                   item.type === "album" ? (
                     <AlbumCard
                       key={item.album.key}
-                      album={isMe ? { ...item.album, artist: displayName } : item.album}
-                      canEdit={isMe}
+                      album={item.album}
+                      canEdit={isMe && item.album.tracks.every((t) => t.artist === displayName)}
                     />
                   ) : (
                     <TrackCard

@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Upload, X, Music2, FileAudio, Image as ImageIcon, Disc3, GripVertical } from "lucide-react";
+import { Upload, X, Music2, FileAudio, Image as ImageIcon, Disc3, GripVertical, Users, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,8 @@ import { useUploads } from "@/lib/uploads";
 import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
+import { useServerFn } from "@tanstack/react-start";
+import { searchUsers } from "@/lib/api/collaborators.functions";
 import { toast } from "sonner";
 
 const GENRES = ["Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Afrobeats", "Amapiano", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other"];
@@ -46,6 +48,12 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
 
+  type Collab = { id: string; username: string; avatar_url: string | null };
+  const [collabs, setCollabs] = useState<Collab[]>([]);
+  const [collabQuery, setCollabQuery] = useState("");
+  const [collabResults, setCollabResults] = useState<Collab[]>([]);
+  const searchUsersFn = useServerFn(searchUsers);
+
   const singleRef = useRef<HTMLInputElement>(null);
   const albumRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -61,6 +69,9 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     setAlbumRows([]);
     setGenre(GENRES[0]);
     setCoverFile(null);
+    setCollabs([]);
+    setCollabQuery("");
+    setCollabResults([]);
   };
 
   const onOpenChange = (o: boolean) => {
@@ -107,17 +118,47 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     setAlbumRows((prev) => prev.map((r, i) => (i === idx ? { ...r, title: value } : r)));
   };
 
+  // Debounced collaborator search
+  useEffect(() => {
+    if (!open) return;
+    const q = collabQuery.trim();
+    if (q.length < 2) {
+      setCollabResults([]);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      try {
+        const { results } = await searchUsersFn({ data: { q } });
+        const existing = new Set(collabs.map((c) => c.id));
+        setCollabResults(results.filter((r) => !existing.has(r.id)));
+      } catch {
+        setCollabResults([]);
+      }
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [collabQuery, open, collabs, searchUsersFn]);
+
+  const addCollab = (user: Collab) => {
+    setCollabs((prev) => [...prev, user]);
+    setCollabQuery("");
+    setCollabResults([]);
+  };
+  const removeCollab = (id: string) => {
+    setCollabs((prev) => prev.filter((c) => c.id !== id));
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
+      const collaboratorIds = collabs.map((c) => c.id);
       if (mode === "single") {
         if (!title.trim() || !file) return;
         if (isPioneer && remaining <= 0) {
           toast.error("Pioneer accounts are limited to 5 tracks. Upgrade to Artist.");
           return;
         }
-        const track = await addUpload({ title: title.trim(), genre, file, coverFile });
+        const track = await addUpload({ title: title.trim(), genre, file, coverFile, collaboratorIds });
         toast.success("Track published");
         setOpen(false);
         reset();
@@ -140,6 +181,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
           genre,
           coverFile,
           tracks: albumRows.map((r) => ({ title: r.title, file: r.file })),
+          collaboratorIds,
         });
         toast.success(`Album published — ${created.length} track${created.length === 1 ? "" : "s"}`);
         setOpen(false);
@@ -373,6 +415,63 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
               </div>
             </>
           )}
+
+          {/* Collaborating artists */}
+          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">Collaborating artists (optional)</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Add other artists. {mode === "album" ? "The whole album" : "This track"} will show up on their profile too, credited as "You &amp; Them".
+            </p>
+            {collabs.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {collabs.map((c) => (
+                  <span
+                    key={c.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium"
+                  >
+                    @{c.username}
+                    <button
+                      type="button"
+                      onClick={() => removeCollab(c.id)}
+                      aria-label={`Remove ${c.username}`}
+                      className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="relative">
+              <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  value={collabQuery}
+                  onChange={(e) => setCollabQuery(e.target.value)}
+                  placeholder="Search users by username…"
+                  className="h-10 flex-1 bg-transparent text-sm outline-none"
+                />
+              </div>
+              {collabResults.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-border bg-background shadow-lg">
+                  {collabResults.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => addCollab(r)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                    >
+                      <span className="font-medium">@{r.username}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-foreground">Genre</label>
