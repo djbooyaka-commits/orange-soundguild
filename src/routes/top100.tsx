@@ -138,7 +138,7 @@ function Top100() {
                 Top <span className="text-primary">100</span>
               </h1>
               <p className="mt-2 max-w-lg text-sm text-white/70">
-                The 100 most-played tracks on soundwave, updated in real time as listeners finish tracks.
+                The 100 most-played tracks on Orange Sound Guild, updated in real time as listeners finish tracks.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
