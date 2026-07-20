@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Upload, X, Music2, FileAudio, Image as ImageIcon, Disc3, GripVertical } from "lucide-react";
+import { Upload, X, Music2, FileAudio, Image as ImageIcon, Disc3, GripVertical, Users, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,8 @@ import { useUploads } from "@/lib/uploads";
 import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
+import { useServerFn } from "@tanstack/react-start";
+import { searchUsers } from "@/lib/api/collaborators.functions";
 import { toast } from "sonner";
 
 const GENRES = ["Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Afrobeats", "Amapiano", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other"];
