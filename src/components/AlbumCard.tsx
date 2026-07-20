@@ -2,12 +2,14 @@ import { Play, Pause, Disc3, Pencil } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { usePlayer } from "./player/PlayerContext";
 import type { AlbumGroup } from "@/lib/albums";
+import { formatArtistLine } from "@/lib/tracks";
 
 export function AlbumCard({ album, canEdit = false }: { album: AlbumGroup; canEdit?: boolean }) {
   const { current, isPlaying, play, toggle } = usePlayer();
   const navigate = useNavigate();
   const active = album.tracks.some((t) => t.id === current?.id);
   const playing = active && isPlaying;
+  const artistLine = formatArtistLine(album.artist, album.tracks[0]?.collaborators);
 
   const onPlay = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -71,7 +73,7 @@ export function AlbumCard({ album, canEdit = false }: { album: AlbumGroup; canEd
             <h3 className={`truncate text-sm font-semibold ${active ? "text-primary" : "text-foreground"}`}>
               {album.album}
             </h3>
-            <span className="truncate text-xs text-muted-foreground">{album.artist}</span>
+            <span className="truncate text-xs text-muted-foreground">{artistLine}</span>
           </div>
           <span className="shrink-0 text-[11px] text-muted-foreground">{album.uploadedAt}</span>
         </div>
