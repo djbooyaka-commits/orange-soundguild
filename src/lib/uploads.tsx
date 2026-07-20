@@ -130,7 +130,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, username]);
 
   // Load this user's tracks from the database on auth changes.
   useEffect(() => {
@@ -261,7 +261,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       setUploads((prev) => [track, ...prev]);
       return track;
     },
-    [],
+    [username],
   );
 
   const addAlbum = useCallback(
@@ -335,7 +335,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       setUploads((prev) => [...created, ...prev]);
       return created;
     },
-    [],
+    [username],
   );
 
 
@@ -446,12 +446,18 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       }
 
       const newCoverUrl = newCoverPath ? await signOne("covers", newCoverPath) : null;
+      const nextCover = newCoverUrl ?? undefined;
       setUploads((prev) =>
         prev.map((t) =>
           t.id === id
-            ? { ...t, title, genre, cover: newCoverUrl ?? t.cover }
+            ? { ...t, title, genre, cover: nextCover ?? t.cover }
             : t,
         ),
+      );
+      window.dispatchEvent(
+        new CustomEvent("soundwave:track-updated", {
+          detail: { trackId: id, title, genre, cover: nextCover },
+        }),
       );
     },
     [],

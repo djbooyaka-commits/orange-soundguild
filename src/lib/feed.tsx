@@ -60,6 +60,27 @@ function incrementTrackPlays(tracks: Track[], trackId: string) {
   );
 }
 
+type TrackUpdatedDetail = {
+  trackId?: string;
+  title?: string;
+  genre?: string;
+  cover?: string;
+};
+
+function updateTrackDetails(tracks: Track[], detail: TrackUpdatedDetail) {
+  if (!detail.trackId) return tracks;
+  return tracks.map((track) =>
+    track.id === detail.trackId
+      ? {
+          ...track,
+          title: detail.title ?? track.title,
+          genre: detail.genre ?? track.genre,
+          cover: detail.cover ?? track.cover,
+        }
+      : track,
+  );
+}
+
 export function useAllTracks() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,8 +111,15 @@ export function useAllTracks() {
       const trackId = (event as CustomEvent<{ trackId?: string }>).detail?.trackId;
       if (trackId) setTracks((prev) => incrementTrackPlays(prev, trackId));
     };
+    const onTrackUpdated = (event: Event) => {
+      setTracks((prev) => updateTrackDetails(prev, (event as CustomEvent<TrackUpdatedDetail>).detail ?? {}));
+    };
     window.addEventListener("soundwave:track-played", onTrackPlayed);
-    return () => window.removeEventListener("soundwave:track-played", onTrackPlayed);
+    window.addEventListener("soundwave:track-updated", onTrackUpdated);
+    return () => {
+      window.removeEventListener("soundwave:track-played", onTrackPlayed);
+      window.removeEventListener("soundwave:track-updated", onTrackUpdated);
+    };
   }, []);
 
   return { tracks, loading };
@@ -158,8 +186,15 @@ export function useUserTracks(userId: string | null) {
       const trackId = (event as CustomEvent<{ trackId?: string }>).detail?.trackId;
       if (trackId) setTracks((prev) => incrementTrackPlays(prev, trackId));
     };
+    const onTrackUpdated = (event: Event) => {
+      setTracks((prev) => updateTrackDetails(prev, (event as CustomEvent<TrackUpdatedDetail>).detail ?? {}));
+    };
     window.addEventListener("soundwave:track-played", onTrackPlayed);
-    return () => window.removeEventListener("soundwave:track-played", onTrackPlayed);
+    window.addEventListener("soundwave:track-updated", onTrackUpdated);
+    return () => {
+      window.removeEventListener("soundwave:track-played", onTrackPlayed);
+      window.removeEventListener("soundwave:track-updated", onTrackUpdated);
+    };
   }, []);
 
   return { tracks, loading };
