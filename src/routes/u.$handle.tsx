@@ -163,7 +163,12 @@ function ProfilePage() {
 
   const { tracks: artistTracks } = useUserTracks(profileUserId);
   const ownedTrackIds = useMemo(() => new Set(uploads.map((track) => track.id)), [uploads]);
-  const userTracks = artistTracks.filter((t) => !hidden.has(t.id));
+  const userTracks = useMemo(() => {
+    const byId = new Map<string, (typeof artistTracks)[number]>();
+    if (isMe) uploads.forEach((track) => byId.set(track.id, track));
+    artistTracks.forEach((track) => byId.set(track.id, track));
+    return Array.from(byId.values()).filter((t) => !hidden.has(t.id));
+  }, [artistTracks, hidden, isMe, uploads]);
 
   const handleAdminDelete = async (id: string) => {
     try {
