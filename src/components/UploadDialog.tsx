@@ -17,7 +17,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { searchUsers } from "@/lib/api/collaborators.functions";
 import { toast } from "sonner";
 
-const GENRES = ["Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Afrobeats", "Amapiano", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Hip-hop", "Other"];
+const GENRES = ["Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Afrobeats", "Amapiano", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Psytrance", "Hip-hop", "Other"];
 
 type Mode = "single" | "album";
 type AlbumRow = { file: File; title: string };

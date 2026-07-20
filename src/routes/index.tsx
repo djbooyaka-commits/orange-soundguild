@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
 });
 
 const AFRO_SUBGENRES = ["Afro House", "Afrobeats", "Amapiano"];
-const GENRES = ["All", "Electronic", "House", "Tech House", "Drum and Bass", "Afro", "Hip-Hop", "Lo-fi", "Indie", "Ambient", "Jazz", "Techno", "POP", "Rock", "R&B"];
+const GENRES = ["All", "Electronic", "House", "Tech House", "Drum and Bass", "Afro", "Hip-Hop", "Lo-fi", "Indie", "Ambient", "Jazz", "Techno", "Psytrance", "POP", "Rock", "R&B"];
 
 function Index() {
   const { tracks: uploaded } = useAllTracks();
