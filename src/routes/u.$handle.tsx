@@ -342,6 +342,7 @@ function ProfilePage() {
                       key={item.album.key}
                       album={item.album}
                       canEdit={isMe && item.album.tracks.every((t) => ownedTrackIds.has(t.id))}
+                      linkHandle={displayName}
                     />
                   ) : (
                     <TrackCard
