@@ -271,14 +271,15 @@ async function addSubmissionTrackToSpotify(
   }
 
   const token = await getCuratorAccessToken(curatorId, supabaseAdmin);
-  if (token.error) {
+  if ("error" in token) {
     return { ...autoAdd, error: token.error };
   }
+  const accessToken = token.accessToken;
 
   const already = await playlistContainsTrack(
     pl.spotify_playlist_id,
     sub.spotify_track_id,
-    token.accessToken,
+    accessToken,
   );
   if (already.contains) {
     return { ...autoAdd, alreadyOnPlaylist: true };
@@ -287,7 +288,7 @@ async function addSubmissionTrackToSpotify(
   const added = await addTrackToPlaylist(
     pl.spotify_playlist_id,
     sub.spotify_track_id,
-    token.accessToken,
+    accessToken,
   );
   if (added.ok) {
     return { ...autoAdd, added: true };
