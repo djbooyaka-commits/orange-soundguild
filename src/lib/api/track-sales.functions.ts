@@ -487,13 +487,39 @@ export const listMyOwnedTracks = createServerFn({ method: "GET" })
     const { data: profs } = await supabaseAdmin
       .from("profiles").select("id, username").in("id", artistIds);
     const nameFor = new Map((profs ?? []).map((p) => [p.id as string, p.username as string]));
+    const { data: collaboratorRows } = await supabaseAdmin
+      .from("track_collaborators")
+      .select("track_id, user_id, position")
+      .in("track_id", ids)
+      .order("position", { ascending: true });
+    const collaboratorIds = Array.from(
+      new Set(((collaboratorRows ?? []) as Array<{ user_id: string }>).map((c) => c.user_id)),
+    );
+    const { data: collaboratorProfiles } = collaboratorIds.length
+      ? await supabaseAdmin.from("profiles").select("id, username").in("id", collaboratorIds)
+      : { data: [] };
+    const collaboratorNameFor = new Map(
+      ((collaboratorProfiles ?? []) as Array<{ id: string; username: string | null }>).map((p) => [p.id, p.username]),
+    );
+    const artistLineFor = (trackId: string, ownerId: string) => {
+      const names = [
+        nameFor.get(ownerId),
+        ...((collaboratorRows ?? []) as Array<{ track_id: string; user_id: string }>)
+          .filter((c) => c.track_id === trackId)
+          .map((c) => collaboratorNameFor.get(c.user_id)),
+      ]
+        .map((name) => name?.trim() ?? "")
+        .filter(Boolean)
+        .filter((name, index, list) => list.findIndex((n) => n.toLowerCase() === name.toLowerCase()) === index);
+      return names.join(" & ") || null;
+    };
     return {
       items: list.map((p) => {
         const t = rows.find((r) => r.id === p.track_id);
         return {
           trackId: p.track_id,
           title: t?.title ?? "Track",
-          artist: t ? nameFor.get(t.user_id) ?? null : null,
+          artist: t ? artistLineFor(t.id, t.user_id) : null,
           coverPath: t?.cover_art_url ?? null,
           genre: t?.genre ?? "",
           hasLossless: !!t?.download_lossless_url,
