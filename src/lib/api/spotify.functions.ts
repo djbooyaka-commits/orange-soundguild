@@ -3,7 +3,8 @@ import { getRequestHost, getRequestHeader } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { signState } from "./spotify-state.server";
 
-const SCOPES = "user-read-recently-played user-read-email user-follow-read";
+const SCOPES =
+  "user-read-recently-played user-read-email user-follow-read playlist-modify-public playlist-modify-private";
 
 function getRedirectUri(): string {
   const proto = getRequestHeader("x-forwarded-proto") || "https";
