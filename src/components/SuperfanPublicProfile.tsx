@@ -89,7 +89,7 @@ export function SuperfanPublicProfile({ userId, displayName }: { userId: string;
                     params={{ handle: topTrack.artist_username }}
                     className="block truncate text-xs text-muted-foreground hover:text-primary"
                   >
-                    @{topTrack.artist_username}
+                    {topTrack.artist_line ?? `@${topTrack.artist_username}`}
                   </Link>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground">

@@ -2,7 +2,7 @@ import { Play, Pause, Disc3, Pencil } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { usePlayer } from "./player/PlayerContext";
 import type { AlbumGroup } from "@/lib/albums";
-import { formatArtistLine } from "@/lib/tracks";
+import { formatArtistLine, getAlbumCollaborators } from "@/lib/tracks";
 
 export function AlbumCard({
   album,
@@ -17,7 +17,7 @@ export function AlbumCard({
   const navigate = useNavigate();
   const active = album.tracks.some((t) => t.id === current?.id);
   const playing = active && isPlaying;
-  const artistLine = formatArtistLine(album.artist, album.tracks[0]?.collaborators);
+  const artistLine = formatArtistLine(album.artist, getAlbumCollaborators(album.tracks));
   const albumHandle = linkHandle ?? album.artist;
 
   const onPlay = (e: React.MouseEvent) => {

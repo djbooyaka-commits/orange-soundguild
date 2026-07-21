@@ -5,7 +5,8 @@ import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { signMany } from "@/lib/signMedia";
 import { usePlayer } from "@/components/player/PlayerContext";
-import type { Track } from "@/lib/tracks";
+import { formatArtistLine, type Track } from "@/lib/tracks";
+import { fetchCollaboratorsFor } from "@/lib/collaborators";
 import cover2 from "@/assets/cover2.jpg";
 
 export const Route = createFileRoute("/top100")({
@@ -71,6 +72,7 @@ function Top100() {
         items.push({ bucket: "covers", path: r.cover_art_url });
       });
       const urls = await signMany(items);
+      const collabs = await fetchCollaboratorsFor(rows.map((r) => r.id));
       const hydrated: Track[] = rows.map((r, i) => ({
         id: r.id,
         title: r.title,
@@ -81,6 +83,7 @@ function Top100() {
         uploadedAt: "",
         plays: r.plays_count ?? 0,
         genre: r.genre,
+        collaborators: collabs.get(r.id) ?? [],
       }));
       if (!cancelled) {
         setTracks(hydrated);
@@ -217,7 +220,7 @@ function Top100() {
                         {t.title}
                       </Link>
                       <div className="truncate text-xs text-muted-foreground">
-                        {t.artist} · {t.genre}
+                        {formatArtistLine(t.artist, t.collaborators)} · {t.genre}
                       </div>
                     </div>
                     <div className="hidden items-center gap-1 text-xs text-muted-foreground tabular-nums sm:flex">

@@ -4,6 +4,7 @@ import { usePlaylistsForUser, savePlaylistToLibrary } from "@/lib/playlists";
 import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { formatArtistLine } from "@/lib/tracks";
 
 export function PlaylistsSection({ userId, isOwner }: { userId: string | null; isOwner: boolean }) {
   const { playlists, removeTrack, deletePlaylist, createPlaylist, moveTrack } = usePlaylistsForUser(userId);
@@ -175,7 +176,9 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                         <img src={t.cover} alt="" className="h-8 w-8 rounded object-cover" />
                         <div className="min-w-0 flex-1">
                           <p className={`truncate text-sm ${active ? "text-primary" : ""}`}>{t.title}</p>
-                          <p className="truncate text-xs text-muted-foreground">{t.artist}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {formatArtistLine(t.artist, t.collaborators)}
+                          </p>
                         </div>
                         {isOwner && (
                           <>

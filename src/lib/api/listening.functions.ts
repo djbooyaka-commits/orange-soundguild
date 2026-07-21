@@ -7,6 +7,7 @@ export type TopTrack = {
   cover_art_url: string | null;
   artist_id: string;
   artist_username: string | null;
+  artist_line: string | null;
   plays: number;
 };
 
@@ -84,12 +85,31 @@ async function computeStats(supabase: any, userId: string) {
   const topTrackArtist: any = profileById.get(topTrackRow.user_id);
   const topArtistProfile: any = profileById.get(topArtistId);
 
+  const { data: collaboratorRows } = await supabase
+    .from("track_collaborators")
+    .select("user_id, position")
+    .eq("track_id", topTrackRow.id)
+    .order("position", { ascending: true });
+  const collaboratorIds = ((collaboratorRows ?? []) as Array<{ user_id: string }>).map((c) => c.user_id);
+  const { data: collaboratorProfiles } = collaboratorIds.length
+    ? await supabase.from("profiles").select("id, username").in("id", collaboratorIds)
+    : { data: [] };
+  const collaboratorNameFor = new Map(
+    ((collaboratorProfiles ?? []) as Array<{ id: string; username: string | null }>).map((p) => [p.id, p.username]),
+  );
+  const artistLine = [topTrackArtist?.username, ...collaboratorIds.map((id) => collaboratorNameFor.get(id))]
+    .map((name) => name?.trim() ?? "")
+    .filter(Boolean)
+    .filter((name, index, list) => list.findIndex((n) => n.toLowerCase() === name.toLowerCase()) === index)
+    .join(" & ");
+
   const topTrack: TopTrack = {
     track_id: topTrackRow.id,
     title: topTrackRow.title,
     cover_art_url: topTrackRow.cover_art_url,
     artist_id: topTrackRow.user_id,
     artist_username: topTrackArtist?.username ?? null,
+    artist_line: artistLine || (topTrackArtist?.username ?? null),
     plays: topTrackPlays,
   };
 

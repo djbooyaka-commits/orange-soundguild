@@ -7,6 +7,7 @@ import { usePlayer } from "@/components/player/PlayerContext";
 import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
 import { EditTrackDialog } from "@/components/EditTrackDialog";
 import { useUploads } from "@/lib/uploads";
+import { formatArtistLine, getAlbumCollaborators } from "@/lib/tracks";
 
 
 export const Route = createFileRoute("/album/$handle/$album")({
@@ -76,6 +77,7 @@ function AlbumPage() {
   const activeInAlbum = tracks.find((t) => t.id === current?.id);
   const playing = !!activeInAlbum && isPlaying;
   const totalPlays = tracks.reduce((sum, t) => sum + t.plays, 0);
+  const albumArtistLine = first ? formatArtistLine(first.artist, getAlbumCollaborators(tracks)) : decodedHandle;
 
   const playAlbum = () => {
     if (activeInAlbum) toggle();
@@ -108,13 +110,7 @@ function AlbumPage() {
               {decodedAlbum}
             </h1>
             <div className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-              <Link
-                to="/u/$handle"
-                params={{ handle: decodedHandle }}
-                className="font-semibold text-foreground hover:text-primary"
-              >
-                {decodedHandle}
-              </Link>
+              <span className="font-semibold text-foreground">{albumArtistLine}</span>
               <span>·</span>
               <span>{tracks.length} songs</span>
               <span>·</span>
@@ -179,7 +175,9 @@ function AlbumPage() {
                     className="min-w-0"
                   >
                     <div className="truncate text-sm font-semibold">{t.title}</div>
-                    <div className="truncate text-xs text-muted-foreground">{t.artist}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {formatArtistLine(t.artist, t.collaborators)}
+                    </div>
                   </Link>
                   <div className="hidden text-right text-sm tabular-nums text-muted-foreground sm:block">
                     {t.plays.toLocaleString()}
