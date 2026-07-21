@@ -6,12 +6,15 @@ import {
   listMyCuratorInvitees,
   cancelCuratorInvite,
 } from "@/lib/api/curator-invites.functions";
+import { signMany } from "@/lib/signMedia";
+import defaultAvatar from "@/assets/avatar.jpg";
 
 type Invitee = {
   id: string;
   user_id: string;
   username: string;
   avatar_url: string | null;
+  avatar_signed?: string | null;
   status: "pending" | "accepted" | "declined";
   created_at: string;
 };
@@ -32,7 +35,11 @@ export function CuratorInviteManager() {
     return `${origin}/curator?invite=${user.id}`;
   }, [user]);
 
-  const refresh = async () => setItems((await listFn()) as Invitee[]);
+  const refresh = async () => {
+    const rows = ((await listFn()) ?? []) as Invitee[];
+    const signed = await signMany(rows.map((i) => ({ bucket: "avatars" as const, path: i.avatar_url })));
+    setItems(rows.map((i, idx) => ({ ...i, avatar_signed: signed[idx] ?? null })));
+  };
 
   useEffect(() => {
     void refresh();
@@ -100,11 +107,14 @@ export function CuratorInviteManager() {
         )}
         {items.map((i) => (
           <li key={i.id} className="flex items-center gap-3 rounded-md border border-border p-3">
-            {i.avatar_url ? (
-              <img src={i.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
-            ) : (
-              <div className="h-10 w-10 rounded-full bg-muted" />
-            )}
+            <img
+              src={i.avatar_signed ?? defaultAvatar}
+              alt=""
+              className="h-10 w-10 rounded-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = defaultAvatar;
+              }}
+            />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">@{i.username}</p>
               <p className="text-xs capitalize text-muted-foreground">{i.status}</p>
