@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { type Track } from "./tracks";
 import cover2 from "@/assets/cover2.jpg";
 import { signMany } from "./signMedia";
+import { fetchCollaboratorsFor } from "./collaborators";
 
 export type Playlist = {
   id: string;
@@ -38,6 +39,7 @@ export async function resolveTracksByIds(ids: string[]): Promise<Track[]> {
         items.push({ bucket: "covers", path: row.cover_art_url });
       });
       const urls = await signMany(items);
+      const collabs = await fetchCollaboratorsFor(rows.map((row) => row.id));
       rows.forEach((row, i) => {
         dbMap.set(row.id, {
           id: row.id,
@@ -49,6 +51,7 @@ export async function resolveTracksByIds(ids: string[]): Promise<Track[]> {
           uploadedAt: "",
           plays: 0,
           genre: row.genre,
+          collaborators: collabs.get(row.id) ?? [],
         });
       });
     }

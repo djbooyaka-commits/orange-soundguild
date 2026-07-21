@@ -18,6 +18,7 @@ import {
   ownsTrack,
   getTrackDownloadUrl,
 } from "@/lib/api/track-sales.functions";
+import { formatArtistLine } from "@/lib/tracks";
 
 export const Route = createFileRoute("/t/$trackId")({
   loader: ({ params }) => getTrackShareMeta({ data: { trackId: params.trackId } }),
@@ -191,7 +192,10 @@ function TrackPage() {
   const shareTrack = () => {
     if (typeof navigator !== "undefined" && navigator.share) {
       navigator
-        .share({ title: track?.title ?? "Track", url: shareUrl })
+        .share({
+          title: track ? `${track.title} — ${formatArtistLine(track.artist, track.collaborators)}` : "Track",
+          url: shareUrl,
+        })
         .catch(() => {});
     } else {
       copyShare();
@@ -242,13 +246,27 @@ function TrackPage() {
               {track.genre}
             </span>
             <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{track.title}</h1>
-            <Link
-              to="/u/$handle"
-              params={{ handle: track.artist }}
-              className="mt-1 text-sm text-muted-foreground hover:text-primary"
-            >
-              {track.artist}
-            </Link>
+            <div className="mt-1 text-sm text-muted-foreground">
+              <Link
+                to="/u/$handle"
+                params={{ handle: track.artist }}
+                className="hover:text-primary"
+              >
+                {track.artist}
+              </Link>
+              {(track.collaborators ?? []).map((c) => (
+                <span key={c.id}>
+                  {" & "}
+                  <Link
+                    to="/u/$handle"
+                    params={{ handle: c.username }}
+                    className="hover:text-primary"
+                  >
+                    {c.username}
+                  </Link>
+                </span>
+              ))}
+            </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {track.uploadedAt} · {track.plays.toLocaleString()} plays
             </p>
