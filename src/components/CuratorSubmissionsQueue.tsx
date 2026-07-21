@@ -40,8 +40,30 @@ export function CuratorSubmissionsQueue() {
   const act = async (id: string, approve: boolean) => {
     setBusyId(id);
     try {
-      await reviewFn({ data: { id, approve, note: notes[id] } });
-      toast.success(approve ? "Approved" : "Rejected");
+      const res: any = await reviewFn({ data: { id, approve, note: notes[id] } });
+      if (approve) {
+        const a = res?.autoAdd;
+        if (a?.added) {
+          toast.success("Approved — track added to your Spotify playlist");
+        } else if (a?.alreadyOnPlaylist) {
+          toast.success("Approved — track was already on your playlist");
+        } else if (a?.error === "spotify_not_connected_or_missing_scope") {
+          toast.success("Approved");
+          toast.message(
+            "Reconnect Spotify to enable auto-add (new permission required).",
+          );
+        } else if (a?.error === "spotify_forbidden_check_ownership_or_scope") {
+          toast.success("Approved");
+          toast.error("Couldn't add to Spotify: you must own the playlist and reconnect Spotify.");
+        } else if (a?.error) {
+          toast.success("Approved");
+          toast.error(`Couldn't auto-add to Spotify (${a.error}).`);
+        } else {
+          toast.success("Approved");
+        }
+      } else {
+        toast.success("Rejected");
+      }
       await refresh();
     } catch (e: any) {
       toast.error(e?.message ?? "Failed");
