@@ -5,6 +5,12 @@ type SpotifyPlaylistMeta = {
   name?: string;
   images?: Array<{ url?: string }>;
   owner?: { id?: string; display_name?: string | null };
+  collaborative?: boolean;
+};
+
+type SpotifyPlaylistListItem = SpotifyPlaylistMeta & {
+  id?: string;
+  public?: boolean | null;
 };
 
 function extractPlaylistId(input: string): string | null {
@@ -19,6 +25,10 @@ function extractPlaylistId(input: string): string | null {
 
 function hasPlaylistModifyScope(scope: string): boolean {
   return /\bplaylist-modify-(public|private)\b/.test(scope);
+}
+
+function hasPlaylistImportScopes(scope: string): boolean {
+  return /\bplaylist-read-private\b/.test(scope) && /\bplaylist-read-collaborative\b/.test(scope);
 }
 
 async function getSpotifyCredsForUser(
@@ -100,7 +110,7 @@ async function getCuratorSpotifyAccess(
 
 async function fetchPlaylistMeta(spotifyId: string, accessToken: string): Promise<SpotifyPlaylistMeta> {
   const metaRes = await fetch(
-    `https://api.spotify.com/v1/playlists/${spotifyId}?fields=name,images,owner(id,display_name)`,
+    `https://api.spotify.com/v1/playlists/${spotifyId}?fields=name,images,owner(id,display_name),collaborative`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
   if (metaRes.status === 404) {
@@ -116,6 +126,37 @@ async function fetchPlaylistMeta(spotifyId: string, accessToken: string): Promis
     throw new Error(`Spotify playlist check failed (${metaRes.status})`);
   }
   return (await metaRes.json()) as SpotifyPlaylistMeta;
+}
+
+async function fetchMySpotifyPlaylists(accessToken: string): Promise<SpotifyPlaylistListItem[]> {
+  const playlists: SpotifyPlaylistListItem[] = [];
+  let url: string | null =
+    "https://api.spotify.com/v1/me/playlists?limit=50&fields=items(id,name,images,owner(id,display_name),collaborative,public),next";
+  let pages = 0;
+
+  while (url && pages < 20) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error("Spotify playlist import fetch failed", {
+        status: res.status,
+        body: body.slice(0, 300),
+      });
+      throw new Error(
+        res.status === 401
+          ? "Spotify session expired. Disconnect and reconnect Spotify."
+          : res.status === 403
+            ? "Reconnect Spotify so Orange Sound Guild can read your playlists."
+            : `Spotify playlist import failed (${res.status})`,
+      );
+    }
+    const json = (await res.json()) as { items?: SpotifyPlaylistListItem[]; next?: string | null };
+    playlists.push(...(json.items ?? []));
+    url = json.next ?? null;
+    pages += 1;
+  }
+
+  return playlists;
 }
 
 export const addCuratorPlaylist = createServerFn({ method: "POST" })
@@ -138,9 +179,9 @@ export const addCuratorPlaylist = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { accessToken, spotifyUserId } = await getCuratorSpotifyAccess(context.userId, supabaseAdmin);
     const meta = await fetchPlaylistMeta(spotifyId, accessToken);
-    if (meta.owner?.id && spotifyUserId && meta.owner.id !== spotifyUserId) {
+    if (meta.owner?.id && spotifyUserId && meta.owner.id !== spotifyUserId && !meta.collaborative) {
       throw new Error(
-        "This playlist is owned by another Spotify account. Connect the Spotify account that owns it, then add it again.",
+        "This playlist is owned by another Spotify account. Connect the owner account, or make the playlist collaborative, then add it again.",
       );
     }
 
@@ -158,6 +199,75 @@ export const addCuratorPlaylist = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return inserted;
+  });
+
+export const importMySpotifyCuratorPlaylists = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: prof } = await context.supabase
+      .from("profiles")
+      .select("account_type")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (prof?.account_type !== "superfan") {
+      throw new Error("Only Superfans can sync curator playlists");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { accessToken, spotifyUserId } = await getCuratorSpotifyAccess(context.userId, supabaseAdmin);
+
+    const { data: conn } = await supabaseAdmin
+      .from("spotify_connections")
+      .select("scope")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    const needsReconnectForPrivate = !hasPlaylistImportScopes(String(conn?.scope ?? ""));
+
+    const spotifyPlaylists = await fetchMySpotifyPlaylists(accessToken);
+    const curatorPlaylists = spotifyPlaylists.filter((playlist) => {
+      if (!playlist.id) return false;
+      if (playlist.collaborative) return true;
+      return !!spotifyUserId && playlist.owner?.id === spotifyUserId;
+    });
+
+    const rows = curatorPlaylists.map((playlist) => ({
+      curator_id: context.userId,
+      spotify_playlist_id: playlist.id as string,
+      name: playlist.name || "Spotify playlist",
+      image_url: playlist.images?.[0]?.url ?? null,
+    }));
+
+    if (rows.length === 0) {
+      return {
+        imported: 0,
+        updated: 0,
+        skipped: spotifyPlaylists.length,
+        needsReconnectForPrivate,
+        playlists: [],
+      };
+    }
+
+    const ids = rows.map((row) => row.spotify_playlist_id);
+    const { data: existing } = await supabaseAdmin
+      .from("curator_playlists")
+      .select("spotify_playlist_id")
+      .eq("curator_id", context.userId)
+      .in("spotify_playlist_id", ids);
+    const existingIds = new Set((existing ?? []).map((row: { spotify_playlist_id: string }) => row.spotify_playlist_id));
+
+    const { data: saved, error } = await supabaseAdmin
+      .from("curator_playlists")
+      .upsert(rows, { onConflict: "curator_id,spotify_playlist_id" })
+      .select("id, spotify_playlist_id, name, image_url");
+    if (error) throw new Error(error.message);
+
+    return {
+      imported: rows.filter((row) => !existingIds.has(row.spotify_playlist_id)).length,
+      updated: rows.filter((row) => existingIds.has(row.spotify_playlist_id)).length,
+      skipped: Math.max(spotifyPlaylists.length - rows.length, 0),
+      needsReconnectForPrivate,
+      playlists: saved ?? [],
+    };
   });
 
 export const removeCuratorPlaylist = createServerFn({ method: "POST" })
