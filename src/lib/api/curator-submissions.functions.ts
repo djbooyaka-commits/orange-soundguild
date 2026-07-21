@@ -309,14 +309,9 @@ async function addSubmissionTrackToSpotify(
   }
   const accessToken = token.accessToken;
 
-  const owner = await fetchPlaylistOwner(pl.spotify_playlist_id, accessToken);
-  if (owner.error) {
-    return { ...autoAdd, error: owner.error };
-  }
-  if (token.spotifyUserId && owner.ownerId && owner.ownerId !== token.spotifyUserId) {
-    return { ...autoAdd, error: "spotify_playlist_owned_by_another_account" };
-  }
-
+  // Skip the local owner pre-check — Spotify allows collaborators (not just
+  // the owner) to add tracks. Just try the add; if the user actually lacks
+  // permission, Spotify returns 403 and we surface a precise error below.
   const already = await playlistContainsTrack(
     pl.spotify_playlist_id,
     sub.spotify_track_id,
@@ -335,6 +330,19 @@ async function addSubmissionTrackToSpotify(
     return { ...autoAdd, added: true };
   }
 
+  // If it failed, fetch the owner to give a precise reason.
+  let ownerHint: string | undefined;
+  if (added.status === 403) {
+    const owner = await fetchPlaylistOwner(pl.spotify_playlist_id, accessToken);
+    if (
+      owner.ownerId &&
+      token.spotifyUserId &&
+      owner.ownerId !== token.spotifyUserId
+    ) {
+      ownerHint = `spotify_playlist_owned_by:${owner.ownerId}`;
+    }
+  }
+
   console.error("Spotify auto-add failed", {
     submissionId,
     playlistId: pl.spotify_playlist_id,
@@ -342,6 +350,7 @@ async function addSubmissionTrackToSpotify(
     status: added.status,
     body: added.error?.slice(0, 300),
     containsError: already.error,
+    ownerHint,
   });
   return {
     ...autoAdd,
@@ -349,7 +358,7 @@ async function addSubmissionTrackToSpotify(
       added.status === 401
         ? "spotify_unauthorized_reconnect"
         : added.status === 403
-          ? "spotify_forbidden_check_ownership_or_scope"
+          ? ownerHint ?? "spotify_forbidden_not_owner_or_collaborator"
           : added.status === 404
             ? "spotify_playlist_or_track_not_found"
             : added.status === 429
