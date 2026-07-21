@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ListMusic, Plus, Trash2, Loader2 } from "lucide-react";
+import { ListMusic, Plus, Trash2, Loader2, RefreshCw } from "lucide-react";
 import {
   addCuratorPlaylist,
   listMyCuratorPlaylists,
   removeCuratorPlaylist,
   getCuratorEarnedPoints,
+  importMySpotifyCuratorPlaylists,
 } from "@/lib/api/curator.functions";
 
 type Playlist = {
@@ -20,12 +21,15 @@ export function CuratorPlaylistManager() {
   const listFn = useServerFn(listMyCuratorPlaylists);
   const removeFn = useServerFn(removeCuratorPlaylist);
   const earnedFn = useServerFn(getCuratorEarnedPoints);
+  const importFn = useServerFn(importMySpotifyCuratorPlaylists);
 
   const [items, setItems] = useState<Playlist[]>([]);
   const [earned, setEarned] = useState(0);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   const refresh = async () => {
     const [list, e] = await Promise.all([listFn(), earnedFn()]);
@@ -34,9 +38,38 @@ export function CuratorPlaylistManager() {
   };
 
   useEffect(() => {
-    void refresh();
+    void (async () => {
+      await refresh();
+      await syncSpotifyPlaylists(true);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const syncSpotifyPlaylists = async (silent = false) => {
+    setSyncing(true);
+    if (!silent) {
+      setErr(null);
+      setSyncMsg(null);
+    }
+    try {
+      const result = await importFn();
+      if (result.imported || result.updated) await refresh();
+      const privateHint = result.needsReconnectForPrivate
+        ? " Reconnect Spotify once to include private and collaborative playlists."
+        : "";
+      if (!silent || result.imported || result.updated) {
+        setSyncMsg(
+          result.imported
+            ? `Added ${result.imported} Spotify playlist${result.imported === 1 ? "" : "s"} to the stream tracker.${privateHint}`
+            : `Spotify playlists are synced.${privateHint}`,
+        );
+      }
+    } catch (ex: any) {
+      if (!silent) setErr(ex?.message ?? "Failed to sync Spotify playlists");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +116,19 @@ export function CuratorPlaylistManager() {
         </div>
       </div>
 
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => syncSpotifyPlaylists(false)}
+          disabled={busy || syncing}
+          className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+        >
+          {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Sync Spotify playlists
+        </button>
+        {syncMsg && <p className="text-xs text-muted-foreground">{syncMsg}</p>}
+      </div>
+
       <form onSubmit={add} className="mt-4 flex flex-col gap-2 sm:flex-row">
         <input
           type="url"
@@ -106,7 +152,7 @@ export function CuratorPlaylistManager() {
       <ul className="mt-4 space-y-2">
         {items.length === 0 && (
           <li className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-            No playlists yet. Paste a Spotify playlist URL above.
+            No playlists yet. Connect Spotify or paste a playlist URL above.
           </li>
         )}
         {items.map((p) => (
