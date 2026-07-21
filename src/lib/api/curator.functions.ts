@@ -228,8 +228,19 @@ export const importMySpotifyCuratorPlaylists = createServerFn({ method: "POST" }
     const needsReconnectForPrivate = !hasPlaylistImportScopes(String(conn?.scope ?? ""));
 
     const spotifyPlaylists = await fetchMySpotifyPlaylists(accessToken);
+
+    // Skip playlists the user removed from the tracker
+    const { data: ignoredRows } = await supabaseAdmin
+      .from("curator_playlist_ignores")
+      .select("spotify_playlist_id")
+      .eq("curator_id", context.userId);
+    const ignored = new Set(
+      (ignoredRows ?? []).map((row: { spotify_playlist_id: string }) => row.spotify_playlist_id),
+    );
+
     const curatorPlaylists = spotifyPlaylists.filter((playlist) => {
       if (!playlist.id) return false;
+      if (ignored.has(playlist.id)) return false;
       if (playlist.collaborative) return true;
       return !!spotifyUserId && playlist.owner?.id === spotifyUserId;
     });
