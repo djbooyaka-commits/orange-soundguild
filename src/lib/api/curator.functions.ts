@@ -177,13 +177,17 @@ export const addCuratorPlaylist = createServerFn({ method: "POST" })
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { accessToken, spotifyUserId } = await getCuratorSpotifyAccess(context.userId, supabaseAdmin);
+    const { accessToken } = await getCuratorSpotifyAccess(context.userId, supabaseAdmin);
     const meta = await fetchPlaylistMeta(spotifyId, accessToken);
-    if (meta.owner?.id && spotifyUserId && meta.owner.id !== spotifyUserId && !meta.collaborative) {
-      throw new Error(
-        "This playlist is owned by another Spotify account. Connect the owner account, or make the playlist collaborative, then add it again.",
-      );
-    }
+    // Allow any playlist the connected Spotify account can see (owned or collaborative).
+    // Auto-adding tracks later will be gated by Spotify's own permission check.
+
+    // Un-ignore if the user is re-adding a previously removed playlist
+    await supabaseAdmin
+      .from("curator_playlist_ignores")
+      .delete()
+      .eq("curator_id", context.userId)
+      .eq("spotify_playlist_id", spotifyId);
 
     const name = meta.name || "Spotify playlist";
     const imageUrl = meta.images?.[0]?.url ?? null;
