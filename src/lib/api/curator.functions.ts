@@ -177,13 +177,17 @@ export const addCuratorPlaylist = createServerFn({ method: "POST" })
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { accessToken, spotifyUserId } = await getCuratorSpotifyAccess(context.userId, supabaseAdmin);
+    const { accessToken } = await getCuratorSpotifyAccess(context.userId, supabaseAdmin);
     const meta = await fetchPlaylistMeta(spotifyId, accessToken);
-    if (meta.owner?.id && spotifyUserId && meta.owner.id !== spotifyUserId && !meta.collaborative) {
-      throw new Error(
-        "This playlist is owned by another Spotify account. Connect the owner account, or make the playlist collaborative, then add it again.",
-      );
-    }
+    // Allow any playlist the connected Spotify account can see (owned or collaborative).
+    // Auto-adding tracks later will be gated by Spotify's own permission check.
+
+    // Un-ignore if the user is re-adding a previously removed playlist
+    await supabaseAdmin
+      .from("curator_playlist_ignores")
+      .delete()
+      .eq("curator_id", context.userId)
+      .eq("spotify_playlist_id", spotifyId);
 
     const name = meta.name || "Spotify playlist";
     const imageUrl = meta.images?.[0]?.url ?? null;
@@ -224,8 +228,19 @@ export const importMySpotifyCuratorPlaylists = createServerFn({ method: "POST" }
     const needsReconnectForPrivate = !hasPlaylistImportScopes(String(conn?.scope ?? ""));
 
     const spotifyPlaylists = await fetchMySpotifyPlaylists(accessToken);
+
+    // Skip playlists the user removed from the tracker
+    const { data: ignoredRows } = await supabaseAdmin
+      .from("curator_playlist_ignores")
+      .select("spotify_playlist_id")
+      .eq("curator_id", context.userId);
+    const ignored = new Set(
+      (ignoredRows ?? []).map((row: { spotify_playlist_id: string }) => row.spotify_playlist_id),
+    );
+
     const curatorPlaylists = spotifyPlaylists.filter((playlist) => {
       if (!playlist.id) return false;
+      if (ignored.has(playlist.id)) return false;
       if (playlist.collaborative) return true;
       return !!spotifyUserId && playlist.owner?.id === spotifyUserId;
     });
@@ -274,11 +289,28 @@ export const removeCuratorPlaylist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data, context }) => {
+    // Look up the spotify id first so we can record an ignore, preventing re-sync.
+    const { data: existing } = await context.supabase
+      .from("curator_playlists")
+      .select("spotify_playlist_id")
+      .eq("id", data.id)
+      .eq("curator_id", context.userId)
+      .maybeSingle();
+
     await context.supabase
       .from("curator_playlists")
       .delete()
       .eq("id", data.id)
       .eq("curator_id", context.userId);
+
+    if (existing?.spotify_playlist_id) {
+      await context.supabase
+        .from("curator_playlist_ignores")
+        .upsert(
+          { curator_id: context.userId, spotify_playlist_id: existing.spotify_playlist_id },
+          { onConflict: "curator_id,spotify_playlist_id" },
+        );
+    }
     return { ok: true };
   });
 

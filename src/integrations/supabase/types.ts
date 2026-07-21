@@ -169,6 +169,24 @@ export type Database = {
         }
         Relationships: []
       }
+      curator_playlist_ignores: {
+        Row: {
+          created_at: string
+          curator_id: string
+          spotify_playlist_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          spotify_playlist_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          spotify_playlist_id?: string
+        }
+        Relationships: []
+      }
       curator_playlists: {
         Row: {
           created_at: string
