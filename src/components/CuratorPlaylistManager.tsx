@@ -38,10 +38,7 @@ export function CuratorPlaylistManager() {
   };
 
   useEffect(() => {
-    void (async () => {
-      await refresh();
-      await syncSpotifyPlaylists(true);
-    })();
+    void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
