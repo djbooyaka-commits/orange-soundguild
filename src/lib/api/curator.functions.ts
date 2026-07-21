@@ -289,11 +289,28 @@ export const removeCuratorPlaylist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data, context }) => {
+    // Look up the spotify id first so we can record an ignore, preventing re-sync.
+    const { data: existing } = await context.supabase
+      .from("curator_playlists")
+      .select("spotify_playlist_id")
+      .eq("id", data.id)
+      .eq("curator_id", context.userId)
+      .maybeSingle();
+
     await context.supabase
       .from("curator_playlists")
       .delete()
       .eq("id", data.id)
       .eq("curator_id", context.userId);
+
+    if (existing?.spotify_playlist_id) {
+      await context.supabase
+        .from("curator_playlist_ignores")
+        .upsert(
+          { curator_id: context.userId, spotify_playlist_id: existing.spotify_playlist_id },
+          { onConflict: "curator_id,spotify_playlist_id" },
+        );
+    }
     return { ok: true };
   });
 
