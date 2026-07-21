@@ -109,7 +109,7 @@ async function computeStats(supabase: any, userId: string) {
     cover_art_url: topTrackRow.cover_art_url,
     artist_id: topTrackRow.user_id,
     artist_username: topTrackArtist?.username ?? null,
-    artist_line: artistLine || topTrackArtist?.username ?? null,
+    artist_line: artistLine || (topTrackArtist?.username ?? null),
     plays: topTrackPlays,
   };
 
