@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Inbox, Check, X, Loader2 } from "lucide-react";
 import {
+  addCuratorSubmissionToSpotify,
   listCuratorSubmissionsForMe,
   reviewCuratorSubmission,
 } from "@/lib/api/curator-submissions.functions";
@@ -23,6 +24,7 @@ type Row = {
 export function CuratorSubmissionsQueue() {
   const listFn = useServerFn(listCuratorSubmissionsForMe);
   const reviewFn = useServerFn(reviewCuratorSubmission);
+  const addToSpotifyFn = useServerFn(addCuratorSubmissionToSpotify);
   const [rows, setRows] = useState<Row[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -37,36 +39,52 @@ export function CuratorSubmissionsQueue() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const showAutoAddToast = (autoAdd: any) => {
+    if (autoAdd?.added) {
+      toast.success("Track added to your Spotify playlist");
+    } else if (autoAdd?.alreadyOnPlaylist) {
+      toast.success("Track was already on your Spotify playlist");
+    } else if (autoAdd?.error === "spotify_not_connected") {
+      toast.error("Reconnect Spotify to add tracks to your playlist.");
+    } else if (autoAdd?.error === "spotify_missing_playlist_scope") {
+      toast.error("Reconnect Spotify to allow playlist adding.");
+    } else if (autoAdd?.error === "spotify_refresh_failed_reconnect") {
+      toast.error("Spotify session expired. Disconnect and reconnect Spotify.");
+    } else if (autoAdd?.error === "spotify_forbidden_check_ownership_or_scope") {
+      toast.error("Couldn't add to Spotify: you must own the playlist and reconnect Spotify.");
+    } else if (autoAdd?.error) {
+      toast.error(`Couldn't auto-add to Spotify (${autoAdd.error}).`);
+    } else {
+      toast.success("Approved");
+    }
+  };
+
   const act = async (id: string, approve: boolean) => {
     setBusyId(id);
     try {
       const res: any = await reviewFn({ data: { id, approve, note: notes[id] } });
       if (approve) {
-        const a = res?.autoAdd;
-        if (a?.added) {
-          toast.success("Approved — track added to your Spotify playlist");
-        } else if (a?.alreadyOnPlaylist) {
-          toast.success("Approved — track was already on your playlist");
-        } else if (a?.error === "spotify_not_connected_or_missing_scope") {
-          toast.success("Approved");
-          toast.message(
-            "Reconnect Spotify to enable auto-add (new permission required).",
-          );
-        } else if (a?.error === "spotify_forbidden_check_ownership_or_scope") {
-          toast.success("Approved");
-          toast.error("Couldn't add to Spotify: you must own the playlist and reconnect Spotify.");
-        } else if (a?.error) {
-          toast.success("Approved");
-          toast.error(`Couldn't auto-add to Spotify (${a.error}).`);
-        } else {
-          toast.success("Approved");
-        }
+        toast.success("Approved");
+        showAutoAddToast(res?.autoAdd);
       } else {
         toast.success("Rejected");
       }
       await refresh();
     } catch (e: any) {
       toast.error(e?.message ?? "Failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const addApprovedToSpotify = async (id: string) => {
+    setBusyId(id);
+    try {
+      const res: any = await addToSpotifyFn({ data: { id } });
+      showAutoAddToast(res?.autoAdd);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to add to Spotify");
     } finally {
       setBusyId(null);
     }
@@ -85,7 +103,7 @@ export function CuratorSubmissionsQueue() {
           <h2 className="font-semibold">Track submissions</h2>
           <p className="text-sm text-muted-foreground">
             Fans spent points earned on your playlists to submit these tracks. Approve to add them
-            to your Spotify playlist yourself.
+            to your Spotify playlist.
           </p>
         </div>
       </div>
@@ -161,23 +179,42 @@ export function CuratorSubmissionsQueue() {
                 key={s.id}
                 className="flex items-center justify-between gap-3 rounded-md border border-border p-2 text-xs"
               >
-                <a
-                  href={s.spotify_track_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="truncate hover:underline"
-                >
-                  {s.spotify_track_name ?? s.spotify_track_url}
-                </a>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 font-medium ${
-                    s.status === "approved"
-                      ? "bg-emerald-500/15 text-emerald-500"
-                      : "bg-destructive/15 text-destructive"
-                  }`}
-                >
-                  {s.status}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <a
+                    href={s.spotify_track_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="truncate hover:underline"
+                  >
+                    {s.spotify_track_name ?? s.spotify_track_url}
+                  </a>
+                  <p className="truncate text-muted-foreground">{s.playlist_name}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {s.status === "approved" && (
+                    <button
+                      onClick={() => addApprovedToSpotify(s.id)}
+                      disabled={busyId === s.id}
+                      className="inline-flex items-center gap-1 rounded-md bg-emerald-500/90 px-2 py-1 font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                    >
+                      {busyId === s.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Check className="h-3 w-3" />
+                      )}
+                      Add to Spotify
+                    </button>
+                  )}
+                  <span
+                    className={`rounded-full px-2 py-0.5 font-medium ${
+                      s.status === "approved"
+                        ? "bg-emerald-500/15 text-emerald-500"
+                        : "bg-destructive/15 text-destructive"
+                    }`}
+                  >
+                    {s.status}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>

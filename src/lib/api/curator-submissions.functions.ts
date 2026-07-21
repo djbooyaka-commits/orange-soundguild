@@ -116,20 +116,38 @@ async function getCuratorSpotifyCreds(userId: string, supabaseAdmin: any) {
   return { clientId, clientSecret };
 }
 
-async function getCuratorAccessToken(userId: string, supabaseAdmin: any): Promise<string | null> {
+type SpotifyTokenResult =
+  | { accessToken: string; error?: never }
+  | { accessToken?: never; error: string };
+
+type SpotifyAutoAddResult = {
+  attempted: boolean;
+  added: boolean;
+  alreadyOnPlaylist?: boolean;
+  error?: string;
+};
+
+function hasPlaylistModifyScope(scope: string): boolean {
+  return /\bplaylist-modify-(public|private)\b/.test(scope);
+}
+
+async function getCuratorAccessToken(
+  userId: string,
+  supabaseAdmin: any,
+): Promise<SpotifyTokenResult> {
   const { data: conn } = await supabaseAdmin
     .from("spotify_connections")
     .select("access_token, refresh_token, expires_at, scope")
     .eq("user_id", userId)
     .maybeSingle();
-  if (!conn) return null;
+  if (!conn) return { error: "spotify_not_connected" };
   const scope = String(conn.scope ?? "");
-  if (!scope.includes("playlist-modify")) {
+  if (!hasPlaylistModifyScope(scope)) {
     // Old connection without required scope
-    return null;
+    return { error: "spotify_missing_playlist_scope" };
   }
   const expiresAt = new Date(conn.expires_at).getTime();
-  if (Date.now() < expiresAt - 30_000) return conn.access_token as string;
+  if (Date.now() < expiresAt - 30_000) return { accessToken: conn.access_token as string };
 
   const { clientId, clientSecret } = await getCuratorSpotifyCreds(userId, supabaseAdmin);
   const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
@@ -144,7 +162,15 @@ async function getCuratorAccessToken(userId: string, supabaseAdmin: any): Promis
       refresh_token: conn.refresh_token,
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error("Spotify auto-add refresh failed", {
+      userId,
+      status: res.status,
+      body: body.slice(0, 300),
+    });
+    return { error: "spotify_refresh_failed_reconnect" };
+  }
   const json: any = await res.json();
   const newAccess = json.access_token as string;
   const newRefresh = (json.refresh_token as string) || conn.refresh_token;
@@ -158,26 +184,35 @@ async function getCuratorAccessToken(userId: string, supabaseAdmin: any): Promis
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);
-  return newAccess;
+  return { accessToken: newAccess };
 }
 
 async function playlistContainsTrack(
   playlistId: string,
   trackId: string,
   accessToken: string,
-): Promise<boolean> {
+): Promise<{ contains: boolean; error?: string }> {
   const targetUri = `spotify:track:${trackId}`;
   let url: string | null = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?fields=items(track(uri)),next&limit=100`;
   while (url) {
     const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!res.ok) return false;
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error("Spotify playlist contains check failed", {
+        playlistId,
+        trackId,
+        status: res.status,
+        body: body.slice(0, 300),
+      });
+      return { contains: false, error: `spotify_contains_${res.status}` };
+    }
     const body: any = await res.json();
     for (const it of body.items ?? []) {
-      if (it?.track?.uri === targetUri) return true;
+      if (it?.track?.uri === targetUri) return { contains: true };
     }
     url = body.next ?? null;
   }
-  return false;
+  return { contains: false };
 }
 
 async function addTrackToPlaylist(
@@ -198,6 +233,90 @@ async function addTrackToPlaylist(
   return { ok: false, status: res.status, error: t };
 }
 
+async function addSubmissionTrackToSpotify(
+  submissionId: string,
+  curatorId: string,
+  supabaseAdmin: any,
+): Promise<SpotifyAutoAddResult> {
+  const autoAdd: SpotifyAutoAddResult = { attempted: true, added: false };
+
+  const { data: sub, error: subError } = await supabaseAdmin
+    .from("curator_submissions")
+    .select("spotify_track_id, curator_playlist_id, curator_id")
+    .eq("id", submissionId)
+    .maybeSingle();
+  if (subError) {
+    console.error("Curator submission lookup failed", { submissionId, error: subError.message });
+    return { ...autoAdd, error: "submission_lookup_failed" };
+  }
+  if (!sub || sub.curator_id !== curatorId) {
+    return { ...autoAdd, error: "submission_not_found" };
+  }
+
+  const { data: pl, error: playlistError } = await supabaseAdmin
+    .from("curator_playlists")
+    .select("spotify_playlist_id")
+    .eq("id", sub.curator_playlist_id)
+    .maybeSingle();
+  if (playlistError) {
+    console.error("Curator playlist lookup failed", {
+      submissionId,
+      playlistId: sub.curator_playlist_id,
+      error: playlistError.message,
+    });
+    return { ...autoAdd, error: "playlist_lookup_failed" };
+  }
+  if (!pl?.spotify_playlist_id) {
+    return { ...autoAdd, error: "playlist_not_found" };
+  }
+
+  const token = await getCuratorAccessToken(curatorId, supabaseAdmin);
+  if ("error" in token) {
+    return { ...autoAdd, error: token.error };
+  }
+  const accessToken = token.accessToken;
+
+  const already = await playlistContainsTrack(
+    pl.spotify_playlist_id,
+    sub.spotify_track_id,
+    accessToken,
+  );
+  if (already.contains) {
+    return { ...autoAdd, alreadyOnPlaylist: true };
+  }
+
+  const added = await addTrackToPlaylist(
+    pl.spotify_playlist_id,
+    sub.spotify_track_id,
+    accessToken,
+  );
+  if (added.ok) {
+    return { ...autoAdd, added: true };
+  }
+
+  console.error("Spotify auto-add failed", {
+    submissionId,
+    playlistId: pl.spotify_playlist_id,
+    trackId: sub.spotify_track_id,
+    status: added.status,
+    body: added.error?.slice(0, 300),
+    containsError: already.error,
+  });
+  return {
+    ...autoAdd,
+    error:
+      added.status === 401
+        ? "spotify_unauthorized_reconnect"
+        : added.status === 403
+          ? "spotify_forbidden_check_ownership_or_scope"
+          : added.status === 404
+            ? "spotify_playlist_or_track_not_found"
+            : added.status === 429
+              ? "spotify_rate_limited"
+              : `spotify_${added.status}`,
+  };
+}
+
 export const reviewCuratorSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; approve: boolean; note?: string }) => d)
@@ -210,64 +329,28 @@ export const reviewCuratorSubmission = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     // On approve, try to auto-add track to the curator's Spotify playlist
-    let autoAdd: {
-      attempted: boolean;
-      added: boolean;
-      alreadyOnPlaylist?: boolean;
-      error?: string;
-    } = { attempted: false, added: false };
+    let autoAdd: SpotifyAutoAddResult = { attempted: false, added: false };
 
     if (data.approve) {
-      autoAdd.attempted = true;
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: sub } = await supabaseAdmin
-          .from("curator_submissions")
-          .select("spotify_track_id, curator_playlist_id, curator_id")
-          .eq("id", data.id)
-          .maybeSingle();
-        if (sub && sub.curator_id === context.userId) {
-          const { data: pl } = await supabaseAdmin
-            .from("curator_playlists")
-            .select("spotify_playlist_id")
-            .eq("id", sub.curator_playlist_id)
-            .maybeSingle();
-          if (pl?.spotify_playlist_id) {
-            const token = await getCuratorAccessToken(context.userId, supabaseAdmin);
-            if (!token) {
-              autoAdd.error = "spotify_not_connected_or_missing_scope";
-            } else {
-              const already = await playlistContainsTrack(
-                pl.spotify_playlist_id,
-                sub.spotify_track_id,
-                token,
-              );
-              if (already) {
-                autoAdd.alreadyOnPlaylist = true;
-              } else {
-                const r = await addTrackToPlaylist(
-                  pl.spotify_playlist_id,
-                  sub.spotify_track_id,
-                  token,
-                );
-                if (r.ok) {
-                  autoAdd.added = true;
-                } else {
-                  autoAdd.error =
-                    r.status === 403
-                      ? "spotify_forbidden_check_ownership_or_scope"
-                      : `spotify_${r.status}`;
-                }
-              }
-            }
-          }
-        }
+        autoAdd = await addSubmissionTrackToSpotify(data.id, context.userId, supabaseAdmin);
       } catch (e: any) {
         autoAdd.error = e?.message ?? "auto_add_failed";
       }
     }
 
     return { ok: true, autoAdd };
+  });
+
+export const addCuratorSubmissionToSpotify = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => ({ id: String(d?.id ?? "") }))
+  .handler(async ({ context, data }) => {
+    if (!data.id) throw new Error("Submission is required");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const autoAdd = await addSubmissionTrackToSpotify(data.id, context.userId, supabaseAdmin);
+    return { ok: !autoAdd.error || autoAdd.added || autoAdd.alreadyOnPlaylist, autoAdd };
   });
 
 export const submitCuratorTrack = createServerFn({ method: "POST" })
