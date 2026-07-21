@@ -26,18 +26,23 @@ export const getTrackShareMeta = createServerFn({ method: "GET" })
       }
     }
 
-    const { data: collaborators } = await supabaseAdmin
+    const { data: collaboratorRows } = await supabaseAdmin
       .from("track_collaborators")
-      .select("position, profiles(username)")
+      .select("user_id, position")
       .eq("track_id", row.id)
       .order("position", { ascending: true });
+    const collaboratorIds = ((collaboratorRows ?? []) as Array<{ user_id: string }>).map((c) => c.user_id);
+    const { data: collaboratorProfiles } = collaboratorIds.length
+      ? await supabaseAdmin.from("profiles").select("id, username").in("id", collaboratorIds)
+      : { data: [] };
+    const nameById = new Map(
+      ((collaboratorProfiles ?? []) as Array<{ id: string; username: string | null }>).map((p) => [p.id, p.username]),
+    );
 
     const profiles = row.profiles as { username: string | null } | null;
     const artistNames = [
       profiles?.username,
-      ...((collaborators ?? []) as Array<{ profiles: { username: string | null } | null }>).map(
-        (c) => c.profiles?.username,
-      ),
+      ...collaboratorIds.map((id) => nameById.get(id)),
     ]
       .map((name) => name?.trim() ?? "")
       .filter(Boolean)
