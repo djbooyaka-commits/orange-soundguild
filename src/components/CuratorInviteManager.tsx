@@ -2,10 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link2, Copy, Check, X, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  listMyCuratorInvitees,
-  cancelCuratorInvite,
-} from "@/lib/api/curator-invites.functions";
+import { listMyCuratorInvitees, cancelCuratorInvite } from "@/lib/api/curator-invites.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
 
@@ -37,7 +34,9 @@ export function CuratorInviteManager() {
 
   const refresh = async () => {
     const rows = ((await listFn()) ?? []) as Invitee[];
-    const signed = await signMany(rows.map((i) => ({ bucket: "avatars" as const, path: i.avatar_url })));
+    const signed = await signMany(
+      rows.map((i) => ({ bucket: "avatars" as const, path: i.avatar_url })),
+    );
     setItems(rows.map((i, idx) => ({ ...i, avatar_signed: signed[idx] ?? null })));
   };
 
