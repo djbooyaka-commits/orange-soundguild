@@ -1,0 +1,1 @@
+REVOKE SELECT (download_lossless_url) ON public.tracks FROM anon, authenticated;
