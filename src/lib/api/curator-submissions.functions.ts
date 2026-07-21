@@ -101,6 +101,103 @@ export const listCuratorSubmissionsForMe = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+async function getCuratorSpotifyCreds(userId: string, supabaseAdmin: any) {
+  const { data } = await supabaseAdmin
+    .from("spotify_user_apps")
+    .select("client_id, client_secret")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (data?.client_id && data?.client_secret) {
+    return { clientId: data.client_id as string, clientSecret: data.client_secret as string };
+  }
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  if (!clientId || !clientSecret) throw new Error("Spotify not configured");
+  return { clientId, clientSecret };
+}
+
+async function getCuratorAccessToken(userId: string, supabaseAdmin: any): Promise<string | null> {
+  const { data: conn } = await supabaseAdmin
+    .from("spotify_connections")
+    .select("access_token, refresh_token, expires_at, scope")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!conn) return null;
+  const scope = String(conn.scope ?? "");
+  if (!scope.includes("playlist-modify")) {
+    // Old connection without required scope
+    return null;
+  }
+  const expiresAt = new Date(conn.expires_at).getTime();
+  if (Date.now() < expiresAt - 30_000) return conn.access_token as string;
+
+  const { clientId, clientSecret } = await getCuratorSpotifyCreds(userId, supabaseAdmin);
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: conn.refresh_token,
+    }),
+  });
+  if (!res.ok) return null;
+  const json: any = await res.json();
+  const newAccess = json.access_token as string;
+  const newRefresh = (json.refresh_token as string) || conn.refresh_token;
+  const newExpiresAt = new Date(Date.now() + (json.expires_in as number) * 1000).toISOString();
+  await supabaseAdmin
+    .from("spotify_connections")
+    .update({
+      access_token: newAccess,
+      refresh_token: newRefresh,
+      expires_at: newExpiresAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+  return newAccess;
+}
+
+async function playlistContainsTrack(
+  playlistId: string,
+  trackId: string,
+  accessToken: string,
+): Promise<boolean> {
+  const targetUri = `spotify:track:${trackId}`;
+  let url: string | null = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?fields=items(track(uri)),next&limit=100`;
+  while (url) {
+    const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) return false;
+    const body: any = await res.json();
+    for (const it of body.items ?? []) {
+      if (it?.track?.uri === targetUri) return true;
+    }
+    url = body.next ?? null;
+  }
+  return false;
+}
+
+async function addTrackToPlaylist(
+  playlistId: string,
+  trackId: string,
+  accessToken: string,
+): Promise<{ ok: boolean; status: number; error?: string }> {
+  const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ uris: [`spotify:track:${trackId}`] }),
+  });
+  if (res.ok) return { ok: true, status: res.status };
+  const t = await res.text().catch(() => "");
+  return { ok: false, status: res.status, error: t };
+}
+
 export const reviewCuratorSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; approve: boolean; note?: string }) => d)
@@ -111,7 +208,66 @@ export const reviewCuratorSubmission = createServerFn({ method: "POST" })
       _note: data.note ?? undefined,
     });
     if (error) throw new Error(error.message);
-    return { ok: true };
+
+    // On approve, try to auto-add track to the curator's Spotify playlist
+    let autoAdd: {
+      attempted: boolean;
+      added: boolean;
+      alreadyOnPlaylist?: boolean;
+      error?: string;
+    } = { attempted: false, added: false };
+
+    if (data.approve) {
+      autoAdd.attempted = true;
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: sub } = await supabaseAdmin
+          .from("curator_submissions")
+          .select("spotify_track_id, curator_playlist_id, curator_id")
+          .eq("id", data.id)
+          .maybeSingle();
+        if (sub && sub.curator_id === context.userId) {
+          const { data: pl } = await supabaseAdmin
+            .from("curator_playlists")
+            .select("spotify_playlist_id")
+            .eq("id", sub.curator_playlist_id)
+            .maybeSingle();
+          if (pl?.spotify_playlist_id) {
+            const token = await getCuratorAccessToken(context.userId, supabaseAdmin);
+            if (!token) {
+              autoAdd.error = "spotify_not_connected_or_missing_scope";
+            } else {
+              const already = await playlistContainsTrack(
+                pl.spotify_playlist_id,
+                sub.spotify_track_id,
+                token,
+              );
+              if (already) {
+                autoAdd.alreadyOnPlaylist = true;
+              } else {
+                const r = await addTrackToPlaylist(
+                  pl.spotify_playlist_id,
+                  sub.spotify_track_id,
+                  token,
+                );
+                if (r.ok) {
+                  autoAdd.added = true;
+                } else {
+                  autoAdd.error =
+                    r.status === 403
+                      ? "spotify_forbidden_check_ownership_or_scope"
+                      : `spotify_${r.status}`;
+                }
+              }
+            }
+          }
+        }
+      } catch (e: any) {
+        autoAdd.error = e?.message ?? "auto_add_failed";
+      }
+    }
+
+    return { ok: true, autoAdd };
   });
 
 export const submitCuratorTrack = createServerFn({ method: "POST" })
