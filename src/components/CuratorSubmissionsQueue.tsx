@@ -50,6 +50,12 @@ export function CuratorSubmissionsQueue() {
       toast.error("Reconnect Spotify to allow playlist adding.");
     } else if (autoAdd?.error === "spotify_refresh_failed_reconnect") {
       toast.error("Spotify session expired. Disconnect and reconnect Spotify.");
+    } else if (autoAdd?.error === "spotify_playlist_owned_by_another_account") {
+      toast.error("That playlist is owned by another Spotify account. Add a playlist from the Spotify account you connected.");
+    } else if (autoAdd?.error === "spotify_playlist_not_accessible") {
+      toast.error("Spotify blocked access to that playlist. Make sure it belongs to your connected Spotify account.");
+    } else if (autoAdd?.error === "spotify_playlist_not_found") {
+      toast.error("Spotify could not find that playlist. Remove it and add the correct playlist link again.");
     } else if (autoAdd?.error === "spotify_forbidden_check_ownership_or_scope") {
       toast.error("Couldn't add to Spotify: you must own the playlist and reconnect Spotify.");
     } else if (autoAdd?.error) {

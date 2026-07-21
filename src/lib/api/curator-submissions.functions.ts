@@ -117,7 +117,7 @@ async function getCuratorSpotifyCreds(userId: string, supabaseAdmin: any) {
 }
 
 type SpotifyTokenResult =
-  | { accessToken: string; error?: never }
+  | { accessToken: string; spotifyUserId: string | null; error?: never }
   | { accessToken?: never; error: string };
 
 type SpotifyAutoAddResult = {
@@ -137,7 +137,7 @@ async function getCuratorAccessToken(
 ): Promise<SpotifyTokenResult> {
   const { data: conn } = await supabaseAdmin
     .from("spotify_connections")
-    .select("access_token, refresh_token, expires_at, scope")
+    .select("access_token, refresh_token, expires_at, scope, spotify_user_id")
     .eq("user_id", userId)
     .maybeSingle();
   if (!conn) return { error: "spotify_not_connected" };
@@ -147,7 +147,9 @@ async function getCuratorAccessToken(
     return { error: "spotify_missing_playlist_scope" };
   }
   const expiresAt = new Date(conn.expires_at).getTime();
-  if (Date.now() < expiresAt - 30_000) return { accessToken: conn.access_token as string };
+  if (Date.now() < expiresAt - 30_000) {
+    return { accessToken: conn.access_token as string, spotifyUserId: conn.spotify_user_id ?? null };
+  }
 
   const { clientId, clientSecret } = await getCuratorSpotifyCreds(userId, supabaseAdmin);
   const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
@@ -184,7 +186,38 @@ async function getCuratorAccessToken(
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);
-  return { accessToken: newAccess };
+  return { accessToken: newAccess, spotifyUserId: conn.spotify_user_id ?? null };
+}
+
+async function fetchPlaylistOwner(
+  playlistId: string,
+  accessToken: string,
+): Promise<{ ownerId: string | null; error?: string }> {
+  const res = await fetch(
+    `https://api.spotify.com/v1/playlists/${playlistId}?fields=owner(id),name`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (res.ok) {
+    const body: any = await res.json();
+    return { ownerId: body?.owner?.id ?? null };
+  }
+  const body = await res.text().catch(() => "");
+  console.error("Spotify playlist owner check failed", {
+    playlistId,
+    status: res.status,
+    body: body.slice(0, 300),
+  });
+  return {
+    ownerId: null,
+    error:
+      res.status === 401
+        ? "spotify_unauthorized_reconnect"
+        : res.status === 403
+          ? "spotify_playlist_not_accessible"
+          : res.status === 404
+            ? "spotify_playlist_not_found"
+            : `spotify_playlist_check_${res.status}`,
+  };
 }
 
 async function playlistContainsTrack(
@@ -275,6 +308,14 @@ async function addSubmissionTrackToSpotify(
     return { ...autoAdd, error: token.error };
   }
   const accessToken = token.accessToken;
+
+  const owner = await fetchPlaylistOwner(pl.spotify_playlist_id, accessToken);
+  if (owner.error) {
+    return { ...autoAdd, error: owner.error };
+  }
+  if (token.spotifyUserId && owner.ownerId && owner.ownerId !== token.spotifyUserId) {
+    return { ...autoAdd, error: "spotify_playlist_owned_by_another_account" };
+  }
 
   const already = await playlistContainsTrack(
     pl.spotify_playlist_id,
