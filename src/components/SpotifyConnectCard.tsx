@@ -174,8 +174,15 @@ export function SpotifyConnectCard() {
           </div>
         </div>
         {status?.connected && (
-          <div className="flex items-center gap-1 text-xs text-emerald-600">
-            <CheckCircle2 className="h-4 w-4" /> Connected
+          <div className="flex flex-col items-end gap-0.5 text-xs text-emerald-600">
+            <div className="flex items-center gap-1">
+              <CheckCircle2 className="h-4 w-4" /> Connected
+            </div>
+            {status.spotifyUserId && (
+              <div className="text-[11px] text-muted-foreground">
+                as <span className="font-mono">@{status.spotifyUserId}</span>
+              </div>
+            )}
           </div>
         )}
       </div>
