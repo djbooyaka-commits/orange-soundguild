@@ -125,6 +125,10 @@ type SpotifyAutoAddResult = {
   added: boolean;
   alreadyOnPlaylist?: boolean;
   error?: string;
+  playlistOwnerId?: string | null;
+  playlistOwnerName?: string | null;
+  playlistCollaborative?: boolean | null;
+  connectedSpotifyUserId?: string | null;
 };
 
 function hasPlaylistModifyScope(scope: string): boolean {
@@ -189,26 +193,40 @@ async function getCuratorAccessToken(
   return { accessToken: newAccess, spotifyUserId: conn.spotify_user_id ?? null };
 }
 
-async function fetchPlaylistOwner(
+async function fetchPlaylistWriteContext(
   playlistId: string,
   accessToken: string,
-): Promise<{ ownerId: string | null; error?: string }> {
+): Promise<{
+  ownerId: string | null;
+  ownerName: string | null;
+  collaborative: boolean | null;
+  public: boolean | null;
+  error?: string;
+}> {
   const res = await fetch(
-    `https://api.spotify.com/v1/playlists/${playlistId}?fields=owner(id),name`,
+    `https://api.spotify.com/v1/playlists/${playlistId}?fields=owner(id,display_name),name,collaborative,public`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
   if (res.ok) {
     const body: any = await res.json();
-    return { ownerId: body?.owner?.id ?? null };
+    return {
+      ownerId: body?.owner?.id ?? null,
+      ownerName: body?.owner?.display_name ?? null,
+      collaborative: typeof body?.collaborative === "boolean" ? body.collaborative : null,
+      public: typeof body?.public === "boolean" ? body.public : null,
+    };
   }
   const body = await res.text().catch(() => "");
-  console.error("Spotify playlist owner check failed", {
+  console.error("Spotify playlist write-context check failed", {
     playlistId,
     status: res.status,
     body: body.slice(0, 300),
   });
   return {
     ownerId: null,
+    ownerName: null,
+    collaborative: null,
+    public: null,
     error:
       res.status === 401
         ? "spotify_unauthorized_reconnect"
@@ -331,15 +349,18 @@ async function addSubmissionTrackToSpotify(
   }
 
   // If it failed, fetch the owner to give a precise reason.
-  let ownerHint: string | undefined;
+  let writeContext: Awaited<ReturnType<typeof fetchPlaylistWriteContext>> | null = null;
+  let permissionError = "spotify_forbidden_not_owner_or_collaborator";
   if (added.status === 403) {
-    const owner = await fetchPlaylistOwner(pl.spotify_playlist_id, accessToken);
-    if (
-      owner.ownerId &&
-      token.spotifyUserId &&
-      owner.ownerId !== token.spotifyUserId
-    ) {
-      ownerHint = `spotify_playlist_owned_by:${owner.ownerId}`;
+    writeContext = await fetchPlaylistWriteContext(pl.spotify_playlist_id, accessToken);
+    if (writeContext.error) {
+      permissionError = writeContext.error;
+    } else if (writeContext.ownerId && token.spotifyUserId && writeContext.ownerId !== token.spotifyUserId) {
+      permissionError = writeContext.collaborative
+        ? "spotify_collaborative_write_forbidden"
+        : `spotify_playlist_owned_by:${writeContext.ownerId}`;
+    } else if (writeContext.ownerId && token.spotifyUserId && writeContext.ownerId === token.spotifyUserId) {
+      permissionError = "spotify_owner_write_forbidden_reconnect";
     }
   }
 
@@ -350,15 +371,23 @@ async function addSubmissionTrackToSpotify(
     status: added.status,
     body: added.error?.slice(0, 300),
     containsError: already.error,
-    ownerHint,
+    connectedSpotifyUserId: token.spotifyUserId,
+    playlistOwnerId: writeContext?.ownerId,
+    playlistOwnerName: writeContext?.ownerName,
+    playlistCollaborative: writeContext?.collaborative,
+    playlistPublic: writeContext?.public,
   });
   return {
     ...autoAdd,
+    connectedSpotifyUserId: token.spotifyUserId,
+    playlistOwnerId: writeContext?.ownerId ?? null,
+    playlistOwnerName: writeContext?.ownerName ?? null,
+    playlistCollaborative: writeContext?.collaborative ?? null,
     error:
       added.status === 401
         ? "spotify_unauthorized_reconnect"
         : added.status === 403
-          ? ownerHint ?? "spotify_forbidden_not_owner_or_collaborator"
+          ? permissionError
           : added.status === 404
             ? "spotify_playlist_or_track_not_found"
             : added.status === 429
