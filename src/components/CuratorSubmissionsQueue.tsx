@@ -57,7 +57,11 @@ export function CuratorSubmissionsQueue() {
     } else if (autoAdd?.error === "spotify_playlist_not_found") {
       toast.error("Spotify could not find that playlist. Remove it and add the correct playlist link again.");
     } else if (autoAdd?.error === "spotify_forbidden_not_owner_or_collaborator") {
-      toast.error("Spotify rejected the add: your connected account isn't the owner or a collaborator on this playlist.");
+      toast.error("Spotify rejected the add: the connected Spotify account does not have edit access to this playlist.");
+    } else if (autoAdd?.error === "spotify_collaborative_write_forbidden") {
+      toast.error("Spotify says this playlist is collaborative, but this connected account still cannot edit it through the Spotify API. Open Spotify and make sure this exact account can add tracks to the playlist.");
+    } else if (autoAdd?.error === "spotify_owner_write_forbidden_reconnect") {
+      toast.error("Spotify rejected editing this playlist even for the connected owner account. Disconnect and reconnect Spotify, then try again.");
     } else if (typeof autoAdd?.error === "string" && autoAdd.error.startsWith("spotify_playlist_owned_by:")) {
       const ownerId = autoAdd.error.split(":")[1];
       toast.error(`This playlist is owned by Spotify user "${ownerId}", not your connected account. Remove it here and re-add from that Spotify account, or make yourself a collaborator on it.`);
