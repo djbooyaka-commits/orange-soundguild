@@ -271,7 +271,7 @@ async function addTrackToPlaylist(
   trackId: string,
   accessToken: string,
 ): Promise<{ ok: boolean; status: number; error?: string }> {
-  const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+  const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/items`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
