@@ -117,47 +117,58 @@ function CuratorPage() {
         </div>
       )}
 
-      <div className="space-y-6">
-        <SpotifyConnectCard />
+      <Tabs defaultValue="curator" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="curator">Curator</TabsTrigger>
+          <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>
+        </TabsList>
 
-        {isSuperfan ? (
-          <>
-            <CuratorPlaylistManager />
-            <CuratorInviteManager />
-            <CuratorSubmissionsQueue />
-          </>
-        ) : (
-          <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center">
-            <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Star className="h-5 w-5" />
+        <TabsContent value="curator" className="space-y-6">
+          <SpotifyConnectCard />
+
+          {isSuperfan ? (
+            <>
+              <CuratorPlaylistManager />
+              <CuratorInviteManager />
+              <CuratorSubmissionsQueue />
+            </>
+          ) : (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center">
+              <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Star className="h-5 w-5" />
+              </div>
+              <h2 className="font-semibold">Want to submit playlists?</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Superfans can add Spotify playlists to the Curator program. Anyone can connect Spotify and earn points by streaming them.
+              </p>
+              <Link
+                to="/upgrade"
+                className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                Become a Superfan
+              </Link>
             </div>
-            <h2 className="font-semibold">Want to submit playlists?</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Superfans can add Spotify playlists to the Curator program. Anyone can connect Spotify and earn points by streaming them.
-            </p>
-            <Link
-              to="/upgrade"
-              className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              Become a Superfan
-            </Link>
-          </div>
-        )}
+          )}
 
-        <SubmitTrackCard />
+          <SubmitTrackCard />
 
-        <section className="rounded-xl border border-dashed border-border bg-muted/30 p-6">
-          <h2 className="text-sm font-semibold">How it works</h2>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>Curators (Superfans) add Spotify playlists they curate.</li>
-            <li>Curators share their invite link with fans.</li>
-            <li>Opening the link (after signing in) enrolls that user for tracking.</li>
-            <li>Fans need a Spotify Premium account to connect tracking — the Web API requires Premium.</li>
-            <li>When an enrolled user streams a track in full inside that Curator's playlist on Spotify, they earn 1 point.</li>
-            <li>Spotify only reports streams played long enough to count — we don&apos;t see skips.</li>
-          </ul>
-        </section>
-      </div>
+          <section className="rounded-xl border border-dashed border-border bg-muted/30 p-6">
+            <h2 className="text-sm font-semibold">How it works</h2>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+              <li>Curators (Superfans) add Spotify playlists they curate.</li>
+              <li>Curators share their invite link with fans.</li>
+              <li>Opening the link (after signing in) enrolls that user for tracking.</li>
+              <li>Fans need a Spotify Premium account to connect tracking — the Web API requires Premium.</li>
+              <li>When an enrolled user streams a track in full inside that Curator's playlist on Spotify, they earn 1 point.</li>
+              <li>Spotify only reports streams played long enough to count — we don&apos;t see skips.</li>
+            </ul>
+          </section>
+        </TabsContent>
+
+        <TabsContent value="osg-artists">
+          <OsgArtistsTab />
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }
