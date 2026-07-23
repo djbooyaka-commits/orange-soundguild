@@ -8,8 +8,10 @@ import { CuratorPlaylistManager } from "@/components/CuratorPlaylistManager";
 import { CuratorInviteManager } from "@/components/CuratorInviteManager";
 import { SubmitTrackCard } from "@/components/SubmitTrackCard";
 import { CuratorSubmissionsQueue } from "@/components/CuratorSubmissionsQueue";
+import { OsgArtistsTab } from "@/components/OsgArtistsTab";
 import { acceptCuratorInviteByLink } from "@/lib/api/curator-invites.functions";
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/curator")({
   head: () => ({
