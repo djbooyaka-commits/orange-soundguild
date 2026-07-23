@@ -1032,7 +1032,53 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ad_campaigns_public: {
+        Row: {
+          dest_url: string | null
+          ends_at: string | null
+          headline: string | null
+          id: string | null
+          image_url: string | null
+          mode: Database["public"]["Enums"]["ad_mode"] | null
+          placements: string[] | null
+          starts_at: string | null
+          status: Database["public"]["Enums"]["ad_status"] | null
+          track_id: string | null
+        }
+        Insert: {
+          dest_url?: string | null
+          ends_at?: string | null
+          headline?: string | null
+          id?: string | null
+          image_url?: string | null
+          mode?: Database["public"]["Enums"]["ad_mode"] | null
+          placements?: string[] | null
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["ad_status"] | null
+          track_id?: string | null
+        }
+        Update: {
+          dest_url?: string | null
+          ends_at?: string | null
+          headline?: string | null
+          id?: string | null
+          image_url?: string | null
+          mode?: Database["public"]["Enums"]["ad_mode"] | null
+          placements?: string[] | null
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["ad_status"] | null
+          track_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaigns_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_curator_invite_by_link: {
