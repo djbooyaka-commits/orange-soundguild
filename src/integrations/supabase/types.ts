@@ -348,6 +348,27 @@ export type Database = {
         }
         Relationships: []
       }
+      osg_artist_picks: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payout_requests: {
         Row: {
           admin_note: string | null
@@ -1018,6 +1039,7 @@ export type Database = {
         Args: { _curator_id: string }
         Returns: string
       }
+      add_osg_artist_pick: { Args: { _username: string }; Returns: string }
       admin_set_account_type: {
         Args: {
           _type: Database["public"]["Enums"]["account_type"]
@@ -1146,6 +1168,17 @@ export type Database = {
           id: string
           status: Database["public"]["Enums"]["curator_invite_status"]
           user_id: string
+          username: string
+        }[]
+      }
+      list_my_osg_artist_picks: {
+        Args: never
+        Returns: {
+          account_type: Database["public"]["Enums"]["account_type"]
+          artist_id: string
+          avatar_url: string
+          created_at: string
+          id: string
           username: string
         }[]
       }
