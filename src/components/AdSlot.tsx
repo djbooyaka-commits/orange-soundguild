@@ -36,12 +36,11 @@ function useLiveCampaign(placement: "feed" | "player"): ResolvedAd | null {
     let cancelled = false;
     (async () => {
       const { data } = await supabase
-        .from("ad_campaigns" as never)
+        .from("ad_campaigns_public" as never)
         .select("id, mode, image_url, headline, dest_url, track_id, tracks(id, title, cover_art_url)")
-        .eq("status", "active")
         .contains("placements", [placement])
-        .gt("ends_at", new Date().toISOString())
         .limit(20);
+
       if (cancelled) return;
       const rows = (data ?? []) as unknown as CampaignRow[];
       if (rows.length === 0) {
