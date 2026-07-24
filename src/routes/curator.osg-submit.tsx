@@ -169,14 +169,8 @@ function OsgSubmitPage() {
                       <dd className="text-foreground">{receipt.trackName}</dd>
                     </>
                   )}
-                  <dt>Paid from</dt>
+                  <dt>Playlist</dt>
                   <dd className="text-foreground">{receipt.playlistName}</dd>
-                  <dt>Charged</dt>
-                  <dd className="text-foreground">
-                    {receipt.cost} pts{receipt.followedAll ? " (follow bonus)" : ""}
-                  </dd>
-                  <dt>Balance on this playlist</dt>
-                  <dd className="text-foreground font-semibold">{receipt.newBalance} pts</dd>
                 </dl>
               </div>
               <button
