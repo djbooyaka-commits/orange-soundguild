@@ -125,9 +125,13 @@ function CuratorPage() {
           <Sparkles className="h-5 w-5" />
         </span>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Curator</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isSuperfan ? "Curator" : "Stream Tracker"}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Track Spotify streams from Curator playlists and earn points.
+            {isSuperfan
+              ? "Manage your Curator room, invite fans, and review submissions."
+              : "Connect Spotify and earn points streaming Curator playlists you've been invited to."}
           </p>
         </div>
       </header>
@@ -138,13 +142,13 @@ function CuratorPage() {
         </div>
       )}
 
-      <Tabs defaultValue="curator" className="space-y-6">
+      <Tabs defaultValue="main" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="curator">Curator</TabsTrigger>
+          <TabsTrigger value="main">{isSuperfan ? "Curator" : "Stream Tracker"}</TabsTrigger>
           {canUseOsg && <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="curator" className="space-y-6">
+        <TabsContent value="main" className="space-y-6">
           <SpotifyConnectCard />
 
           {isSuperfan ? (
@@ -152,26 +156,29 @@ function CuratorPage() {
               <CuratorPlaylistManager />
               <CuratorInviteManager />
               <CuratorSubmissionsQueue />
+              <SubmitTrackCard />
             </>
           ) : (
-            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center">
-              <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Star className="h-5 w-5" />
-              </div>
-              <h2 className="font-semibold">Want to submit playlists?</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Superfans can add Spotify playlists to the Curator program. Anyone can connect Spotify and earn points by streaming them.
-              </p>
-              <Link
-                to="/upgrade"
-                className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-              >
-                Become a Superfan
-              </Link>
-            </div>
+            <>
+              <CuratorInvitesInbox />
+              <SubmitTrackCard />
+              <section className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center">
+                <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Star className="h-5 w-5" />
+                </div>
+                <h2 className="font-semibold">Want your own Curator room?</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Superfans can add Spotify playlists, invite fans, and review track submissions.
+                </p>
+                <Link
+                  to="/upgrade"
+                  className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  Become a Superfan
+                </Link>
+              </section>
+            </>
           )}
-
-          <SubmitTrackCard />
 
           <section className="rounded-xl border border-dashed border-border bg-muted/30 p-6">
             <h2 className="text-sm font-semibold">How it works</h2>
