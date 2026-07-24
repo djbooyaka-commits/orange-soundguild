@@ -171,7 +171,7 @@ export function CuratorPlaylistManager() {
         {items.map((p) => (
           <li
             key={p.id}
-            className="flex items-center gap-3 rounded-md border border-border p-3"
+            className={`flex items-center gap-3 rounded-md border p-3 ${p.is_osg ? "border-primary/60 bg-primary/5" : "border-border"}`}
           >
             {p.image_url ? (
               <img src={p.image_url} alt="" className="h-12 w-12 rounded object-cover" />
@@ -179,7 +179,14 @@ export function CuratorPlaylistManager() {
               <div className="h-12 w-12 rounded bg-muted" />
             )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{p.name}</p>
+              <p className="truncate text-sm font-medium">
+                {p.name}
+                {p.is_osg && (
+                  <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    <Star className="h-3 w-3" /> OSG Artists playlist
+                  </span>
+                )}
+              </p>
               <a
                 href={`https://open.spotify.com/playlist/${p.spotify_playlist_id}`}
                 target="_blank"
@@ -189,6 +196,15 @@ export function CuratorPlaylistManager() {
                 Open in Spotify ↗
               </a>
             </div>
+            <button
+              onClick={() => toggleOsg(p)}
+              disabled={busy || togglingId === p.id}
+              className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50 ${p.is_osg ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90" : "border-border hover:bg-muted"}`}
+              title={p.is_osg ? "Unset as OSG Artists playlist" : "Mark as your OSG Artists playlist"}
+            >
+              {togglingId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Star className="h-3 w-3" />}
+              {p.is_osg ? "OSG" : "Set OSG"}
+            </button>
             <button
               onClick={() => remove(p.id)}
               disabled={busy}
