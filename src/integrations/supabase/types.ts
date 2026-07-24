@@ -193,6 +193,7 @@ export type Database = {
           curator_id: string
           id: string
           image_url: string | null
+          is_osg: boolean
           name: string
           spotify_playlist_id: string
         }
@@ -201,6 +202,7 @@ export type Database = {
           curator_id: string
           id?: string
           image_url?: string | null
+          is_osg?: boolean
           name: string
           spotify_playlist_id: string
         }
@@ -209,6 +211,7 @@ export type Database = {
           curator_id?: string
           id?: string
           image_url?: string | null
+          is_osg?: boolean
           name?: string
           spotify_playlist_id?: string
         }
@@ -1304,6 +1307,10 @@ export type Database = {
           id: string
           username: string
         }[]
+      }
+      set_curator_playlist_is_osg: {
+        Args: { _is_osg: boolean; _playlist_id: string }
+        Returns: undefined
       }
       submit_curator_track: {
         Args: {
