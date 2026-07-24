@@ -4,7 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { signState } from "./spotify-state.server";
 
 const SCOPES =
-  "user-read-recently-played user-read-email user-follow-read playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private";
+  "user-read-recently-played user-read-email user-follow-read user-follow-modify playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private";
+
 
 function getRedirectUri(): string {
   const proto = getRequestHeader("x-forwarded-proto") || "https";
