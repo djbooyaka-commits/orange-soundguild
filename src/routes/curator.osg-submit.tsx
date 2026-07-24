@@ -254,14 +254,27 @@ function OsgSubmitPage() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={busy || !trackUrl.trim()}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Submit / change track
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="submit"
+                disabled={busy || !trackUrl.trim()}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Submit / change track
+              </button>
+              <button
+                type="button"
+                onClick={followAll}
+                disabled={following || !playlistId}
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50"
+                title="Follow every artist on the selected OSG playlist on Spotify"
+              >
+                {following ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                Follow all artists on the playlist
+              </button>
+            </div>
+
           </form>
         )}
 
