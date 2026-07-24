@@ -170,7 +170,7 @@ export const saveOsgArtistFollowLink = createServerFn({ method: "POST" })
       _curator_id: data.curatorId,
       _spotify_artist_id: artist.id,
       _spotify_artist_url: artistUrl,
-      _spotify_artist_name: artist.name,
+      _spotify_artist_name: artist.name ?? undefined,
     });
     if (error) throw new Error(error.message);
 

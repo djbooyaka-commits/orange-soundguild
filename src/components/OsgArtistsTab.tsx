@@ -9,6 +9,7 @@ import {
   removeOsgArtistPick,
   listMyOsgRosters,
   listOsgPlaylistSubmissions,
+  listOsgArtistFollowLinks,
 } from "@/lib/api/osg-picks.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
@@ -46,32 +47,45 @@ type SubmissionRow = {
   created_at: string;
 };
 
+type FollowLinkRow = {
+  curator_id: string;
+  user_id: string;
+  spotify_artist_id: string;
+  spotify_artist_url: string;
+  spotify_artist_name: string | null;
+  updated_at: string;
+};
+
 export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const listFn = useServerFn(listMyOsgArtistPicks);
   const addFn = useServerFn(addOsgArtistPick);
   const removeFn = useServerFn(removeOsgArtistPick);
   const rostersFn = useServerFn(listMyOsgRosters);
   const submissionsFn = useServerFn(listOsgPlaylistSubmissions);
+  const followLinksFn = useServerFn(listOsgArtistFollowLinks);
 
   const [picks, setPicks] = useState<Pick[]>([]);
   const [avatars, setAvatars] = useState<(string | null)[]>([]);
   const [rosters, setRosters] = useState<RosterRow[]>([]);
   const [rosterAvatars, setRosterAvatars] = useState<(string | null)[]>([]);
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
+  const [followLinks, setFollowLinks] = useState<FollowLinkRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const refresh = async () => {
-    const [rows, rosterRows, subs] = await Promise.all([
+    const [rows, rosterRows, subs, links] = await Promise.all([
       listFn() as Promise<Pick[]>,
       rostersFn() as Promise<RosterRow[]>,
       submissionsFn() as Promise<SubmissionRow[]>,
+      followLinksFn() as Promise<FollowLinkRow[]>,
     ]);
     setPicks(rows);
     setRosters(rosterRows);
     setSubmissions(subs);
+    setFollowLinks(links);
     const [signedPicks, signedRoster] = await Promise.all([
       signMany(rows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))),
       signMany(rosterRows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))),
@@ -133,6 +147,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const subByKey = new Map<string, SubmissionRow>();
   submissions.forEach((s) => subByKey.set(`${s.curator_id}:${s.submitter_user_id}`, s));
 
+  const followLinkByKey = new Map<string, FollowLinkRow>();
+  followLinks.forEach((l) => followLinkByKey.set(`${l.curator_id}:${l.user_id}`, l));
+
   const renderSubmission = (curatorId: string, artistId: string) => {
     const s = subByKey.get(`${curatorId}:${artistId}`);
     if (!s) {
@@ -161,6 +178,30 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
         </span>
         <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${badge}`}>
           {s.status}
+        </span>
+      </a>
+    );
+  };
+
+  const renderFollowLink = (curatorId: string, artistId: string) => {
+    const link = followLinkByKey.get(`${curatorId}:${artistId}`);
+    if (!link) {
+      return (
+        <div className="rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted-foreground">
+          No Spotify artist link yet
+        </div>
+      );
+    }
+    return (
+      <a
+        href={link.spotify_artist_url}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs hover:border-primary/50"
+      >
+        <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1 truncate">
+          Follow artist: {link.spotify_artist_name ?? link.spotify_artist_url}
         </span>
       </a>
     );
@@ -237,6 +278,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
           </span>
           {below && <span className="font-semibold">Below minimum</span>}
         </div>
+        {renderFollowLink(a.curator_id, a.artist_id)}
         {renderSubmission(a.curator_id, a.artist_id)}
       </div>
     );
