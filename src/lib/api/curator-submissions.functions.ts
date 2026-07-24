@@ -119,6 +119,24 @@ async function fetchSubmittedTrackArtistIds(
   return Array.from(ids);
 }
 
+async function fetchOsgFollowListArtistIds(curatorId: string, supabaseAdmin: any): Promise<string[]> {
+  const { data, error } = await supabaseAdmin
+    .from("osg_artist_follow_links")
+    .select("spotify_artist_id")
+    .eq("curator_id", curatorId);
+  if (error) {
+    console.error("OSG follow-list lookup failed", { curatorId, error: error.message });
+    return [];
+  }
+  return Array.from(
+    new Set(
+      (data ?? [])
+        .map((row: { spotify_artist_id?: string | null }) => row.spotify_artist_id)
+        .filter((id: string | null | undefined): id is string => !!id),
+    ),
+  );
+}
+
 async function userFollowsAll(userAccessToken: string, artistIds: string[]): Promise<boolean> {
   if (artistIds.length === 0) return false;
   // Endpoint allows up to 50 ids per call
@@ -756,45 +774,48 @@ export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
       throw new Error(tokenRes.error ?? "spotify_error");
     }
 
-    let artistIds: string[] = [];
-    let artistSource: "playlist" | "submitted_tracks" = "playlist";
+    let artistIds = await fetchOsgFollowListArtistIds(pl.curator_id, supabaseAdmin);
+    let artistSource: "artist_links" | "playlist" | "submitted_tracks" = "artist_links";
     let lastPlaylistFetchError: unknown = null;
     let curatorReadError: string | null = null;
     const readTokens: Array<{ label: string; accessToken: string }> = [];
 
-    const curatorRead = await getUserAccessTokenForPlaylistRead(pl.curator_id, supabaseAdmin);
-    if (curatorRead.accessToken) {
-      readTokens.push({ label: "curator", accessToken: curatorRead.accessToken });
-    } else {
-      curatorReadError = curatorRead.error ?? null;
-    }
-
-    if (pl.curator_id !== context.userId) {
-      const userRead = await getUserAccessTokenForPlaylistRead(context.userId, supabaseAdmin);
-      if (userRead.accessToken) {
-        readTokens.push({ label: "member", accessToken: userRead.accessToken });
-      }
-    }
-
-    for (const readToken of readTokens) {
-      try {
-        artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, readToken.accessToken);
-        lastPlaylistFetchError = null;
-        break;
-      } catch (e) {
-        console.warn(`Playlist fetch with ${readToken.label} token failed`, e);
-        lastPlaylistFetchError = e;
-      }
-    }
-
     if (artistIds.length === 0) {
-      try {
-        const appToken = await getAppToken();
-        artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, appToken);
-        lastPlaylistFetchError = null;
-      } catch (e) {
-        console.warn("Playlist fetch with app token failed", e);
-        lastPlaylistFetchError = e;
+      artistSource = "playlist";
+      const curatorRead = await getUserAccessTokenForPlaylistRead(pl.curator_id, supabaseAdmin);
+      if (curatorRead.accessToken) {
+        readTokens.push({ label: "curator", accessToken: curatorRead.accessToken });
+      } else {
+        curatorReadError = curatorRead.error ?? null;
+      }
+
+      if (pl.curator_id !== context.userId) {
+        const userRead = await getUserAccessTokenForPlaylistRead(context.userId, supabaseAdmin);
+        if (userRead.accessToken) {
+          readTokens.push({ label: "member", accessToken: userRead.accessToken });
+        }
+      }
+
+      for (const readToken of readTokens) {
+        try {
+          artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, readToken.accessToken);
+          lastPlaylistFetchError = null;
+          break;
+        } catch (e) {
+          console.warn(`Playlist fetch with ${readToken.label} token failed`, e);
+          lastPlaylistFetchError = e;
+        }
+      }
+
+      if (artistIds.length === 0) {
+        try {
+          const appToken = await getAppToken();
+          artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, appToken);
+          lastPlaylistFetchError = null;
+        } catch (e) {
+          console.warn("Playlist fetch with app token failed", e);
+          lastPlaylistFetchError = e;
+        }
       }
     }
 
