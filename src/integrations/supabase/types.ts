@@ -1346,6 +1346,15 @@ export type Database = {
         }
         Returns: string
       }
+      submit_osg_curator_track: {
+        Args: {
+          _playlist_id: string
+          _spotify_track_id: string
+          _spotify_track_name: string
+          _spotify_track_url: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       account_type: "fan" | "artist" | "superfan" | "pioneer"

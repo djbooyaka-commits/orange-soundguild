@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { listOsgPlaylistsForSubmission } from "@/lib/api/osg-picks.functions";
 import {
-  submitCuratorTrack,
+  submitOsgCuratorTrack,
   listMyTrackSubmissions,
 } from "@/lib/api/curator-submissions.functions";
 
@@ -58,7 +58,7 @@ function OsgSubmitPage() {
   const navigate = useNavigate();
   const listPlaylists = useServerFn(listOsgPlaylistsForSubmission);
   const listMine = useServerFn(listMyTrackSubmissions);
-  const submitFn = useServerFn(submitCuratorTrack);
+  const submitFn = useServerFn(submitOsgCuratorTrack);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [mine, setMine] = useState<Submission[]>([]);
@@ -69,9 +69,6 @@ function OsgSubmitPage() {
   const [receipt, setReceipt] = useState<{
     playlistName: string;
     trackName: string | null;
-    cost: number;
-    followedAll: boolean;
-    newBalance: number;
   } | null>(null);
 
   const refresh = async () => {
@@ -101,13 +98,7 @@ function OsgSubmitPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
 
-  const selected = playlists.find((p) => p.id === playlistId);
   const osgSubmissions = mine.filter((s) => playlists.some((p) => p.id === s.curator_playlist_id));
-  const recentCount = osgSubmissions.filter(
-    (s) =>
-      Date.now() - new Date(s.created_at).getTime() < 24 * 60 * 60 * 1000 &&
-      s.curator_playlist_id === selected?.id,
-  ).length;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,15 +106,10 @@ function OsgSubmitPage() {
     setBusy(true);
     try {
       const res = await submitFn({ data: { playlistId, trackUrl } });
-      toast.success(
-        `Submitted — ${res.cost} points spent${res.followedAll ? " (follow bonus applied)" : ""}`,
-      );
+      toast.success("Submitted");
       setReceipt({
         playlistName: res.playlistName,
         trackName: res.trackName,
-        cost: res.cost,
-        followedAll: res.followedAll,
-        newBalance: res.newBalance,
       });
       setTrackUrl("");
       await refresh();
@@ -177,14 +163,8 @@ function OsgSubmitPage() {
                       <dd className="text-foreground">{receipt.trackName}</dd>
                     </>
                   )}
-                  <dt>Paid from</dt>
+                  <dt>Playlist</dt>
                   <dd className="text-foreground">{receipt.playlistName}</dd>
-                  <dt>Charged</dt>
-                  <dd className="text-foreground">
-                    {receipt.cost} pts{receipt.followedAll ? " (follow bonus)" : ""}
-                  </dd>
-                  <dt>Balance on this playlist</dt>
-                  <dd className="text-foreground font-semibold">{receipt.newBalance} pts</dd>
                 </dl>
               </div>
               <button
@@ -218,7 +198,7 @@ function OsgSubmitPage() {
             >
               {playlists.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — @{p.curator_username} · {p.available_points} pts
+                  {p.name} — @{p.curator_username}
                 </option>
               ))}
             </select>
@@ -238,21 +218,13 @@ function OsgSubmitPage() {
             <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <div>
-                Cost: <b>50 pts</b>, or <b>45 pts</b> if you follow every artist on the playlist on
-                Spotify. Max 2 submissions per playlist every 24 hours ({recentCount}/2 used on this
-                playlist).
-                {selected && (
-                  <>
-                    {" "}
-                    Available on this playlist: <b>{selected.available_points}</b> pts.
-                  </>
-                )}
+                Free to submit — no points required. You can submit or change your track anytime.
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={busy || !trackUrl.trim() || recentCount >= 2}
+              disabled={busy || !trackUrl.trim()}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

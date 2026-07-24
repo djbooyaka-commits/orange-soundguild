@@ -511,3 +511,47 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
       newBalance: (newBalance as number | null) ?? 0,
     };
   });
+
+export const submitOsgCuratorTrack = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { playlistId: string; trackUrl: string }) => {
+    const trackUrl = String(d?.trackUrl ?? "").trim();
+    if (!trackUrl) throw new Error("Track URL is required");
+    return { playlistId: String(d?.playlistId ?? ""), trackUrl };
+  })
+  .handler(async ({ context, data }) => {
+    const trackId = extractTrackId(data.trackUrl);
+    if (!trackId) throw new Error("Invalid Spotify track URL");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: pl } = await supabaseAdmin
+      .from("curator_playlists")
+      .select("id, name, is_osg")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (!pl) throw new Error("Playlist not found");
+    if (!pl.is_osg) throw new Error("Not an OSG Artists playlist");
+
+    const appToken = await getAppToken();
+    const trackMeta = await fetchTrackMeta(trackId, appToken);
+    if (!trackMeta) throw new Error("Track not found on Spotify");
+
+    const trackUrl = `https://open.spotify.com/track/${trackId}`;
+    const { data: submissionId, error } = await context.supabase.rpc(
+      "submit_osg_curator_track",
+      {
+        _playlist_id: data.playlistId,
+        _spotify_track_id: trackId,
+        _spotify_track_url: trackUrl,
+        _spotify_track_name: trackMeta.name ?? undefined,
+      },
+    );
+    if (error) throw new Error(error.message);
+
+    return {
+      id: submissionId as string,
+      playlistName: pl.name ?? "OSG playlist",
+      trackName: trackMeta.name ?? null,
+    };
+  });
