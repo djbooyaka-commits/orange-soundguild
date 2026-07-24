@@ -612,6 +612,62 @@ async function getUserAccessTokenForFollow(
   return { accessToken: newAccess };
 }
 
+function hasSpotifyScopes(scope: string, required: string[]): boolean {
+  const granted = new Set(scope.split(/\s+/).filter(Boolean));
+  return required.every((s) => granted.has(s));
+}
+
+async function getUserAccessTokenForPlaylistRead(
+  userId: string,
+  supabaseAdmin: any,
+): Promise<{ accessToken?: string; error?: string }> {
+  const { data: conn } = await supabaseAdmin
+    .from("spotify_connections")
+    .select("access_token, refresh_token, expires_at, scope")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!conn) return { error: "spotify_not_connected" };
+
+  const scope = String(conn.scope ?? "");
+  if (!hasSpotifyScopes(scope, ["playlist-read-private", "playlist-read-collaborative"])) {
+    return { error: "spotify_missing_playlist_read_scope" };
+  }
+
+  const expiresAt = new Date(conn.expires_at).getTime();
+  if (Date.now() < expiresAt - 30_000) {
+    return { accessToken: conn.access_token as string };
+  }
+
+  const { clientId, clientSecret } = await getCuratorSpotifyCreds(userId, supabaseAdmin);
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: conn.refresh_token,
+    }),
+  });
+  if (!res.ok) return { error: "spotify_refresh_failed_reconnect" };
+  const json: any = await res.json();
+  const newAccess = json.access_token as string;
+  const newRefresh = (json.refresh_token as string) || conn.refresh_token;
+  const newExpiresAt = new Date(Date.now() + (json.expires_in as number) * 1000).toISOString();
+  await supabaseAdmin
+    .from("spotify_connections")
+    .update({
+      access_token: newAccess,
+      refresh_token: newRefresh,
+      expires_at: newExpiresAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+  return { accessToken: newAccess };
+}
+
 export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { playlistId: string }) => {
@@ -645,12 +701,51 @@ export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
     }
 
     let artistIds: string[] = [];
-    try {
-      artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, tokenRes.accessToken);
-    } catch (e) {
-      console.warn("Playlist fetch with user token failed, retrying with app token", e);
-      const appToken = await getAppToken();
-      artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, appToken);
+    let lastPlaylistFetchError: unknown = null;
+    let curatorReadError: string | null = null;
+    const readTokens: Array<{ label: string; accessToken: string }> = [];
+
+    const curatorRead = await getUserAccessTokenForPlaylistRead(pl.curator_id, supabaseAdmin);
+    if (curatorRead.accessToken) {
+      readTokens.push({ label: "curator", accessToken: curatorRead.accessToken });
+    } else {
+      curatorReadError = curatorRead.error ?? null;
+    }
+
+    if (pl.curator_id !== context.userId) {
+      const userRead = await getUserAccessTokenForPlaylistRead(context.userId, supabaseAdmin);
+      if (userRead.accessToken) {
+        readTokens.push({ label: "member", accessToken: userRead.accessToken });
+      }
+    }
+
+    for (const readToken of readTokens) {
+      try {
+        artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, readToken.accessToken);
+        lastPlaylistFetchError = null;
+        break;
+      } catch (e) {
+        console.warn(`Playlist fetch with ${readToken.label} token failed`, e);
+        lastPlaylistFetchError = e;
+      }
+    }
+
+    if (artistIds.length === 0) {
+      try {
+        const appToken = await getAppToken();
+        artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, appToken);
+        lastPlaylistFetchError = null;
+      } catch (e) {
+        console.warn("Playlist fetch with app token failed", e);
+        lastPlaylistFetchError = e;
+      }
+    }
+
+    if (artistIds.length === 0 && lastPlaylistFetchError) {
+      if (curatorReadError === "spotify_missing_playlist_read_scope" || curatorReadError === "spotify_refresh_failed_reconnect") {
+        throw new Error("spotify_curator_reconnect_playlist_scope");
+      }
+      throw lastPlaylistFetchError;
     }
     if (artistIds.length === 0) {
       return { followed: 0, total: 0 };
