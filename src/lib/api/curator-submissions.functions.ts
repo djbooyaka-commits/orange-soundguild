@@ -28,14 +28,22 @@ async function getAppToken(): Promise<string> {
   return j.access_token as string;
 }
 
-async function fetchPlaylistArtistIds(playlistSpotifyId: string, appToken: string): Promise<string[]> {
+async function fetchPlaylistArtistIds(playlistSpotifyId: string, token: string): Promise<string[]> {
   const ids = new Set<string>();
   let url:
     | string
     | null = `https://api.spotify.com/v1/playlists/${playlistSpotifyId}/tracks?fields=items(track(artists(id))),next&limit=100`;
   while (url) {
-    const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${appToken}` } });
-    if (!res.ok) break;
+    const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error("fetchPlaylistArtistIds failed", {
+        status: res.status,
+        playlistSpotifyId,
+        body: body.slice(0, 300),
+      });
+      throw new Error(`spotify_playlist_fetch_failed_${res.status}`);
+    }
     const body: any = await res.json();
     for (const it of body.items ?? []) {
       const artists = it?.track?.artists ?? [];
@@ -636,8 +644,14 @@ export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
       throw new Error(tokenRes.error ?? "spotify_error");
     }
 
-    const appToken = await getAppToken();
-    const artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, appToken);
+    let artistIds: string[] = [];
+    try {
+      artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, tokenRes.accessToken);
+    } catch (e) {
+      console.warn("Playlist fetch with user token failed, retrying with app token", e);
+      const appToken = await getAppToken();
+      artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, appToken);
+    }
     if (artistIds.length === 0) {
       return { followed: 0, total: 0 };
     }
