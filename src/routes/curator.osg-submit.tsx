@@ -98,13 +98,7 @@ function OsgSubmitPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
 
-  const selected = playlists.find((p) => p.id === playlistId);
   const osgSubmissions = mine.filter((s) => playlists.some((p) => p.id === s.curator_playlist_id));
-  const recentCount = osgSubmissions.filter(
-    (s) =>
-      Date.now() - new Date(s.created_at).getTime() < 24 * 60 * 60 * 1000 &&
-      s.curator_playlist_id === selected?.id,
-  ).length;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
