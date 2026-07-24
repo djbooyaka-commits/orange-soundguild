@@ -644,8 +644,14 @@ export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
       throw new Error(tokenRes.error ?? "spotify_error");
     }
 
-    const appToken = await getAppToken();
-    const artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, appToken);
+    let artistIds: string[] = [];
+    try {
+      artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, tokenRes.accessToken);
+    } catch (e) {
+      console.warn("Playlist fetch with user token failed, retrying with app token", e);
+      const appToken = await getAppToken();
+      artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, appToken);
+    }
     if (artistIds.length === 0) {
       return { followed: 0, total: 0 };
     }
