@@ -140,7 +140,7 @@ function CuratorPage() {
       <Tabs defaultValue="curator" className="space-y-6">
         <TabsList>
           <TabsTrigger value="curator">Curator</TabsTrigger>
-          <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>
+          {canUseOsg && <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="curator" className="space-y-6">
@@ -181,13 +181,16 @@ function CuratorPage() {
               <li>Fans need a Spotify Premium account to connect tracking — the Web API requires Premium.</li>
               <li>When an enrolled user streams a track in full inside that Curator's playlist on Spotify, they earn 1 point.</li>
               <li>Spotify only reports streams played long enough to count — we don&apos;t see skips.</li>
+              <li>OSG Artists must earn at least 600 points/week from your Curator playlists to stay in good standing.</li>
             </ul>
           </section>
         </TabsContent>
 
-        <TabsContent value="osg-artists">
-          <OsgArtistsTab />
-        </TabsContent>
+        {canUseOsg && (
+          <TabsContent value="osg-artists">
+            <OsgArtistsTab />
+          </TabsContent>
+        )}
       </Tabs>
     </main>
   );
