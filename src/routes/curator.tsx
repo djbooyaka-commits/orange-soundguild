@@ -35,6 +35,7 @@ function CuratorPage() {
   const navigate = useNavigate();
   const [joining, setJoining] = useState(false);
   const [canUseOsg, setCanUseOsg] = useState(false);
+  const [activeTab, setActiveTab] = useState("main");
   const canUseOsgFn = useServerFn(canUseOsgArtists);
 
   useEffect(() => {
