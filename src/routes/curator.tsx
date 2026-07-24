@@ -35,6 +35,7 @@ function CuratorPage() {
   const navigate = useNavigate();
   const [joining, setJoining] = useState(false);
   const [canUseOsg, setCanUseOsg] = useState(false);
+  const [activeTab, setActiveTab] = useState("main");
   const canUseOsgFn = useServerFn(canUseOsgArtists);
 
   useEffect(() => {
@@ -142,7 +143,7 @@ function CuratorPage() {
         </div>
       )}
 
-      <Tabs defaultValue="main" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="main">{isSuperfan ? "Curator" : "Stream Tracker"}</TabsTrigger>
           {canUseOsg && <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>}
@@ -200,7 +201,14 @@ function CuratorPage() {
 
         {canUseOsg && (
           <TabsContent value="osg-artists">
-            <OsgArtistsTab />
+            <OsgArtistsTab
+              onGoToSubmit={() => {
+                setActiveTab("main");
+                setTimeout(() => {
+                  document.getElementById("submit-track")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 50);
+              }}
+            />
           </TabsContent>
         )}
       </Tabs>
