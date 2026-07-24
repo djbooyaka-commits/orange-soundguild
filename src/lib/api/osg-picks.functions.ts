@@ -47,3 +47,21 @@ export const canUseOsgArtists = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return { allowed: Boolean(data) };
   });
+
+export const listMyOsgRosters = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.rpc("list_my_osg_rosters");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{
+      curator_id: string;
+      curator_username: string | null;
+      curator_avatar_url: string | null;
+      artist_id: string;
+      username: string | null;
+      avatar_url: string | null;
+      account_type: "fan" | "artist" | "superfan" | "pioneer";
+      weekly_points: number;
+      is_me: boolean;
+    }>;
+  });
