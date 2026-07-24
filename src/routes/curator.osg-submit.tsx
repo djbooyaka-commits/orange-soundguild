@@ -61,17 +61,20 @@ function OsgSubmitPage() {
   const listPlaylists = useServerFn(listOsgPlaylistsForSubmission);
   const listMine = useServerFn(listMyTrackSubmissions);
   const submitFn = useServerFn(submitOsgCuratorTrack);
+  const followAllFn = useServerFn(followAllArtistsOnOsgPlaylist);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [mine, setMine] = useState<Submission[]>([]);
   const [playlistId, setPlaylistId] = useState<string>("");
   const [trackUrl, setTrackUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [following, setFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [receipt, setReceipt] = useState<{
     playlistName: string;
     trackName: string | null;
   } | null>(null);
+
 
   const refresh = async () => {
     const [pl, m] = await Promise.all([listPlaylists(), listMine()]);
