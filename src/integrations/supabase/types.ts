@@ -1106,6 +1106,7 @@ export type Database = {
         Returns: undefined
       }
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      can_use_osg_artists: { Args: never; Returns: boolean }
       cancel_curator_invite: {
         Args: { _invite_id: string }
         Returns: undefined
@@ -1226,6 +1227,7 @@ export type Database = {
           created_at: string
           id: string
           username: string
+          weekly_points: number
         }[]
       }
       list_my_track_submissions: {
