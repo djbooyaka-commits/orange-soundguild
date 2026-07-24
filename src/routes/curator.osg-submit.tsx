@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { listOsgPlaylistsForSubmission } from "@/lib/api/osg-picks.functions";
 import {
-  submitCuratorTrack,
+  submitOsgCuratorTrack,
   listMyTrackSubmissions,
 } from "@/lib/api/curator-submissions.functions";
 
