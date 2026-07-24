@@ -1230,6 +1230,20 @@ export type Database = {
           weekly_points: number
         }[]
       }
+      list_my_osg_rosters: {
+        Args: never
+        Returns: {
+          account_type: Database["public"]["Enums"]["account_type"]
+          artist_id: string
+          avatar_url: string
+          curator_avatar_url: string
+          curator_id: string
+          curator_username: string
+          is_me: boolean
+          username: string
+          weekly_points: number
+        }[]
+      }
       list_my_track_submissions: {
         Args: never
         Returns: {

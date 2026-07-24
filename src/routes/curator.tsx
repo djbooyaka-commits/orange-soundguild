@@ -156,12 +156,16 @@ function CuratorPage() {
               <CuratorPlaylistManager />
               <CuratorInviteManager />
               <CuratorSubmissionsQueue />
-              <SubmitTrackCard />
+              <div id="submit-track" className="scroll-mt-24">
+                <SubmitTrackCard />
+              </div>
             </>
           ) : (
             <>
               <CuratorInvitesInbox />
-              <SubmitTrackCard />
+              <div id="submit-track" className="scroll-mt-24">
+                <SubmitTrackCard />
+              </div>
               <section className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center">
                 <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Star className="h-5 w-5" />
