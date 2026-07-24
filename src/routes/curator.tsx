@@ -7,6 +7,7 @@ import { useAccountType } from "@/hooks/useAccountType";
 import { SpotifyConnectCard } from "@/components/SpotifyConnectCard";
 import { CuratorPlaylistManager } from "@/components/CuratorPlaylistManager";
 import { CuratorInviteManager } from "@/components/CuratorInviteManager";
+import { CuratorInvitesInbox } from "@/components/CuratorInvitesInbox";
 import { SubmitTrackCard } from "@/components/SubmitTrackCard";
 import { CuratorSubmissionsQueue } from "@/components/CuratorSubmissionsQueue";
 import { OsgArtistsTab } from "@/components/OsgArtistsTab";
