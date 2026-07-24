@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, Star } from "lucide-react";
@@ -30,6 +30,7 @@ export const Route = createFileRoute("/curator")({
 });
 
 function CuratorPage() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { user, loading: authLoading } = useAuth();
   const { accountType, loading } = useAccountType();
   const navigate = useNavigate();
@@ -102,6 +103,10 @@ function CuratorPage() {
         window.history.replaceState({}, "", url.toString());
       });
   }, [user, authLoading, navigate]);
+
+  if (pathname !== "/curator") {
+    return <Outlet />;
+  }
 
   if (authLoading || loading) {
     return (
