@@ -1264,6 +1264,30 @@ export type Database = {
           status: Database["public"]["Enums"]["curator_submission_status"]
         }[]
       }
+      list_osg_playlist_submissions: {
+        Args: never
+        Returns: {
+          created_at: string
+          curator_id: string
+          spotify_track_id: string
+          spotify_track_name: string
+          spotify_track_url: string
+          status: Database["public"]["Enums"]["curator_submission_status"]
+          submitter_user_id: string
+        }[]
+      }
+      list_osg_playlists_for_submission: {
+        Args: never
+        Returns: {
+          available_points: number
+          curator_id: string
+          curator_username: string
+          id: string
+          image_url: string
+          name: string
+          spotify_playlist_id: string
+        }[]
+      }
       list_playlists_for_submission: {
         Args: never
         Returns: {

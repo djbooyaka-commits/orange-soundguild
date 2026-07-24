@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Music, Star, Plus, X, Loader2, AlertTriangle, TrendingUp, Send, Users } from "lucide-react";
+import { Music, Star, Plus, X, Loader2, AlertTriangle, TrendingUp, Send, Users, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import {
   listMyOsgArtistPicks,
   addOsgArtistPick,
   removeOsgArtistPick,
   listMyOsgRosters,
+  listOsgPlaylistSubmissions,
 } from "@/lib/api/osg-picks.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
@@ -35,28 +36,42 @@ type RosterRow = {
   is_me: boolean;
 };
 
-export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = {}) {
+type SubmissionRow = {
+  curator_id: string;
+  submitter_user_id: string;
+  spotify_track_id: string;
+  spotify_track_url: string;
+  spotify_track_name: string | null;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+};
+
+export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const listFn = useServerFn(listMyOsgArtistPicks);
   const addFn = useServerFn(addOsgArtistPick);
   const removeFn = useServerFn(removeOsgArtistPick);
   const rostersFn = useServerFn(listMyOsgRosters);
+  const submissionsFn = useServerFn(listOsgPlaylistSubmissions);
 
   const [picks, setPicks] = useState<Pick[]>([]);
   const [avatars, setAvatars] = useState<(string | null)[]>([]);
   const [rosters, setRosters] = useState<RosterRow[]>([]);
   const [rosterAvatars, setRosterAvatars] = useState<(string | null)[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const refresh = async () => {
-    const [rows, rosterRows] = await Promise.all([
+    const [rows, rosterRows, subs] = await Promise.all([
       listFn() as Promise<Pick[]>,
       rostersFn() as Promise<RosterRow[]>,
+      submissionsFn() as Promise<SubmissionRow[]>,
     ]);
     setPicks(rows);
     setRosters(rosterRows);
+    setSubmissions(subs);
     const [signedPicks, signedRoster] = await Promise.all([
       signMany(rows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))),
       signMany(rosterRows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))),
@@ -75,7 +90,6 @@ export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = 
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,9 +129,47 @@ export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = 
   const rosterAvatarByArtist = new Map<string, string | null>();
   rosters.forEach((r, i) => rosterAvatarByArtist.set(`${r.curator_id}:${r.artist_id}`, rosterAvatars[i] ?? null));
 
+  // Latest submission lookup: key = `${curator_id}:${submitter_user_id}`
+  const subByKey = new Map<string, SubmissionRow>();
+  submissions.forEach((s) => subByKey.set(`${s.curator_id}:${s.submitter_user_id}`, s));
+
+  const renderSubmission = (curatorId: string, artistId: string) => {
+    const s = subByKey.get(`${curatorId}:${artistId}`);
+    if (!s) {
+      return (
+        <div className="rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted-foreground">
+          No track submitted yet
+        </div>
+      );
+    }
+    const badge =
+      s.status === "approved"
+        ? "bg-emerald-500/15 text-emerald-500"
+        : s.status === "rejected"
+          ? "bg-destructive/15 text-destructive"
+          : "bg-muted text-muted-foreground";
+    return (
+      <a
+        href={s.spotify_track_url}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs hover:border-primary/50"
+      >
+        <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1 truncate">
+          {s.spotify_track_name ?? s.spotify_track_url}
+        </span>
+        <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${badge}`}>
+          {s.status}
+        </span>
+      </a>
+    );
+  };
+
   const renderMemberCard = (
     a: {
       key: string;
+      curator_id: string;
       artist_id: string;
       username: string | null;
       account_type: "fan" | "artist" | "superfan" | "pioneer";
@@ -185,6 +237,7 @@ export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = 
           </span>
           {below && <span className="font-semibold">Below minimum</span>}
         </div>
+        {renderSubmission(a.curator_id, a.artist_id)}
       </div>
     );
   };
@@ -192,13 +245,13 @@ export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = 
   return (
     <div className="space-y-6">
       {/* Manage own picks (curator side) */}
-      {picks.length > 0 && (
+      {picks.length > 0 && myUserId && (
         <div className="rounded-xl border border-border bg-card p-5">
           <h2 className="font-semibold">My OSG Artists</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Users you've added. Each needs at least{" "}
             <span className="font-medium text-foreground">{WEEKLY_MIN} points/week</span> from
-            streaming your Curator playlists.
+            streaming your OSG playlist.
           </p>
 
           <form onSubmit={add} className="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -223,6 +276,7 @@ export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = 
               renderMemberCard(
                 {
                   key: a.id,
+                  curator_id: myUserId,
                   artist_id: a.artist_id,
                   username: a.username,
                   account_type: a.account_type,
@@ -255,7 +309,7 @@ export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = 
           <p className="mt-1 text-sm text-muted-foreground">
             Add users who accepted your Curator invite. Each needs at least{" "}
             <span className="font-medium text-foreground">{WEEKLY_MIN} points/week</span> from
-            streaming your Curator playlists.
+            streaming your OSG playlist.
           </p>
           <form onSubmit={add} className="mt-4 flex flex-col gap-2 sm:flex-row">
             <input
@@ -300,20 +354,20 @@ export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = 
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => onGoToSubmit?.()}
+              <Link
+                to="/curator/osg-submit"
                 className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
               >
                 <Send className="h-4 w-4" />
                 Submit / change a track
-              </button>
+              </Link>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {rows.map((r) =>
                 renderMemberCard({
                   key: `${r.curator_id}:${r.artist_id}`,
+                  curator_id: r.curator_id,
                   artist_id: r.artist_id,
                   username: r.username,
                   account_type: r.account_type,
@@ -336,5 +390,4 @@ export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = 
       )}
     </div>
   );
-
 }

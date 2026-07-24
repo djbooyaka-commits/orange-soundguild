@@ -65,3 +65,35 @@ export const listMyOsgRosters = createServerFn({ method: "GET" })
       is_me: boolean;
     }>;
   });
+
+export const listOsgPlaylistSubmissions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.rpc("list_osg_playlist_submissions");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{
+      curator_id: string;
+      submitter_user_id: string;
+      spotify_track_id: string;
+      spotify_track_url: string;
+      spotify_track_name: string | null;
+      status: "pending" | "approved" | "rejected";
+      created_at: string;
+    }>;
+  });
+
+export const listOsgPlaylistsForSubmission = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.rpc("list_osg_playlists_for_submission");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{
+      id: string;
+      curator_id: string;
+      curator_username: string;
+      spotify_playlist_id: string;
+      name: string;
+      image_url: string | null;
+      available_points: number;
+    }>;
+  });
