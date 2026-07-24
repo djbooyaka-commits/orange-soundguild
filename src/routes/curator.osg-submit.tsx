@@ -112,15 +112,10 @@ function OsgSubmitPage() {
     setBusy(true);
     try {
       const res = await submitFn({ data: { playlistId, trackUrl } });
-      toast.success(
-        `Submitted — ${res.cost} points spent${res.followedAll ? " (follow bonus applied)" : ""}`,
-      );
+      toast.success("Submitted");
       setReceipt({
         playlistName: res.playlistName,
         trackName: res.trackName,
-        cost: res.cost,
-        followedAll: res.followedAll,
-        newBalance: res.newBalance,
       });
       setTrackUrl("");
       await refresh();
