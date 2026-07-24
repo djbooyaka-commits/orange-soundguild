@@ -132,6 +132,11 @@ function OsgSubmitPage() {
       const res = await followAllFn({ data: { playlistId } });
       if (res.total === 0) {
         toast.info("No artists found on this playlist");
+      } else if (res.source === "submitted_tracks") {
+        toast.success(
+          `Spotify blocked reading the playlist, so I followed ${res.followed} artist${res.followed === 1 ? "" : "s"} from the submitted tracks instead`,
+          { duration: 9000 },
+        );
       } else {
         toast.success(`Following ${res.followed} artist${res.followed === 1 ? "" : "s"} from this playlist`);
       }
