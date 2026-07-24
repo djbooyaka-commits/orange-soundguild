@@ -69,9 +69,6 @@ function OsgSubmitPage() {
   const [receipt, setReceipt] = useState<{
     playlistName: string;
     trackName: string | null;
-    cost: number;
-    followedAll: boolean;
-    newBalance: number;
   } | null>(null);
 
   const refresh = async () => {
