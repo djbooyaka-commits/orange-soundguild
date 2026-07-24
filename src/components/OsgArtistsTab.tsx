@@ -35,7 +35,7 @@ type RosterRow = {
   is_me: boolean;
 };
 
-export function OsgArtistsTab() {
+export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = {}) {
   const listFn = useServerFn(listMyOsgArtistPicks);
   const addFn = useServerFn(addOsgArtistPick);
   const removeFn = useServerFn(removeOsgArtistPick);
