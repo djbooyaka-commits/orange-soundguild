@@ -164,15 +164,25 @@ export const saveOsgArtistFollowLink = createServerFn({ method: "POST" })
     const artistId = extractArtistId(data.artistUrl);
     if (!artistId) throw new Error("Paste a Spotify artist link, not a track or playlist link");
 
-    const artist = await fetchArtistMeta(artistId);
-    const artistUrl = `https://open.spotify.com/artist/${artist.id}`;
+    let artistName: string | null = null;
+    try {
+      const artist = await fetchArtistMeta(artistId);
+      artistName = artist.name;
+    } catch (error) {
+      console.warn("Spotify artist metadata lookup failed; saving artist link without name", {
+        artistId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    const artistUrl = `https://open.spotify.com/artist/${artistId}`;
     const { data: id, error } = await context.supabase.rpc("upsert_osg_artist_follow_link", {
       _curator_id: data.curatorId,
-      _spotify_artist_id: artist.id,
+      _spotify_artist_id: artistId,
       _spotify_artist_url: artistUrl,
-      _spotify_artist_name: artist.name ?? undefined,
+      _spotify_artist_name: artistName ?? undefined,
     });
     if (error) throw new Error(error.message);
 
-    return { id: id as string, artistId: artist.id, artistUrl, artistName: artist.name };
+    return { id: id as string, artistId, artistUrl, artistName };
   });
