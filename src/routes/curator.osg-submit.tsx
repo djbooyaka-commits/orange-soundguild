@@ -125,6 +125,30 @@ function OsgSubmitPage() {
     }
   };
 
+  const followAll = async () => {
+    if (!playlistId) return;
+    setFollowing(true);
+    try {
+      const res = await followAllFn({ data: { playlistId } });
+      if (res.total === 0) {
+        toast.info("No artists found on this playlist");
+      } else {
+        toast.success(`Following ${res.followed} artist${res.followed === 1 ? "" : "s"} from this playlist`);
+      }
+    } catch (ex: any) {
+      const msg = String(ex?.message ?? "");
+      if (msg.includes("missing_follow_scope")) {
+        toast.error("Reconnect Spotify to grant follow permission");
+      } else if (msg.includes("not_connected")) {
+        toast.error("Connect Spotify first (Stream Tracker tab)");
+      } else {
+        toast.error(msg || "Failed to follow artists");
+      }
+    } finally {
+      setFollowing(false);
+    }
+
+
   if (authLoading || loading) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-10 text-sm text-muted-foreground">Loading…</main>
