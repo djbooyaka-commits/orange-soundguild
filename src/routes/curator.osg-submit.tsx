@@ -58,7 +58,7 @@ function OsgSubmitPage() {
   const navigate = useNavigate();
   const listPlaylists = useServerFn(listOsgPlaylistsForSubmission);
   const listMine = useServerFn(listMyTrackSubmissions);
-  const submitFn = useServerFn(submitCuratorTrack);
+  const submitFn = useServerFn(submitOsgCuratorTrack);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [mine, setMine] = useState<Submission[]>([]);
