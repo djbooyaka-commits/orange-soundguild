@@ -98,6 +98,18 @@ export function CuratorPlaylistManager() {
     }
   };
 
+  const toggleOsg = async (p: Playlist) => {
+    setTogglingId(p.id);
+    try {
+      await setOsgFn({ data: { playlistId: p.id, isOsg: !p.is_osg } });
+      await refresh();
+    } catch (ex: any) {
+      setErr(ex?.message ?? "Failed to update OSG playlist");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center justify-between gap-3">
