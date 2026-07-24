@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, Star } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
@@ -10,6 +11,7 @@ import { SubmitTrackCard } from "@/components/SubmitTrackCard";
 import { CuratorSubmissionsQueue } from "@/components/CuratorSubmissionsQueue";
 import { OsgArtistsTab } from "@/components/OsgArtistsTab";
 import { acceptCuratorInviteByLink } from "@/lib/api/curator-invites.functions";
+import { canUseOsgArtists } from "@/lib/api/osg-picks.functions";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -31,8 +33,26 @@ function CuratorPage() {
   const { accountType, loading } = useAccountType();
   const navigate = useNavigate();
   const [joining, setJoining] = useState(false);
+  const [canUseOsg, setCanUseOsg] = useState(false);
+  const canUseOsgFn = useServerFn(canUseOsgArtists);
 
-  // Handle ?invite=<curatorId> link
+  useEffect(() => {
+    if (!user) {
+      setCanUseOsg(false);
+      return;
+    }
+    let cancelled = false;
+    canUseOsgFn()
+      .then((r) => {
+        if (!cancelled) setCanUseOsg(Boolean(r?.allowed));
+      })
+      .catch(() => {
+        if (!cancelled) setCanUseOsg(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, canUseOsgFn]);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -120,7 +140,7 @@ function CuratorPage() {
       <Tabs defaultValue="curator" className="space-y-6">
         <TabsList>
           <TabsTrigger value="curator">Curator</TabsTrigger>
-          <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>
+          {canUseOsg && <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="curator" className="space-y-6">
@@ -161,13 +181,16 @@ function CuratorPage() {
               <li>Fans need a Spotify Premium account to connect tracking — the Web API requires Premium.</li>
               <li>When an enrolled user streams a track in full inside that Curator's playlist on Spotify, they earn 1 point.</li>
               <li>Spotify only reports streams played long enough to count — we don&apos;t see skips.</li>
+              <li>OSG Artists must earn at least 600 points/week from your Curator playlists to stay in good standing.</li>
             </ul>
           </section>
         </TabsContent>
 
-        <TabsContent value="osg-artists">
-          <OsgArtistsTab />
-        </TabsContent>
+        {canUseOsg && (
+          <TabsContent value="osg-artists">
+            <OsgArtistsTab />
+          </TabsContent>
+        )}
       </Tabs>
     </main>
   );

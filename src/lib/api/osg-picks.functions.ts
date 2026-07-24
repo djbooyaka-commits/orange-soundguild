@@ -11,7 +11,8 @@ export const listMyOsgArtistPicks = createServerFn({ method: "GET" })
       artist_id: string;
       username: string | null;
       avatar_url: string | null;
-      account_type: "artist" | "pioneer";
+      account_type: "fan" | "artist" | "superfan" | "pioneer";
+      weekly_points: number;
       created_at: string;
     }>;
   });
@@ -37,4 +38,12 @@ export const removeOsgArtistPick = createServerFn({ method: "POST" })
       .eq("id", data.pickId);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const canUseOsgArtists = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.rpc("can_use_osg_artists");
+    if (error) throw new Error(error.message);
+    return { allowed: Boolean(data) };
   });
