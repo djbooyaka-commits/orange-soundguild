@@ -137,10 +137,12 @@ function OsgSubmitPage() {
       }
     } catch (ex: any) {
       const msg = String(ex?.message ?? "");
-      if (msg.includes("missing_follow_scope")) {
-        toast.error("Reconnect Spotify to grant follow permission");
+      if (msg.includes("missing_follow_scope") || msg.includes("playlist_fetch_failed_401") || msg.includes("playlist_fetch_failed_403")) {
+        toast.error("Reconnect Spotify to grant follow + playlist permissions (Stream Tracker tab → Disconnect, then Connect).");
       } else if (msg.includes("not_connected")) {
         toast.error("Connect Spotify first (Stream Tracker tab)");
+      } else if (msg.includes("playlist_fetch_failed_404")) {
+        toast.error("Spotify can't find this playlist. Check it still exists and is accessible.");
       } else {
         toast.error(msg || "Failed to follow artists");
       }
