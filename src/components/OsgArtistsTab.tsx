@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Music, Star, Plus, X, Loader2, AlertTriangle, TrendingUp } from "lucide-react";
+import { Music, Star, Plus, X, Loader2, AlertTriangle, TrendingUp, Send, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   listMyOsgArtistPicks,
   addOsgArtistPick,
   removeOsgArtistPick,
+  listMyOsgRosters,
 } from "@/lib/api/osg-picks.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
@@ -22,25 +23,46 @@ type Pick = {
   weekly_points: number;
 };
 
+type RosterRow = {
+  curator_id: string;
+  curator_username: string | null;
+  curator_avatar_url: string | null;
+  artist_id: string;
+  username: string | null;
+  avatar_url: string | null;
+  account_type: "fan" | "artist" | "superfan" | "pioneer";
+  weekly_points: number;
+  is_me: boolean;
+};
+
 export function OsgArtistsTab() {
   const listFn = useServerFn(listMyOsgArtistPicks);
   const addFn = useServerFn(addOsgArtistPick);
   const removeFn = useServerFn(removeOsgArtistPick);
+  const rostersFn = useServerFn(listMyOsgRosters);
 
   const [picks, setPicks] = useState<Pick[]>([]);
   const [avatars, setAvatars] = useState<(string | null)[]>([]);
+  const [rosters, setRosters] = useState<RosterRow[]>([]);
+  const [rosterAvatars, setRosterAvatars] = useState<(string | null)[]>([]);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const refresh = async () => {
-    const rows = (await listFn()) as Pick[];
+    const [rows, rosterRows] = await Promise.all([
+      listFn() as Promise<Pick[]>,
+      rostersFn() as Promise<RosterRow[]>,
+    ]);
     setPicks(rows);
-    const signed = await signMany(
-      rows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url })),
-    );
-    setAvatars(signed);
+    setRosters(rosterRows);
+    const [signedPicks, signedRoster] = await Promise.all([
+      signMany(rows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))),
+      signMany(rosterRows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))),
+    ]);
+    setAvatars(signedPicks);
+    setRosterAvatars(signedRoster);
   };
 
   useEffect(() => {
@@ -53,6 +75,7 @@ export function OsgArtistsTab() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
