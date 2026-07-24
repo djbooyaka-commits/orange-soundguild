@@ -30,12 +30,11 @@ async function getAppToken(): Promise<string> {
 
 async function fetchPlaylistArtistIds(playlistSpotifyId: string, token: string): Promise<string[]> {
   const ids = new Set<string>();
-  // No `fields` filter + additional_types=track avoids a class of 403s Spotify
-  // returns when a playlist contains episodes or when the filtered projection
-  // is rejected for playlists the token's app isn't approved to read.
+  // Use the current Playlist Items endpoint. Spotify now marks the old
+  // /tracks endpoint as deprecated and can reject it even for valid tokens.
   let url:
     | string
-    | null = `https://api.spotify.com/v1/playlists/${playlistSpotifyId}/tracks?limit=100&additional_types=track`;
+    | null = `https://api.spotify.com/v1/playlists/${playlistSpotifyId}/items?limit=100&additional_types=track`;
   while (url) {
     const res: Response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
@@ -51,6 +50,7 @@ async function fetchPlaylistArtistIds(playlistSpotifyId: string, token: string):
     }
     const body: any = await res.json();
     for (const it of body.items ?? []) {
+      if (it?.track?.type && it.track.type !== "track") continue;
       const artists = it?.track?.artists ?? [];
       for (const a of artists) if (a?.id) ids.add(a.id);
     }
@@ -66,6 +66,57 @@ async function fetchTrackMeta(trackId: string, appToken: string) {
   );
   if (!res.ok) return null;
   return (await res.json()) as { id: string; name: string; artists: Array<{ id: string }> };
+}
+
+async function fetchSubmittedTrackArtistIds(
+  curatorPlaylistId: string,
+  supabaseAdmin: any,
+  appToken: string,
+): Promise<string[]> {
+  const ids = new Set<string>();
+  const { data, error } = await supabaseAdmin
+    .from("curator_submissions")
+    .select("spotify_track_id")
+    .eq("curator_playlist_id", curatorPlaylistId);
+
+  if (error) {
+    console.error("Submitted track fallback lookup failed", {
+      curatorPlaylistId,
+      error: error.message,
+    });
+    return [];
+  }
+
+  const trackIds = Array.from(
+    new Set(
+      (data ?? [])
+        .map((row: { spotify_track_id?: string | null }) => row.spotify_track_id)
+        .filter((trackId: string | null | undefined): trackId is string => !!trackId),
+    ),
+  );
+
+  for (let i = 0; i < trackIds.length; i += 50) {
+    const chunk = trackIds.slice(i, i + 50);
+    const res = await fetch(`https://api.spotify.com/v1/tracks?ids=${chunk.join(",")}`, {
+      headers: { Authorization: `Bearer ${appToken}`, Accept: "application/json" },
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error("Submitted track fallback metadata failed", {
+        status: res.status,
+        body: body.slice(0, 300),
+      });
+      continue;
+    }
+    const body: any = await res.json();
+    for (const track of body.tracks ?? []) {
+      for (const artist of track?.artists ?? []) {
+        if (artist?.id) ids.add(artist.id);
+      }
+    }
+  }
+
+  return Array.from(ids);
 }
 
 async function userFollowsAll(userAccessToken: string, artistIds: string[]): Promise<boolean> {
@@ -706,6 +757,7 @@ export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
     }
 
     let artistIds: string[] = [];
+    let artistSource: "playlist" | "submitted_tracks" = "playlist";
     let lastPlaylistFetchError: unknown = null;
     let curatorReadError: string | null = null;
     const readTokens: Array<{ label: string; accessToken: string }> = [];
@@ -746,6 +798,15 @@ export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
       }
     }
 
+    if (artistIds.length === 0) {
+      const appToken = await getAppToken();
+      artistIds = await fetchSubmittedTrackArtistIds(pl.id, supabaseAdmin, appToken);
+      if (artistIds.length > 0) {
+        artistSource = "submitted_tracks";
+        lastPlaylistFetchError = null;
+      }
+    }
+
     if (artistIds.length === 0 && lastPlaylistFetchError) {
       if (curatorReadError === "spotify_missing_playlist_read_scope" || curatorReadError === "spotify_refresh_failed_reconnect") {
         throw new Error("spotify_curator_reconnect_playlist_scope");
@@ -753,7 +814,7 @@ export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
       throw lastPlaylistFetchError;
     }
     if (artistIds.length === 0) {
-      return { followed: 0, total: 0 };
+      return { followed: 0, total: 0, source: artistSource };
     }
 
     let followed = 0;
@@ -778,5 +839,5 @@ export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
       followed += chunk.length;
     }
 
-    return { followed, total: artistIds.length };
+    return { followed, total: artistIds.length, source: artistSource };
   });
