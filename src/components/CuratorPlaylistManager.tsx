@@ -24,12 +24,14 @@ export function CuratorPlaylistManager() {
   const removeFn = useServerFn(removeCuratorPlaylist);
   const earnedFn = useServerFn(getCuratorEarnedPoints);
   const importFn = useServerFn(importMySpotifyCuratorPlaylists);
+  const setOsgFn = useServerFn(setCuratorPlaylistIsOsg);
 
   const [items, setItems] = useState<Playlist[]>([]);
   const [earned, setEarned] = useState(0);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
