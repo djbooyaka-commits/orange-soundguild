@@ -201,14 +201,7 @@ function CuratorPage() {
 
         {canUseOsg && (
           <TabsContent value="osg-artists">
-            <OsgArtistsTab
-              onGoToSubmit={() => {
-                setActiveTab("main");
-                setTimeout(() => {
-                  document.getElementById("submit-track")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }, 50);
-              }}
-            />
+            <OsgArtistsTab myUserId={user.id} />
           </TabsContent>
         )}
       </Tabs>
