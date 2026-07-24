@@ -144,7 +144,10 @@ function OsgSubmitPage() {
       } else if (msg.includes("playlist_fetch_failed_401")) {
         toast.error("Spotify connection expired. Reconnect Spotify from the Stream Tracker tab.");
       } else if (msg.includes("playlist_fetch_failed_403")) {
-        toast.error("Spotify blocked reading this playlist. The curator may need to reconnect Spotify, or make sure the playlist is owned/collaborative on their connected account.");
+        toast.error(
+          "Spotify returned 403 for this playlist. This usually means the curator's Spotify Developer app is in Development Mode — the app owner must open the Spotify Developer Dashboard → app → Users and Access, and add the curator's Spotify account (email) to the allowlist. Then have the curator disconnect & reconnect Spotify.",
+          { duration: 12000 },
+        );
       } else if (msg.includes("not_connected")) {
         toast.error("Connect Spotify first (Stream Tracker tab)");
       } else if (msg.includes("playlist_fetch_failed_404")) {

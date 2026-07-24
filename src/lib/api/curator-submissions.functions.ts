@@ -30,17 +30,22 @@ async function getAppToken(): Promise<string> {
 
 async function fetchPlaylistArtistIds(playlistSpotifyId: string, token: string): Promise<string[]> {
   const ids = new Set<string>();
+  // No `fields` filter + additional_types=track avoids a class of 403s Spotify
+  // returns when a playlist contains episodes or when the filtered projection
+  // is rejected for playlists the token's app isn't approved to read.
   let url:
     | string
-    | null = `https://api.spotify.com/v1/playlists/${playlistSpotifyId}/tracks?fields=items(track(artists(id))),next&limit=100`;
+    | null = `https://api.spotify.com/v1/playlists/${playlistSpotifyId}/tracks?limit=100&additional_types=track`;
   while (url) {
-    const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const res: Response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       console.error("fetchPlaylistArtistIds failed", {
         status: res.status,
         playlistSpotifyId,
-        body: body.slice(0, 300),
+        body: body.slice(0, 500),
       });
       throw new Error(`spotify_playlist_fetch_failed_${res.status}`);
     }
