@@ -147,6 +147,9 @@ function OsgSubmitPage() {
     } finally {
       setFollowing(false);
     }
+  };
+
+
 
 
   if (authLoading || loading) {
