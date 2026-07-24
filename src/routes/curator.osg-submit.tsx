@@ -137,8 +137,14 @@ function OsgSubmitPage() {
       }
     } catch (ex: any) {
       const msg = String(ex?.message ?? "");
-      if (msg.includes("missing_follow_scope") || msg.includes("playlist_fetch_failed_401") || msg.includes("playlist_fetch_failed_403")) {
+      if (msg.includes("curator_reconnect_playlist_scope")) {
+        toast.error("The curator needs to reconnect Spotify from the Stream Tracker tab so this private/collab playlist can be read.");
+      } else if (msg.includes("missing_follow_scope")) {
         toast.error("Reconnect Spotify to grant follow + playlist permissions (Stream Tracker tab → Disconnect, then Connect).");
+      } else if (msg.includes("playlist_fetch_failed_401")) {
+        toast.error("Spotify connection expired. Reconnect Spotify from the Stream Tracker tab.");
+      } else if (msg.includes("playlist_fetch_failed_403")) {
+        toast.error("Spotify blocked reading this playlist. The curator may need to reconnect Spotify, or make sure the playlist is owned/collaborative on their connected account.");
       } else if (msg.includes("not_connected")) {
         toast.error("Connect Spotify first (Stream Tracker tab)");
       } else if (msg.includes("playlist_fetch_failed_404")) {
