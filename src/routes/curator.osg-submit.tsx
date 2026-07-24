@@ -204,7 +204,7 @@ function OsgSubmitPage() {
             >
               {playlists.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — @{p.curator_username} · {p.available_points} pts
+                  {p.name} — @{p.curator_username}
                 </option>
               ))}
             </select>
@@ -224,15 +224,7 @@ function OsgSubmitPage() {
             <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <div>
-                Cost: <b>50 pts</b>, or <b>45 pts</b> if you follow every artist on the playlist on
-                Spotify. Max 2 submissions per playlist every 24 hours ({recentCount}/2 used on this
-                playlist).
-                {selected && (
-                  <>
-                    {" "}
-                    Available on this playlist: <b>{selected.available_points}</b> pts.
-                  </>
-                )}
+                Free to submit — no points required. You can submit or change your track anytime.
               </div>
             </div>
 
