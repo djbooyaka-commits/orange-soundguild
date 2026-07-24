@@ -300,14 +300,14 @@ export function OsgArtistsTab({ onGoToSubmit }: { onGoToSubmit?: () => void } = 
                   </p>
                 </div>
               </div>
-              <Link
-                to="/curator"
-                hash="submit-track"
+              <button
+                type="button"
+                onClick={() => onGoToSubmit?.()}
                 className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
               >
                 <Send className="h-4 w-4" />
                 Submit / change a track
-              </Link>
+              </button>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
