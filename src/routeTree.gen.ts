@@ -29,6 +29,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
+import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submit'
 import { Route as AlbumHandleAlbumRouteImport } from './routes/album.$handle.$album'
 import { Route as ApiPublicSpotifyCallbackRouteImport } from './routes/api/public/spotify/callback'
 import { Route as ApiPublicHooksCleanupChatMediaRouteImport } from './routes/api/public/hooks/cleanup-chat-media'
@@ -135,6 +136,11 @@ const TTrackIdRoute = TTrackIdRouteImport.update({
   path: '/t/$trackId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CuratorOsgSubmitRoute = CuratorOsgSubmitRouteImport.update({
+  id: '/osg-submit',
+  path: '/osg-submit',
+  getParentRoute: () => CuratorRoute,
+} as any)
 const AlbumHandleAlbumRoute = AlbumHandleAlbumRouteImport.update({
   id: '/album/$handle/$album',
   path: '/album/$handle/$album',
@@ -170,7 +176,7 @@ export interface FileRoutesByFullPath {
   '/ads': typeof AdsRoute
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
-  '/curator': typeof CuratorRoute
+  '/curator': typeof CuratorRouteWithChildren
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
+  '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
@@ -197,7 +204,7 @@ export interface FileRoutesByTo {
   '/ads': typeof AdsRoute
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
-  '/curator': typeof CuratorRoute
+  '/curator': typeof CuratorRouteWithChildren
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
@@ -210,6 +217,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
+  '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
@@ -225,7 +233,7 @@ export interface FileRoutesById {
   '/ads': typeof AdsRoute
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
-  '/curator': typeof CuratorRoute
+  '/curator': typeof CuratorRouteWithChildren
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
+  '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
@@ -267,6 +276,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/top100'
     | '/upgrade'
+    | '/curator/osg-submit'
     | '/t/$trackId'
     | '/u/$handle'
     | '/album/$handle/$album'
@@ -294,6 +304,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/top100'
     | '/upgrade'
+    | '/curator/osg-submit'
     | '/t/$trackId'
     | '/u/$handle'
     | '/album/$handle/$album'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/top100'
     | '/upgrade'
+    | '/curator/osg-submit'
     | '/t/$trackId'
     | '/u/$handle'
     | '/album/$handle/$album'
@@ -336,7 +348,7 @@ export interface RootRouteChildren {
   AdsRoute: typeof AdsRoute
   ArtistWelcomeRoute: typeof ArtistWelcomeRoute
   AuthRoute: typeof AuthRoute
-  CuratorRoute: typeof CuratorRoute
+  CuratorRoute: typeof CuratorRouteWithChildren
   DiscoverRoute: typeof DiscoverRoute
   LibraryRoute: typeof LibraryRoute
   MessagesRoute: typeof MessagesRoute
@@ -500,6 +512,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TTrackIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/curator/osg-submit': {
+      id: '/curator/osg-submit'
+      path: '/osg-submit'
+      fullPath: '/curator/osg-submit'
+      preLoaderRoute: typeof CuratorOsgSubmitRouteImport
+      parentRoute: typeof CuratorRoute
+    }
     '/album/$handle/$album': {
       id: '/album/$handle/$album'
       path: '/album/$handle/$album'
@@ -538,13 +557,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface CuratorRouteChildren {
+  CuratorOsgSubmitRoute: typeof CuratorOsgSubmitRoute
+}
+
+const CuratorRouteChildren: CuratorRouteChildren = {
+  CuratorOsgSubmitRoute: CuratorOsgSubmitRoute,
+}
+
+const CuratorRouteWithChildren =
+  CuratorRoute._addFileChildren(CuratorRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AdsRoute: AdsRoute,
   ArtistWelcomeRoute: ArtistWelcomeRoute,
   AuthRoute: AuthRoute,
-  CuratorRoute: CuratorRoute,
+  CuratorRoute: CuratorRouteWithChildren,
   DiscoverRoute: DiscoverRoute,
   LibraryRoute: LibraryRoute,
   MessagesRoute: MessagesRoute,
