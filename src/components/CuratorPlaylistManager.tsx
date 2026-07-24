@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ListMusic, Plus, Trash2, Loader2, RefreshCw } from "lucide-react";
+import { ListMusic, Plus, Trash2, Loader2, RefreshCw, Star } from "lucide-react";
 import {
   addCuratorPlaylist,
   listMyCuratorPlaylists,
   removeCuratorPlaylist,
   getCuratorEarnedPoints,
   importMySpotifyCuratorPlaylists,
+  setCuratorPlaylistIsOsg,
 } from "@/lib/api/curator.functions";
 
 type Playlist = {
@@ -14,6 +15,7 @@ type Playlist = {
   spotify_playlist_id: string;
   name: string;
   image_url: string | null;
+  is_osg?: boolean;
 };
 
 export function CuratorPlaylistManager() {
