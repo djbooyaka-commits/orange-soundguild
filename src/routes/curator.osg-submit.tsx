@@ -1,14 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Star, ArrowLeft, Send, Loader2, Info, CheckCircle2, X } from "lucide-react";
+import { Star, ArrowLeft, Send, Loader2, Info, CheckCircle2, X, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { listOsgPlaylistsForSubmission } from "@/lib/api/osg-picks.functions";
 import {
   submitOsgCuratorTrack,
   listMyTrackSubmissions,
+  followAllArtistsOnOsgPlaylist,
 } from "@/lib/api/curator-submissions.functions";
+
 
 export const Route = createFileRoute("/curator/osg-submit")({
   head: () => ({
