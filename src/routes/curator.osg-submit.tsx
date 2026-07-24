@@ -4,7 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { Star, ArrowLeft, Send, Loader2, Info, CheckCircle2, X, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { listOsgPlaylistsForSubmission } from "@/lib/api/osg-picks.functions";
+import {
+  listOsgPlaylistsForSubmission,
+  listOsgArtistFollowLinks,
+  saveOsgArtistFollowLink,
+} from "@/lib/api/osg-picks.functions";
 import {
   submitOsgCuratorTrack,
   listMyTrackSubmissions,
@@ -55,19 +59,33 @@ type Submission = {
   created_at: string;
 };
 
+type FollowLink = {
+  curator_id: string;
+  user_id: string;
+  spotify_artist_id: string;
+  spotify_artist_url: string;
+  spotify_artist_name: string | null;
+  updated_at: string;
+};
+
 function OsgSubmitPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const listPlaylists = useServerFn(listOsgPlaylistsForSubmission);
+  const listFollowLinks = useServerFn(listOsgArtistFollowLinks);
+  const saveFollowLinkFn = useServerFn(saveOsgArtistFollowLink);
   const listMine = useServerFn(listMyTrackSubmissions);
   const submitFn = useServerFn(submitOsgCuratorTrack);
   const followAllFn = useServerFn(followAllArtistsOnOsgPlaylist);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [mine, setMine] = useState<Submission[]>([]);
+  const [followLinks, setFollowLinks] = useState<FollowLink[]>([]);
   const [playlistId, setPlaylistId] = useState<string>("");
   const [trackUrl, setTrackUrl] = useState("");
+  const [artistUrl, setArtistUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [savingArtist, setSavingArtist] = useState(false);
   const [following, setFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [receipt, setReceipt] = useState<{
@@ -77,9 +95,10 @@ function OsgSubmitPage() {
 
 
   const refresh = async () => {
-    const [pl, m] = await Promise.all([listPlaylists(), listMine()]);
+    const [pl, m, links] = await Promise.all([listPlaylists(), listMine(), listFollowLinks()]);
     setPlaylists(pl as Playlist[]);
     setMine((m ?? []) as Submission[]);
+    setFollowLinks((links ?? []) as FollowLink[]);
     if (pl.length > 0) {
       setPlaylistId((cur) => (cur && pl.some((p) => p.id === cur) ? cur : pl[0].id));
     } else {
@@ -104,6 +123,10 @@ function OsgSubmitPage() {
   }, [user, authLoading]);
 
   const osgSubmissions = mine.filter((s) => playlists.some((p) => p.id === s.curator_playlist_id));
+  const selectedPlaylist = playlists.find((p) => p.id === playlistId) ?? null;
+  const currentArtistLink = selectedPlaylist
+    ? followLinks.find((l) => l.curator_id === selectedPlaylist.curator_id && l.user_id === user?.id)
+    : null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,13 +148,33 @@ function OsgSubmitPage() {
     }
   };
 
+  const saveArtistLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlaylist || !artistUrl.trim()) return;
+    setSavingArtist(true);
+    try {
+      const res = await saveFollowLinkFn({
+        data: { curatorId: selectedPlaylist.curator_id, artistUrl },
+      });
+      toast.success(`Saved ${res.artistName ?? "Spotify artist"}`);
+      setArtistUrl("");
+      await refresh();
+    } catch (ex: any) {
+      toast.error(ex?.message ?? "Could not save artist link");
+    } finally {
+      setSavingArtist(false);
+    }
+  };
+
   const followAll = async () => {
     if (!playlistId) return;
     setFollowing(true);
     try {
       const res = await followAllFn({ data: { playlistId } });
       if (res.total === 0) {
-        toast.info("No artists found on this playlist");
+        toast.info("No Spotify artist links have been added to this OSG list yet");
+      } else if (res.source === "artist_links") {
+        toast.success(`Following ${res.followed} artist${res.followed === 1 ? "" : "s"} from the saved OSG artist list`);
       } else if (res.source === "submitted_tracks") {
         toast.success(
           `Spotify blocked reading the playlist, so I followed ${res.followed} artist${res.followed === 1 ? "" : "s"} from the submitted tracks instead`,
@@ -270,6 +313,42 @@ function OsgSubmitPage() {
               </div>
             </div>
 
+            <div className="rounded-md border border-border bg-muted/20 p-3">
+              <form onSubmit={saveArtistLink} className="space-y-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Spotify artist link for the follow list
+                </label>
+                {currentArtistLink && (
+                  <a
+                    href={currentArtistLink.spotify_artist_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex max-w-full items-center gap-1 truncate text-xs text-primary hover:underline"
+                  >
+                    Saved: {currentArtistLink.spotify_artist_name ?? currentArtistLink.spotify_artist_url}
+                  </a>
+                )}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="url"
+                    value={artistUrl}
+                    onChange={(e) => setArtistUrl(e.target.value)}
+                    placeholder="https://open.spotify.com/artist/..."
+                    className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    disabled={savingArtist}
+                  />
+                  <button
+                    type="submit"
+                    disabled={savingArtist || !artistUrl.trim() || !selectedPlaylist}
+                    className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50"
+                  >
+                    {savingArtist ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                    Save artist link
+                  </button>
+                </div>
+              </form>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <button
                 type="submit"
@@ -284,10 +363,10 @@ function OsgSubmitPage() {
                 onClick={followAll}
                 disabled={following || !playlistId}
                 className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted disabled:opacity-50"
-                title="Follow every artist on the selected OSG playlist on Spotify"
+                title="Follow every saved Spotify artist link on this OSG list"
               >
                 {following ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-                Follow all artists on the playlist
+                Follow all artists from the list
               </button>
             </div>
 

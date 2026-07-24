@@ -351,6 +351,54 @@ export type Database = {
         }
         Relationships: []
       }
+      osg_artist_follow_links: {
+        Row: {
+          created_at: string
+          curator_id: string
+          id: string
+          spotify_artist_id: string
+          spotify_artist_name: string | null
+          spotify_artist_url: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          id?: string
+          spotify_artist_id: string
+          spotify_artist_name?: string | null
+          spotify_artist_url: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          id?: string
+          spotify_artist_id?: string
+          spotify_artist_name?: string | null
+          spotify_artist_url?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osg_artist_follow_links_curator_profile_fkey"
+            columns: ["curator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osg_artist_follow_links_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       osg_artist_picks: {
         Row: {
           artist_id: string
@@ -1264,6 +1312,17 @@ export type Database = {
           status: Database["public"]["Enums"]["curator_submission_status"]
         }[]
       }
+      list_osg_artist_follow_links: {
+        Args: never
+        Returns: {
+          curator_id: string
+          spotify_artist_id: string
+          spotify_artist_name: string
+          spotify_artist_url: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
       list_osg_playlist_submissions: {
         Args: never
         Returns: {
@@ -1352,6 +1411,15 @@ export type Database = {
           _spotify_track_id: string
           _spotify_track_name: string
           _spotify_track_url: string
+        }
+        Returns: string
+      }
+      upsert_osg_artist_follow_link: {
+        Args: {
+          _curator_id: string
+          _spotify_artist_id: string
+          _spotify_artist_name?: string
+          _spotify_artist_url: string
         }
         Returns: string
       }

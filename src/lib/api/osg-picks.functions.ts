@@ -1,5 +1,44 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
+
+function extractArtistId(input: string): string | null {
+  const trimmed = input.trim();
+  const uri = trimmed.match(/^spotify:artist:([A-Za-z0-9]+)$/);
+  if (uri) return uri[1];
+  const url = trimmed.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?artist\/([A-Za-z0-9]+)/i);
+  if (url) return url[1];
+  if (/^[A-Za-z0-9]{16,}$/.test(trimmed)) return trimmed;
+  return null;
+}
+
+async function getSpotifyAppToken(): Promise<string> {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  if (!clientId || !clientSecret) throw new Error("Spotify is not configured");
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
+  if (!res.ok) throw new Error("Spotify artist lookup failed");
+  const json = await res.json();
+  return json.access_token as string;
+}
+
+async function fetchArtistMeta(artistId: string) {
+  const token = await getSpotifyAppToken();
+  const res = await fetch(`https://api.spotify.com/v1/artists/${artistId}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error("Spotify artist not found");
+  const json = await res.json();
+  return { id: json.id as string, name: (json.name as string | undefined) ?? null };
+}
 
 export const listMyOsgArtistPicks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -96,4 +135,44 @@ export const listOsgPlaylistsForSubmission = createServerFn({ method: "GET" })
       image_url: string | null;
       available_points: number;
     }>;
+  });
+
+export const listOsgArtistFollowLinks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.rpc("list_osg_artist_follow_links");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{
+      curator_id: string;
+      user_id: string;
+      spotify_artist_id: string;
+      spotify_artist_url: string;
+      spotify_artist_name: string | null;
+      updated_at: string;
+    }>;
+  });
+
+const saveFollowLinkSchema = z.object({
+  curatorId: z.string().uuid(),
+  artistUrl: z.string().trim().min(1, "Spotify artist link is required").max(300),
+});
+
+export const saveOsgArtistFollowLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => saveFollowLinkSchema.parse(data))
+  .handler(async ({ context, data }) => {
+    const artistId = extractArtistId(data.artistUrl);
+    if (!artistId) throw new Error("Paste a Spotify artist link, not a track or playlist link");
+
+    const artist = await fetchArtistMeta(artistId);
+    const artistUrl = `https://open.spotify.com/artist/${artist.id}`;
+    const { data: id, error } = await context.supabase.rpc("upsert_osg_artist_follow_link", {
+      _curator_id: data.curatorId,
+      _spotify_artist_id: artist.id,
+      _spotify_artist_url: artistUrl,
+      _spotify_artist_name: artist.name ?? undefined,
+    });
+    if (error) throw new Error(error.message);
+
+    return { id: id as string, artistId: artist.id, artistUrl, artistName: artist.name };
   });
