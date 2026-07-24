@@ -555,3 +555,114 @@ export const submitOsgCuratorTrack = createServerFn({ method: "POST" })
       trackName: trackMeta.name ?? null,
     };
   });
+
+async function getUserAccessTokenForFollow(
+  userId: string,
+  supabaseAdmin: any,
+): Promise<{ accessToken?: string; error?: string }> {
+  const { data: conn } = await supabaseAdmin
+    .from("spotify_connections")
+    .select("access_token, refresh_token, expires_at, scope")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!conn) return { error: "spotify_not_connected" };
+  const scope = String(conn.scope ?? "");
+  if (!/\buser-follow-modify\b/.test(scope)) {
+    return { error: "spotify_missing_follow_scope" };
+  }
+  const expiresAt = new Date(conn.expires_at).getTime();
+  if (Date.now() < expiresAt - 30_000) {
+    return { accessToken: conn.access_token as string };
+  }
+  const { clientId, clientSecret } = await getCuratorSpotifyCreds(userId, supabaseAdmin);
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: conn.refresh_token,
+    }),
+  });
+  if (!res.ok) return { error: "spotify_refresh_failed_reconnect" };
+  const json: any = await res.json();
+  const newAccess = json.access_token as string;
+  const newRefresh = (json.refresh_token as string) || conn.refresh_token;
+  const newExpiresAt = new Date(Date.now() + (json.expires_in as number) * 1000).toISOString();
+  await supabaseAdmin
+    .from("spotify_connections")
+    .update({
+      access_token: newAccess,
+      refresh_token: newRefresh,
+      expires_at: newExpiresAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+  return { accessToken: newAccess };
+}
+
+export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => {
+    const playlistId = String(data?.playlistId ?? "").trim();
+    if (!playlistId) throw new Error("playlistId required");
+    return { playlistId };
+  })
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: pl, error: plErr } = await supabaseAdmin
+      .from("curator_playlists")
+      .select("id, curator_id, spotify_playlist_id, is_osg, name")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (plErr) throw new Error(plErr.message);
+    if (!pl) throw new Error("Playlist not found");
+    if (!pl.is_osg) throw new Error("Not an OSG playlist");
+
+    if (pl.curator_id !== context.userId) {
+      const { data: ok } = await supabaseAdmin.rpc("is_accepted_invitee", {
+        _curator: pl.curator_id,
+        _user: context.userId,
+      });
+      if (!ok) throw new Error("Not a member of this OSG playlist");
+    }
+
+    const tokenRes = await getUserAccessTokenForFollow(context.userId, supabaseAdmin);
+    if (tokenRes.error || !tokenRes.accessToken) {
+      throw new Error(tokenRes.error ?? "spotify_error");
+    }
+
+    const appToken = await getAppToken();
+    const artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, appToken);
+    if (artistIds.length === 0) {
+      return { followed: 0, total: 0 };
+    }
+
+    let followed = 0;
+    for (let i = 0; i < artistIds.length; i += 50) {
+      const chunk = artistIds.slice(i, i + 50);
+      const url = `https://api.spotify.com/v1/me/following?type=artist&ids=${chunk.join(",")}`;
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${tokenRes.accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        console.error("Spotify follow failed", { status: res.status, body: body.slice(0, 300) });
+        if (res.status === 401 || res.status === 403) {
+          throw new Error("spotify_missing_follow_scope");
+        }
+        throw new Error(`spotify_follow_failed_${res.status}`);
+      }
+      followed += chunk.length;
+    }
+
+    return { followed, total: artistIds.length };
+  });
