@@ -33,8 +33,26 @@ function CuratorPage() {
   const { accountType, loading } = useAccountType();
   const navigate = useNavigate();
   const [joining, setJoining] = useState(false);
+  const [canUseOsg, setCanUseOsg] = useState(false);
+  const canUseOsgFn = useServerFn(canUseOsgArtists);
 
-  // Handle ?invite=<curatorId> link
+  useEffect(() => {
+    if (!user) {
+      setCanUseOsg(false);
+      return;
+    }
+    let cancelled = false;
+    canUseOsgFn()
+      .then((r) => {
+        if (!cancelled) setCanUseOsg(Boolean(r?.allowed));
+      })
+      .catch(() => {
+        if (!cancelled) setCanUseOsg(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, canUseOsgFn]);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
