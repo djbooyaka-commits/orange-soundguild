@@ -12,6 +12,10 @@ export const Route = createFileRoute("/st-rooms")({
       { title: "S.T. Rooms — Orange Sound Guild" },
       { name: "description", content: "Your Curator stream tracker rooms." },
       { name: "robots", content: "noindex" },
+      { property: "og:type", content: "website" },
+      { property: "og:title", content: "S.T. Rooms — Orange Sound Guild" },
+      { property: "og:description", content: "Your Curator stream tracker rooms." },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: StRoomsPage,
@@ -120,10 +124,10 @@ function StRoomsPage() {
                   </p>
                 </div>
                 <Link
-                  to="/curator"
+                  to="/curator/osg-submit"
                   className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
                 >
-                  Submit a track
+                  Submit form
                 </Link>
               </div>
 
