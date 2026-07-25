@@ -114,7 +114,10 @@ function StRoomsPage() {
             <section key={g.curator_id} className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-semibold">@{g.curator_username}</h2>
+                  <h2 className="font-semibold">
+                    @{g.curator_username}{" "}
+                    <span className="ml-2 text-xs font-medium text-primary">Stream Tracker room</span>
+                  </h2>
                   <p className="text-xs text-muted-foreground">
                     {g.playlists.length} playlist{g.playlists.length === 1 ? "" : "s"} · {g.total} pts available
                   </p>
@@ -123,7 +126,7 @@ function StRoomsPage() {
                   to="/curator"
                   className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
                 >
-                  Submit a track
+                  S.T Room
                 </Link>
               </div>
 
