@@ -112,19 +112,17 @@ function StRoomsPage() {
         <div className="space-y-6">
           {groups.map((g) => (
             <section key={g.curator_id} className="rounded-xl border border-border bg-card p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="font-semibold">
-                    @{g.curator_username}{" "}
-                    <span className="ml-2 text-xs font-medium text-primary">Stream Tracker room</span>
-                  </h2>
+              <div className="mb-4 flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
+                <div className="w-full">
+                  <p className="text-xs text-muted-foreground">@{g.curator_username}</p>
+                  <h2 className="text-2xl font-bold text-primary">Stream Tracker room</h2>
                   <p className="text-xs text-muted-foreground">
                     {g.playlists.length} playlist{g.playlists.length === 1 ? "" : "s"} · {g.total} pts available
                   </p>
                 </div>
                 <Link
                   to="/curator"
-                  className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+                  className="shrink-0 rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
                 >
                   S.T Room
                 </Link>
