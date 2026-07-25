@@ -183,7 +183,7 @@ export function SubmitTrackCard() {
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <div>
               Cost: <b>50 pts</b>, or <b>45 pts</b> if you follow every artist on the playlist on
-              Spotify. Max 2 submissions per playlist every 24 hours ({recentCount}/2 used on this playlist).
+              Spotify. Max 3 submissions per playlist every 24 hours ({recentCount}/3 used on this playlist).
               {selected && (
                 <>
                   {" "}
@@ -195,7 +195,7 @@ export function SubmitTrackCard() {
 
           <button
             type="submit"
-            disabled={busy || !trackUrl.trim() || recentCount >= 2}
+            disabled={busy || !trackUrl.trim() || recentCount >= 3}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
