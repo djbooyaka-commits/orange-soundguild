@@ -185,7 +185,7 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                             {formatArtistLine(t.artist, t.collaborators)}
                           </p>
                         </div>
-                        {isOwner && (
+                        {isOwner && !isLiked && (
                           <>
                             <button
                               onClick={() => void moveTrack(pl.id, t.id, "up")}
