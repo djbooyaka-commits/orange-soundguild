@@ -136,9 +136,9 @@ export function usePlaylistsForUser(userId: string | null) {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
-      if (!pls || cancelled) return;
+      if (cancelled) return;
 
-      const ids = pls.map((p) => p.id);
+      const ids = (pls ?? []).map((p) => p.id);
       const { data: items } = ids.length
         ? await supabase
             .from("playlist_tracks")
@@ -147,19 +147,40 @@ export function usePlaylistsForUser(userId: string | null) {
             .order("position", { ascending: true })
         : { data: [] };
 
-      const allTrackIds = Array.from(new Set((items ?? []).map((i) => i.track_id)));
+      // Auto "Liked tracks" playlist from track_likes
+      const { data: likes } = await supabase
+        .from("track_likes")
+        .select("track_id, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      const likedIds = (likes ?? []).map((l) => l.track_id);
+
+      const allTrackIds = Array.from(
+        new Set([...(items ?? []).map((i) => i.track_id), ...likedIds]),
+      );
       const resolved = await resolveTracksByIds(allTrackIds);
       const trackMap = new Map(resolved.map((t) => [t.id, t]));
 
-      const grouped: PlaylistWithTracks[] = (pls as Playlist[]).map((p) => ({
+      const grouped: PlaylistWithTracks[] = (pls as Playlist[] ?? []).map((p) => ({
         ...p,
         tracks: (items ?? [])
           .filter((i) => i.playlist_id === p.id)
           .map((i) => trackMap.get(i.track_id))
           .filter(Boolean) as Track[],
       }));
-      if (!cancelled) setData(grouped);
+
+      const likedPlaylist: PlaylistWithTracks = {
+        id: "liked",
+        user_id: userId,
+        name: "Liked tracks",
+        created_at: (likes?.[0]?.created_at as string) ?? new Date().toISOString(),
+        tracks: likedIds.map((id) => trackMap.get(id)).filter(Boolean) as Track[],
+      };
+
+      if (!cancelled) setData([likedPlaylist, ...grouped]);
     })();
+
     return () => {
       cancelled = true;
     };

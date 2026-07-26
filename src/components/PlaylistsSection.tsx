@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus } from "lucide-react";
+import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus, Heart } from "lucide-react";
 import { usePlaylistsForUser, savePlaylistToLibrary } from "@/lib/playlists";
 import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -104,6 +104,7 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
         const open = openId === pl.id;
         const plActive = pl.tracks.some((t) => t.id === current?.id);
         const plPlaying = plActive && isPlaying;
+        const isLiked = pl.id === "liked";
         return (
           <div key={pl.id} className="overflow-hidden rounded-xl border border-border bg-card">
             <div className="flex items-center justify-between gap-3 p-4">
@@ -124,16 +125,19 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                 onClick={() => setOpenId(open ? null : pl.id)}
                 className="flex flex-1 items-center gap-3 text-left"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                  <ListMusic className="h-5 w-5" />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${isLiked ? "bg-primary/20 text-primary" : "bg-primary/15 text-primary"}`}>
+                  {isLiked ? <Heart className="h-5 w-5 fill-current" /> : <ListMusic className="h-5 w-5" />}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold">{pl.name}</h3>
+                  <h3 className="truncate text-sm font-semibold">
+                    {pl.name}
+                    {isLiked && <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">Auto</span>}
+                  </h3>
                   <p className="text-xs text-muted-foreground">{pl.tracks.length} tracks</p>
                 </div>
                 {open ? <ChevronUp className="ml-auto h-4 w-4 text-muted-foreground" /> : <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />}
               </button>
-              {isOwner ? (
+              {isLiked ? null : isOwner ? (
                 <button
                   onClick={() => {
                     if (window.confirm(`Delete playlist "${pl.name}"?`)) void deletePlaylist(pl.id);
@@ -156,6 +160,7 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                 </button>
               )}
             </div>
+
             {open && (
               <ul className="divide-y divide-border border-t border-border">
                 {pl.tracks.length === 0 ? (
@@ -180,7 +185,7 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                             {formatArtistLine(t.artist, t.collaborators)}
                           </p>
                         </div>
-                        {isOwner && (
+                        {isOwner && !isLiked && (
                           <>
                             <button
                               onClick={() => void moveTrack(pl.id, t.id, "up")}
