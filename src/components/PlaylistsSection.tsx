@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus } from "lucide-react";
+import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus, Heart } from "lucide-react";
 import { usePlaylistsForUser, savePlaylistToLibrary } from "@/lib/playlists";
 import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
