@@ -155,7 +155,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { location } = useRouterState();
   const isAuthPage = location.pathname === "/auth";
-  const hidePlayer = isAuthPage || location.pathname === "/royalties" || location.pathname === "/referrals" || location.pathname === "/messages";
+  const hidePlayer =
+    isAuthPage ||
+    ["/royalties", "/referrals", "/messages", "/st-rooms"].some(
+      (p) => location.pathname === p || location.pathname.startsWith(p + "/"),
+    ) ||
+    location.pathname.startsWith("/curator");
 
   return (
     <QueryClientProvider client={queryClient}>
