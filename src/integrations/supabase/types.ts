@@ -122,25 +122,39 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          edited_at: string | null
           id: string
+          parent_id: string | null
           track_id: string
           user_id: string
         }
         Insert: {
           body: string
           created_at?: string
+          edited_at?: string | null
           id?: string
+          parent_id?: string | null
           track_id: string
           user_id: string
         }
         Update: {
           body?: string
           created_at?: string
+          edited_at?: string | null
           id?: string
+          parent_id?: string | null
           track_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       curator_invites: {
         Row: {
