@@ -64,7 +64,7 @@ export const adjustOsgPoints = createServerFn({ method: "POST" })
     const { data: id, error } = await context.supabase.rpc("osg_adjust_points", {
       _user_id: data.userId,
       _delta: Math.trunc(data.delta),
-      _reason: data.reason ?? null,
+      _reason: data.reason ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { id };
