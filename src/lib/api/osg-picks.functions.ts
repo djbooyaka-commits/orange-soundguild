@@ -52,9 +52,35 @@ export const listMyOsgArtistPicks = createServerFn({ method: "GET" })
       avatar_url: string | null;
       account_type: "fan" | "artist" | "superfan" | "pioneer";
       weekly_points: number;
+      weekly_min: number;
       created_at: string;
     }>;
   });
+
+export const adjustOsgPoints = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; delta: number; reason?: string }) => data)
+  .handler(async ({ data, context }) => {
+    const { data: id, error } = await context.supabase.rpc("osg_adjust_points", {
+      _user_id: data.userId,
+      _delta: Math.trunc(data.delta),
+      _reason: data.reason ?? undefined,
+    });
+    if (error) throw new Error(error.message);
+    return { id };
+  });
+
+export const setOsgWeeklyMin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { min: number }) => data)
+  .handler(async ({ data, context }) => {
+    const { data: value, error } = await context.supabase.rpc("osg_set_weekly_min", {
+      _min: Math.trunc(data.min),
+    });
+    if (error) throw new Error(error.message);
+    return { min: value as number };
+  });
+
 
 export const addOsgArtistPick = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -101,9 +127,11 @@ export const listMyOsgRosters = createServerFn({ method: "GET" })
       avatar_url: string | null;
       account_type: "fan" | "artist" | "superfan" | "pioneer";
       weekly_points: number;
+      weekly_min: number;
       is_me: boolean;
     }>;
   });
+
 
 export const listOsgPlaylistSubmissions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

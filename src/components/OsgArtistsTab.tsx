@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Music, Star, Plus, X, Loader2, AlertTriangle, TrendingUp, Send, Users, ExternalLink } from "lucide-react";
+import { Music, Star, Plus, X, Loader2, AlertTriangle, TrendingUp, Send, Users, ExternalLink, Minus, Settings } from "lucide-react";
 import { toast } from "sonner";
 import {
   listMyOsgArtistPicks,
@@ -10,11 +10,14 @@ import {
   listMyOsgRosters,
   listOsgPlaylistSubmissions,
   listOsgArtistFollowLinks,
+  adjustOsgPoints,
+  setOsgWeeklyMin,
 } from "@/lib/api/osg-picks.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
 
-const WEEKLY_MIN = 600;
+const DEFAULT_WEEKLY_MIN = 600;
+
 
 type Pick = {
   id: string;
@@ -23,6 +26,7 @@ type Pick = {
   avatar_url: string | null;
   account_type: "fan" | "artist" | "superfan" | "pioneer";
   weekly_points: number;
+  weekly_min: number;
 };
 
 type RosterRow = {
@@ -34,8 +38,10 @@ type RosterRow = {
   avatar_url: string | null;
   account_type: "fan" | "artist" | "superfan" | "pioneer";
   weekly_points: number;
+  weekly_min: number;
   is_me: boolean;
 };
+
 
 type SubmissionRow = {
   curator_id: string;
@@ -63,6 +69,8 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const rostersFn = useServerFn(listMyOsgRosters);
   const submissionsFn = useServerFn(listOsgPlaylistSubmissions);
   const followLinksFn = useServerFn(listOsgArtistFollowLinks);
+  const adjustFn = useServerFn(adjustOsgPoints);
+  const setMinFn = useServerFn(setOsgWeeklyMin);
 
   const [picks, setPicks] = useState<Pick[]>([]);
   const [avatars, setAvatars] = useState<(string | null)[]>([]);
@@ -74,6 +82,13 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const [username, setUsername] = useState("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [deductInputs, setDeductInputs] = useState<Record<string, string>>({});
+  const [deductingId, setDeductingId] = useState<string | null>(null);
+  const [minInput, setMinInput] = useState<string>("");
+  const [savingMin, setSavingMin] = useState(false);
+
+  const myWeeklyMin = picks[0]?.weekly_min ?? DEFAULT_WEEKLY_MIN;
+
 
   const refresh = async () => {
     const [rows, rosterRows, subs, links] = await Promise.all([
@@ -207,6 +222,46 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     );
   };
 
+  const doDeduct = async (artistId: string) => {
+    const raw = deductInputs[artistId]?.trim();
+    const n = raw ? Math.abs(parseInt(raw, 10)) : NaN;
+    if (!n || !isFinite(n) || n <= 0) {
+      toast.error("Enter a positive number of points");
+      return;
+    }
+    setDeductingId(artistId);
+    try {
+      await adjustFn({ data: { userId: artistId, delta: -n } });
+      setDeductInputs((s) => ({ ...s, [artistId]: "" }));
+      await refresh();
+      toast.success(`Removed ${n} pts`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not remove points");
+    } finally {
+      setDeductingId(null);
+    }
+  };
+
+  const saveMin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = parseInt(minInput, 10);
+    if (!isFinite(n) || n < 0) {
+      toast.error("Enter a valid minimum");
+      return;
+    }
+    setSavingMin(true);
+    try {
+      await setMinFn({ data: { min: n } });
+      await refresh();
+      setMinInput("");
+      toast.success(`Weekly minimum set to ${n}`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save minimum");
+    } finally {
+      setSavingMin(false);
+    }
+  };
+
   const renderMemberCard = (
     a: {
       key: string;
@@ -215,12 +270,15 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
       username: string | null;
       account_type: "fan" | "artist" | "superfan" | "pioneer";
       weekly_points: number;
+      weekly_min: number;
       is_me?: boolean;
       avatar?: string | null;
+      showDeduct?: boolean;
     },
     trailing?: React.ReactNode,
   ) => {
-    const below = a.weekly_points < WEEKLY_MIN;
+    const min = a.weekly_min || DEFAULT_WEEKLY_MIN;
+    const below = a.weekly_points < min;
     const typeLabel =
       a.account_type === "pioneer"
         ? "Pioneer"
@@ -274,27 +332,78 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             ) : (
               <TrendingUp className="h-3.5 w-3.5" />
             )}
-            {a.weekly_points} / {WEEKLY_MIN} pts this week
+            {a.weekly_points} / {min} pts this week
           </span>
           {below && <span className="font-semibold">Below minimum</span>}
         </div>
+        {a.showDeduct && (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              placeholder="pts to remove"
+              value={deductInputs[a.artist_id] ?? ""}
+              onChange={(e) =>
+                setDeductInputs((s) => ({ ...s, [a.artist_id]: e.target.value }))
+              }
+              className="w-32 rounded-md border border-border bg-background px-2 py-1 text-xs"
+            />
+            <button
+              type="button"
+              onClick={() => doDeduct(a.artist_id)}
+              disabled={deductingId === a.artist_id}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-destructive hover:text-destructive disabled:opacity-50"
+              title="Remove points"
+            >
+              {deductingId === a.artist_id ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Minus className="h-3.5 w-3.5" />
+              )}
+              Remove pts
+            </button>
+          </div>
+        )}
         {renderFollowLink(a.curator_id, a.artist_id)}
         {renderSubmission(a.curator_id, a.artist_id)}
       </div>
     );
   };
 
+
   return (
     <div className="space-y-6">
       {/* Manage own picks (curator side) */}
       {picks.length > 0 && myUserId && (
         <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="font-semibold">My OSG Artists</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Users you've added. Each needs at least{" "}
-            <span className="font-medium text-foreground">{WEEKLY_MIN} points/week</span> from
-            streaming your OSG playlist.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">My OSG Artists</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Users you've added. Each needs at least{" "}
+                <span className="font-medium text-foreground">{myWeeklyMin} points/week</span>{" "}
+                from streaming your OSG playlist.
+              </p>
+            </div>
+            <form onSubmit={saveMin} className="flex items-center gap-2">
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              <input
+                type="number"
+                min={0}
+                placeholder={String(myWeeklyMin)}
+                value={minInput}
+                onChange={(e) => setMinInput(e.target.value)}
+                className="w-24 rounded-md border border-border bg-background px-2 py-1 text-xs"
+              />
+              <button
+                type="submit"
+                disabled={savingMin || !minInput.trim()}
+                className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                {savingMin ? "Saving…" : "Set min"}
+              </button>
+            </form>
+          </div>
 
           <form onSubmit={add} className="mt-4 flex flex-col gap-2 sm:flex-row">
             <input
@@ -323,7 +432,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   username: a.username,
                   account_type: a.account_type,
                   weekly_points: a.weekly_points,
+                  weekly_min: a.weekly_min,
                   avatar: avatars[i] ?? null,
+                  showDeduct: true,
                 },
                 <button
                   onClick={() => remove(a.id)}
@@ -342,6 +453,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             )}
           </div>
         </div>
+
       )}
 
       {/* Empty state for curators with no picks yet */}
@@ -350,7 +462,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
           <h2 className="font-semibold">OSG Artists</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Add users who accepted your Curator invite. Each needs at least{" "}
-            <span className="font-medium text-foreground">{WEEKLY_MIN} points/week</span> from
+            <span className="font-medium text-foreground">{myWeeklyMin} points/week</span> from
             streaming your OSG playlist.
           </p>
           <form onSubmit={add} className="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -392,7 +504,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     {rows.length} member{rows.length === 1 ? "" : "s"} · minimum{" "}
-                    {WEEKLY_MIN} pts/week
+                    {first.weekly_min || DEFAULT_WEEKLY_MIN} pts/week
                   </p>
                 </div>
               </div>
@@ -414,11 +526,13 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   username: r.username,
                   account_type: r.account_type,
                   weekly_points: r.weekly_points,
+                  weekly_min: r.weekly_min,
                   is_me: r.is_me,
                   avatar: rosterAvatarByArtist.get(`${r.curator_id}:${r.artist_id}`) ?? null,
                 }),
               )}
             </div>
+
           </div>
         );
       })}
