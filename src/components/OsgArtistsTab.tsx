@@ -462,7 +462,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
           <h2 className="font-semibold">OSG Artists</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Add users who accepted your Curator invite. Each needs at least{" "}
-            <span className="font-medium text-foreground">{WEEKLY_MIN} points/week</span> from
+            <span className="font-medium text-foreground">{myWeeklyMin} points/week</span> from
             streaming your OSG playlist.
           </p>
           <form onSubmit={add} className="mt-4 flex flex-col gap-2 sm:flex-row">
