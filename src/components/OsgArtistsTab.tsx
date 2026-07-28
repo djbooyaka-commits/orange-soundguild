@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Music, Star, Plus, X, Loader2, AlertTriangle, TrendingUp, Send, Users, ExternalLink } from "lucide-react";
+import { Music, Star, Plus, X, Loader2, AlertTriangle, TrendingUp, Send, Users, ExternalLink, Minus, Settings } from "lucide-react";
 import { toast } from "sonner";
 import {
   listMyOsgArtistPicks,
@@ -10,11 +10,14 @@ import {
   listMyOsgRosters,
   listOsgPlaylistSubmissions,
   listOsgArtistFollowLinks,
+  adjustOsgPoints,
+  setOsgWeeklyMin,
 } from "@/lib/api/osg-picks.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
 
-const WEEKLY_MIN = 600;
+const DEFAULT_WEEKLY_MIN = 600;
+
 
 type Pick = {
   id: string;
