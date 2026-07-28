@@ -222,6 +222,46 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     );
   };
 
+  const doDeduct = async (artistId: string) => {
+    const raw = deductInputs[artistId]?.trim();
+    const n = raw ? Math.abs(parseInt(raw, 10)) : NaN;
+    if (!n || !isFinite(n) || n <= 0) {
+      toast.error("Enter a positive number of points");
+      return;
+    }
+    setDeductingId(artistId);
+    try {
+      await adjustFn({ data: { userId: artistId, delta: -n } });
+      setDeductInputs((s) => ({ ...s, [artistId]: "" }));
+      await refresh();
+      toast.success(`Removed ${n} pts`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not remove points");
+    } finally {
+      setDeductingId(null);
+    }
+  };
+
+  const saveMin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = parseInt(minInput, 10);
+    if (!isFinite(n) || n < 0) {
+      toast.error("Enter a valid minimum");
+      return;
+    }
+    setSavingMin(true);
+    try {
+      await setMinFn({ data: { min: n } });
+      await refresh();
+      setMinInput("");
+      toast.success(`Weekly minimum set to ${n}`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save minimum");
+    } finally {
+      setSavingMin(false);
+    }
+  };
+
   const renderMemberCard = (
     a: {
       key: string;
@@ -230,12 +270,15 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
       username: string | null;
       account_type: "fan" | "artist" | "superfan" | "pioneer";
       weekly_points: number;
+      weekly_min: number;
       is_me?: boolean;
       avatar?: string | null;
+      showDeduct?: boolean;
     },
     trailing?: React.ReactNode,
   ) => {
-    const below = a.weekly_points < WEEKLY_MIN;
+    const min = a.weekly_min || DEFAULT_WEEKLY_MIN;
+    const below = a.weekly_points < min;
     const typeLabel =
       a.account_type === "pioneer"
         ? "Pioneer"
@@ -289,15 +332,44 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             ) : (
               <TrendingUp className="h-3.5 w-3.5" />
             )}
-            {a.weekly_points} / {WEEKLY_MIN} pts this week
+            {a.weekly_points} / {min} pts this week
           </span>
           {below && <span className="font-semibold">Below minimum</span>}
         </div>
+        {a.showDeduct && (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              placeholder="pts to remove"
+              value={deductInputs[a.artist_id] ?? ""}
+              onChange={(e) =>
+                setDeductInputs((s) => ({ ...s, [a.artist_id]: e.target.value }))
+              }
+              className="w-32 rounded-md border border-border bg-background px-2 py-1 text-xs"
+            />
+            <button
+              type="button"
+              onClick={() => doDeduct(a.artist_id)}
+              disabled={deductingId === a.artist_id}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-destructive hover:text-destructive disabled:opacity-50"
+              title="Remove points"
+            >
+              {deductingId === a.artist_id ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Minus className="h-3.5 w-3.5" />
+              )}
+              Remove pts
+            </button>
+          </div>
+        )}
         {renderFollowLink(a.curator_id, a.artist_id)}
         {renderSubmission(a.curator_id, a.artist_id)}
       </div>
     );
   };
+
 
   return (
     <div className="space-y-6">
