@@ -69,6 +69,8 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const rostersFn = useServerFn(listMyOsgRosters);
   const submissionsFn = useServerFn(listOsgPlaylistSubmissions);
   const followLinksFn = useServerFn(listOsgArtistFollowLinks);
+  const adjustFn = useServerFn(adjustOsgPoints);
+  const setMinFn = useServerFn(setOsgWeeklyMin);
 
   const [picks, setPicks] = useState<Pick[]>([]);
   const [avatars, setAvatars] = useState<(string | null)[]>([]);
@@ -80,6 +82,13 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const [username, setUsername] = useState("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [deductInputs, setDeductInputs] = useState<Record<string, string>>({});
+  const [deductingId, setDeductingId] = useState<string | null>(null);
+  const [minInput, setMinInput] = useState<string>("");
+  const [savingMin, setSavingMin] = useState(false);
+
+  const myWeeklyMin = picks[0]?.weekly_min ?? DEFAULT_WEEKLY_MIN;
+
 
   const refresh = async () => {
     const [rows, rosterRows, subs, links] = await Promise.all([
