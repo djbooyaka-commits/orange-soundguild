@@ -127,9 +127,11 @@ export const listMyOsgRosters = createServerFn({ method: "GET" })
       avatar_url: string | null;
       account_type: "fan" | "artist" | "superfan" | "pioneer";
       weekly_points: number;
+      weekly_min: number;
       is_me: boolean;
     }>;
   });
+
 
 export const listOsgPlaylistSubmissions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
