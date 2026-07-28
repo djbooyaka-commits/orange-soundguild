@@ -504,7 +504,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     {rows.length} member{rows.length === 1 ? "" : "s"} · minimum{" "}
-                    {WEEKLY_MIN} pts/week
+                    {first.weekly_min || DEFAULT_WEEKLY_MIN} pts/week
                   </p>
                 </div>
               </div>
@@ -526,11 +526,13 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   username: r.username,
                   account_type: r.account_type,
                   weekly_points: r.weekly_points,
+                  weekly_min: r.weekly_min,
                   is_me: r.is_me,
                   avatar: rosterAvatarByArtist.get(`${r.curator_id}:${r.artist_id}`) ?? null,
                 }),
               )}
             </div>
+
           </div>
         );
       })}
