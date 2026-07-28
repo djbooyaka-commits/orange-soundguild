@@ -26,6 +26,7 @@ type Pick = {
   avatar_url: string | null;
   account_type: "fan" | "artist" | "superfan" | "pioneer";
   weekly_points: number;
+  weekly_min: number;
 };
 
 type RosterRow = {
@@ -37,8 +38,10 @@ type RosterRow = {
   avatar_url: string | null;
   account_type: "fan" | "artist" | "superfan" | "pioneer";
   weekly_points: number;
+  weekly_min: number;
   is_me: boolean;
 };
+
 
 type SubmissionRow = {
   curator_id: string;
