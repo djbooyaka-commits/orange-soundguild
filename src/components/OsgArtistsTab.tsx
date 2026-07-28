@@ -376,12 +376,34 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
       {/* Manage own picks (curator side) */}
       {picks.length > 0 && myUserId && (
         <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="font-semibold">My OSG Artists</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Users you've added. Each needs at least{" "}
-            <span className="font-medium text-foreground">{WEEKLY_MIN} points/week</span> from
-            streaming your OSG playlist.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">My OSG Artists</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Users you've added. Each needs at least{" "}
+                <span className="font-medium text-foreground">{myWeeklyMin} points/week</span>{" "}
+                from streaming your OSG playlist.
+              </p>
+            </div>
+            <form onSubmit={saveMin} className="flex items-center gap-2">
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              <input
+                type="number"
+                min={0}
+                placeholder={String(myWeeklyMin)}
+                value={minInput}
+                onChange={(e) => setMinInput(e.target.value)}
+                className="w-24 rounded-md border border-border bg-background px-2 py-1 text-xs"
+              />
+              <button
+                type="submit"
+                disabled={savingMin || !minInput.trim()}
+                className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                {savingMin ? "Saving…" : "Set min"}
+              </button>
+            </form>
+          </div>
 
           <form onSubmit={add} className="mt-4 flex flex-col gap-2 sm:flex-row">
             <input
@@ -410,7 +432,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   username: a.username,
                   account_type: a.account_type,
                   weekly_points: a.weekly_points,
+                  weekly_min: a.weekly_min,
                   avatar: avatars[i] ?? null,
+                  showDeduct: true,
                 },
                 <button
                   onClick={() => remove(a.id)}
@@ -429,6 +453,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             )}
           </div>
         </div>
+
       )}
 
       {/* Empty state for curators with no picks yet */}
