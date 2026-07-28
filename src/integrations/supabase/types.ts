@@ -434,6 +434,33 @@ export type Database = {
         }
         Relationships: []
       }
+      osg_point_adjustments: {
+        Row: {
+          created_at: string
+          curator_id: string
+          delta: number
+          id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          delta: number
+          id?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          delta?: number
+          id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payout_requests: {
         Row: {
           admin_note: string | null
@@ -570,6 +597,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_banned: boolean
+          osg_weekly_min: number
           referral_code: string | null
           referred_by: string | null
           royalty_test_override: boolean
@@ -593,6 +621,7 @@ export type Database = {
           id: string
           instagram_url?: string | null
           is_banned?: boolean
+          osg_weekly_min?: number
           referral_code?: string | null
           referred_by?: string | null
           royalty_test_override?: boolean
@@ -616,6 +645,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_banned?: boolean
+          osg_weekly_min?: number
           referral_code?: string | null
           referred_by?: string | null
           royalty_test_override?: boolean
@@ -1292,6 +1322,7 @@ export type Database = {
           created_at: string
           id: string
           username: string
+          weekly_min: number
           weekly_points: number
         }[]
       }
@@ -1306,6 +1337,7 @@ export type Database = {
           curator_username: string
           is_me: boolean
           username: string
+          weekly_min: number
           weekly_points: number
         }[]
       }
@@ -1373,6 +1405,11 @@ export type Database = {
           spotify_playlist_id: string
         }[]
       }
+      osg_adjust_points: {
+        Args: { _delta: number; _reason?: string; _user_id: string }
+        Returns: string
+      }
+      osg_set_weekly_min: { Args: { _min: number }; Returns: number }
       record_track_play: { Args: { p_track_id: string }; Returns: undefined }
       request_payout: {
         Args: {
