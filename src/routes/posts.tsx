@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
 import defaultAvatar from "@/assets/avatar.jpg";
-import { Send, Trash2, Clock } from "lucide-react";
+import { Send, Trash2, Clock, Heart } from "lucide-react";
 
 export const Route = createFileRoute("/posts")({
   head: () => ({
