@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
 import defaultAvatar from "@/assets/avatar.jpg";
-import { Send, Trash2, Clock } from "lucide-react";
+import { Send, Trash2, Clock, Heart } from "lucide-react";
 
 export const Route = createFileRoute("/posts")({
   head: () => ({
@@ -72,6 +72,8 @@ function PostsPage() {
   const isAdmin = useIsAdmin();
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [authors, setAuthors] = useState<Record<string, Author & { avatarSigned: string }>>({});
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+  const [myLikes, setMyLikes] = useState<Set<string>>(new Set());
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -97,6 +99,28 @@ function PostsPage() {
     setAuthors((prev) => ({ ...prev, ...next }));
   };
 
+  const loadLikes = async (rows: PostRow[], uid: string | null) => {
+    if (rows.length === 0) return;
+    const ids = rows.map((r) => r.id);
+    const { data } = await supabase
+      .from("post_likes")
+      .select("post_id, user_id")
+      .in("post_id", ids);
+    if (!data) return;
+    const counts: Record<string, number> = {};
+    const mine = new Set<string>();
+    for (const row of data) {
+      counts[row.post_id] = (counts[row.post_id] ?? 0) + 1;
+      if (uid && row.user_id === uid) mine.add(row.post_id);
+    }
+    setLikeCounts((prev) => ({ ...prev, ...counts }));
+    setMyLikes((prev) => {
+      const next = new Set(prev);
+      mine.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -113,7 +137,7 @@ function PostsPage() {
       }
       setPosts(data ?? []);
       setLoading(false);
-      await loadAuthors(data ?? []);
+      await Promise.all([loadAuthors(data ?? []), loadLikes(data ?? [], user?.id ?? null)]);
     })();
 
     const ch = supabase
@@ -135,6 +159,35 @@ function PostsPage() {
           setPosts((prev) => prev.filter((p) => p.id !== oldRow.id));
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "post_likes" },
+        (payload) => {
+          const row = payload.new as { post_id: string; user_id: string };
+          setLikeCounts((prev) => ({ ...prev, [row.post_id]: (prev[row.post_id] ?? 0) + 1 }));
+          if (user && row.user_id === user.id) {
+            setMyLikes((prev) => new Set(prev).add(row.post_id));
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "post_likes" },
+        (payload) => {
+          const row = payload.old as { post_id: string; user_id: string };
+          setLikeCounts((prev) => ({
+            ...prev,
+            [row.post_id]: Math.max(0, (prev[row.post_id] ?? 1) - 1),
+          }));
+          if (user && row.user_id === user.id) {
+            setMyLikes((prev) => {
+              const next = new Set(prev);
+              next.delete(row.post_id);
+              return next;
+            });
+          }
+        },
+      )
       .subscribe();
 
     return () => {
@@ -142,7 +195,7 @@ function PostsPage() {
       supabase.removeChannel(ch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id]);
 
   const remaining = MAX_LEN - body.length;
   const canPost = user && body.trim().length > 0 && body.length <= MAX_LEN && !posting;
@@ -170,10 +223,47 @@ function PostsPage() {
     setPosts((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const visible = useMemo(
-    () => posts.filter((p) => new Date(p.expires_at).getTime() > Date.now()),
-    [posts],
-  );
+  const toggleLike = async (postId: string) => {
+    if (!user) {
+      toast.error("Sign in to like posts.");
+      return;
+    }
+    const liked = myLikes.has(postId);
+    // optimistic
+    setMyLikes((prev) => {
+      const next = new Set(prev);
+      if (liked) next.delete(postId);
+      else next.add(postId);
+      return next;
+    });
+    setLikeCounts((prev) => ({
+      ...prev,
+      [postId]: Math.max(0, (prev[postId] ?? 0) + (liked ? -1 : 1)),
+    }));
+    if (liked) {
+      const { error } = await supabase
+        .from("post_likes")
+        .delete()
+        .eq("post_id", postId)
+        .eq("user_id", user.id);
+      if (error) toast.error(error.message);
+    } else {
+      const { error } = await supabase
+        .from("post_likes")
+        .insert({ post_id: postId, user_id: user.id });
+      if (error && !/duplicate/i.test(error.message)) toast.error(error.message);
+    }
+  };
+
+  const visible = useMemo(() => {
+    const alive = posts.filter((p) => new Date(p.expires_at).getTime() > Date.now());
+    return alive.slice().sort((a, b) => {
+      const la = likeCounts[a.id] ?? 0;
+      const lb = likeCounts[b.id] ?? 0;
+      if (lb !== la) return lb - la;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [posts, likeCounts]);
 
   return (
     <div className="min-h-screen bg-background pb-40">
@@ -259,16 +349,30 @@ function PostsPage() {
                       </span>
                     </div>
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm">{p.body}</p>
-                    {canDelete && (
-                      <div className="mt-2">
+                    <div className="mt-2 flex items-center gap-1">
+                      <button
+                        onClick={() => toggleLike(p.id)}
+                        aria-pressed={myLikes.has(p.id)}
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+                          myLikes.has(p.id)
+                            ? "text-rose-500 hover:bg-rose-500/10"
+                            : "text-muted-foreground hover:bg-muted hover:text-rose-500"
+                        }`}
+                      >
+                        <Heart
+                          className={`h-3.5 w-3.5 ${myLikes.has(p.id) ? "fill-current" : ""}`}
+                        />
+                        {likeCounts[p.id] ?? 0}
+                      </button>
+                      {canDelete && (
                         <button
                           onClick={() => remove(p.id)}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-destructive"
+                          className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-destructive"
                         >
                           <Trash2 className="h-3.5 w-3.5" /> Delete
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </article>
               );
