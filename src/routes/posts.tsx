@@ -99,6 +99,28 @@ function PostsPage() {
     setAuthors((prev) => ({ ...prev, ...next }));
   };
 
+  const loadLikes = async (rows: PostRow[], uid: string | null) => {
+    if (rows.length === 0) return;
+    const ids = rows.map((r) => r.id);
+    const { data } = await supabase
+      .from("post_likes")
+      .select("post_id, user_id")
+      .in("post_id", ids);
+    if (!data) return;
+    const counts: Record<string, number> = {};
+    const mine = new Set<string>();
+    for (const row of data) {
+      counts[row.post_id] = (counts[row.post_id] ?? 0) + 1;
+      if (uid && row.user_id === uid) mine.add(row.post_id);
+    }
+    setLikeCounts((prev) => ({ ...prev, ...counts }));
+    setMyLikes((prev) => {
+      const next = new Set(prev);
+      mine.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -115,7 +137,7 @@ function PostsPage() {
       }
       setPosts(data ?? []);
       setLoading(false);
-      await loadAuthors(data ?? []);
+      await Promise.all([loadAuthors(data ?? []), loadLikes(data ?? [], user?.id ?? null)]);
     })();
 
     const ch = supabase
@@ -137,6 +159,35 @@ function PostsPage() {
           setPosts((prev) => prev.filter((p) => p.id !== oldRow.id));
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "post_likes" },
+        (payload) => {
+          const row = payload.new as { post_id: string; user_id: string };
+          setLikeCounts((prev) => ({ ...prev, [row.post_id]: (prev[row.post_id] ?? 0) + 1 }));
+          if (user && row.user_id === user.id) {
+            setMyLikes((prev) => new Set(prev).add(row.post_id));
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "post_likes" },
+        (payload) => {
+          const row = payload.old as { post_id: string; user_id: string };
+          setLikeCounts((prev) => ({
+            ...prev,
+            [row.post_id]: Math.max(0, (prev[row.post_id] ?? 1) - 1),
+          }));
+          if (user && row.user_id === user.id) {
+            setMyLikes((prev) => {
+              const next = new Set(prev);
+              next.delete(row.post_id);
+              return next;
+            });
+          }
+        },
+      )
       .subscribe();
 
     return () => {
@@ -144,7 +195,7 @@ function PostsPage() {
       supabase.removeChannel(ch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id]);
 
   const remaining = MAX_LEN - body.length;
   const canPost = user && body.trim().length > 0 && body.length <= MAX_LEN && !posting;
