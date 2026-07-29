@@ -349,16 +349,30 @@ function PostsPage() {
                       </span>
                     </div>
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm">{p.body}</p>
-                    {canDelete && (
-                      <div className="mt-2">
+                    <div className="mt-2 flex items-center gap-1">
+                      <button
+                        onClick={() => toggleLike(p.id)}
+                        aria-pressed={myLikes.has(p.id)}
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+                          myLikes.has(p.id)
+                            ? "text-rose-500 hover:bg-rose-500/10"
+                            : "text-muted-foreground hover:bg-muted hover:text-rose-500"
+                        }`}
+                      >
+                        <Heart
+                          className={`h-3.5 w-3.5 ${myLikes.has(p.id) ? "fill-current" : ""}`}
+                        />
+                        {likeCounts[p.id] ?? 0}
+                      </button>
+                      {canDelete && (
                         <button
                           onClick={() => remove(p.id)}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-destructive"
+                          className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-destructive"
                         >
                           <Trash2 className="h-3.5 w-3.5" /> Delete
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </article>
               );
