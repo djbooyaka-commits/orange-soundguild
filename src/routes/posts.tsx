@@ -72,6 +72,8 @@ function PostsPage() {
   const isAdmin = useIsAdmin();
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [authors, setAuthors] = useState<Record<string, Author & { avatarSigned: string }>>({});
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+  const [myLikes, setMyLikes] = useState<Set<string>>(new Set());
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(true);
