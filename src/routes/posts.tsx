@@ -223,10 +223,47 @@ function PostsPage() {
     setPosts((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const visible = useMemo(
-    () => posts.filter((p) => new Date(p.expires_at).getTime() > Date.now()),
-    [posts],
-  );
+  const toggleLike = async (postId: string) => {
+    if (!user) {
+      toast.error("Sign in to like posts.");
+      return;
+    }
+    const liked = myLikes.has(postId);
+    // optimistic
+    setMyLikes((prev) => {
+      const next = new Set(prev);
+      if (liked) next.delete(postId);
+      else next.add(postId);
+      return next;
+    });
+    setLikeCounts((prev) => ({
+      ...prev,
+      [postId]: Math.max(0, (prev[postId] ?? 0) + (liked ? -1 : 1)),
+    }));
+    if (liked) {
+      const { error } = await supabase
+        .from("post_likes")
+        .delete()
+        .eq("post_id", postId)
+        .eq("user_id", user.id);
+      if (error) toast.error(error.message);
+    } else {
+      const { error } = await supabase
+        .from("post_likes")
+        .insert({ post_id: postId, user_id: user.id });
+      if (error && !/duplicate/i.test(error.message)) toast.error(error.message);
+    }
+  };
+
+  const visible = useMemo(() => {
+    const alive = posts.filter((p) => new Date(p.expires_at).getTime() > Date.now());
+    return alive.slice().sort((a, b) => {
+      const la = likeCounts[a.id] ?? 0;
+      const lb = likeCounts[b.id] ?? 0;
+      if (lb !== la) return lb - la;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [posts, likeCounts]);
 
   return (
     <div className="min-h-screen bg-background pb-40">
