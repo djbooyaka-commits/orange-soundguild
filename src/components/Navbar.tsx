@@ -99,6 +99,9 @@ export function Navbar() {
           <Link to="/discover" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
             Discover
           </Link>
+          <Link to="/posts" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+            Posts
+          </Link>
           <Link
             to="/u/$handle"
             params={{ handle: CURRENT_USER.handle }}
@@ -262,6 +265,7 @@ export function Navbar() {
         <Link to="/top100" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Top 100</Link>
         <Link to="/superfans" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Superfans</Link>
         <Link to="/discover" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Discover</Link>
+        <Link to="/posts" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Posts</Link>
         <Link to="/u/$handle" params={{ handle: CURRENT_USER.handle }} className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Profile</Link>
         <Link to="/library" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
         {user && (
