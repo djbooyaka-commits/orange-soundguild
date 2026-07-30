@@ -418,7 +418,9 @@ function PostsPage() {
                         <Clock className="h-3 w-3" /> {fmtExpires(p.expires_at)}
                       </span>
                     </div>
-                    <p className="mt-1 whitespace-pre-wrap break-words text-sm">{p.body}</p>
+                    <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+                      <Linkified text={p.body} />
+                    </p>
                     <div className="mt-2 flex items-center gap-1">
                       <button
                         onClick={() => toggleLike(p.id)}
@@ -434,6 +436,20 @@ function PostsPage() {
                         />
                         {likeCounts[p.id] ?? 0}
                       </button>
+                      <button
+                        onClick={() => {
+                          if (!user) {
+                            toast.error("Sign in to reply.");
+                            return;
+                          }
+                          setReplyBody("");
+                          setReplyTo(replyTo === p.id ? null : p.id);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-primary"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        {(repliesByParent[p.id] ?? []).length}
+                      </button>
                       {canDelete && (
                         <button
                           onClick={() => remove(p.id)}
@@ -443,6 +459,69 @@ function PostsPage() {
                         </button>
                       )}
                     </div>
+
+                    {(repliesByParent[p.id] ?? []).length > 0 && (
+                      <div className="mt-3 space-y-2 border-l border-border pl-3">
+                        {(repliesByParent[p.id] ?? []).map((r) => {
+                          const rName = authors[r.user_id]?.username ?? "user";
+                          const canDelR = user && (user.id === r.user_id || isAdmin);
+                          return (
+                            <div key={r.id} className="flex gap-2">
+                              <img
+                                src={authors[r.user_id]?.avatarSigned ?? defaultAvatar}
+                                alt=""
+                                className="h-7 w-7 shrink-0 rounded-full object-cover"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 text-xs">
+                                  <Link
+                                    to="/u/$handle"
+                                    params={{ handle: rName }}
+                                    className="truncate font-semibold hover:underline"
+                                  >
+                                    @{rName}
+                                  </Link>
+                                  <span className="text-muted-foreground">
+                                    {fmtRelative(r.created_at)}
+                                  </span>
+                                  {canDelR && (
+                                    <button
+                                      onClick={() => remove(r.id)}
+                                      className="ml-auto text-muted-foreground hover:text-destructive"
+                                      aria-label="Delete reply"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
+                                <p className="whitespace-pre-wrap break-words text-sm">
+                                  <Linkified text={r.body} />
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {user && replyTo === p.id && (
+                      <div className="mt-3 flex items-end gap-2">
+                        <textarea
+                          value={replyBody}
+                          onChange={(e) => setReplyBody(e.target.value.slice(0, MAX_LEN))}
+                          placeholder="Write a reply…"
+                          rows={2}
+                          className="w-full resize-none rounded-lg border border-border bg-background p-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+                        />
+                        <button
+                          onClick={() => submitReply(p.id)}
+                          disabled={replying || replyBody.trim().length === 0}
+                          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                        >
+                          <Send className="h-3.5 w-3.5" /> Reply
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </article>
               );
