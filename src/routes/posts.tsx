@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
 import defaultAvatar from "@/assets/avatar.jpg";
-import { Send, Trash2, Clock, Heart } from "lucide-react";
+import { Send, Trash2, Clock, Heart, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/posts")({
   head: () => ({
@@ -28,7 +28,42 @@ type PostRow = {
   body: string;
   created_at: string;
   expires_at: string;
+  parent_id: string | null;
 };
+
+const URL_RE = /((?:https?:\/\/|www\.)[^\s]+)/gi;
+
+function hasLink(text: string): boolean {
+  return /(https?:\/\/|www\.)[^\s]+/i.test(text);
+}
+
+function Linkified({ text }: { text: string }) {
+  const parts = text.split(URL_RE);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (!part) return null;
+        if (URL_RE.test(part)) {
+          URL_RE.lastIndex = 0;
+          const href = part.startsWith("http") ? part : `https://${part}`;
+          return (
+            <a
+              key={i}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="break-all text-primary underline underline-offset-2 hover:brightness-110"
+            >
+              {part}
+            </a>
+          );
+        }
+        URL_RE.lastIndex = 0;
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
 
 type Author = {
   username: string | null;
@@ -76,6 +111,9 @@ function PostsPage() {
   const [myLikes, setMyLikes] = useState<Set<string>>(new Set());
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState("");
+  const [replying, setReplying] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadAuthors = async (rows: PostRow[]) => {
@@ -126,7 +164,7 @@ function PostsPage() {
     (async () => {
       const { data, error } = await supabase
         .from("posts")
-        .select("id, user_id, body, created_at, expires_at")
+        .select("id, user_id, body, created_at, expires_at, parent_id")
         .order("created_at", { ascending: false })
         .limit(200);
       if (cancelled) return;
@@ -214,6 +252,23 @@ function PostsPage() {
     setBody("");
   };
 
+  const submitReply = async (parentId: string) => {
+    if (!user) return;
+    const text = replyBody.trim();
+    if (!text) return;
+    setReplying(true);
+    const { error } = await supabase
+      .from("posts")
+      .insert({ user_id: user.id, body: text, parent_id: parentId });
+    setReplying(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setReplyBody("");
+    setReplyTo(null);
+  };
+
   const remove = async (id: string) => {
     const { error } = await supabase.from("posts").delete().eq("id", id);
     if (error) {
@@ -255,8 +310,23 @@ function PostsPage() {
     }
   };
 
+  const repliesByParent = useMemo(() => {
+    const map: Record<string, PostRow[]> = {};
+    for (const p of posts) {
+      if (!p.parent_id) continue;
+      if (new Date(p.expires_at).getTime() <= Date.now()) continue;
+      (map[p.parent_id] ??= []).push(p);
+    }
+    for (const k of Object.keys(map)) {
+      map[k].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    }
+    return map;
+  }, [posts]);
+
   const visible = useMemo(() => {
-    const alive = posts.filter((p) => new Date(p.expires_at).getTime() > Date.now());
+    const alive = posts.filter(
+      (p) => !p.parent_id && new Date(p.expires_at).getTime() > Date.now(),
+    );
     return alive.slice().sort((a, b) => {
       const la = likeCounts[a.id] ?? 0;
       const lb = likeCounts[b.id] ?? 0;
@@ -289,7 +359,7 @@ function PostsPage() {
               <span
                 className={`text-xs ${remaining < 20 ? "text-destructive" : "text-muted-foreground"}`}
               >
-                {remaining} left · auto-deletes in 7 days
+                {remaining} left · auto-deletes in {hasLink(body) ? 8 : 7} days
               </span>
               <button
                 onClick={submit}
@@ -348,7 +418,9 @@ function PostsPage() {
                         <Clock className="h-3 w-3" /> {fmtExpires(p.expires_at)}
                       </span>
                     </div>
-                    <p className="mt-1 whitespace-pre-wrap break-words text-sm">{p.body}</p>
+                    <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+                      <Linkified text={p.body} />
+                    </p>
                     <div className="mt-2 flex items-center gap-1">
                       <button
                         onClick={() => toggleLike(p.id)}
@@ -364,6 +436,20 @@ function PostsPage() {
                         />
                         {likeCounts[p.id] ?? 0}
                       </button>
+                      <button
+                        onClick={() => {
+                          if (!user) {
+                            toast.error("Sign in to reply.");
+                            return;
+                          }
+                          setReplyBody("");
+                          setReplyTo(replyTo === p.id ? null : p.id);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-primary"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        {(repliesByParent[p.id] ?? []).length}
+                      </button>
                       {canDelete && (
                         <button
                           onClick={() => remove(p.id)}
@@ -373,6 +459,69 @@ function PostsPage() {
                         </button>
                       )}
                     </div>
+
+                    {(repliesByParent[p.id] ?? []).length > 0 && (
+                      <div className="mt-3 space-y-2 border-l border-border pl-3">
+                        {(repliesByParent[p.id] ?? []).map((r) => {
+                          const rName = authors[r.user_id]?.username ?? "user";
+                          const canDelR = user && (user.id === r.user_id || isAdmin);
+                          return (
+                            <div key={r.id} className="flex gap-2">
+                              <img
+                                src={authors[r.user_id]?.avatarSigned ?? defaultAvatar}
+                                alt=""
+                                className="h-7 w-7 shrink-0 rounded-full object-cover"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 text-xs">
+                                  <Link
+                                    to="/u/$handle"
+                                    params={{ handle: rName }}
+                                    className="truncate font-semibold hover:underline"
+                                  >
+                                    @{rName}
+                                  </Link>
+                                  <span className="text-muted-foreground">
+                                    {fmtRelative(r.created_at)}
+                                  </span>
+                                  {canDelR && (
+                                    <button
+                                      onClick={() => remove(r.id)}
+                                      className="ml-auto text-muted-foreground hover:text-destructive"
+                                      aria-label="Delete reply"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
+                                <p className="whitespace-pre-wrap break-words text-sm">
+                                  <Linkified text={r.body} />
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {user && replyTo === p.id && (
+                      <div className="mt-3 flex items-end gap-2">
+                        <textarea
+                          value={replyBody}
+                          onChange={(e) => setReplyBody(e.target.value.slice(0, MAX_LEN))}
+                          placeholder="Write a reply…"
+                          rows={2}
+                          className="w-full resize-none rounded-lg border border-border bg-background p-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+                        />
+                        <button
+                          onClick={() => submitReply(p.id)}
+                          disabled={replying || replyBody.trim().length === 0}
+                          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                        >
+                          <Send className="h-3.5 w-3.5" /> Reply
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </article>
               );
