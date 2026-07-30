@@ -33,9 +33,8 @@ type PostRow = {
 
 const URL_RE = /((?:https?:\/\/|www\.)[^\s]+)/gi;
 
-function hasLink(text: string): boolean {
-  return /(https?:\/\/|www\.)[^\s]+/i.test(text);
-}
+
+
 
 function Linkified({ text }: { text: string }) {
   const parts = text.split(URL_RE);
