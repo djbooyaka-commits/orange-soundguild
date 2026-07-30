@@ -28,7 +28,42 @@ type PostRow = {
   body: string;
   created_at: string;
   expires_at: string;
+  parent_id: string | null;
 };
+
+const URL_RE = /((?:https?:\/\/|www\.)[^\s]+)/gi;
+
+function hasLink(text: string): boolean {
+  return /(https?:\/\/|www\.)[^\s]+/i.test(text);
+}
+
+function Linkified({ text }: { text: string }) {
+  const parts = text.split(URL_RE);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (!part) return null;
+        if (URL_RE.test(part)) {
+          URL_RE.lastIndex = 0;
+          const href = part.startsWith("http") ? part : `https://${part}`;
+          return (
+            <a
+              key={i}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="break-all text-primary underline underline-offset-2 hover:brightness-110"
+            >
+              {part}
+            </a>
+          );
+        }
+        URL_RE.lastIndex = 0;
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
 
 type Author = {
   username: string | null;
@@ -76,6 +111,9 @@ function PostsPage() {
   const [myLikes, setMyLikes] = useState<Set<string>>(new Set());
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState("");
+  const [replying, setReplying] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadAuthors = async (rows: PostRow[]) => {
@@ -126,7 +164,7 @@ function PostsPage() {
     (async () => {
       const { data, error } = await supabase
         .from("posts")
-        .select("id, user_id, body, created_at, expires_at")
+        .select("id, user_id, body, created_at, expires_at, parent_id")
         .order("created_at", { ascending: false })
         .limit(200);
       if (cancelled) return;
@@ -214,6 +252,23 @@ function PostsPage() {
     setBody("");
   };
 
+  const submitReply = async (parentId: string) => {
+    if (!user) return;
+    const text = replyBody.trim();
+    if (!text) return;
+    setReplying(true);
+    const { error } = await supabase
+      .from("posts")
+      .insert({ user_id: user.id, body: text, parent_id: parentId });
+    setReplying(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setReplyBody("");
+    setReplyTo(null);
+  };
+
   const remove = async (id: string) => {
     const { error } = await supabase.from("posts").delete().eq("id", id);
     if (error) {
@@ -255,8 +310,23 @@ function PostsPage() {
     }
   };
 
+  const repliesByParent = useMemo(() => {
+    const map: Record<string, PostRow[]> = {};
+    for (const p of posts) {
+      if (!p.parent_id) continue;
+      if (new Date(p.expires_at).getTime() <= Date.now()) continue;
+      (map[p.parent_id] ??= []).push(p);
+    }
+    for (const k of Object.keys(map)) {
+      map[k].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    }
+    return map;
+  }, [posts]);
+
   const visible = useMemo(() => {
-    const alive = posts.filter((p) => new Date(p.expires_at).getTime() > Date.now());
+    const alive = posts.filter(
+      (p) => !p.parent_id && new Date(p.expires_at).getTime() > Date.now(),
+    );
     return alive.slice().sort((a, b) => {
       const la = likeCounts[a.id] ?? 0;
       const lb = likeCounts[b.id] ?? 0;
@@ -289,7 +359,7 @@ function PostsPage() {
               <span
                 className={`text-xs ${remaining < 20 ? "text-destructive" : "text-muted-foreground"}`}
               >
-                {remaining} left · auto-deletes in 7 days
+                {remaining} left · auto-deletes in {hasLink(body) ? 8 : 7} days
               </span>
               <button
                 onClick={submit}
