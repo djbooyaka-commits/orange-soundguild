@@ -242,13 +242,22 @@ function PostsPage() {
     const text = body.trim();
     if (!text) return;
     setPosting(true);
-    const { error } = await supabase.from("posts").insert({ user_id: user.id, body: text });
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({ user_id: user.id, body: text })
+      .select("id, user_id, body, created_at, expires_at, parent_id")
+      .single();
     setPosting(false);
     if (error) {
       toast.error(error.message);
       return;
     }
     setBody("");
+    if (data) {
+      const row = data as PostRow;
+      setPosts((prev) => (prev.some((p) => p.id === row.id) ? prev : [row, ...prev]));
+      await loadAuthors([row]);
+    }
   };
 
   const submitReply = async (parentId: string) => {
@@ -256,9 +265,11 @@ function PostsPage() {
     const text = replyBody.trim();
     if (!text) return;
     setReplying(true);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("posts")
-      .insert({ user_id: user.id, body: text, parent_id: parentId });
+      .insert({ user_id: user.id, body: text, parent_id: parentId })
+      .select("id, user_id, body, created_at, expires_at, parent_id")
+      .single();
     setReplying(false);
     if (error) {
       toast.error(error.message);
@@ -266,7 +277,13 @@ function PostsPage() {
     }
     setReplyBody("");
     setReplyTo(null);
+    if (data) {
+      const row = data as PostRow;
+      setPosts((prev) => (prev.some((p) => p.id === row.id) ? prev : [row, ...prev]));
+      await loadAuthors([row]);
+    }
   };
+
 
   const remove = async (id: string) => {
     const { error } = await supabase.from("posts").delete().eq("id", id);
