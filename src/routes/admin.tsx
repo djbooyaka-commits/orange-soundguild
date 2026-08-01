@@ -52,9 +52,20 @@ export const Route = createFileRoute("/admin")({
   notFoundComponent: () => <div className="p-6">Not found.</div>,
 });
 
+const ADMIN_TABS = [
+  { id: "page", label: "Artist Welcome page" },
+  { id: "users", label: "Users" },
+  { id: "ads", label: "Ad scripts" },
+  { id: "royalties", label: "Royalty pool" },
+  { id: "accounting", label: "Site accounting" },
+] as const;
+
+type AdminTab = (typeof ADMIN_TABS)[number]["id"];
+
 function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const isAdmin = useIsAdmin();
+  const [tab, setTab] = useState<AdminTab>("page");
   const [content, setContent] = useState<ArtistWelcomeContent>(ARTIST_WELCOME_DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
