@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt, Ticket, Copy, Users, Megaphone } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
+import { RoyaltyPoolAdmin } from "@/components/RoyaltyPoolAdmin";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import {
