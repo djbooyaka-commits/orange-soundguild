@@ -1245,6 +1245,20 @@ export type Database = {
         Returns: string
       }
       add_osg_artist_pick: { Args: { _username: string }; Returns: string }
+      admin_royalty_pool_summary: {
+        Args: { p_period_start?: string }
+        Returns: {
+          artist_pool_cents: number
+          artist_subs: number
+          eligible_artists: number
+          paid_out_cents: number
+          period_start: string
+          pool_cents: number
+          superfan_pool_cents: number
+          superfan_subs: number
+          total_weighted_plays: number
+        }[]
+      }
       admin_set_account_type: {
         Args: {
           _type: Database["public"]["Enums"]["account_type"]
