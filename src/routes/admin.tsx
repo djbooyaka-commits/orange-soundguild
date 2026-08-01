@@ -278,6 +278,8 @@ function AdminPage() {
 
             <PioneerInvites />
 
+            <RoyaltyPoolAdmin />
+
             <SiteAccounting />
 
 
