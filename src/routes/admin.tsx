@@ -186,130 +186,142 @@ function AdminPage() {
           </div>
         ) : (
           <div className="space-y-8">
-            <Section title="Header">
-              <Field label="Headline">
-                <input
-                  className={inputCls}
-                  value={content.headline}
-                  onChange={(e) => setContent({ ...content, headline: e.target.value })}
-                />
-              </Field>
-              <Field label="Subheadline">
-                <textarea
-                  rows={2}
-                  className={inputCls}
-                  value={content.subhead}
-                  onChange={(e) => setContent({ ...content, subhead: e.target.value })}
-                />
-              </Field>
-              <Field label="Intro paragraph">
-                <textarea
-                  rows={3}
-                  className={inputCls}
-                  value={content.intro}
-                  onChange={(e) => setContent({ ...content, intro: e.target.value })}
-                />
-              </Field>
-            </Section>
-
-            <Section title="Getting started steps">
-              {content.steps.map((step, i) => (
-                <div key={i} className="rounded-lg border border-border p-4">
-                  <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                    Step {i + 1}
-                  </div>
-                  <Field label="Title">
-                    <input
-                      className={inputCls}
-                      value={step.title}
-                      onChange={(e) => updateStep(i, "title", e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Body">
-                    <textarea
-                      rows={2}
-                      className={inputCls}
-                      value={step.body}
-                      onChange={(e) => updateStep(i, "body", e.target.value)}
-                    />
-                  </Field>
-                </div>
+            <div className="flex flex-wrap gap-2 rounded-2xl border border-border bg-card/50 p-2">
+              {ADMIN_TABS.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={
+                    "rounded-full px-4 py-2 text-sm font-semibold transition " +
+                    (tab === t.id
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted")
+                  }
+                >
+                  {t.label}
+                </button>
               ))}
-            </Section>
-
-            <Section title="Good-to-know tips">
-              {content.tips.map((tip, i) => (
-                <div key={i} className="rounded-lg border border-border p-4">
-                  <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                    Tip {i + 1}
-                  </div>
-                  <Field label="Title">
-                    <input
-                      className={inputCls}
-                      value={tip.title}
-                      onChange={(e) => updateTip(i, "title", e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Body">
-                    <textarea
-                      rows={2}
-                      className={inputCls}
-                      value={tip.body}
-                      onChange={(e) => updateTip(i, "body", e.target.value)}
-                    />
-                  </Field>
-                </div>
-              ))}
-            </Section>
-
-            <Section title="Footer">
-              <Field label="Footer note">
-                <textarea
-                  rows={2}
-                  className={inputCls}
-                  value={content.footerNote}
-                  onChange={(e) => setContent({ ...content, footerNote: e.target.value })}
-                />
-              </Field>
-            </Section>
-
-            <UsersAdmin />
-
-            <AdScriptsAdmin />
-
-            <PioneerInvites />
-
-            <RoyaltyPoolAdmin />
-
-            <SiteAccounting />
-
-
-
-
-
-
-
-
-            <div className="sticky bottom-4 flex gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur">
-              <button
-                onClick={save}
-                disabled={saving}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {saving ? "Saving…" : "Save changes"}
-              </button>
-              <button
-                onClick={resetDefaults}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm font-semibold hover:bg-muted"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </button>
             </div>
+
+            {tab === "page" && (
+              <>
+                <Section title="Header">
+                  <Field label="Headline">
+                    <input
+                      className={inputCls}
+                      value={content.headline}
+                      onChange={(e) => setContent({ ...content, headline: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Subheadline">
+                    <textarea
+                      rows={2}
+                      className={inputCls}
+                      value={content.subhead}
+                      onChange={(e) => setContent({ ...content, subhead: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Intro paragraph">
+                    <textarea
+                      rows={3}
+                      className={inputCls}
+                      value={content.intro}
+                      onChange={(e) => setContent({ ...content, intro: e.target.value })}
+                    />
+                  </Field>
+                </Section>
+
+                <Section title="Getting started steps">
+                  {content.steps.map((step, i) => (
+                    <div key={i} className="rounded-lg border border-border p-4">
+                      <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                        Step {i + 1}
+                      </div>
+                      <Field label="Title">
+                        <input
+                          className={inputCls}
+                          value={step.title}
+                          onChange={(e) => updateStep(i, "title", e.target.value)}
+                        />
+                      </Field>
+                      <Field label="Body">
+                        <textarea
+                          rows={2}
+                          className={inputCls}
+                          value={step.body}
+                          onChange={(e) => updateStep(i, "body", e.target.value)}
+                        />
+                      </Field>
+                    </div>
+                  ))}
+                </Section>
+
+                <Section title="Good-to-know tips">
+                  {content.tips.map((tip, i) => (
+                    <div key={i} className="rounded-lg border border-border p-4">
+                      <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                        Tip {i + 1}
+                      </div>
+                      <Field label="Title">
+                        <input
+                          className={inputCls}
+                          value={tip.title}
+                          onChange={(e) => updateTip(i, "title", e.target.value)}
+                        />
+                      </Field>
+                      <Field label="Body">
+                        <textarea
+                          rows={2}
+                          className={inputCls}
+                          value={tip.body}
+                          onChange={(e) => updateTip(i, "body", e.target.value)}
+                        />
+                      </Field>
+                    </div>
+                  ))}
+                </Section>
+
+                <Section title="Footer">
+                  <Field label="Footer note">
+                    <textarea
+                      rows={2}
+                      className={inputCls}
+                      value={content.footerNote}
+                      onChange={(e) => setContent({ ...content, footerNote: e.target.value })}
+                    />
+                  </Field>
+                </Section>
+
+                <PioneerInvites />
+
+                <div className="sticky bottom-4 flex gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur">
+                  <button
+                    onClick={save}
+                    disabled={saving}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {saving ? "Saving…" : "Save changes"}
+                  </button>
+                  <button
+                    onClick={resetDefaults}
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm font-semibold hover:bg-muted"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Reset
+                  </button>
+                </div>
+              </>
+            )}
+
+            {tab === "users" && <UsersAdmin />}
+            {tab === "ads" && <AdScriptsAdmin />}
+            {tab === "royalties" && <RoyaltyPoolAdmin />}
+            {tab === "accounting" && <SiteAccounting />}
           </div>
         )}
+
       </main>
     </div>
   );
