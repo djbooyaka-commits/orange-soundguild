@@ -287,16 +287,14 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       if (!error) added += 1;
     }
 
-
-    const newLastPolled =
-      maxEvaluatedAt != null
-        ? new Date(maxEvaluatedAt).toISOString()
-        : new Date().toISOString();
-
-    await supabaseAdmin
-      .from("spotify_connections")
-      .update({ last_polled_at: newLastPolled })
-      .eq("user_id", context.userId);
+    // Only advance the cursor to the newest play we actually saw. Advancing to
+    // "now" on an empty response would skip plays Spotify reports late.
+    if (maxEvaluatedAt != null) {
+      await supabaseAdmin
+        .from("spotify_connections")
+        .update({ last_polled_at: new Date(maxEvaluatedAt).toISOString() })
+        .eq("user_id", context.userId);
+    }
 
     return {
       added,
