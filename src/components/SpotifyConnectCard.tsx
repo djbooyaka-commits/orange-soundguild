@@ -10,7 +10,7 @@ import {
   deleteMySpotifyApp,
 } from "@/lib/api/spotify.functions";
 
-function spotifyPollMessage(result: { added?: number; error?: string | null }) {
+function spotifyPollMessage(result: { added?: number; error?: string | null; scanned?: number; skippedNotCurated?: number }) {
   if (result.error === "spotify_account_not_allowed") {
     return "Spotify blocked tracking: this account is not on the app's allowed-user list. In the Spotify Developer Dashboard, open your app → Settings → User Management, and add this email to the allowed users list. Or use your own app below to skip the 5-user cap.";
   }
@@ -18,7 +18,11 @@ function spotifyPollMessage(result: { added?: number; error?: string | null }) {
     return "Spotify blocked tracking: the connected Spotify account needs a Premium subscription to use the Web API. Upgrade to Spotify Premium, then disconnect and reconnect here.";
   }
   if (result.error) return `Spotify sync error: ${result.error}`;
-  return result.added ? `+${result.added} new stream point${result.added === 1 ? "" : "s"}` : "Up to date";
+  if (result.added) return `+${result.added} new stream point${result.added === 1 ? "" : "s"}`;
+  if (result.scanned && result.skippedNotCurated === result.scanned) {
+    return `Up to date — scanned ${result.scanned} recent play${result.scanned === 1 ? "" : "s"}, but none were played from a tracked Curator playlist. Play the playlist from the playlist page (not from Liked Songs, search, or an autoplay/radio queue) so Spotify reports the playlist.`;
+  }
+  return "Up to date";
 }
 
 const REDIRECT_URI_HINT =
