@@ -184,34 +184,52 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       return { added: 0, connected: false, error: "refresh_failed" };
     }
 
-    const after = conn.last_polled_at ? new Date(conn.last_polled_at).getTime() : Date.now() - 24 * 60 * 60 * 1000;
-    const url = new URL("https://api.spotify.com/v1/me/player/recently-played");
-    url.searchParams.set("limit", "50");
-    url.searchParams.set("after", String(after));
+    // Overlap the window slightly: Spotify can report plays a few minutes late.
+    const OVERLAP_MS = 15 * 60 * 1000;
+    const after = conn.last_polled_at
+      ? new Date(conn.last_polled_at).getTime() - OVERLAP_MS
+      : Date.now() - 24 * 60 * 60 * 1000;
 
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) {
-      const t = await res.text();
-      console.error(`Spotify recently-played failed [${res.status}]: ${t}`);
-      const lower = t.toLowerCase();
-      const isUnregisteredSpotifyUser =
-        res.status === 403 && lower.includes("not registered for this application");
-      const isPremiumRequired =
-        res.status === 403 && (lower.includes("premium subscription") || lower.includes("premium to access"));
-      return {
-        added: 0,
-        connected: true,
-        error: isUnregisteredSpotifyUser
-          ? "spotify_account_not_allowed"
-          : isPremiumRequired
-            ? "spotify_premium_required"
-            : `spotify_${res.status}`,
-      };
+    // recently-played caps at 50 per call, so page backwards from "now" until we
+    // reach the cursor (an overnight playlist session is far more than 50 plays).
+    const items: any[] = [];
+    let before: number | null = null;
+    for (let page = 0; page < 10; page++) {
+      const url = new URL("https://api.spotify.com/v1/me/player/recently-played");
+      url.searchParams.set("limit", "50");
+      if (before == null) url.searchParams.set("after", String(after));
+      else url.searchParams.set("before", String(before));
+
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        console.error(`Spotify recently-played failed [${res.status}]: ${t}`);
+        const lower = t.toLowerCase();
+        const isUnregisteredSpotifyUser =
+          res.status === 403 && lower.includes("not registered for this application");
+        const isPremiumRequired =
+          res.status === 403 && (lower.includes("premium subscription") || lower.includes("premium to access"));
+        return {
+          added: 0,
+          connected: true,
+          error: isUnregisteredSpotifyUser
+            ? "spotify_account_not_allowed"
+            : isPremiumRequired
+              ? "spotify_premium_required"
+              : `spotify_${res.status}`,
+        };
+      }
+      const body = await res.json();
+      const pageItems: any[] = body.items ?? [];
+      if (pageItems.length === 0) break;
+      items.push(...pageItems);
+
+      const oldest = Math.min(...pageItems.map((i) => new Date(i.played_at).getTime()));
+      if (pageItems.length < 50 || oldest <= after) break;
+      before = oldest;
     }
-    const body = await res.json();
-    const items: any[] = body.items ?? [];
 
     const { data: playlists } = await supabaseAdmin
       .from("curator_playlists")
