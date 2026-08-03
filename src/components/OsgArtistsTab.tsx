@@ -86,6 +86,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const [deductingId, setDeductingId] = useState<string | null>(null);
   const [minInput, setMinInput] = useState<string>("");
   const [savingMin, setSavingMin] = useState(false);
+  const [linkInputs, setLinkInputs] = useState<Record<string, string>>({});
+  const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
+  const setLinkFn = useServerFn(curatorSetOsgArtistFollowLink);
 
   const myWeeklyMin = picks[0]?.weekly_min ?? DEFAULT_WEEKLY_MIN;
 
