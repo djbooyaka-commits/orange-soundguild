@@ -10,6 +10,7 @@ import {
   listMyOsgRosters,
   listOsgPlaylistSubmissions,
   listOsgArtistFollowLinks,
+  curatorSetOsgArtistFollowLink,
   adjustOsgPoints,
   setOsgWeeklyMin,
 } from "@/lib/api/osg-picks.functions";
