@@ -1299,6 +1299,15 @@ export type Database = {
         Args: { _amount_cents: number; _track_id: string }
         Returns: undefined
       }
+      curator_set_osg_artist_follow_link: {
+        Args: {
+          _artist_id: string
+          _spotify_artist_id: string
+          _spotify_artist_name?: string
+          _spotify_artist_url: string
+        }
+        Returns: string
+      }
       generate_referral_code: { Args: never; Returns: string }
       generate_track_codes: {
         Args: { _count: number; _track_id: string }
