@@ -409,7 +409,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             </button>
           </div>
         )}
-        {renderFollowLink(a.curator_id, a.artist_id)}
+        {renderFollowLink(a.curator_id, a.artist_id, Boolean(a.showDeduct))}
         {renderSubmission(a.curator_id, a.artist_id)}
       </div>
     );
