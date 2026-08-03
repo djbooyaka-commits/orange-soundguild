@@ -10,6 +10,7 @@ import {
   listMyOsgRosters,
   listOsgPlaylistSubmissions,
   listOsgArtistFollowLinks,
+  curatorSetOsgArtistFollowLink,
   adjustOsgPoints,
   setOsgWeeklyMin,
 } from "@/lib/api/osg-picks.functions";
@@ -86,6 +87,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const [deductingId, setDeductingId] = useState<string | null>(null);
   const [minInput, setMinInput] = useState<string>("");
   const [savingMin, setSavingMin] = useState(false);
+  const [linkInputs, setLinkInputs] = useState<Record<string, string>>({});
+  const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
+  const setLinkFn = useServerFn(curatorSetOsgArtistFollowLink);
 
   const myWeeklyMin = picks[0]?.weekly_min ?? DEFAULT_WEEKLY_MIN;
 
@@ -198,27 +202,68 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     );
   };
 
-  const renderFollowLink = (curatorId: string, artistId: string) => {
-    const link = followLinkByKey.get(`${curatorId}:${artistId}`);
-    if (!link) {
-      return (
-        <div className="rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted-foreground">
-          No Spotify artist link yet
-        </div>
-      );
+  const saveLink = async (artistId: string) => {
+    const url = (linkInputs[artistId] ?? "").trim();
+    if (!url) return;
+    setSavingLinkId(artistId);
+    try {
+      await setLinkFn({ data: { artistId, artistUrl: url } });
+      setLinkInputs((s) => ({ ...s, [artistId]: "" }));
+      await refresh();
+      toast.success("Spotify artist link saved");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save link");
+    } finally {
+      setSavingLinkId(null);
     }
+  };
+
+  const renderFollowLink = (curatorId: string, artistId: string, editable = false) => {
+    const link = followLinkByKey.get(`${curatorId}:${artistId}`);
     return (
-      <a
-        href={link.spotify_artist_url}
-        target="_blank"
-        rel="noreferrer"
-        className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs hover:border-primary/50"
-      >
-        <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1 truncate">
-          Follow artist: {link.spotify_artist_name ?? link.spotify_artist_url}
-        </span>
-      </a>
+      <div className="space-y-2">
+        {link ? (
+          <a
+            href={link.spotify_artist_url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs hover:border-primary/50"
+          >
+            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 truncate">
+              Follow artist: {link.spotify_artist_name ?? link.spotify_artist_url}
+            </span>
+          </a>
+        ) : (
+          <div className="rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted-foreground">
+            No Spotify artist link yet
+          </div>
+        )}
+        {editable && (
+          <div className="flex items-center gap-2">
+            <input
+              type="url"
+              placeholder="https://open.spotify.com/artist/..."
+              value={linkInputs[artistId] ?? ""}
+              onChange={(e) => setLinkInputs((s) => ({ ...s, [artistId]: e.target.value }))}
+              className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
+            />
+            <button
+              type="button"
+              onClick={() => saveLink(artistId)}
+              disabled={savingLinkId === artistId || !(linkInputs[artistId] ?? "").trim()}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+            >
+              {savingLinkId === artistId ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Plus className="h-3.5 w-3.5" />
+              )}
+              {link ? "Update" : "Add link"}
+            </button>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -364,7 +409,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             </button>
           </div>
         )}
-        {renderFollowLink(a.curator_id, a.artist_id)}
+        {renderFollowLink(a.curator_id, a.artist_id, Boolean(a.showDeduct))}
         {renderSubmission(a.curator_id, a.artist_id)}
       </div>
     );
