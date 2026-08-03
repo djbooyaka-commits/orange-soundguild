@@ -214,3 +214,39 @@ export const saveOsgArtistFollowLink = createServerFn({ method: "POST" })
 
     return { id: id as string, artistId, artistUrl, artistName };
   });
+
+const curatorSetFollowLinkSchema = z.object({
+  artistId: z.string().uuid(),
+  artistUrl: z.string().trim().min(1, "Spotify artist link is required").max(300),
+});
+
+/** Curator sets the Spotify artist profile link for a member of their OSG Artists list. */
+export const curatorSetOsgArtistFollowLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => curatorSetFollowLinkSchema.parse(data))
+  .handler(async ({ context, data }) => {
+    const spotifyArtistId = extractArtistId(data.artistUrl);
+    if (!spotifyArtistId) throw new Error("Paste a Spotify artist link, not a track or playlist link");
+
+    let artistName: string | null = null;
+    try {
+      const artist = await fetchArtistMeta(spotifyArtistId);
+      artistName = artist.name;
+    } catch (error) {
+      console.warn("Spotify artist metadata lookup failed; saving artist link without name", {
+        spotifyArtistId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    const artistUrl = `https://open.spotify.com/artist/${spotifyArtistId}`;
+    const { data: id, error } = await context.supabase.rpc("curator_set_osg_artist_follow_link", {
+      _artist_id: data.artistId,
+      _spotify_artist_id: spotifyArtistId,
+      _spotify_artist_url: artistUrl,
+      _spotify_artist_name: artistName ?? undefined,
+    });
+    if (error) throw new Error(error.message);
+
+    return { id: id as string, spotifyArtistId, artistUrl, artistName };
+  });
