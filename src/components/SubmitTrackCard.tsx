@@ -52,9 +52,10 @@ export function SubmitTrackCard() {
 
   const refresh = async () => {
     const [pl, m] = await Promise.all([listPlaylists(), listMine()]);
-    setPlaylists(pl as Playlist[]);
+    const sorted = (pl as Playlist[]).sort((a, b) => b.available_points - a.available_points);
+    setPlaylists(sorted);
     setMine((m ?? []) as Submission[]);
-    if (!playlistId && pl.length > 0) setPlaylistId(pl[0].id);
+    if (!playlistId && sorted.length > 0) setPlaylistId(sorted[0].id);
   };
 
   useEffect(() => {
