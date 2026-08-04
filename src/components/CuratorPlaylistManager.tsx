@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ListMusic, Plus, Trash2, Loader2, RefreshCw, Star } from "lucide-react";
+import { ListMusic, Plus, Trash2, Loader2, RefreshCw, Star, Clock } from "lucide-react";
 import {
   addCuratorPlaylist,
   listMyCuratorPlaylists,
@@ -8,6 +8,7 @@ import {
   getCuratorEarnedPoints,
   importMySpotifyCuratorPlaylists,
   setCuratorPlaylistIsOsg,
+  setCuratorPlaylistHoldDays,
 } from "@/lib/api/curator.functions";
 
 type Playlist = {
@@ -16,6 +17,7 @@ type Playlist = {
   name: string;
   image_url: string | null;
   is_osg?: boolean;
+  track_hold_days?: number | null;
 };
 
 export function CuratorPlaylistManager() {
@@ -25,6 +27,7 @@ export function CuratorPlaylistManager() {
   const earnedFn = useServerFn(getCuratorEarnedPoints);
   const importFn = useServerFn(importMySpotifyCuratorPlaylists);
   const setOsgFn = useServerFn(setCuratorPlaylistIsOsg);
+  const setHoldFn = useServerFn(setCuratorPlaylistHoldDays);
 
   const [items, setItems] = useState<Playlist[]>([]);
   const [earned, setEarned] = useState(0);
@@ -32,6 +35,9 @@ export function CuratorPlaylistManager() {
   const [busy, setBusy] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [holdDrafts, setHoldDrafts] = useState<Record<string, string>>({});
+  const [savingHoldId, setSavingHoldId] = useState<string | null>(null);
+
   const [err, setErr] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
@@ -110,6 +116,23 @@ export function CuratorPlaylistManager() {
     }
   };
 
+  const saveHold = async (p: Playlist) => {
+    const raw = holdDrafts[p.id] ?? String(p.track_hold_days ?? 30);
+    const days = Math.max(0, Math.min(365, Math.round(Number(raw) || 0)));
+    setSavingHoldId(p.id);
+    setErr(null);
+    try {
+      await setHoldFn({ data: { playlistId: p.id, days } });
+      setHoldDrafts((d) => ({ ...d, [p.id]: String(days) }));
+      await refresh();
+    } catch (ex: any) {
+      setErr(ex?.message ?? "Failed to save hold days");
+    } finally {
+      setSavingHoldId(null);
+    }
+  };
+
+
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center justify-between gap-3">
@@ -171,7 +194,7 @@ export function CuratorPlaylistManager() {
         {items.map((p) => (
           <li
             key={p.id}
-            className={`flex items-center gap-3 rounded-md border p-3 ${p.is_osg ? "border-primary/60 bg-primary/5" : "border-border"}`}
+            className={`flex flex-wrap items-center gap-3 rounded-md border p-3 ${p.is_osg ? "border-primary/60 bg-primary/5" : "border-border"}`}
           >
             {p.image_url ? (
               <img src={p.image_url} alt="" className="h-12 w-12 rounded object-cover" />
@@ -196,6 +219,31 @@ export function CuratorPlaylistManager() {
                 Open in Spotify ↗
               </a>
             </div>
+            <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1">
+              <Clock className="h-3 w-3 text-muted-foreground" />
+              <label className="text-xs text-muted-foreground" htmlFor={`hold-${p.id}`}>
+                Hold
+              </label>
+              <input
+                id={`hold-${p.id}`}
+                type="number"
+                min={0}
+                max={365}
+                value={holdDrafts[p.id] ?? String(p.track_hold_days ?? 30)}
+                onChange={(e) => setHoldDrafts((d) => ({ ...d, [p.id]: e.target.value }))}
+                className="w-14 rounded border border-border bg-background px-1 py-0.5 text-xs"
+                title="Days a track stays before it can be resubmitted"
+              />
+              <span className="text-xs text-muted-foreground">days</span>
+              <button
+                type="button"
+                onClick={() => saveHold(p)}
+                disabled={savingHoldId === p.id}
+                className="ml-1 rounded border border-border px-2 py-0.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+              >
+                {savingHoldId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+              </button>
+            </div>
             <button
               onClick={() => toggleOsg(p)}
               disabled={busy || togglingId === p.id}
@@ -214,6 +262,7 @@ export function CuratorPlaylistManager() {
               <Trash2 className="h-4 w-4" />
             </button>
           </li>
+
         ))}
       </ul>
     </div>
