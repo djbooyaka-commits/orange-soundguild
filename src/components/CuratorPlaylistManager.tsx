@@ -194,7 +194,7 @@ export function CuratorPlaylistManager() {
         {items.map((p) => (
           <li
             key={p.id}
-            className={`flex items-center gap-3 rounded-md border p-3 ${p.is_osg ? "border-primary/60 bg-primary/5" : "border-border"}`}
+            className={`flex flex-wrap items-center gap-3 rounded-md border p-3 ${p.is_osg ? "border-primary/60 bg-primary/5" : "border-border"}`}
           >
             {p.image_url ? (
               <img src={p.image_url} alt="" className="h-12 w-12 rounded object-cover" />
@@ -219,6 +219,31 @@ export function CuratorPlaylistManager() {
                 Open in Spotify ↗
               </a>
             </div>
+            <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1">
+              <Clock className="h-3 w-3 text-muted-foreground" />
+              <label className="text-xs text-muted-foreground" htmlFor={`hold-${p.id}`}>
+                Hold
+              </label>
+              <input
+                id={`hold-${p.id}`}
+                type="number"
+                min={0}
+                max={365}
+                value={holdDrafts[p.id] ?? String(p.track_hold_days ?? 30)}
+                onChange={(e) => setHoldDrafts((d) => ({ ...d, [p.id]: e.target.value }))}
+                className="w-14 rounded border border-border bg-background px-1 py-0.5 text-xs"
+                title="Days a track stays before it can be resubmitted"
+              />
+              <span className="text-xs text-muted-foreground">days</span>
+              <button
+                type="button"
+                onClick={() => saveHold(p)}
+                disabled={savingHoldId === p.id}
+                className="ml-1 rounded border border-border px-2 py-0.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+              >
+                {savingHoldId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+              </button>
+            </div>
             <button
               onClick={() => toggleOsg(p)}
               disabled={busy || togglingId === p.id}
@@ -237,6 +262,7 @@ export function CuratorPlaylistManager() {
               <Trash2 className="h-4 w-4" />
             </button>
           </li>
+
         ))}
       </ul>
     </div>
