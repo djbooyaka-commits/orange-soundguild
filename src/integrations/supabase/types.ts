@@ -210,7 +210,6 @@ export type Database = {
           is_osg: boolean
           name: string
           spotify_playlist_id: string
-          track_hold_days: number
         }
         Insert: {
           created_at?: string
@@ -220,7 +219,6 @@ export type Database = {
           is_osg?: boolean
           name: string
           spotify_playlist_id: string
-          track_hold_days?: number
         }
         Update: {
           created_at?: string
@@ -230,7 +228,6 @@ export type Database = {
           is_osg?: boolean
           name?: string
           spotify_playlist_id?: string
-          track_hold_days?: number
         }
         Relationships: []
       }
@@ -1282,10 +1279,6 @@ export type Database = {
         Returns: undefined
       }
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
-      assert_track_hold_window: {
-        Args: { _playlist_id: string; _spotify_track_id: string }
-        Returns: undefined
-      }
       can_use_osg_artists: { Args: never; Returns: boolean }
       cancel_curator_invite: {
         Args: { _invite_id: string }
@@ -1314,10 +1307,6 @@ export type Database = {
           _spotify_artist_url: string
         }
         Returns: string
-      }
-      curator_set_track_hold_days: {
-        Args: { _days: number; _playlist_id: string }
-        Returns: number
       }
       generate_referral_code: { Args: never; Returns: string }
       generate_track_codes: {
