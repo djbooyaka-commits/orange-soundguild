@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ListMusic, Plus, Trash2, Loader2, RefreshCw, Star } from "lucide-react";
+import { ListMusic, Plus, Trash2, Loader2, RefreshCw, Star, Clock } from "lucide-react";
 import {
   addCuratorPlaylist,
   listMyCuratorPlaylists,
@@ -8,6 +8,7 @@ import {
   getCuratorEarnedPoints,
   importMySpotifyCuratorPlaylists,
   setCuratorPlaylistIsOsg,
+  setCuratorPlaylistHoldDays,
 } from "@/lib/api/curator.functions";
 
 type Playlist = {
@@ -16,6 +17,7 @@ type Playlist = {
   name: string;
   image_url: string | null;
   is_osg?: boolean;
+  track_hold_days?: number | null;
 };
 
 export function CuratorPlaylistManager() {
@@ -25,6 +27,7 @@ export function CuratorPlaylistManager() {
   const earnedFn = useServerFn(getCuratorEarnedPoints);
   const importFn = useServerFn(importMySpotifyCuratorPlaylists);
   const setOsgFn = useServerFn(setCuratorPlaylistIsOsg);
+  const setHoldFn = useServerFn(setCuratorPlaylistHoldDays);
 
   const [items, setItems] = useState<Playlist[]>([]);
   const [earned, setEarned] = useState(0);
@@ -32,6 +35,9 @@ export function CuratorPlaylistManager() {
   const [busy, setBusy] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [holdDrafts, setHoldDrafts] = useState<Record<string, string>>({});
+  const [savingHoldId, setSavingHoldId] = useState<string | null>(null);
+
   const [err, setErr] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
