@@ -116,6 +116,23 @@ export function CuratorPlaylistManager() {
     }
   };
 
+  const saveHold = async (p: Playlist) => {
+    const raw = holdDrafts[p.id] ?? String(p.track_hold_days ?? 30);
+    const days = Math.max(0, Math.min(365, Math.round(Number(raw) || 0)));
+    setSavingHoldId(p.id);
+    setErr(null);
+    try {
+      await setHoldFn({ data: { playlistId: p.id, days } });
+      setHoldDrafts((d) => ({ ...d, [p.id]: String(days) }));
+      await refresh();
+    } catch (ex: any) {
+      setErr(ex?.message ?? "Failed to save hold days");
+    } finally {
+      setSavingHoldId(null);
+    }
+  };
+
+
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center justify-between gap-3">
