@@ -9,6 +9,7 @@ import { CURRENT_USER, useUploads } from "@/lib/uploads";
 import { UploadDialog } from "@/components/UploadDialog";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { PlaylistsSection } from "@/components/PlaylistsSection";
+import { FollowersBox } from "@/components/FollowersBox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFollow } from "@/lib/follows";
@@ -365,9 +366,12 @@ function ProfilePage() {
             )}
           </div>
 
-          <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-            <h2 className="mb-4 text-lg font-bold tracking-tight">Playlists</h2>
-            <PlaylistsSection userId={profileUserId} isOwner={isMe} />
+          <aside className="min-w-0 space-y-6 lg:sticky lg:top-24 lg:self-start">
+            <FollowersBox userId={profileUserId} />
+            <div>
+              <h2 className="mb-4 text-lg font-bold tracking-tight">Playlists</h2>
+              <PlaylistsSection userId={profileUserId} isOwner={isMe} />
+            </div>
           </aside>
         </div>
 
