@@ -1,10 +1,43 @@
-import { useState } from "react";
-import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus, Heart } from "lucide-react";
+import { useRef, useState } from "react";
+import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus, Heart, ImagePlus, X } from "lucide-react";
 import { usePlaylistsForUser, savePlaylistToLibrary } from "@/lib/playlists";
 import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { formatArtistLine } from "@/lib/tracks";
+import { formatArtistLine, type Track } from "@/lib/tracks";
+
+function PlaylistCover({
+  coverUrl,
+  tracks,
+  isLiked,
+}: {
+  coverUrl?: string | null;
+  tracks: Track[];
+  isLiked: boolean;
+}) {
+  if (coverUrl) {
+    return <img src={coverUrl} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" />;
+  }
+  const covers = tracks.map((t) => t.cover).filter(Boolean).slice(0, 4);
+  if (covers.length >= 4) {
+    return (
+      <div className="grid h-12 w-12 flex-shrink-0 grid-cols-2 grid-rows-2 overflow-hidden rounded-lg">
+        {covers.map((c, i) => (
+          <img key={i} src={c} alt="" className="h-full w-full object-cover" />
+        ))}
+      </div>
+    );
+  }
+  if (covers.length >= 1) {
+    return <img src={covers[0]} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" />;
+  }
+  return (
+    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+      {isLiked ? <Heart className="h-5 w-5 fill-current" /> : <ListMusic className="h-5 w-5" />}
+    </div>
+  );
+}
+
 
 export function PlaylistsSection({ userId, isOwner }: { userId: string | null; isOwner: boolean }) {
   const { playlists, removeTrack, deletePlaylist, createPlaylist, moveTrack } = usePlaylistsForUser(userId);
