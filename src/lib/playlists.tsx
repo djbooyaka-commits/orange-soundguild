@@ -11,9 +11,10 @@ export type Playlist = {
   user_id: string;
   name: string;
   created_at: string;
+  cover_art_url?: string | null;
 };
 
-export type PlaylistWithTracks = Playlist & { tracks: Track[] };
+export type PlaylistWithTracks = Playlist & { tracks: Track[]; coverUrl?: string | null };
 
 export async function resolveTracksByIds(ids: string[]): Promise<Track[]> {
   if (!ids.length) return [];
