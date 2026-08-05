@@ -1,0 +1,1 @@
+ALTER TABLE public.playlists ADD COLUMN IF NOT EXISTS cover_art_url text;

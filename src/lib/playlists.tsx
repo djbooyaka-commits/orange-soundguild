@@ -11,9 +11,10 @@ export type Playlist = {
   user_id: string;
   name: string;
   created_at: string;
+  cover_art_url?: string | null;
 };
 
-export type PlaylistWithTracks = Playlist & { tracks: Track[] };
+export type PlaylistWithTracks = Playlist & { tracks: Track[]; coverUrl?: string | null };
 
 export async function resolveTracksByIds(ids: string[]): Promise<Track[]> {
   if (!ids.length) return [];
@@ -162,11 +163,17 @@ export function usePlaylistsForUser(userId: string | null) {
       const resolved = await resolveTracksByIds(allTrackIds);
       const trackMap = new Map(resolved.map((t) => [t.id, t]));
 
-      const grouped: PlaylistWithTracks[] = (pls as Playlist[] ?? []).map((p) => ({
+      const plRows = (pls as Playlist[]) ?? [];
+      const coverUrls = await signMany(
+        plRows.map((p) => ({ bucket: "covers" as const, path: p.cover_art_url })),
+      );
+
+      const grouped: PlaylistWithTracks[] = plRows.map((p, i) => ({
         ...p,
+        coverUrl: coverUrls[i] ?? null,
         tracks: (items ?? [])
-          .filter((i) => i.playlist_id === p.id)
-          .map((i) => trackMap.get(i.track_id))
+          .filter((i2) => i2.playlist_id === p.id)
+          .map((i2) => trackMap.get(i2.track_id))
           .filter(Boolean) as Track[],
       }));
 
@@ -212,6 +219,40 @@ export function usePlaylistsForUser(userId: string | null) {
     [userId, refresh]
   );
 
+  const setPlaylistCover = useCallback(
+    async (playlistId: string, file: File) => {
+      if (!userId) throw new Error("Sign in to change playlist artwork.");
+      if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
+      if (file.size > 5 * 1024 * 1024) throw new Error("Image must be under 5MB.");
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${userId}/playlists/${playlistId}-${Date.now()}-${safe}`;
+      const { error: upErr } = await supabase.storage
+        .from("covers")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const { error } = await supabase
+        .from("playlists")
+        .update({ cover_art_url: path })
+        .eq("id", playlistId);
+      if (error) throw error;
+      refresh();
+    },
+    [userId, refresh]
+  );
+
+  const clearPlaylistCover = useCallback(
+    async (playlistId: string) => {
+      const { error } = await supabase
+        .from("playlists")
+        .update({ cover_art_url: null })
+        .eq("id", playlistId);
+      if (error) throw error;
+      refresh();
+    },
+    [refresh]
+  );
+
+
   const moveTrack = useCallback(
     async (playlistId: string, trackId: string, direction: "up" | "down") => {
       const pl = data.find((p) => p.id === playlistId);
@@ -238,7 +279,7 @@ export function usePlaylistsForUser(userId: string | null) {
     [data, refresh]
   );
 
-  return { playlists: data, refresh, removeTrack, deletePlaylist, createPlaylist, moveTrack };
+  return { playlists: data, refresh, removeTrack, deletePlaylist, createPlaylist, moveTrack, setPlaylistCover, clearPlaylistCover };
 }
 
 export async function savePlaylistToLibrary(

@@ -1,18 +1,77 @@
-import { useState } from "react";
-import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus, Heart } from "lucide-react";
+import { useRef, useState } from "react";
+import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus, Heart, ImagePlus, X } from "lucide-react";
 import { usePlaylistsForUser, savePlaylistToLibrary } from "@/lib/playlists";
 import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { formatArtistLine } from "@/lib/tracks";
+import { formatArtistLine, type Track } from "@/lib/tracks";
+
+function PlaylistCover({
+  coverUrl,
+  tracks,
+  isLiked,
+}: {
+  coverUrl?: string | null;
+  tracks: Track[];
+  isLiked: boolean;
+}) {
+  if (coverUrl) {
+    return <img src={coverUrl} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" />;
+  }
+  const covers = tracks.map((t) => t.cover).filter(Boolean).slice(0, 4);
+  if (covers.length >= 4) {
+    return (
+      <div className="grid h-12 w-12 flex-shrink-0 grid-cols-2 grid-rows-2 overflow-hidden rounded-lg">
+        {covers.map((c, i) => (
+          <img key={i} src={c} alt="" className="h-full w-full object-cover" />
+        ))}
+      </div>
+    );
+  }
+  if (covers.length >= 1) {
+    return <img src={covers[0]} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" />;
+  }
+  return (
+    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+      {isLiked ? <Heart className="h-5 w-5 fill-current" /> : <ListMusic className="h-5 w-5" />}
+    </div>
+  );
+}
+
 
 export function PlaylistsSection({ userId, isOwner }: { userId: string | null; isOwner: boolean }) {
-  const { playlists, removeTrack, deletePlaylist, createPlaylist, moveTrack } = usePlaylistsForUser(userId);
+  const { playlists, removeTrack, deletePlaylist, createPlaylist, moveTrack, setPlaylistCover, clearPlaylistCover } =
+    usePlaylistsForUser(userId);
   const { current, isPlaying, play, toggle } = usePlayer();
   const { user } = useAuth();
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [coverBusyId, setCoverBusyId] = useState<string | null>(null);
+  const coverTargetId = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const pickCover = (playlistId: string) => {
+    coverTargetId.current = playlistId;
+    fileInputRef.current?.click();
+  };
+
+  const onCoverFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const id = coverTargetId.current;
+    e.target.value = "";
+    if (!file || !id) return;
+    setCoverBusyId(id);
+    try {
+      await setPlaylistCover(id, file);
+      toast.success("Playlist artwork updated");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCoverBusyId(null);
+    }
+  };
+
   const [name, setName] = useState("");
 
   const handleSave = async (id: string, plName: string) => {
@@ -99,6 +158,13 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
 
   return (
     <div className="space-y-4">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => void onCoverFile(e)}
+      />
       {createBar}
       {playlists.map((pl) => {
         const open = openId === pl.id;
@@ -125,9 +191,8 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                 onClick={() => setOpenId(open ? null : pl.id)}
                 className="flex flex-1 items-center gap-3 text-left"
               >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${isLiked ? "bg-primary/20 text-primary" : "bg-primary/15 text-primary"}`}>
-                  {isLiked ? <Heart className="h-5 w-5 fill-current" /> : <ListMusic className="h-5 w-5" />}
-                </div>
+                <PlaylistCover coverUrl={pl.coverUrl} tracks={pl.tracks} isLiked={isLiked} />
+
                 <div className="min-w-0">
                   <h3 className="truncate text-sm font-semibold">
                     {pl.name}
@@ -137,6 +202,29 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                 </div>
                 {open ? <ChevronUp className="ml-auto h-4 w-4 text-muted-foreground" /> : <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />}
               </button>
+              {isLiked ? null : isOwner ? (
+                <>
+                  <button
+                    onClick={() => pickCover(pl.id)}
+                    disabled={coverBusyId === pl.id}
+                    aria-label="Change playlist artwork"
+                    title="Change playlist artwork"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-primary disabled:opacity-50"
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                  </button>
+                  {pl.cover_art_url && (
+                    <button
+                      onClick={() => void clearPlaylistCover(pl.id)}
+                      aria-label="Remove playlist artwork"
+                      title="Remove artwork (use track covers)"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </>
+              ) : null}
               {isLiked ? null : isOwner ? (
                 <button
                   onClick={() => {
