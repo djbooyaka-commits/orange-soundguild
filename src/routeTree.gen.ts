@@ -30,6 +30,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
+import { Route as GuidePromotionRouteImport } from './routes/guide.promotion'
 import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submit'
 import { Route as AlbumHandleAlbumRouteImport } from './routes/album.$handle.$album'
 import { Route as ApiPublicSpotifyCallbackRouteImport } from './routes/api/public/spotify/callback'
@@ -142,6 +143,11 @@ const TTrackIdRoute = TTrackIdRouteImport.update({
   path: '/t/$trackId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GuidePromotionRoute = GuidePromotionRouteImport.update({
+  id: '/guide/promotion',
+  path: '/guide/promotion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CuratorOsgSubmitRoute = CuratorOsgSubmitRouteImport.update({
   id: '/osg-submit',
   path: '/osg-submit',
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
+  '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
@@ -226,6 +233,7 @@ export interface FileRoutesByTo {
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
+  '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
+  '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
@@ -287,6 +296,7 @@ export interface FileRouteTypes {
     | '/top100'
     | '/upgrade'
     | '/curator/osg-submit'
+    | '/guide/promotion'
     | '/t/$trackId'
     | '/u/$handle'
     | '/album/$handle/$album'
@@ -316,6 +326,7 @@ export interface FileRouteTypes {
     | '/top100'
     | '/upgrade'
     | '/curator/osg-submit'
+    | '/guide/promotion'
     | '/t/$trackId'
     | '/u/$handle'
     | '/album/$handle/$album'
@@ -345,6 +356,7 @@ export interface FileRouteTypes {
     | '/top100'
     | '/upgrade'
     | '/curator/osg-submit'
+    | '/guide/promotion'
     | '/t/$trackId'
     | '/u/$handle'
     | '/album/$handle/$album'
@@ -374,6 +386,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   Top100Route: typeof Top100Route
   UpgradeRoute: typeof UpgradeRoute
+  GuidePromotionRoute: typeof GuidePromotionRoute
   TTrackIdRoute: typeof TTrackIdRoute
   UHandleRoute: typeof UHandleRoute
   AlbumHandleAlbumRoute: typeof AlbumHandleAlbumRoute
@@ -532,6 +545,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TTrackIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/guide/promotion': {
+      id: '/guide/promotion'
+      path: '/guide/promotion'
+      fullPath: '/guide/promotion'
+      preLoaderRoute: typeof GuidePromotionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/curator/osg-submit': {
       id: '/curator/osg-submit'
       path: '/osg-submit'
@@ -608,6 +628,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   Top100Route: Top100Route,
   UpgradeRoute: UpgradeRoute,
+  GuidePromotionRoute: GuidePromotionRoute,
   TTrackIdRoute: TTrackIdRoute,
   UHandleRoute: UHandleRoute,
   AlbumHandleAlbumRoute: AlbumHandleAlbumRoute,
