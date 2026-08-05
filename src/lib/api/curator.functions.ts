@@ -319,7 +319,7 @@ export const listMyCuratorPlaylists = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("curator_playlists")
-      .select("id, spotify_playlist_id, name, image_url, created_at, is_osg")
+      .select("id, spotify_playlist_id, name, image_url, created_at, is_osg, track_hold_days")
       .eq("curator_id", context.userId)
       .order("created_at", { ascending: false });
     return data ?? [];
@@ -336,6 +336,19 @@ export const setCuratorPlaylistIsOsg = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const setCuratorPlaylistHoldDays = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; days: number }) => data)
+  .handler(async ({ data, context }) => {
+    const { data: days, error } = await context.supabase.rpc("curator_set_track_hold_days", {
+      _playlist_id: data.playlistId,
+      _days: Math.max(0, Math.min(365, Math.round(Number(data.days) || 0))),
+    });
+    if (error) throw new Error(error.message);
+    return { days: (days as number | null) ?? 0 };
+  });
+
 
 export const getCuratorEarnedPoints = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
