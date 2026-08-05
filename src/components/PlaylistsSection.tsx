@@ -125,9 +125,8 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                 onClick={() => setOpenId(open ? null : pl.id)}
                 className="flex flex-1 items-center gap-3 text-left"
               >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${isLiked ? "bg-primary/20 text-primary" : "bg-primary/15 text-primary"}`}>
-                  {isLiked ? <Heart className="h-5 w-5 fill-current" /> : <ListMusic className="h-5 w-5" />}
-                </div>
+                <PlaylistCover coverUrl={pl.coverUrl} tracks={pl.tracks} isLiked={isLiked} />
+
                 <div className="min-w-0">
                   <h3 className="truncate text-sm font-semibold">
                     {pl.name}
