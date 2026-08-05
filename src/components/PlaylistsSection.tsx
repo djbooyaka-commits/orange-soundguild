@@ -203,6 +203,29 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                 {open ? <ChevronUp className="ml-auto h-4 w-4 text-muted-foreground" /> : <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />}
               </button>
               {isLiked ? null : isOwner ? (
+                <>
+                  <button
+                    onClick={() => pickCover(pl.id)}
+                    disabled={coverBusyId === pl.id}
+                    aria-label="Change playlist artwork"
+                    title="Change playlist artwork"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-primary disabled:opacity-50"
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                  </button>
+                  {pl.cover_art_url && (
+                    <button
+                      onClick={() => void clearPlaylistCover(pl.id)}
+                      aria-label="Remove playlist artwork"
+                      title="Remove artwork (use track covers)"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </>
+              ) : null}
+              {isLiked ? null : isOwner ? (
                 <button
                   onClick={() => {
                     if (window.confirm(`Delete playlist "${pl.name}"?`)) void deletePlaylist(pl.id);
