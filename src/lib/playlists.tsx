@@ -279,7 +279,7 @@ export function usePlaylistsForUser(userId: string | null) {
     [data, refresh]
   );
 
-  return { playlists: data, refresh, removeTrack, deletePlaylist, createPlaylist, moveTrack };
+  return { playlists: data, refresh, removeTrack, deletePlaylist, createPlaylist, moveTrack, setPlaylistCover, clearPlaylistCover };
 }
 
 export async function savePlaylistToLibrary(
