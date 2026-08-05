@@ -1,4 +1,11 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /messages
+Disallow: /royalties
+Disallow: /referrals
+Disallow: /st-rooms
+Disallow: /curator
 
-Sitemap: https://orange-soundguild.lovable.app/sitemap.xml
+Sitemap: https://orangesoundguild.com/sitemap.xml
