@@ -129,7 +129,9 @@ export function TrackCard({ track, onDelete, canEdit }: { track: Track; onDelete
             <span>{track.durationLabel}</span>
           </div>
         </div>
+        <TrackSupporters trackId={track.id} />
       </div>
+
     </article>
   );
 }
