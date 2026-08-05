@@ -231,8 +231,7 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
 
     const expiresAt = new Date(Date.now() + SUB_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: sub, error: insErr } = await supabaseAdmin
+    const { data: sub, error: insErr } = await supabase
       .from("artist_subscriptions")
       .insert({
         user_id: userId,
@@ -379,8 +378,7 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
     const expiresAt = new Date(Date.now() + SUB_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const payerRef = order.payer?.payer_id ?? order.payer?.email_address ?? "paypal";
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: sub, error: insErr } = await supabaseAdmin
+    const { data: sub, error: insErr } = await supabase
       .from("artist_subscriptions")
       .insert({
         user_id: userId,
