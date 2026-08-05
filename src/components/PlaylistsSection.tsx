@@ -158,6 +158,13 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
 
   return (
     <div className="space-y-4">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => void onCoverFile(e)}
+      />
       {createBar}
       {playlists.map((pl) => {
         const open = openId === pl.id;
