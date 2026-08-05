@@ -40,12 +40,38 @@ function PlaylistCover({
 
 
 export function PlaylistsSection({ userId, isOwner }: { userId: string | null; isOwner: boolean }) {
-  const { playlists, removeTrack, deletePlaylist, createPlaylist, moveTrack } = usePlaylistsForUser(userId);
+  const { playlists, removeTrack, deletePlaylist, createPlaylist, moveTrack, setPlaylistCover, clearPlaylistCover } =
+    usePlaylistsForUser(userId);
   const { current, isPlaying, play, toggle } = usePlayer();
   const { user } = useAuth();
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [coverBusyId, setCoverBusyId] = useState<string | null>(null);
+  const coverTargetId = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const pickCover = (playlistId: string) => {
+    coverTargetId.current = playlistId;
+    fileInputRef.current?.click();
+  };
+
+  const onCoverFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const id = coverTargetId.current;
+    e.target.value = "";
+    if (!file || !id) return;
+    setCoverBusyId(id);
+    try {
+      await setPlaylistCover(id, file);
+      toast.success("Playlist artwork updated");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCoverBusyId(null);
+    }
+  };
+
   const [name, setName] = useState("");
 
   const handleSave = async (id: string, plName: string) => {
