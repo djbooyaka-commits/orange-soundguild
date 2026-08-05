@@ -163,11 +163,17 @@ export function usePlaylistsForUser(userId: string | null) {
       const resolved = await resolveTracksByIds(allTrackIds);
       const trackMap = new Map(resolved.map((t) => [t.id, t]));
 
-      const grouped: PlaylistWithTracks[] = (pls as Playlist[] ?? []).map((p) => ({
+      const plRows = (pls as Playlist[]) ?? [];
+      const coverUrls = await signMany(
+        plRows.map((p) => ({ bucket: "covers" as const, path: p.cover_art_url })),
+      );
+
+      const grouped: PlaylistWithTracks[] = plRows.map((p, i) => ({
         ...p,
+        coverUrl: coverUrls[i] ?? null,
         tracks: (items ?? [])
-          .filter((i) => i.playlist_id === p.id)
-          .map((i) => trackMap.get(i.track_id))
+          .filter((i2) => i2.playlist_id === p.id)
+          .map((i2) => trackMap.get(i2.track_id))
           .filter(Boolean) as Track[],
       }));
 
