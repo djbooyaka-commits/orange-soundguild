@@ -219,6 +219,40 @@ export function usePlaylistsForUser(userId: string | null) {
     [userId, refresh]
   );
 
+  const setPlaylistCover = useCallback(
+    async (playlistId: string, file: File) => {
+      if (!userId) throw new Error("Sign in to change playlist artwork.");
+      if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
+      if (file.size > 5 * 1024 * 1024) throw new Error("Image must be under 5MB.");
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${userId}/playlists/${playlistId}-${Date.now()}-${safe}`;
+      const { error: upErr } = await supabase.storage
+        .from("covers")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const { error } = await supabase
+        .from("playlists")
+        .update({ cover_art_url: path })
+        .eq("id", playlistId);
+      if (error) throw error;
+      refresh();
+    },
+    [userId, refresh]
+  );
+
+  const clearPlaylistCover = useCallback(
+    async (playlistId: string) => {
+      const { error } = await supabase
+        .from("playlists")
+        .update({ cover_art_url: null })
+        .eq("id", playlistId);
+      if (error) throw error;
+      refresh();
+    },
+    [refresh]
+  );
+
+
   const moveTrack = useCallback(
     async (playlistId: string, trackId: string, direction: "up" | "down") => {
       const pl = data.find((p) => p.id === playlistId);
