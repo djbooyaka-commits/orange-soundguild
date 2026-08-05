@@ -310,64 +310,67 @@ function ProfilePage() {
           <SuperfanPublicProfile userId={profileUserId} displayName="you" />
         )}
 
-        {(isMe ? (isArtist || accountType === "pioneer") : (profile?.account_type === "artist" || profile?.account_type === "pioneer")) && (
-          <>
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-bold tracking-tight">Uploaded tracks</h2>
-              {userTracks.length > 0 && <CatalogPlayControls tracks={userTracks} />}
-            </div>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-w-0">
+            {(isMe ? (isArtist || accountType === "pioneer") : (profile?.account_type === "artist" || profile?.account_type === "pioneer")) && (
+              <>
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-lg font-bold tracking-tight">Uploaded tracks</h2>
+                  {userTracks.length > 0 && <CatalogPlayControls tracks={userTracks} />}
+                </div>
 
-            {userTracks.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
-                <p className="text-sm text-muted-foreground">
-                  {isMe
-                    ? "You haven't uploaded anything yet. Click Upload to share your first track."
-                    : `${displayName} hasn't uploaded any tracks yet.`}
-                </p>
-                {isMe && (isArtist || accountType === "pioneer") && (
-                  <div className="mt-4 inline-block">
-                    <UploadDialog>
-                      <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
-                        <Upload className="h-4 w-4" /> Upload your first track
-                      </button>
-                    </UploadDialog>
+                {userTracks.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      {isMe
+                        ? "You haven't uploaded anything yet. Click Upload to share your first track."
+                        : `${displayName} hasn't uploaded any tracks yet.`}
+                    </p>
+                    {isMe && (isArtist || accountType === "pioneer") && (
+                      <div className="mt-4 inline-block">
+                        <UploadDialog>
+                          <button className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-105">
+                            <Upload className="h-4 w-4" /> Upload your first track
+                          </button>
+                        </UploadDialog>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    {groupFeed(userTracks).map((item) =>
+                      item.type === "album" ? (
+                        <AlbumCard
+                          key={item.album.key}
+                          album={item.album}
+                          canEdit={isMe && item.album.tracks.every((t) => ownedTrackIds.has(t.id))}
+                          linkHandle={displayName}
+                        />
+                      ) : (
+                        <TrackCard
+                          key={item.track.id}
+                          track={item.track}
+                          canEdit={isMe && ownedTrackIds.has(item.track.id)}
+                          onDelete={isMe && ownedTrackIds.has(item.track.id) ? removeUpload : isAdmin ? handleAdminDelete : undefined}
+                        />
+                      ),
+                    )}
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {groupFeed(userTracks).map((item) =>
-                  item.type === "album" ? (
-                    <AlbumCard
-                      key={item.album.key}
-                      album={item.album}
-                      canEdit={isMe && item.album.tracks.every((t) => ownedTrackIds.has(t.id))}
-                      linkHandle={displayName}
-                    />
-                  ) : (
-                    <TrackCard
-                      key={item.track.id}
-                      track={item.track}
-                      canEdit={isMe && ownedTrackIds.has(item.track.id)}
-                      onDelete={isMe && ownedTrackIds.has(item.track.id) ? removeUpload : isAdmin ? handleAdminDelete : undefined}
-                    />
-                  ),
-                )}
-              </div>
+              </>
             )}
-          </>
-        )}
 
-        {!isMe && profileUserId && (
-          <SuperfanPublicProfile userId={profileUserId} displayName={displayName} />
-        )}
+            {!isMe && profileUserId && (
+              <SuperfanPublicProfile userId={profileUserId} displayName={displayName} />
+            )}
+          </div>
 
-        {!isMe && (
-          <>
-            <h2 className="mb-5 mt-12 text-lg font-bold tracking-tight">Playlists</h2>
-            <PlaylistsSection userId={profileUserId} isOwner={false} />
-          </>
-        )}
+          <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+            <h2 className="mb-4 text-lg font-bold tracking-tight">Playlists</h2>
+            <PlaylistsSection userId={profileUserId} isOwner={isMe} />
+          </aside>
+        </div>
+
 
 
 
