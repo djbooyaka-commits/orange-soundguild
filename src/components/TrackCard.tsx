@@ -5,6 +5,8 @@ import { useTrackLike } from "@/lib/likes";
 import type { Track } from "@/lib/tracks";
 import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
 import { EditTrackDialog } from "./EditTrackDialog";
+import { TrackSupporters } from "./TrackSupporters";
+
 
 export function TrackCard({ track, onDelete, canEdit }: { track: Track; onDelete?: (id: string) => void | Promise<void>; canEdit?: boolean }) {
   const { current, isPlaying, play, toggle } = usePlayer();
