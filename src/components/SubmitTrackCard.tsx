@@ -184,7 +184,7 @@ export function SubmitTrackCard() {
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <div>
               Cost: <b>50 pts</b>, or <b>45 pts</b> if you follow every artist on the playlist on
-              Spotify. Max 3 submissions per playlist every 24 hours ({recentCount}/3 used on this playlist).
+              Spotify. Max 5 submissions per playlist every 24 hours ({recentCount}/5 used on this playlist).
               {selected && (
                 <>
                   {" "}
