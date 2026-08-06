@@ -105,8 +105,10 @@ export function CuratorSubmissionsQueue() {
     }
   };
 
-  const pending = rows.filter((r) => r.status === "pending");
-  const past = rows.filter((r) => r.status !== "pending");
+  const cutoff = Date.now() - 15 * 24 * 60 * 60 * 1000;
+  const recent = rows.filter((r) => new Date(r.created_at).getTime() >= cutoff);
+  const pending = recent.filter((r) => r.status === "pending");
+  const past = recent.filter((r) => r.status !== "pending");
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -203,7 +205,9 @@ export function CuratorSubmissionsQueue() {
                   >
                     {s.spotify_track_name ?? s.spotify_track_url}
                   </a>
-                  <p className="truncate text-muted-foreground">{s.playlist_name}</p>
+                  <p className="truncate text-muted-foreground">
+                    From @{s.submitter_username} → {s.playlist_name}
+                  </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {s.status === "approved" && (
