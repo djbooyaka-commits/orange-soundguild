@@ -158,9 +158,17 @@ function ProfilePage() {
   const displayName = isMe
     ? profile?.username?.trim() || CURRENT_USER.name
     : profile?.username?.trim() || decodeURIComponent(handle).replace(/-/g, " ");
-  const bio = isMe
-    ? profile?.bio?.trim() || CURRENT_USER.bio
-    : profile?.bio?.trim() || "Artist on Orange Sound Guild.";
+  const effectiveAccountType = isMe ? accountType : profile?.account_type;
+  const roleLabel =
+    effectiveAccountType === "superfan"
+      ? "Superfan"
+      : effectiveAccountType === "fan"
+        ? "Fan"
+        : "Artist";
+  const bio =
+    profile?.bio?.trim() || `${roleLabel} on Orange Sound Guild.`;
+
+
 
   const { tracks: artistTracks } = useUserTracks(profileUserId);
   const ownedTrackIds = useMemo(() => new Set(uploads.map((track) => track.id)), [uploads]);
