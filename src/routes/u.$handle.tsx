@@ -165,9 +165,9 @@ function ProfilePage() {
       : effectiveAccountType === "fan"
         ? "Fan"
         : "Artist";
-  const bio = isMe
-    ? profile?.bio?.trim() || CURRENT_USER.bio
-    : profile?.bio?.trim() || `${roleLabel} on Orange Sound Guild.`;
+  const bio =
+    profile?.bio?.trim() || `${roleLabel} on Orange Sound Guild.`;
+
 
 
   const { tracks: artistTracks } = useUserTracks(profileUserId);
