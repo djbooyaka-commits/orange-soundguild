@@ -132,8 +132,14 @@ async function importPlaylistTracks(
   spotifyPlaylistId: string,
   ownerId: string,
 ) {
-  const { getBetaAccessToken, getBetaAppToken, fetchBetaPlaylistTracks, fetchBetaPlaylistMeta } =
-    await import("./beta-spotify.server");
+  const {
+    getBetaAccessToken,
+    getBetaAppToken,
+    fetchBetaPlaylistTracks,
+    fetchBetaPlaylistMeta,
+    fetchBetaPublicPlaylistMeta,
+    fetchBetaPublicPlaylistTracks,
+  } = await import("./beta-spotify.server");
 
   const userToken = await getBetaAccessToken(ownerId, supabaseAdmin);
   const appToken = await getBetaAppToken();
@@ -154,6 +160,15 @@ async function importPlaylistTracks(
       break;
     }
     lastError = r.error;
+  }
+
+  // Spotify's Web API currently rejects some otherwise-public playlists for both
+  // user and app tokens. Its public embed still exposes the playlist's canonical
+  // metadata and full track list, so use that read-only source as the fallback.
+  if (tracks.length === 0) {
+    meta = meta ?? (await fetchBetaPublicPlaylistMeta(spotifyPlaylistId));
+    tracks = await fetchBetaPublicPlaylistTracks(spotifyPlaylistId);
+    if (tracks.length > 0) lastError = null;
   }
 
   if (tracks.length === 0) {
@@ -217,14 +232,19 @@ export const addBetaRoomPlaylist = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    const result = await importPlaylistTracks(
-      supabaseAdmin,
-      data.roomId,
-      row.id as string,
-      playlistId,
-      context.userId,
-    );
-    return { ok: true, ...result };
+    try {
+      const result = await importPlaylistTracks(
+        supabaseAdmin,
+        data.roomId,
+        row.id as string,
+        playlistId,
+        context.userId,
+      );
+      return { ok: true, ...result };
+    } catch (importError) {
+      await supabaseAdmin.from("beta_room_playlists").delete().eq("id", row.id);
+      throw importError;
+    }
   });
 
 export const syncBetaRoomPlaylist = createServerFn({ method: "POST" })
