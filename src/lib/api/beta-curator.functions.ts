@@ -108,8 +108,11 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
         .select("playlist_id")
         .in("playlist_id", ids);
       for (const t of tracks ?? []) {
-        counts.set(t.playlist_id, (counts.get(t.playlist_id) ?? 0) + 1);
+        const pid = (t as any).playlist_id as string | null;
+        if (!pid) continue;
+        counts.set(pid, (counts.get(pid) ?? 0) + 1);
       }
+
     }
 
     return (rows ?? []).map((r: any) => ({
