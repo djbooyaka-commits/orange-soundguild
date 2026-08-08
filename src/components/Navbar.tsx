@@ -224,7 +224,7 @@ export function Navbar() {
                   </Link>
                 </DropdownMenuItem>
               )}
-              {isAdmin && (
+              {(isAdmin || accountType === "superfan") && (
                 <DropdownMenuItem asChild>
                   <Link to="/beta-rooms" className="flex items-center gap-2">
                     <FlaskConical className="h-4 w-4" /> Beta Rooms
