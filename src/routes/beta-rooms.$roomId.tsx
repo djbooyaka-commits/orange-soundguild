@@ -115,10 +115,8 @@ function BetaRoomDetail() {
       const r: any = await syncLastfmFn({ data: { roomId } });
       if (!r.connected) {
         setLastfmMsg("Connect Last.fm below first, then sync.");
-      } else if (r.error === "lastfm_user_not_found") {
-        setLastfmMsg("Last.fm user not found — check your username in the card below.");
       } else if (r.error) {
-        setLastfmMsg(`Last.fm error: ${r.error}`);
+        setLastfmMsg(r.errorMessage ?? `Last.fm error: ${r.error}`);
       } else if (r.added) {
         setLastfmMsg(`+${r.added} point${r.added === 1 ? "" : "s"} via Last.fm (scanned ${r.scanned} scrobbles)`);
       } else {
