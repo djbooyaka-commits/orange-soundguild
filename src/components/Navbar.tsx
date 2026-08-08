@@ -224,6 +224,13 @@ export function Navbar() {
                   </Link>
                 </DropdownMenuItem>
               )}
+              {isAdmin && (
+                <DropdownMenuItem asChild>
+                  <Link to="/beta-rooms" className="flex items-center gap-2">
+                    <FlaskConical className="h-4 w-4" /> Beta Rooms
+                  </Link>
+                </DropdownMenuItem>
+              )}
               {isArtist && (
                 <DropdownMenuItem asChild>
                   <Link to="/royalties">Royalties</Link>
