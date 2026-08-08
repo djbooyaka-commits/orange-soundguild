@@ -108,6 +108,32 @@ function BetaRoomDetail() {
     }
   };
 
+  const syncLastfm = async () => {
+    setBusyLastfm(true);
+    setLastfmMsg(null);
+    try {
+      const r: any = await syncLastfmFn({ data: { roomId } });
+      if (!r.connected) {
+        setLastfmMsg("Connect Last.fm below first, then sync.");
+      } else if (r.error === "lastfm_user_not_found") {
+        setLastfmMsg("Last.fm user not found — check your username in the card below.");
+      } else if (r.error) {
+        setLastfmMsg(`Last.fm error: ${r.error}`);
+      } else if (r.added) {
+        setLastfmMsg(`+${r.added} point${r.added === 1 ? "" : "s"} via Last.fm (scanned ${r.scanned} scrobbles)`);
+      } else {
+        setLastfmMsg(
+          `Up to date — scanned ${r.scanned} scrobble${r.scanned === 1 ? "" : "s"}, ${r.matched} matched the ${r.watching}-track watch list.`,
+        );
+      }
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Last.fm sync failed");
+    } finally {
+      setBusyLastfm(false);
+    }
+  };
+
   const join = async () => {
     setBusy(true);
     try {
