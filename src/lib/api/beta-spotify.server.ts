@@ -155,12 +155,14 @@ export async function fetchBetaPlaylistTracks(
   playlistId: string,
 ): Promise<{ items: Array<{ id: string; name: string; artist: string }>; error: string | null }> {
   const out: Array<{ id: string; name: string; artist: string }> = [];
+  // Spotify now returns 403 on the legacy /tracks list endpoint; /items is the supported one
+  // and requires a user-authorized token (client-credentials gets 401).
   let url: string | null =
-    `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100&fields=next,items(track(id,name,artists(name)))`;
+    `https://api.spotify.com/v1/playlists/${playlistId}/items?limit=100&additional_types=track`;
   for (let page = 0; page < 10 && url; page++) {
     const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) {
-      console.error(`Beta playlist tracks failed [${res.status}] for ${playlistId}`);
+      console.error(`Beta playlist items failed [${res.status}] for ${playlistId}`);
       return { items: out, error: `spotify_${res.status}` };
     }
     const body: any = await res.json();
@@ -192,11 +194,12 @@ export async function betaAddTrackToPlaylist(
   playlistId: string,
   trackId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+  const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/items`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ uris: [`spotify:track:${trackId}`] }),
   });
   if (!res.ok) return { ok: false, error: `spotify_${res.status}` };
+
   return { ok: true };
 }
