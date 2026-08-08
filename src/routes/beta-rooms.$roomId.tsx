@@ -11,7 +11,9 @@ import {
   syncBetaRoom,
   joinBetaRoom,
 } from "@/lib/api/beta-rooms.functions";
+import { syncLastfmBetaRoom } from "@/lib/api/lastfm.functions";
 import { SpotifyConnectCard } from "@/components/SpotifyConnectCard";
+import { LastfmConnectCard } from "@/components/LastfmConnectCard";
 
 export const Route = createFileRoute("/beta-rooms/$roomId")({
   head: () => ({
