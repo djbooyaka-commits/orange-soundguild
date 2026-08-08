@@ -171,7 +171,10 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
     }
 
     // Fetch recent scrobbles from Last.fm
-    const OVERLAP_MS = 15 * 60 * 1000;
+    // Re-read a full day so a temporarily unmatched first play can be recovered
+    // after playlist metadata or matching rules are corrected. The database's
+    // duplicate guard keeps already-counted scrobbles from earning points twice.
+    const OVERLAP_MS = 24 * 60 * 60 * 1000;
     const fromMs = conn.last_polled_at
       ? new Date(conn.last_polled_at).getTime() - OVERLAP_MS
       : Date.now() - 24 * 60 * 60 * 1000;
