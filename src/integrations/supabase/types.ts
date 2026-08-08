@@ -153,11 +153,53 @@ export type Database = {
           },
         ]
       }
+      beta_room_playlists: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          room_id: string
+          spotify_playlist_id: string
+          track_hold_days: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          room_id: string
+          spotify_playlist_id: string
+          track_hold_days?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          room_id?: string
+          spotify_playlist_id?: string
+          track_hold_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_room_playlists_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "beta_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_room_tracks: {
         Row: {
           artist_name: string | null
           created_at: string
           id: string
+          playlist_id: string | null
           room_id: string
           spotify_track_id: string
           track_name: string | null
@@ -167,6 +209,7 @@ export type Database = {
           artist_name?: string | null
           created_at?: string
           id?: string
+          playlist_id?: string | null
           room_id: string
           spotify_track_id: string
           track_name?: string | null
@@ -176,12 +219,20 @@ export type Database = {
           artist_name?: string | null
           created_at?: string
           id?: string
+          playlist_id?: string | null
           room_id?: string
           spotify_track_id?: string
           track_name?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "beta_room_tracks_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "beta_room_playlists"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "beta_room_tracks_room_id_fkey"
             columns: ["room_id"]
@@ -196,6 +247,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          invite_code: string
           name: string
           owner_id: string
           updated_at: string
@@ -204,6 +256,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          invite_code?: string
           name: string
           owner_id: string
           updated_at?: string
@@ -212,6 +265,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          invite_code?: string
           name?: string
           owner_id?: string
           updated_at?: string
@@ -252,6 +306,69 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "beta_stream_points_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "beta_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      beta_submissions: {
+        Row: {
+          cost_points: number
+          created_at: string
+          curator_note: string | null
+          id: string
+          owner_id: string
+          playlist_id: string
+          reviewed_at: string | null
+          room_id: string
+          spotify_track_id: string
+          spotify_track_name: string | null
+          spotify_track_url: string
+          status: Database["public"]["Enums"]["curator_submission_status"]
+          submitter_user_id: string
+        }
+        Insert: {
+          cost_points?: number
+          created_at?: string
+          curator_note?: string | null
+          id?: string
+          owner_id: string
+          playlist_id: string
+          reviewed_at?: string | null
+          room_id: string
+          spotify_track_id: string
+          spotify_track_name?: string | null
+          spotify_track_url: string
+          status?: Database["public"]["Enums"]["curator_submission_status"]
+          submitter_user_id: string
+        }
+        Update: {
+          cost_points?: number
+          created_at?: string
+          curator_note?: string | null
+          id?: string
+          owner_id?: string
+          playlist_id?: string
+          reviewed_at?: string | null
+          room_id?: string
+          spotify_track_id?: string
+          spotify_track_name?: string | null
+          spotify_track_url?: string
+          status?: Database["public"]["Enums"]["curator_submission_status"]
+          submitter_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_submissions_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "beta_room_playlists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "beta_submissions_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "beta_rooms"
