@@ -118,6 +118,147 @@ export type Database = {
         }
         Relationships: []
       }
+      beta_room_members: {
+        Row: {
+          created_at: string
+          id: string
+          last_polled_at: string | null
+          room_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_polled_at?: string | null
+          room_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_polled_at?: string | null
+          room_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "beta_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      beta_room_tracks: {
+        Row: {
+          artist_name: string | null
+          created_at: string
+          id: string
+          room_id: string
+          spotify_track_id: string
+          track_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          artist_name?: string | null
+          created_at?: string
+          id?: string
+          room_id: string
+          spotify_track_id: string
+          track_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          artist_name?: string | null
+          created_at?: string
+          id?: string
+          room_id?: string
+          spotify_track_id?: string
+          track_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_room_tracks_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "beta_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      beta_rooms: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      beta_stream_points: {
+        Row: {
+          created_at: string
+          id: string
+          played_at: string
+          room_id: string
+          source: string | null
+          spotify_track_id: string
+          spotify_track_name: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          played_at: string
+          room_id: string
+          source?: string | null
+          spotify_track_id: string
+          spotify_track_name?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          played_at?: string
+          room_id?: string
+          source?: string | null
+          spotify_track_id?: string
+          spotify_track_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_stream_points_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "beta_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           body: string
@@ -1289,6 +1430,14 @@ export type Database = {
         Args: { _playlist_id: string; _spotify_track_id: string }
         Returns: undefined
       }
+      beta_room_leaderboard: {
+        Args: { _room: string }
+        Returns: {
+          points: number
+          user_id: string
+          username: string
+        }[]
+      }
       can_use_osg_artists: { Args: never; Returns: boolean }
       cancel_curator_invite: {
         Args: { _invite_id: string }
@@ -1372,6 +1521,14 @@ export type Database = {
       }
       is_artist: { Args: { _user_id: string }; Returns: boolean }
       is_banned: { Args: { _user_id: string }; Returns: boolean }
+      is_beta_room_member: {
+        Args: { _room: string; _user: string }
+        Returns: boolean
+      }
+      is_beta_room_owner: {
+        Args: { _room: string; _user: string }
+        Returns: boolean
+      }
       is_royalty_eligible: { Args: { _user_id: string }; Returns: boolean }
       list_curator_invites_for_me: {
         Args: never
