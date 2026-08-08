@@ -12,7 +12,7 @@ import {
   leaveBetaRoom,
 } from "@/lib/api/beta-rooms.functions";
 
-export const Route = createFileRoute("/beta-rooms")({
+export const Route = createFileRoute("/beta-rooms/")({
   head: () => ({
     meta: [
       { title: "Beta Stream Rooms — Orange Sound Guild" },

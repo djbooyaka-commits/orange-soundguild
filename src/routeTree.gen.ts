@@ -28,6 +28,7 @@ import { Route as ArtistWelcomeRouteImport } from './routes/artist-welcome'
 import { Route as AdsRouteImport } from './routes/ads'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BetaRoomsIndexRouteImport } from './routes/beta-rooms.index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
 import { Route as GuidePromotionRouteImport } from './routes/guide.promotion'
@@ -133,6 +134,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BetaRoomsIndexRoute = BetaRoomsIndexRouteImport.update({
+  id: '/beta-rooms/',
+  path: '/beta-rooms/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UHandleRoute = UHandleRouteImport.update({
   id: '/u/$handle',
   path: '/u/$handle',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
+  '/beta-rooms/': typeof BetaRoomsIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
+  '/beta-rooms': typeof BetaRoomsIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
+  '/beta-rooms/': typeof BetaRoomsIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/guide/promotion'
     | '/t/$trackId'
     | '/u/$handle'
+    | '/beta-rooms/'
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/guide/promotion'
     | '/t/$trackId'
     | '/u/$handle'
+    | '/beta-rooms'
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/guide/promotion'
     | '/t/$trackId'
     | '/u/$handle'
+    | '/beta-rooms/'
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
@@ -389,6 +401,7 @@ export interface RootRouteChildren {
   GuidePromotionRoute: typeof GuidePromotionRoute
   TTrackIdRoute: typeof TTrackIdRoute
   UHandleRoute: typeof UHandleRoute
+  BetaRoomsIndexRoute: typeof BetaRoomsIndexRoute
   AlbumHandleAlbumRoute: typeof AlbumHandleAlbumRoute
   ApiPublicHooksCleanupChatLinksRoute: typeof ApiPublicHooksCleanupChatLinksRoute
   ApiPublicHooksCleanupChatMediaRoute: typeof ApiPublicHooksCleanupChatMediaRoute
@@ -531,6 +544,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/beta-rooms/': {
+      id: '/beta-rooms/'
+      path: '/beta-rooms'
+      fullPath: '/beta-rooms/'
+      preLoaderRoute: typeof BetaRoomsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/u/$handle': {
       id: '/u/$handle'
       path: '/u/$handle'
@@ -631,6 +651,7 @@ const rootRouteChildren: RootRouteChildren = {
   GuidePromotionRoute: GuidePromotionRoute,
   TTrackIdRoute: TTrackIdRoute,
   UHandleRoute: UHandleRoute,
+  BetaRoomsIndexRoute: BetaRoomsIndexRoute,
   AlbumHandleAlbumRoute: AlbumHandleAlbumRoute,
   ApiPublicHooksCleanupChatLinksRoute: ApiPublicHooksCleanupChatLinksRoute,
   ApiPublicHooksCleanupChatMediaRoute: ApiPublicHooksCleanupChatMediaRoute,
