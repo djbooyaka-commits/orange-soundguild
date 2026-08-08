@@ -134,13 +134,39 @@ async function importPlaylistTracks(
 ) {
   const { getBetaAccessToken, getBetaAppToken, fetchBetaPlaylistTracks, fetchBetaPlaylistMeta } =
     await import("./beta-spotify.server");
-  const token = (await getBetaAccessToken(ownerId, supabaseAdmin)) ?? (await getBetaAppToken());
-  if (!token) throw new Error("Spotify is not configured — cannot read that playlist");
 
-  const meta = await fetchBetaPlaylistMeta(token, spotifyPlaylistId);
-  const tracks = await fetchBetaPlaylistTracks(token, spotifyPlaylistId);
-  if (tracks.length === 0 && !meta) {
-    throw new Error("Could not read that playlist — make sure it is public");
+  const userToken = await getBetaAccessToken(ownerId, supabaseAdmin);
+  const appToken = await getBetaAppToken();
+  const candidates = [userToken, appToken].filter(Boolean) as string[];
+  if (candidates.length === 0) throw new Error("Spotify is not configured — cannot read that playlist");
+
+  let meta: { name: string; imageUrl: string | null } | null = null;
+  let tracks: Array<{ id: string; name: string; artist: string }> = [];
+  let lastError: string | null = null;
+
+  for (const token of candidates) {
+    const m = await fetchBetaPlaylistMeta(token, spotifyPlaylistId);
+    if (m && !meta) meta = m;
+    const r = await fetchBetaPlaylistTracks(token, spotifyPlaylistId);
+    if (r.items.length > 0) {
+      tracks = r.items;
+      lastError = null;
+      break;
+    }
+    lastError = r.error;
+  }
+
+  if (tracks.length === 0) {
+    if (lastError === "spotify_403" || lastError === "spotify_401") {
+      throw new Error(
+        userToken
+          ? "Spotify blocked reading that playlist. Make sure the playlist is public and owned by the Spotify account you connected, then reconnect Spotify and try again."
+          : "That playlist is private. Connect your Spotify account (the one that owns the playlist) or make the playlist public, then sync again.",
+      );
+    }
+    if (lastError) throw new Error(`Spotify could not read that playlist (${lastError}).`);
+    if (!meta) throw new Error("Could not read that playlist — make sure it is public");
+    throw new Error("That playlist has no playable tracks on Spotify.");
   }
 
   if (meta) {
