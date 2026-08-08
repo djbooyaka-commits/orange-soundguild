@@ -201,10 +201,19 @@ function BetaRoomDetail() {
               className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Sync recently played
+              Sync via Spotify
+            </button>
+            <button
+              onClick={syncLastfm}
+              disabled={busyLastfm}
+              className="inline-flex items-center gap-2 rounded-md border border-[#D51007]/30 bg-[#D51007]/5 px-3 py-2 text-sm hover:bg-[#D51007]/10 disabled:opacity-50"
+            >
+              {busyLastfm ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Sync via Last.fm
             </button>
           </div>
           {msg && <p className="mt-3 text-xs text-muted-foreground">{msg}</p>}
+          {lastfmMsg && <p className="mt-1 text-xs text-muted-foreground">{lastfmMsg}</p>}
         </section>
       )}
 
