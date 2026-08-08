@@ -246,7 +246,8 @@ export async function fetchBetaPlaylistTracks(
   // and requires a user-authorized token (client-credentials gets 401).
   let url: string | null =
     `https://api.spotify.com/v1/playlists/${playlistId}/items?limit=100&additional_types=track`;
-  for (let page = 0; page < 10 && url; page++) {
+  // Page through the entire playlist (100 pages x 100 = up to 10k tracks).
+  for (let page = 0; page < 100 && url; page++) {
     const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) {
       console.error(`Beta playlist items failed [${res.status}] for ${playlistId}`);
