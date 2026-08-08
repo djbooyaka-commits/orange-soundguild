@@ -81,10 +81,7 @@ export async function fetchRecentlyPlayed(accessToken: string, afterMs: number) 
       console.error(`Beta recently-played failed [${res.status}]: ${text}`);
       return {
         items,
-        error:
-          res.status === 403
-            ? "spotify_account_not_allowed"
-            : `spotify_${res.status}`,
+        error: res.status === 403 ? "spotify_account_not_allowed" : `spotify_${res.status}`,
       };
     }
     const body = await res.json();
@@ -126,7 +123,10 @@ export async function getBetaAppToken(): Promise<string | null> {
   const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
   const res = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
-    headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
     body: new URLSearchParams({ grant_type: "client_credentials" }),
   });
   if (!res.ok) {
@@ -148,6 +148,55 @@ export async function fetchBetaPlaylistMeta(token: string, playlistId: string) {
     name: (json.name as string) ?? "Playlist",
     imageUrl: (json.images?.[0]?.url as string | undefined) ?? null,
   };
+}
+
+type PublicPlaylistEntity = {
+  name?: string;
+  title?: string;
+  coverArt?: { sources?: Array<{ url?: string }> };
+  trackList?: Array<{ uri?: string; title?: string; subtitle?: string }>;
+};
+
+async function fetchBetaPublicPlaylist(playlistId: string): Promise<PublicPlaylistEntity | null> {
+  const res = await fetch(`https://open.spotify.com/embed/playlist/${playlistId}`, {
+    headers: { Accept: "text/html" },
+  });
+  if (!res.ok) return null;
+
+  const html = await res.text();
+  const match = html.match(
+    /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/,
+  );
+  if (!match?.[1]) return null;
+
+  try {
+    const page = JSON.parse(match[1]) as {
+      props?: { pageProps?: { state?: { data?: { entity?: PublicPlaylistEntity } } } };
+    };
+    return page.props?.pageProps?.state?.data?.entity ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchBetaPublicPlaylistMeta(playlistId: string) {
+  const entity = await fetchBetaPublicPlaylist(playlistId);
+  if (!entity) return null;
+  return {
+    name: entity.name ?? entity.title ?? "Playlist",
+    imageUrl: entity.coverArt?.sources?.[0]?.url ?? null,
+  };
+}
+
+export async function fetchBetaPublicPlaylistTracks(
+  playlistId: string,
+): Promise<Array<{ id: string; name: string; artist: string }>> {
+  const entity = await fetchBetaPublicPlaylist(playlistId);
+  return (entity?.trackList ?? []).flatMap((track) => {
+    const id = track.uri?.match(/^spotify:track:([A-Za-z0-9]{22})$/)?.[1];
+    if (!id) return [];
+    return [{ id, name: track.title ?? "", artist: track.subtitle ?? "" }];
+  });
 }
 
 export async function fetchBetaPlaylistTracks(
