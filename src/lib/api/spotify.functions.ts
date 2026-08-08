@@ -209,15 +209,14 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
         const lower = t.toLowerCase();
         const isUnregisteredSpotifyUser =
           res.status === 403 && lower.includes("not registered for this application");
-        const isPremiumRequired =
-          res.status === 403 && (lower.includes("premium subscription") || lower.includes("premium to access"));
+        // NOTE: recently-played works for FREE Spotify accounts. A 403 here is
+        // almost always the app's dev-mode allowed-users cap, not a Premium issue.
         return {
           added: 0,
           connected: true,
-          error: isUnregisteredSpotifyUser
-            ? "spotify_account_not_allowed"
-            : isPremiumRequired
-              ? "spotify_premium_required"
+          error:
+            isUnregisteredSpotifyUser || res.status === 403
+              ? "spotify_account_not_allowed"
               : `spotify_${res.status}`,
         };
       }

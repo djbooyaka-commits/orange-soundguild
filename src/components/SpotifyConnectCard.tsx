@@ -11,11 +11,8 @@ import {
 } from "@/lib/api/spotify.functions";
 
 function spotifyPollMessage(result: { added?: number; error?: string | null; scanned?: number; skippedNotCurated?: number }) {
-  if (result.error === "spotify_account_not_allowed") {
-    return "Spotify blocked tracking: this account is not on the app's allowed-user list. In the Spotify Developer Dashboard, open your app → Settings → User Management, and add this email to the allowed users list. Or use your own app below to skip the 5-user cap.";
-  }
-  if (result.error === "spotify_premium_required" || result.error === "spotify_403") {
-    return "Spotify blocked tracking: the connected Spotify account needs a Premium subscription to use the Web API. Upgrade to Spotify Premium, then disconnect and reconnect here.";
+  if (result.error === "spotify_account_not_allowed" || result.error === "spotify_403") {
+    return "Spotify blocked tracking: this account is not on the app's allowed-user list (Spotify caps apps in development mode). A free Spotify account is fine — it just has to be added. Ask the site owner to add your Spotify email under the app's User Management, or use your own Spotify app below to skip the cap.";
   }
   if (result.error) return `Spotify sync error: ${result.error}`;
   if (result.added) return `+${result.added} new stream point${result.added === 1 ? "" : "s"}`;
@@ -173,7 +170,7 @@ export function SpotifyConnectCard() {
           <div>
             <h2 className="font-semibold">Spotify stream tracking</h2>
             <p className="text-sm text-muted-foreground">
-              Connect Spotify. Every full stream from a submitted Curator playlist earns 1 point. A Spotify Premium subscription is required to use the Web API.
+              Connect Spotify. Every full stream from a submitted Curator playlist earns 1 point. Works with free Spotify accounts — no Premium needed.
             </p>
           </div>
         </div>
@@ -257,7 +254,7 @@ export function SpotifyConnectCard() {
               <>
             <ol className="ml-4 list-decimal space-y-1 text-xs text-muted-foreground">
                   <li>
-                    You need a Spotify Premium subscription to use the Web API. Then go to{" "}
+                    A free Spotify account works. Go to{" "}
                     <a
                       href="https://developer.spotify.com/dashboard"
                       target="_blank"
