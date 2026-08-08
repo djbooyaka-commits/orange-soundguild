@@ -18,8 +18,10 @@ export const setLastfmUsername = createServerFn({ method: "POST" })
   })
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const apiKey = process.env["LASTFM_API_KEY"];
-    if (!apiKey) throw new Error("Last.fm tracking is not configured on this site yet");
+    const { getLastfmApiKey, lastfmErrorMessage } = await import("./lastfm.server");
+
+    const { key: apiKey, error: keyError } = getLastfmApiKey();
+    if (!apiKey) throw new Error(lastfmErrorMessage(keyError!));
 
     // Verify the username exists on Last.fm before saving
     const checkUrl = new URL("https://ws.audioscrobbler.com/2.0/");
@@ -28,10 +30,33 @@ export const setLastfmUsername = createServerFn({ method: "POST" })
     checkUrl.searchParams.set("api_key", apiKey);
     checkUrl.searchParams.set("format", "json");
 
-    const res = await fetch(checkUrl.toString());
-    if (!res.ok) throw new Error("Last.fm username not found — check the spelling");
-    const body = await res.json();
-    if (body?.error) throw new Error(body.message ?? "Last.fm user not found");
+    let res: Response;
+    try {
+      res = await fetch(checkUrl.toString());
+    } catch {
+      throw new Error(lastfmErrorMessage("lastfm_unavailable"));
+    }
+
+    let body: any = null;
+    try {
+      body = await res.json();
+    } catch {
+      body = null;
+    }
+
+    if (body?.error) {
+      const code = Number(body.error);
+      if (code === 6) throw new Error(lastfmErrorMessage("lastfm_user_not_found"));
+      if (code === 10 || code === 26) throw new Error(lastfmErrorMessage("lastfm_key_rejected"));
+      if (code === 29) throw new Error(lastfmErrorMessage("lastfm_rate_limited"));
+      throw new Error(lastfmErrorMessage(`lastfm_${code}`));
+    }
+    if (!res.ok) {
+      if (res.status === 403) throw new Error(lastfmErrorMessage("lastfm_key_rejected"));
+      if (res.status === 404) throw new Error(lastfmErrorMessage("lastfm_user_not_found"));
+      if (res.status === 429) throw new Error(lastfmErrorMessage("lastfm_rate_limited"));
+      throw new Error(lastfmErrorMessage("lastfm_unavailable"));
+    }
 
     const { error } = await supabaseAdmin
       .from("lastfm_connections")
@@ -81,10 +106,21 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
   .inputValidator((data: { roomId: string }) => ({ roomId: String(data?.roomId ?? "") }))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { fetchLastfmRecentTracks, matchTrack } = await import("./lastfm.server");
+    const { fetchLastfmRecentTracks, matchTrack, getLastfmApiKey, lastfmErrorMessage } =
+      await import("./lastfm.server");
 
-    const apiKey = process.env["LASTFM_API_KEY"];
-    if (!apiKey) throw new Error("Last.fm tracking is not configured on this site yet");
+    const { key: apiKey, error: keyError } = getLastfmApiKey();
+    if (!apiKey) {
+      return {
+        added: 0,
+        connected: true,
+        error: keyError,
+        errorMessage: lastfmErrorMessage(keyError!),
+        scanned: 0,
+        matched: 0,
+        watching: 0,
+      };
+    }
 
     // Get user's Last.fm connection
     const { data: conn } = await supabaseAdmin
@@ -92,7 +128,8 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
       .select("lastfm_username, last_polled_at")
       .eq("user_id", context.userId)
       .maybeSingle();
-    if (!conn) return { added: 0, connected: false, error: null as string | null };
+    if (!conn)
+      return { added: 0, connected: false, error: null as string | null, errorMessage: null as string | null };
 
     // Check room membership
     const { data: room } = await supabaseAdmin
@@ -122,7 +159,15 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
     }));
 
     if (watchList.length === 0) {
-      return { added: 0, connected: true, error: null as string | null, scanned: 0, matched: 0, watching: 0 };
+      return {
+        added: 0,
+        connected: true,
+        error: null as string | null,
+        errorMessage: null as string | null,
+        scanned: 0,
+        matched: 0,
+        watching: 0,
+      };
     }
 
     // Fetch recent scrobbles from Last.fm
@@ -138,6 +183,7 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
         added: 0,
         connected: true,
         error,
+        errorMessage: lastfmErrorMessage(error),
         scanned: 0,
         matched: 0,
         watching: watchList.length,
@@ -181,6 +227,7 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
       added,
       connected: true,
       error: null as string | null,
+      errorMessage: null as string | null,
       scanned: items.length,
       matched,
       watching: watchList.length,

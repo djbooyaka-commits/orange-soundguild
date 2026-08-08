@@ -32,6 +32,58 @@ export interface LastfmScrobble {
   uts: number; // UNIX timestamp (seconds)
 }
 
+/**
+ * Validates the configured Last.fm API key.
+ * Last.fm keys are 32-character lowercase hex strings.
+ * Returns a friendly error code instead of throwing so callers can surface it.
+ */
+export function getLastfmApiKey(): { key: string | null; error: string | null } {
+  const raw = process.env["LASTFM_API_KEY"];
+  const key = typeof raw === "string" ? raw.trim() : "";
+  if (!key) return { key: null, error: "lastfm_key_missing" };
+  if (!/^[0-9a-fA-F]{32}$/.test(key)) return { key: null, error: "lastfm_key_malformed" };
+  return { key, error: null };
+}
+
+/** Human-readable message for a Last.fm error code. */
+export function lastfmErrorMessage(code: string): string {
+  switch (code) {
+    case "lastfm_key_missing":
+      return "Last.fm tracking isn't configured yet — the site's Last.fm API key is missing. An admin needs to add it.";
+    case "lastfm_key_malformed":
+      return "The site's Last.fm API key is invalid (it must be a 32-character key from last.fm/api/account/create). An admin needs to fix it.";
+    case "lastfm_key_rejected":
+      return "Last.fm rejected the site's API key. It may have been revoked or mistyped — an admin needs to replace it.";
+    case "lastfm_user_not_found":
+      return "That Last.fm username doesn't exist — check the spelling.";
+    case "lastfm_rate_limited":
+      return "Last.fm is rate-limiting requests right now. Try again in a minute.";
+    case "lastfm_unavailable":
+      return "Last.fm is temporarily unavailable. Try again shortly.";
+    default:
+      return `Last.fm error: ${code}`;
+  }
+}
+
+/** Maps a Last.fm API error code number to our internal code. */
+function mapLastfmApiError(code: number): string {
+  switch (code) {
+    case 6:
+      return "lastfm_user_not_found";
+    case 10:
+    case 26:
+      return "lastfm_key_rejected";
+    case 29:
+      return "lastfm_rate_limited";
+    case 8:
+    case 11:
+    case 16:
+      return "lastfm_unavailable";
+    default:
+      return `lastfm_${code}`;
+  }
+}
+
 /** Fetches a user's recent scrobbles from Last.fm, optionally after a UNIX timestamp. */
 export async function fetchLastfmRecentTracks(
   username: string,
@@ -48,19 +100,33 @@ export async function fetchLastfmRecentTracks(
     url.searchParams.set("from", String(fromTimestamp));
   }
 
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`Last.fm recent tracks failed [${res.status}]: ${text}`);
-    return {
-      items: [],
-      error: res.status === 404 ? "lastfm_user_not_found" : `lastfm_${res.status}`,
-    };
+  let res: Response;
+  try {
+    res = await fetch(url.toString());
+  } catch (e) {
+    console.error("Last.fm request failed", e);
+    return { items: [], error: "lastfm_unavailable" };
   }
-  const body = await res.json();
+
+  let body: any = null;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+
   if (body?.error) {
-    return { items: [], error: `lastfm_${body.error}` };
+    return { items: [], error: mapLastfmApiError(Number(body.error)) };
   }
+  if (!res.ok) {
+    console.error(`Last.fm recent tracks failed [${res.status}]`);
+    if (res.status === 403) return { items: [], error: "lastfm_key_rejected" };
+    if (res.status === 404) return { items: [], error: "lastfm_user_not_found" };
+    if (res.status === 429) return { items: [], error: "lastfm_rate_limited" };
+    if (res.status >= 500) return { items: [], error: "lastfm_unavailable" };
+    return { items: [], error: `lastfm_${res.status}` };
+  }
+
 
   const tracks: any[] = body?.recenttracks?.track ?? [];
   // Filter out "now playing" tracks (no date) and map to our shape
