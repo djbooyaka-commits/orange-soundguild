@@ -315,6 +315,9 @@ function BetaRoomDetail() {
       )}
 
       <SpotifyConnectCard />
+      <div className="mt-4">
+        <LastfmConnectCard />
+      </div>
     </main>
   );
 }
