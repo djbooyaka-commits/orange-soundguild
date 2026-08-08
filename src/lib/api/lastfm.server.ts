@@ -100,19 +100,33 @@ export async function fetchLastfmRecentTracks(
     url.searchParams.set("from", String(fromTimestamp));
   }
 
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`Last.fm recent tracks failed [${res.status}]: ${text}`);
-    return {
-      items: [],
-      error: res.status === 404 ? "lastfm_user_not_found" : `lastfm_${res.status}`,
-    };
+  let res: Response;
+  try {
+    res = await fetch(url.toString());
+  } catch (e) {
+    console.error("Last.fm request failed", e);
+    return { items: [], error: "lastfm_unavailable" };
   }
-  const body = await res.json();
+
+  let body: any = null;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+
   if (body?.error) {
-    return { items: [], error: `lastfm_${body.error}` };
+    return { items: [], error: mapLastfmApiError(Number(body.error)) };
   }
+  if (!res.ok) {
+    console.error(`Last.fm recent tracks failed [${res.status}]`);
+    if (res.status === 403) return { items: [], error: "lastfm_key_rejected" };
+    if (res.status === 404) return { items: [], error: "lastfm_user_not_found" };
+    if (res.status === 429) return { items: [], error: "lastfm_rate_limited" };
+    if (res.status >= 500) return { items: [], error: "lastfm_unavailable" };
+    return { items: [], error: `lastfm_${res.status}` };
+  }
+
 
   const tracks: any[] = body?.recenttracks?.track ?? [];
   // Filter out "now playing" tracks (no date) and map to our shape
