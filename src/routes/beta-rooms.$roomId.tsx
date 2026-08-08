@@ -11,7 +11,9 @@ import {
   syncBetaRoom,
   joinBetaRoom,
 } from "@/lib/api/beta-rooms.functions";
+import { syncLastfmBetaRoom } from "@/lib/api/lastfm.functions";
 import { SpotifyConnectCard } from "@/components/SpotifyConnectCard";
+import { LastfmConnectCard } from "@/components/LastfmConnectCard";
 
 export const Route = createFileRoute("/beta-rooms/$roomId")({
   head: () => ({
@@ -35,13 +37,16 @@ function BetaRoomDetail() {
   const addFn = useServerFn(addBetaRoomTrack);
   const removeFn = useServerFn(removeBetaRoomTrack);
   const syncFn = useServerFn(syncBetaRoom);
+  const syncLastfmFn = useServerFn(syncLastfmBetaRoom);
   const joinFn = useServerFn(joinBetaRoom);
 
   const [room, setRoom] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [busyLastfm, setBusyLastfm] = useState(false);
   const [url, setUrl] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [lastfmMsg, setLastfmMsg] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -100,6 +105,32 @@ function BetaRoomDetail() {
       toast.error(e?.message ?? "Sync failed");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const syncLastfm = async () => {
+    setBusyLastfm(true);
+    setLastfmMsg(null);
+    try {
+      const r: any = await syncLastfmFn({ data: { roomId } });
+      if (!r.connected) {
+        setLastfmMsg("Connect Last.fm below first, then sync.");
+      } else if (r.error === "lastfm_user_not_found") {
+        setLastfmMsg("Last.fm user not found — check your username in the card below.");
+      } else if (r.error) {
+        setLastfmMsg(`Last.fm error: ${r.error}`);
+      } else if (r.added) {
+        setLastfmMsg(`+${r.added} point${r.added === 1 ? "" : "s"} via Last.fm (scanned ${r.scanned} scrobbles)`);
+      } else {
+        setLastfmMsg(
+          `Up to date — scanned ${r.scanned} scrobble${r.scanned === 1 ? "" : "s"}, ${r.matched} matched the ${r.watching}-track watch list.`,
+        );
+      }
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Last.fm sync failed");
+    } finally {
+      setBusyLastfm(false);
     }
   };
 
@@ -170,10 +201,19 @@ function BetaRoomDetail() {
               className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Sync recently played
+              Sync via Spotify
+            </button>
+            <button
+              onClick={syncLastfm}
+              disabled={busyLastfm}
+              className="inline-flex items-center gap-2 rounded-md border border-[#D51007]/30 bg-[#D51007]/5 px-3 py-2 text-sm hover:bg-[#D51007]/10 disabled:opacity-50"
+            >
+              {busyLastfm ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Sync via Last.fm
             </button>
           </div>
           {msg && <p className="mt-3 text-xs text-muted-foreground">{msg}</p>}
+          {lastfmMsg && <p className="mt-1 text-xs text-muted-foreground">{lastfmMsg}</p>}
         </section>
       )}
 
@@ -275,6 +315,9 @@ function BetaRoomDetail() {
       )}
 
       <SpotifyConnectCard />
+      <div className="mt-4">
+        <LastfmConnectCard />
+      </div>
     </main>
   );
 }
