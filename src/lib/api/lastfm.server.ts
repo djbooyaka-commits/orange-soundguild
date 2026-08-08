@@ -7,11 +7,24 @@ function normalize(str: string): string {
   return str
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, " ")
     // Remove common parenthetical and bracketed annotations
     .replace(/\s*\(.*?\)\s*/g, " ")
     .replace(/\s*\[.*?\]\s*/g, " ")
+    // Strip trailing " - Radio Edit" / " - Original Mix" / " - Drum and Bass" style suffixes
+    .replace(/\s+-\s+[^-]*$/, " ")
+    // Drop punctuation so "&"/"and", apostrophes and dots don't break matches
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Splits a credited-artists string into individual normalized artist names. */
+function artistSet(str: string): string[] {
+  return str
+    .split(/,|\/|\bfeat\.?\b|\bft\.?\b|\bwith\b|\bx\b|&/i)
+    .map((a) => normalize(a))
+    .filter(Boolean);
 }
 
 /** Returns true if a Last.fm scrobble matches a watch-list track. */
@@ -21,9 +34,14 @@ export function matchTrack(
   watchName: string,
   watchArtist: string,
 ): boolean {
-  return normalize(lastfmName) === normalize(watchName) &&
-    normalize(lastfmArtist) === normalize(watchArtist);
+  if (normalize(lastfmName) !== normalize(watchName)) return false;
+  const a = artistSet(lastfmArtist);
+  const b = artistSet(watchArtist);
+  // Watch-list rows imported without artist metadata still match on title alone.
+  if (a.length === 0 || b.length === 0) return true;
+  return a.some((x) => b.includes(x));
 }
+
 
 export interface LastfmScrobble {
   name: string;
