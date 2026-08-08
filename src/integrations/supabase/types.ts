@@ -1720,6 +1720,7 @@ export type Database = {
           avatar_url: string
           created_at: string
           id: string
+          last_deduction_at: string
           username: string
           weekly_min: number
           weekly_points: number
@@ -1735,6 +1736,7 @@ export type Database = {
           curator_id: string
           curator_username: string
           is_me: boolean
+          last_deduction_at: string
           username: string
           weekly_min: number
           weekly_points: number
