@@ -37,13 +37,16 @@ function BetaRoomDetail() {
   const addFn = useServerFn(addBetaRoomTrack);
   const removeFn = useServerFn(removeBetaRoomTrack);
   const syncFn = useServerFn(syncBetaRoom);
+  const syncLastfmFn = useServerFn(syncLastfmBetaRoom);
   const joinFn = useServerFn(joinBetaRoom);
 
   const [room, setRoom] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [busyLastfm, setBusyLastfm] = useState(false);
   const [url, setUrl] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [lastfmMsg, setLastfmMsg] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
