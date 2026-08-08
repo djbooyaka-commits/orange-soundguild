@@ -210,7 +210,7 @@ function CuratorPage() {
                   <li>Curators (Superfans) add Spotify playlists they curate.</li>
                   <li>Curators share their invite link with fans.</li>
                   <li>Opening the link (after signing in) enrolls that user for tracking.</li>
-                  <li>Fans need a Spotify Premium account to connect tracking — the Web API requires Premium.</li>
+                  <li>Free Spotify accounts work — no Premium required. We only read your recently-played history.</li>
                   <li>When an enrolled user streams a track in full inside that Curator's playlist on Spotify, they earn 1 point.</li>
                   <li>Spotify only reports streams played long enough to count — we don&apos;t see skips.</li>
                   <li>OSG Artists must earn at least 600 points/week from your Curator playlists to stay in good standing.</li>
