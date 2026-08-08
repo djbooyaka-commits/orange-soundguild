@@ -1,0 +1,109 @@
+// Server-only Spotify helpers for the BETA stream tracker sandbox.
+// Deliberately duplicated from the live tracker so the working system is untouched.
+
+async function getCreds(userId: string, supabaseAdmin: any) {
+  const { data } = await supabaseAdmin
+    .from("spotify_user_apps")
+    .select("client_id, client_secret")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (data?.client_id && data?.client_secret) {
+    return { clientId: data.client_id as string, clientSecret: data.client_secret as string };
+  }
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  if (!clientId || !clientSecret) throw new Error("Spotify not configured");
+  return { clientId, clientSecret };
+}
+
+/** Returns a valid access token for the user, refreshing if needed, or null if not connected. */
+export async function getBetaAccessToken(
+  userId: string,
+  supabaseAdmin: any,
+): Promise<string | null> {
+  const { data: conn } = await supabaseAdmin
+    .from("spotify_connections")
+    .select("user_id, access_token, refresh_token, expires_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!conn) return null;
+
+  if (Date.now() < new Date(conn.expires_at).getTime() - 30_000) {
+    return conn.access_token as string;
+  }
+
+  const { clientId, clientSecret } = await getCreds(userId, supabaseAdmin);
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: conn.refresh_token,
+    }),
+  });
+  if (!res.ok) {
+    console.error(`Beta Spotify refresh failed [${res.status}]: ${await res.text()}`);
+    return null;
+  }
+  const json = await res.json();
+  const newAccess = json.access_token as string;
+  await supabaseAdmin
+    .from("spotify_connections")
+    .update({
+      access_token: newAccess,
+      refresh_token: (json.refresh_token as string) || conn.refresh_token,
+      expires_at: new Date(Date.now() + (json.expires_in as number) * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+  return newAccess;
+}
+
+/** Pages backwards through recently-played until `afterMs` is reached. */
+export async function fetchRecentlyPlayed(accessToken: string, afterMs: number) {
+  const items: any[] = [];
+  let before: number | null = null;
+  for (let page = 0; page < 10; page++) {
+    const url = new URL("https://api.spotify.com/v1/me/player/recently-played");
+    url.searchParams.set("limit", "50");
+    if (before == null) url.searchParams.set("after", String(afterMs));
+    else url.searchParams.set("before", String(before));
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(`Beta recently-played failed [${res.status}]: ${text}`);
+      return {
+        items,
+        error:
+          res.status === 403
+            ? "spotify_account_not_allowed"
+            : `spotify_${res.status}`,
+      };
+    }
+    const body = await res.json();
+    const pageItems: any[] = body.items ?? [];
+    if (pageItems.length === 0) break;
+    items.push(...pageItems);
+    const oldest = Math.min(...pageItems.map((i) => new Date(i.played_at).getTime()));
+    if (pageItems.length < 50 || oldest <= afterMs) break;
+    before = oldest;
+  }
+  return { items, error: null as string | null };
+}
+
+export function parseSpotifyTrackId(input: string): string | null {
+  const raw = input.trim();
+  const uri = raw.match(/^spotify:track:([A-Za-z0-9]{22})$/);
+  if (uri) return uri[1];
+  const url = raw.match(/open\.spotify\.com\/(?:[a-z-]+\/)?track\/([A-Za-z0-9]{22})/);
+  if (url) return url[1];
+  if (/^[A-Za-z0-9]{22}$/.test(raw)) return raw;
+  return null;
+}
