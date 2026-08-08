@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User, Radio } from "lucide-react";
+import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User, Radio, FlaskConical } from "lucide-react";
 import { useEffect, useState } from "react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
@@ -221,6 +221,13 @@ export function Navbar() {
                 <DropdownMenuItem asChild>
                   <Link to="/st-rooms" className="flex items-center gap-2">
                     <Radio className="h-4 w-4" /> S.T. Room
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {isAdmin && (
+                <DropdownMenuItem asChild>
+                  <Link to="/beta-rooms" className="flex items-center gap-2">
+                    <FlaskConical className="h-4 w-4" /> Beta Rooms
                   </Link>
                 </DropdownMenuItem>
               )}

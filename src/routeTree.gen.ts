@@ -28,10 +28,12 @@ import { Route as ArtistWelcomeRouteImport } from './routes/artist-welcome'
 import { Route as AdsRouteImport } from './routes/ads'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BetaRoomsIndexRouteImport } from './routes/beta-rooms.index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
 import { Route as GuidePromotionRouteImport } from './routes/guide.promotion'
 import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submit'
+import { Route as BetaRoomsRoomIdRouteImport } from './routes/beta-rooms.$roomId'
 import { Route as AlbumHandleAlbumRouteImport } from './routes/album.$handle.$album'
 import { Route as ApiPublicSpotifyCallbackRouteImport } from './routes/api/public/spotify/callback'
 import { Route as ApiPublicHooksCleanupChatMediaRouteImport } from './routes/api/public/hooks/cleanup-chat-media'
@@ -133,6 +135,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BetaRoomsIndexRoute = BetaRoomsIndexRouteImport.update({
+  id: '/beta-rooms/',
+  path: '/beta-rooms/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UHandleRoute = UHandleRouteImport.update({
   id: '/u/$handle',
   path: '/u/$handle',
@@ -152,6 +159,11 @@ const CuratorOsgSubmitRoute = CuratorOsgSubmitRouteImport.update({
   id: '/osg-submit',
   path: '/osg-submit',
   getParentRoute: () => CuratorRoute,
+} as any)
+const BetaRoomsRoomIdRoute = BetaRoomsRoomIdRouteImport.update({
+  id: '/beta-rooms/$roomId',
+  path: '/beta-rooms/$roomId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlbumHandleAlbumRoute = AlbumHandleAlbumRouteImport.update({
   id: '/album/$handle/$album',
@@ -202,10 +214,12 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
+  '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
+  '/beta-rooms/': typeof BetaRoomsIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
@@ -232,10 +246,12 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
+  '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
+  '/beta-rooms': typeof BetaRoomsIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
@@ -263,10 +279,12 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
+  '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
+  '/beta-rooms/': typeof BetaRoomsIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
@@ -295,10 +313,12 @@ export interface FileRouteTypes {
     | '/terms'
     | '/top100'
     | '/upgrade'
+    | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
     | '/guide/promotion'
     | '/t/$trackId'
     | '/u/$handle'
+    | '/beta-rooms/'
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
@@ -325,10 +345,12 @@ export interface FileRouteTypes {
     | '/terms'
     | '/top100'
     | '/upgrade'
+    | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
     | '/guide/promotion'
     | '/t/$trackId'
     | '/u/$handle'
+    | '/beta-rooms'
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
@@ -355,10 +377,12 @@ export interface FileRouteTypes {
     | '/terms'
     | '/top100'
     | '/upgrade'
+    | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
     | '/guide/promotion'
     | '/t/$trackId'
     | '/u/$handle'
+    | '/beta-rooms/'
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
@@ -386,9 +410,11 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   Top100Route: typeof Top100Route
   UpgradeRoute: typeof UpgradeRoute
+  BetaRoomsRoomIdRoute: typeof BetaRoomsRoomIdRoute
   GuidePromotionRoute: typeof GuidePromotionRoute
   TTrackIdRoute: typeof TTrackIdRoute
   UHandleRoute: typeof UHandleRoute
+  BetaRoomsIndexRoute: typeof BetaRoomsIndexRoute
   AlbumHandleAlbumRoute: typeof AlbumHandleAlbumRoute
   ApiPublicHooksCleanupChatLinksRoute: typeof ApiPublicHooksCleanupChatLinksRoute
   ApiPublicHooksCleanupChatMediaRoute: typeof ApiPublicHooksCleanupChatMediaRoute
@@ -531,6 +557,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/beta-rooms/': {
+      id: '/beta-rooms/'
+      path: '/beta-rooms'
+      fullPath: '/beta-rooms/'
+      preLoaderRoute: typeof BetaRoomsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/u/$handle': {
       id: '/u/$handle'
       path: '/u/$handle'
@@ -558,6 +591,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/curator/osg-submit'
       preLoaderRoute: typeof CuratorOsgSubmitRouteImport
       parentRoute: typeof CuratorRoute
+    }
+    '/beta-rooms/$roomId': {
+      id: '/beta-rooms/$roomId'
+      path: '/beta-rooms/$roomId'
+      fullPath: '/beta-rooms/$roomId'
+      preLoaderRoute: typeof BetaRoomsRoomIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/album/$handle/$album': {
       id: '/album/$handle/$album'
@@ -628,9 +668,11 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   Top100Route: Top100Route,
   UpgradeRoute: UpgradeRoute,
+  BetaRoomsRoomIdRoute: BetaRoomsRoomIdRoute,
   GuidePromotionRoute: GuidePromotionRoute,
   TTrackIdRoute: TTrackIdRoute,
   UHandleRoute: UHandleRoute,
+  BetaRoomsIndexRoute: BetaRoomsIndexRoute,
   AlbumHandleAlbumRoute: AlbumHandleAlbumRoute,
   ApiPublicHooksCleanupChatLinksRoute: ApiPublicHooksCleanupChatLinksRoute,
   ApiPublicHooksCleanupChatMediaRoute: ApiPublicHooksCleanupChatMediaRoute,
