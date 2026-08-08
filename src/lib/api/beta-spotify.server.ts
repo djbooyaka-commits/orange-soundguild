@@ -248,7 +248,14 @@ export async function fetchBetaPlaylistTracks(
     `https://api.spotify.com/v1/playlists/${playlistId}/items?limit=100&additional_types=track`;
   // Page through the entire playlist (100 pages x 100 = up to 10k tracks).
   for (let page = 0; page < 100 && url; page++) {
-    const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    let res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok && page === 0) {
+      // Some tokens/playlists still only work on the legacy /tracks endpoint.
+      res = await fetch(
+        `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100&additional_types=track`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+    }
     if (!res.ok) {
       console.error(`Beta playlist items failed [${res.status}] for ${playlistId}`);
       return { items: out, error: `spotify_${res.status}` };
