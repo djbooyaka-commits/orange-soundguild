@@ -28,6 +28,7 @@ type Pick = {
   account_type: "fan" | "artist" | "superfan" | "pioneer";
   weekly_points: number;
   weekly_min: number;
+  last_deduction_at?: string | null;
 };
 
 type RosterRow = {
@@ -41,6 +42,7 @@ type RosterRow = {
   weekly_points: number;
   weekly_min: number;
   is_me: boolean;
+  last_deduction_at?: string | null;
 };
 
 
@@ -317,12 +319,16 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
       weekly_points: number;
       weekly_min: number;
       is_me?: boolean;
+      last_deduction_at?: string | null;
       avatar?: string | null;
       showDeduct?: boolean;
     },
     trailing?: React.ReactNode,
   ) => {
     const min = a.weekly_min || DEFAULT_WEEKLY_MIN;
+    const recentlyDeducted =
+      !!a.last_deduction_at &&
+      Date.now() - new Date(a.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
     const below = a.weekly_points < min;
     const typeLabel =
       a.account_type === "pioneer"
@@ -379,7 +385,18 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             )}
             {a.weekly_points} / {min} pts this week
           </span>
-          {below && <span className="font-semibold">Below minimum</span>}
+          <span className="inline-flex items-center gap-2">
+            {recentlyDeducted && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-500"
+                title="Points were removed by the curator in the last 24 hours"
+              >
+                <Star className="h-3 w-3 fill-current" />
+                Pts removed
+              </span>
+            )}
+            {below && <span className="font-semibold">Below minimum</span>}
+          </span>
         </div>
         {a.showDeduct && (
           <div className="flex items-center gap-2">
@@ -478,6 +495,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   account_type: a.account_type,
                   weekly_points: a.weekly_points,
                   weekly_min: a.weekly_min,
+                  last_deduction_at: a.last_deduction_at ?? null,
                   avatar: avatars[i] ?? null,
                   showDeduct: true,
                 },
@@ -573,6 +591,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   weekly_points: r.weekly_points,
                   weekly_min: r.weekly_min,
                   is_me: r.is_me,
+                  last_deduction_at: r.last_deduction_at ?? null,
                   avatar: rosterAvatarByArtist.get(`${r.curator_id}:${r.artist_id}`) ?? null,
                 }),
               )}
