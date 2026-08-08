@@ -31,14 +31,18 @@ export const listBetaRooms = createServerFn({ method: "GET" })
       pointsByRoom.set(p.room_id, (pointsByRoom.get(p.room_id) ?? 0) + 1);
     }
 
-    return (rooms ?? []).map((r: any) => ({
-      id: r.id as string,
-      name: r.name as string,
-      description: (r.description as string | null) ?? null,
-      isOwner: r.owner_id === context.userId,
-      joined: joined.has(r.id) || r.owner_id === context.userId,
-      myPoints: pointsByRoom.get(r.id) ?? 0,
-    }));
+    // Invite-only: you only see rooms you own or have been invited into.
+    return (rooms ?? [])
+      .filter((r: any) => r.owner_id === context.userId || joined.has(r.id))
+      .map((r: any) => ({
+        id: r.id as string,
+        name: r.name as string,
+        description: (r.description as string | null) ?? null,
+        isOwner: r.owner_id === context.userId,
+        joined: joined.has(r.id) || r.owner_id === context.userId,
+        myPoints: pointsByRoom.get(r.id) ?? 0,
+      }));
+
   });
 
 export const createBetaRoom = createServerFn({ method: "POST" })

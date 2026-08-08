@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { FlaskConical, Loader2, Plus, Trash2 } from "lucide-react";
@@ -11,6 +11,8 @@ import {
   joinBetaRoom,
   leaveBetaRoom,
 } from "@/lib/api/beta-rooms.functions";
+import { joinBetaRoomByCode } from "@/lib/api/beta-curator.functions";
+
 
 export const Route = createFileRoute("/beta-rooms/")({
   head: () => ({
@@ -44,6 +46,8 @@ function BetaRoomsPage() {
   const deleteFn = useServerFn(deleteBetaRoom);
   const joinFn = useServerFn(joinBetaRoom);
   const leaveFn = useServerFn(leaveBetaRoom);
+  const joinByCodeFn = useServerFn(joinBetaRoomByCode);
+  const navigate = useNavigate();
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +73,60 @@ function BetaRoomsPage() {
     }
     void refresh();
   }, [user, refresh]);
+
+  // Invite link: /beta-rooms?invite=CODE
+  useEffect(() => {
+    if (typeof window === "undefined" || authLoading) return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("invite");
+    if (!code) return;
+
+    if (!user) {
+      try {
+        window.sessionStorage.setItem("pending_beta_invite", code);
+      } catch {
+        /* ignore */
+      }
+      navigate({ to: "/auth" });
+      return;
+    }
+
+    joinByCodeFn({ data: { code } })
+      .then((r: any) => {
+        toast.success(`Joined ${r.name}`);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("invite");
+        window.history.replaceState({}, "", url.toString());
+        navigate({ to: "/beta-rooms/$roomId", params: { roomId: r.roomId } });
+      })
+      .catch((e: any) => toast.error(e?.message ?? "Could not join room"));
+  }, [user, authLoading, joinByCodeFn, navigate]);
+
+  // Resume an invite saved before sign-in
+  useEffect(() => {
+    if (typeof window === "undefined" || authLoading || !user) return;
+    let code: string | null = null;
+    try {
+      code = window.sessionStorage.getItem("pending_beta_invite");
+    } catch {
+      code = null;
+    }
+    if (!code) return;
+    try {
+      window.sessionStorage.removeItem("pending_beta_invite");
+    } catch {
+      /* ignore */
+    }
+    joinByCodeFn({ data: { code } })
+      .then((r: any) => {
+        toast.success(`Joined ${r.name}`);
+        navigate({ to: "/beta-rooms/$roomId", params: { roomId: r.roomId } });
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }, [user, authLoading, joinByCodeFn, navigate]);
+
 
   const create = async () => {
     setBusy(true);

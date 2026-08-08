@@ -1,28 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, FlaskConical, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, FlaskConical, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  getBetaRoom,
-  addBetaRoomTrack,
-  removeBetaRoomTrack,
-  syncBetaRoom,
-  joinBetaRoom,
-} from "@/lib/api/beta-rooms.functions";
+import { getBetaRoom, joinBetaRoom } from "@/lib/api/beta-rooms.functions";
 import { syncLastfmBetaRoom } from "@/lib/api/lastfm.functions";
-import { SpotifyConnectCard } from "@/components/SpotifyConnectCard";
 import { LastfmConnectCard } from "@/components/LastfmConnectCard";
+import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
+import { BetaRoomInvite } from "@/components/BetaRoomInvite";
+import { BetaRoomSubmissions } from "@/components/BetaRoomSubmissions";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/beta-rooms/$roomId")({
   head: () => ({
     meta: [
-      { title: "Beta Room — Orange Sound Guild" },
-      { name: "description", content: "Experimental stream tracking room." },
+      { title: "Last.fm Stream Room — Orange Sound Guild" },
+      { name: "description", content: "Invite-only Last.fm stream tracker room." },
       { name: "robots", content: "noindex" },
-      { property: "og:title", content: "Beta Room — Orange Sound Guild" },
-      { property: "og:description", content: "Experimental stream tracking room." },
+      { property: "og:title", content: "Last.fm Stream Room — Orange Sound Guild" },
+      { property: "og:description", content: "Invite-only Last.fm stream tracker room." },
     ],
   }),
   component: BetaRoomDetail,
@@ -34,9 +31,6 @@ function BetaRoomDetail() {
   const { roomId } = Route.useParams();
   const { user, loading: authLoading } = useAuth();
   const getFn = useServerFn(getBetaRoom);
-  const addFn = useServerFn(addBetaRoomTrack);
-  const removeFn = useServerFn(removeBetaRoomTrack);
-  const syncFn = useServerFn(syncBetaRoom);
   const syncLastfmFn = useServerFn(syncLastfmBetaRoom);
   const joinFn = useServerFn(joinBetaRoom);
 
@@ -44,8 +38,6 @@ function BetaRoomDetail() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [busyLastfm, setBusyLastfm] = useState(false);
-  const [url, setUrl] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
   const [lastfmMsg, setLastfmMsg] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -67,47 +59,6 @@ function BetaRoomDetail() {
     void refresh();
   }, [user, refresh]);
 
-  const addTrack = async () => {
-    setBusy(true);
-    try {
-      await addFn({ data: { roomId, url } });
-      setUrl("");
-      await refresh();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Could not add track");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const sync = async () => {
-    setBusy(true);
-    setMsg(null);
-    try {
-      const r: any = await syncFn({ data: { roomId } });
-      if (!r.connected) {
-        setMsg("Connect Spotify below first, then sync.");
-      } else if (r.error === "spotify_account_not_allowed") {
-        setMsg(
-          "Spotify blocked the read: this account isn't on the app's allowed-user list yet. Once the site's Spotify app gets Extended Quota (free, via Spotify Developer Dashboard), this cap disappears. For now, connect your own Spotify app below to skip the cap.",
-        );
-      } else if (r.error) {
-        setMsg(`Spotify error: ${r.error}`);
-      } else if (r.added) {
-        setMsg(`+${r.added} beta point${r.added === 1 ? "" : "s"} (scanned ${r.scanned} plays)`);
-      } else {
-        setMsg(
-          `Up to date — scanned ${r.scanned} recent play${r.scanned === 1 ? "" : "s"}, ${r.matched} matched the ${r.watching}-track watch list.`,
-        );
-      }
-      await refresh();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Sync failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const syncLastfm = async () => {
     setBusyLastfm(true);
     setLastfmMsg(null);
@@ -118,10 +69,12 @@ function BetaRoomDetail() {
       } else if (r.error) {
         setLastfmMsg(r.errorMessage ?? `Last.fm error: ${r.error}`);
       } else if (r.added) {
-        setLastfmMsg(`+${r.added} point${r.added === 1 ? "" : "s"} via Last.fm (scanned ${r.scanned} scrobbles)`);
+        setLastfmMsg(
+          `+${r.added} point${r.added === 1 ? "" : "s"} via Last.fm (scanned ${r.scanned} scrobbles)`,
+        );
       } else {
         setLastfmMsg(
-          `Up to date — scanned ${r.scanned} scrobble${r.scanned === 1 ? "" : "s"}, ${r.matched} matched the ${r.watching}-track watch list.`,
+          `Up to date — scanned ${r.scanned} scrobble${r.scanned === 1 ? "" : "s"}, ${r.matched} matched the ${r.watching} tracked track${r.watching === 1 ? "" : "s"}.`,
         );
       }
       await refresh();
@@ -143,21 +96,49 @@ function BetaRoomDetail() {
   };
 
   if (authLoading || loading) {
-    return <main className="mx-auto max-w-4xl px-4 py-10 text-sm text-muted-foreground">Loading…</main>;
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-10 text-sm text-muted-foreground">Loading…</main>
+    );
   }
 
   if (!user) {
     return (
       <main className="mx-auto max-w-4xl px-4 py-10">
         <p className="text-sm text-muted-foreground">
-          Please <Link to="/auth" className="text-primary underline">sign in</Link>.
+          Please{" "}
+          <Link to="/auth" className="text-primary underline">
+            sign in
+          </Link>
+          .
         </p>
       </main>
     );
   }
 
   if (!room) {
-    return <main className="mx-auto max-w-4xl px-4 py-10 text-sm text-muted-foreground">Room not found.</main>;
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-10 text-sm text-muted-foreground">
+        Room not found.
+      </main>
+    );
+  }
+
+  if (!room.joined) {
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-10">
+        <h1 className="text-2xl font-bold tracking-tight">{room.name}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          This is an invite-only Last.fm stream room. Use the curator&apos;s invite link to join.
+        </p>
+        <button
+          onClick={join}
+          disabled={busy}
+          className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          Join this room
+        </button>
+      </main>
+    );
   }
 
   return (
@@ -166,7 +147,7 @@ function BetaRoomDetail() {
         to="/beta-rooms"
         className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-3 w-3" /> All beta rooms
+        <ArrowLeft className="h-3 w-3" /> All Last.fm rooms
       </Link>
 
       <header className="mb-6 flex items-center gap-3">
@@ -175,147 +156,94 @@ function BetaRoomDetail() {
         </span>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{room.name}</h1>
-          {room.description && <p className="text-sm text-muted-foreground">{room.description}</p>}
+          <p className="text-sm text-muted-foreground">
+            {room.description ?? "Last.fm stream tracker room."}
+          </p>
         </div>
       </header>
 
-      {!room.joined ? (
-        <button
-          onClick={join}
-          disabled={busy}
-          className="mb-6 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          Join this room
-        </button>
-      ) : (
-        <section className="mb-6 rounded-xl border border-border bg-card p-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
-              Your beta points: <span className="font-semibold">{room.myPoints}</span>
-            </div>
-            <button
-              onClick={sync}
-              disabled={busy}
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Sync via Spotify
-            </button>
-            <button
-              onClick={syncLastfm}
-              disabled={busyLastfm}
-              className="inline-flex items-center gap-2 rounded-md border border-[#D51007]/30 bg-[#D51007]/5 px-3 py-2 text-sm hover:bg-[#D51007]/10 disabled:opacity-50"
-            >
-              {busyLastfm ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Sync via Last.fm
-            </button>
-          </div>
-          {msg && <p className="mt-3 text-xs text-muted-foreground">{msg}</p>}
-          {lastfmMsg && <p className="mt-1 text-xs text-muted-foreground">{lastfmMsg}</p>}
-        </section>
-      )}
+      <Tabs defaultValue="tracking" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="tracking">Stream Tracker</TabsTrigger>
+          <TabsTrigger value="playlists">Curator playlists</TabsTrigger>
+          {room.isOwner && <TabsTrigger value="invite">Invite link</TabsTrigger>}
+          <TabsTrigger value="submissions">Track submissions</TabsTrigger>
+        </TabsList>
 
-      <section className="mb-6 rounded-xl border border-border bg-card p-5">
-        <h2 className="font-semibold">Watch list ({room.tracks.length})</h2>
-        <p className="text-xs text-muted-foreground">
-          Plays of these tracks earn a point, no matter where they were played from.
-        </p>
+        <TabsContent value="tracking" className="space-y-6">
+          <section className="rounded-xl border border-border bg-card p-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
+                Your points: <span className="font-semibold">{room.myPoints}</span>
+              </div>
+              <button
+                onClick={syncLastfm}
+                disabled={busyLastfm}
+                className="inline-flex items-center gap-2 rounded-md border border-[#D51007]/30 bg-[#D51007]/5 px-3 py-2 text-sm hover:bg-[#D51007]/10 disabled:opacity-50"
+              >
+                {busyLastfm ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                Sync via Last.fm
+              </button>
+            </div>
+            {lastfmMsg && <p className="mt-3 text-xs text-muted-foreground">{lastfmMsg}</p>}
+            <p className="mt-3 text-xs text-muted-foreground">
+              Tracking {room.tracks.length} track{room.tracks.length === 1 ? "" : "s"} from this
+              room&apos;s curator playlists. Plays count from anywhere — no Spotify connection or
+              Premium needed, just Last.fm scrobbling.
+            </p>
+          </section>
+
+          <LastfmConnectCard />
+
+          {room.isOwner && room.leaderboard.length > 0 && (
+            <section className="rounded-xl border border-border bg-card p-5">
+              <h2 className="font-semibold">Leaderboard</h2>
+              <ul className="mt-3 space-y-1 text-sm">
+                {room.leaderboard.map((l) => (
+                  <li key={l.userId} className="flex justify-between">
+                    <span>@{l.username ?? l.userId.slice(0, 8)}</span>
+                    <span className="font-semibold">{l.points}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {room.recent.length > 0 && (
+            <section className="rounded-xl border border-border bg-card p-5">
+              <h2 className="font-semibold">Your recent counted plays</h2>
+              <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                {room.recent.map((p, i) => (
+                  <li key={`${p.trackId}-${i}`} className="flex justify-between gap-3">
+                    <span className="truncate">{p.name ?? p.trackId}</span>
+                    <span className="shrink-0 text-xs">
+                      {new Date(p.playedAt).toLocaleString()} · {p.source ?? "—"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </TabsContent>
+
+        <TabsContent value="playlists">
+          <BetaRoomPlaylists roomId={roomId} isOwner={room.isOwner} onChanged={refresh} />
+        </TabsContent>
 
         {room.isOwner && (
-          <div className="mt-3 flex gap-2">
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://open.spotify.com/track/…"
-              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
-            />
-            <button
-              onClick={addTrack}
-              disabled={busy || !url.trim()}
-              className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              <Plus className="h-4 w-4" /> Add
-            </button>
-          </div>
+          <TabsContent value="invite">
+            <BetaRoomInvite roomId={roomId} />
+          </TabsContent>
         )}
 
-        <ul className="mt-4 space-y-2">
-          {room.tracks.length === 0 && (
-            <li className="text-sm text-muted-foreground">No tracks yet.</li>
-          )}
-          {room.tracks.map((t) => (
-            <li
-              key={t.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
-            >
-              <div className="min-w-0">
-                <a
-                  href={`https://open.spotify.com/track/${t.spotifyTrackId}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="truncate text-sm font-medium hover:text-primary"
-                >
-                  {t.name ?? t.spotifyTrackId}
-                </a>
-                {t.artist && <p className="text-xs text-muted-foreground">{t.artist}</p>}
-              </div>
-              {room.isOwner && (
-                <button
-                  onClick={async () => {
-                    setBusy(true);
-                    try {
-                      await removeFn({ data: { roomId, trackRowId: t.id } });
-                      await refresh();
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                  disabled={busy}
-                  className="text-muted-foreground hover:text-destructive disabled:opacity-50"
-                  aria-label="Remove track"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {room.isOwner && room.leaderboard.length > 0 && (
-        <section className="mb-6 rounded-xl border border-border bg-card p-5">
-          <h2 className="font-semibold">Leaderboard</h2>
-          <ul className="mt-3 space-y-1 text-sm">
-            {room.leaderboard.map((l) => (
-              <li key={l.userId} className="flex justify-between">
-                <span>@{l.username ?? l.userId.slice(0, 8)}</span>
-                <span className="font-semibold">{l.points}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {room.recent.length > 0 && (
-        <section className="mb-6 rounded-xl border border-border bg-card p-5">
-          <h2 className="font-semibold">Your recent counted plays</h2>
-          <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-            {room.recent.map((p, i) => (
-              <li key={`${p.trackId}-${i}`} className="flex justify-between gap-3">
-                <span className="truncate">{p.name ?? p.trackId}</span>
-                <span className="shrink-0 text-xs">
-                  {new Date(p.playedAt).toLocaleString()} · {p.source ?? "—"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <SpotifyConnectCard />
-      <div className="mt-4">
-        <LastfmConnectCard />
-      </div>
+        <TabsContent value="submissions">
+          <BetaRoomSubmissions roomId={roomId} isOwner={room.isOwner} />
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }
