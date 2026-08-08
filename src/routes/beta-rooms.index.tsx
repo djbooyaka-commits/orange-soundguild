@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { FlaskConical, Loader2, Plus, Trash2 } from "lucide-react";
@@ -11,6 +11,8 @@ import {
   joinBetaRoom,
   leaveBetaRoom,
 } from "@/lib/api/beta-rooms.functions";
+import { joinBetaRoomByCode } from "@/lib/api/beta-curator.functions";
+
 
 export const Route = createFileRoute("/beta-rooms/")({
   head: () => ({
