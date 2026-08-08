@@ -84,7 +84,7 @@ function BetaRoomDetail() {
         setMsg("Connect Spotify below first, then sync.");
       } else if (r.error === "spotify_account_not_allowed") {
         setMsg(
-          "Spotify blocked the read: this account isn't on the app's allowed-user list (development-mode cap). Free accounts are fine — the email just has to be added.",
+          "Spotify blocked the read: this account isn't on the app's allowed-user list yet. Once the site's Spotify app gets Extended Quota (free, via Spotify Developer Dashboard), this cap disappears. For now, connect your own Spotify app below to skip the cap.",
         );
       } else if (r.error) {
         setMsg(`Spotify error: ${r.error}`);
