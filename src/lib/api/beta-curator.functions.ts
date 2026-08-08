@@ -112,7 +112,6 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
         if (!pid) continue;
         counts.set(pid, (counts.get(pid) ?? 0) + 1);
       }
-
     }
 
     return (rows ?? []).map((r: any) => ({
@@ -144,7 +143,8 @@ async function importPlaylistTracks(
   const userToken = await getBetaAccessToken(ownerId, supabaseAdmin);
   const appToken = await getBetaAppToken();
   const candidates = [userToken, appToken].filter(Boolean) as string[];
-  if (candidates.length === 0) throw new Error("Spotify is not configured — cannot read that playlist");
+  if (candidates.length === 0)
+    throw new Error("Spotify is not configured — cannot read that playlist");
 
   let meta: { name: string; imageUrl: string | null } | null = null;
   let tracks: Array<{ id: string; name: string; artist: string }> = [];
@@ -249,7 +249,9 @@ export const addBetaRoomPlaylist = createServerFn({ method: "POST" })
 
 export const syncBetaRoomPlaylist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { playlistId: string }) => ({ playlistId: String(data?.playlistId ?? "") }))
+  .inputValidator((data: { playlistId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+  }))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: pl } = await supabaseAdmin
@@ -271,7 +273,9 @@ export const syncBetaRoomPlaylist = createServerFn({ method: "POST" })
 
 export const removeBetaRoomPlaylist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { playlistId: string }) => ({ playlistId: String(data?.playlistId ?? "") }))
+  .inputValidator((data: { playlistId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+  }))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: pl } = await supabaseAdmin
@@ -331,9 +335,8 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const room = await assertMember(supabaseAdmin, data.roomId, context.userId);
-    const { parseSpotifyTrackId, getBetaAppToken, getBetaAccessToken } = await import(
-      "./beta-spotify.server"
-    );
+    const { parseSpotifyTrackId, getBetaAppToken, getBetaAccessToken } =
+      await import("./beta-spotify.server");
 
     const trackId = parseSpotifyTrackId(data.url);
     if (!trackId) throw new Error("Paste a Spotify track link (open.spotify.com/track/…)");

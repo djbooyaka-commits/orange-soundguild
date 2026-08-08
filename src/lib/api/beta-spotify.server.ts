@@ -81,10 +81,7 @@ export async function fetchRecentlyPlayed(accessToken: string, afterMs: number) 
       console.error(`Beta recently-played failed [${res.status}]: ${text}`);
       return {
         items,
-        error:
-          res.status === 403
-            ? "spotify_account_not_allowed"
-            : `spotify_${res.status}`,
+        error: res.status === 403 ? "spotify_account_not_allowed" : `spotify_${res.status}`,
       };
     }
     const body = await res.json();
@@ -126,7 +123,10 @@ export async function getBetaAppToken(): Promise<string | null> {
   const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
   const res = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
-    headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
     body: new URLSearchParams({ grant_type: "client_credentials" }),
   });
   if (!res.ok) {
