@@ -254,7 +254,7 @@ export function SpotifyConnectCard() {
               <>
             <ol className="ml-4 list-decimal space-y-1 text-xs text-muted-foreground">
                   <li>
-                    You need a Spotify Premium subscription to use the Web API. Then go to{" "}
+                    A free Spotify account works. Go to{" "}
                     <a
                       href="https://developer.spotify.com/dashboard"
                       target="_blank"
