@@ -150,13 +150,19 @@ export async function fetchBetaPlaylistMeta(token: string, playlistId: string) {
   };
 }
 
-export async function fetchBetaPlaylistTracks(token: string, playlistId: string) {
+export async function fetchBetaPlaylistTracks(
+  token: string,
+  playlistId: string,
+): Promise<{ items: Array<{ id: string; name: string; artist: string }>; error: string | null }> {
   const out: Array<{ id: string; name: string; artist: string }> = [];
   let url: string | null =
     `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100&fields=next,items(track(id,name,artists(name)))`;
   for (let page = 0; page < 10 && url; page++) {
     const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) break;
+    if (!res.ok) {
+      console.error(`Beta playlist tracks failed [${res.status}] for ${playlistId}`);
+      return { items: out, error: `spotify_${res.status}` };
+    }
     const body: any = await res.json();
     for (const it of body.items ?? []) {
       const t = it?.track;
@@ -169,7 +175,7 @@ export async function fetchBetaPlaylistTracks(token: string, playlistId: string)
     }
     url = (body.next as string | null) ?? null;
   }
-  return out;
+  return { items: out, error: null };
 }
 
 export async function betaPlaylistContainsTrack(
@@ -177,8 +183,8 @@ export async function betaPlaylistContainsTrack(
   playlistId: string,
   trackId: string,
 ): Promise<boolean> {
-  const tracks = await fetchBetaPlaylistTracks(token, playlistId);
-  return tracks.some((t) => t.id === trackId);
+  const { items } = await fetchBetaPlaylistTracks(token, playlistId);
+  return items.some((t) => t.id === trackId);
 }
 
 export async function betaAddTrackToPlaylist(
