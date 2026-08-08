@@ -326,7 +326,7 @@ async function playlistContainsTrack(
   accessToken: string,
 ): Promise<{ contains: boolean; error?: string }> {
   const targetUri = `spotify:track:${trackId}`;
-  let url: string | null = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?fields=items(track(uri)),next&limit=100`;
+  let url: string | null = `https://api.spotify.com/v1/playlists/${playlistId}/items?limit=100&additional_types=track`;
   while (url) {
     const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!res.ok) {
