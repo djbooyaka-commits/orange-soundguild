@@ -12,7 +12,7 @@ import {
 
 function spotifyPollMessage(result: { added?: number; error?: string | null; scanned?: number; skippedNotCurated?: number }) {
   if (result.error === "spotify_account_not_allowed" || result.error === "spotify_403") {
-    return "Spotify blocked tracking: this account is not on the app's allowed-user list (Spotify caps apps in development mode). A free Spotify account is fine — it just has to be added. Ask the site owner to add your Spotify email under the app's User Management, or use your own Spotify app below to skip the cap.";
+    return "Spotify blocked tracking: this account isn't on the app's allowed-user list yet. Once the site's Spotify app is approved for Extended Quota (free, via Spotify Developer Dashboard), this cap disappears and any Spotify user works. For now, use your own Spotify app below to skip the cap immediately.";
   }
   if (result.error) return `Spotify sync error: ${result.error}`;
   if (result.added) return `+${result.added} new stream point${result.added === 1 ? "" : "s"}`;
@@ -230,12 +230,28 @@ export function SpotifyConnectCard() {
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <Settings2 className="h-4 w-4" />
-          Use your own Spotify app (skip the 5-user cap)
+          Use your own Spotify app (skip the dev-mode user cap)
           <ChevronDown className={`h-4 w-4 transition ${showApp ? "rotate-180" : ""}`} />
         </button>
 
         {showApp && (
           <div className="mt-3 space-y-3 rounded-lg bg-muted/30 p-4 text-sm">
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+              <b className="text-foreground">No cap needed:</b> The site owner can request{" "}
+              <b>Extended Quota</b> (free) from the{" "}
+              <a
+                href="https://developer.spotify.com/dashboard"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline"
+              >
+                Spotify Developer Dashboard
+              </a>{" "}
+              → Settings → Extended Quota Mode. Once approved, <b>any</b> Spotify user can connect — free or
+              Premium — with no user cap at all. Until then, each user can also bring their own Spotify app below
+              to connect immediately without waiting.
+            </div>
+
             {status?.hasCustomApp ? (
               <>
                 <p className="text-muted-foreground">
@@ -252,7 +268,8 @@ export function SpotifyConnectCard() {
               </>
             ) : (
               <>
-            <ol className="ml-4 list-decimal space-y-1 text-xs text-muted-foreground">
+                <p className="text-xs font-medium text-foreground">Bring your own Spotify app (no cap for you)</p>
+                <ol className="ml-4 list-decimal space-y-1 text-xs text-muted-foreground">
                   <li>
                     A free Spotify account works. Go to{" "}
                     <a
@@ -310,7 +327,7 @@ export function SpotifyConnectCard() {
                 </div>
                 <p className="text-[11px] text-muted-foreground">
                   Your Client Secret is stored server-side and never sent back to the browser. Since you own the app,
-                  you're auto-allowed — no 5-user cap. Paste the Client ID first; it stays here if the tab refreshes.
+                  you're auto-allowed — no development-mode user cap. Paste the Client ID first; it stays here if the tab refreshes.
                 </p>
               </>
             )}
