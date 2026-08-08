@@ -162,6 +162,23 @@ type PublicPlaylistPage = {
   accessToken: string | null;
 };
 
+type PublicPlaylistApiTrack = {
+  name?: string;
+  uri?: string;
+  artists?: { items?: Array<{ profile?: { name?: string } }> };
+};
+
+type PublicPlaylistApiPage = {
+  data?: {
+    playlistV2?: {
+      content?: {
+        items?: Array<{ itemV2?: { data?: PublicPlaylistApiTrack } }>;
+        totalCount?: number;
+      };
+    };
+  };
+};
+
 async function fetchBetaPublicPlaylistPage(playlistId: string): Promise<PublicPlaylistPage> {
   const res = await fetch(`https://open.spotify.com/embed/playlist/${playlistId}`, {
     headers: { Accept: "text/html", "User-Agent": "Mozilla/5.0" },
@@ -226,11 +243,60 @@ export async function fetchBetaPublicPlaylistTracks(
     if (id) push({ id, name: track.title ?? "", artist: track.subtitle ?? "" });
   }
 
-  // The embed payload only ships the first page. Use the embed's public token to
-  // page through the whole playlist (up to 10k tracks).
+  // The embed payload only ships the first 100 tracks. Spotify's REST playlist
+  // endpoint now rate-limits this public token for hours at a time, so page the
+  // same public data source used by Spotify's web player instead.
   if (accessToken) {
-    const paged = await fetchBetaPlaylistTracks(accessToken, playlistId);
-    for (const t of paged.items) push(t);
+    const pageSize = 100;
+    for (let offset = out.length; offset < 10_000; offset += pageSize) {
+      const res = await fetch("https://api-partner.spotify.com/pathfinder/v2/query", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "app-platform": "WebPlayer",
+        },
+        body: JSON.stringify({
+          variables: {
+            uri: `spotify:playlist:${playlistId}`,
+            offset,
+            limit: pageSize,
+            includeEpisodeContentRatingsV2: true,
+          },
+          operationName: "fetchPlaylistContents",
+          extensions: {
+            persistedQuery: {
+              version: 1,
+              sha256Hash: "e4b2953f160e58e38ac025d79b5a9b3aceee5c4c716598e9830bfceb69faff5f",
+            },
+          },
+        }),
+      });
+      if (!res.ok) {
+        console.error(`Beta public playlist page failed [${res.status}] at offset ${offset}`);
+        break;
+      }
+
+      const body = (await res.json()) as PublicPlaylistApiPage;
+      const content = body.data?.playlistV2?.content;
+      const items = content?.items ?? [];
+      for (const item of items) {
+        const track = item.itemV2?.data;
+        const id = track?.uri?.match(/^spotify:track:([A-Za-z0-9]{22})$/)?.[1];
+        if (!id) continue;
+        push({
+          id,
+          name: track?.name ?? "",
+          artist: (track?.artists?.items ?? [])
+            .map((artist) => artist.profile?.name)
+            .filter((name): name is string => Boolean(name))
+            .join(", "),
+        });
+      }
+
+      const total = content?.totalCount ?? offset + items.length;
+      if (items.length < pageSize || offset + items.length >= total) break;
+    }
   }
 
   return out;
