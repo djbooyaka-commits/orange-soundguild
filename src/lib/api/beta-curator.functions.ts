@@ -160,10 +160,11 @@ async function importPlaylistTracks(
     if (lastError === "spotify_403" || lastError === "spotify_401") {
       throw new Error(
         userToken
-          ? "Spotify blocked reading that playlist. Make sure the playlist is public and owned by the Spotify account you connected, then reconnect Spotify and try again."
-          : "That playlist is private. Connect your Spotify account (the one that owns the playlist) or make the playlist public, then sync again.",
+          ? "Spotify blocked reading that playlist. Reconnect the Spotify account that owns it, then sync again."
+          : "Reading playlist tracks needs a connected Spotify account. Connect Spotify (the account that owns the playlist) and sync again.",
       );
     }
+
     if (lastError) throw new Error(`Spotify could not read that playlist (${lastError}).`);
     if (!meta) throw new Error("Could not read that playlist — make sure it is public");
     throw new Error("That playlist has no playable tracks on Spotify.");
