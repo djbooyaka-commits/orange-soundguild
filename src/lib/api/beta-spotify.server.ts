@@ -157,26 +157,46 @@ type PublicPlaylistEntity = {
   trackList?: Array<{ uri?: string; title?: string; subtitle?: string }>;
 };
 
-async function fetchBetaPublicPlaylist(playlistId: string): Promise<PublicPlaylistEntity | null> {
+type PublicPlaylistPage = {
+  entity: PublicPlaylistEntity | null;
+  accessToken: string | null;
+};
+
+async function fetchBetaPublicPlaylistPage(playlistId: string): Promise<PublicPlaylistPage> {
   const res = await fetch(`https://open.spotify.com/embed/playlist/${playlistId}`, {
-    headers: { Accept: "text/html" },
+    headers: { Accept: "text/html", "User-Agent": "Mozilla/5.0" },
   });
-  if (!res.ok) return null;
+  if (!res.ok) return { entity: null, accessToken: null };
 
   const html = await res.text();
   const match = html.match(
     /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/,
   );
-  if (!match?.[1]) return null;
+  if (!match?.[1]) return { entity: null, accessToken: null };
 
   try {
     const page = JSON.parse(match[1]) as {
-      props?: { pageProps?: { state?: { data?: { entity?: PublicPlaylistEntity } } } };
+      props?: {
+        pageProps?: {
+          state?: {
+            data?: { entity?: PublicPlaylistEntity };
+            settings?: { session?: { accessToken?: string } };
+          };
+        };
+      };
     };
-    return page.props?.pageProps?.state?.data?.entity ?? null;
+    const state = page.props?.pageProps?.state;
+    return {
+      entity: state?.data?.entity ?? null,
+      accessToken: state?.settings?.session?.accessToken ?? null,
+    };
   } catch {
-    return null;
+    return { entity: null, accessToken: null };
   }
+}
+
+async function fetchBetaPublicPlaylist(playlistId: string): Promise<PublicPlaylistEntity | null> {
+  return (await fetchBetaPublicPlaylistPage(playlistId)).entity;
 }
 
 export async function fetchBetaPublicPlaylistMeta(playlistId: string) {
@@ -191,13 +211,31 @@ export async function fetchBetaPublicPlaylistMeta(playlistId: string) {
 export async function fetchBetaPublicPlaylistTracks(
   playlistId: string,
 ): Promise<Array<{ id: string; name: string; artist: string }>> {
-  const entity = await fetchBetaPublicPlaylist(playlistId);
-  return (entity?.trackList ?? []).flatMap((track) => {
+  const { entity, accessToken } = await fetchBetaPublicPlaylistPage(playlistId);
+
+  const seen = new Set<string>();
+  const out: Array<{ id: string; name: string; artist: string }> = [];
+  const push = (t: { id: string; name: string; artist: string }) => {
+    if (seen.has(t.id)) return;
+    seen.add(t.id);
+    out.push(t);
+  };
+
+  for (const track of entity?.trackList ?? []) {
     const id = track.uri?.match(/^spotify:track:([A-Za-z0-9]{22})$/)?.[1];
-    if (!id) return [];
-    return [{ id, name: track.title ?? "", artist: track.subtitle ?? "" }];
-  });
+    if (id) push({ id, name: track.title ?? "", artist: track.subtitle ?? "" });
+  }
+
+  // The embed payload only ships the first page. Use the embed's public token to
+  // page through the whole playlist (up to 10k tracks).
+  if (accessToken) {
+    const paged = await fetchBetaPlaylistTracks(accessToken, playlistId);
+    for (const t of paged.items) push(t);
+  }
+
+  return out;
 }
+
 
 export async function fetchBetaPlaylistTracks(
   token: string,
