@@ -495,6 +495,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   account_type: a.account_type,
                   weekly_points: a.weekly_points,
                   weekly_min: a.weekly_min,
+                  last_deduction_at: a.last_deduction_at ?? null,
                   avatar: avatars[i] ?? null,
                   showDeduct: true,
                 },
@@ -590,6 +591,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   weekly_points: r.weekly_points,
                   weekly_min: r.weekly_min,
                   is_me: r.is_me,
+                  last_deduction_at: r.last_deduction_at ?? null,
                   avatar: rosterAvatarByArtist.get(`${r.curator_id}:${r.artist_id}`) ?? null,
                 }),
               )}
