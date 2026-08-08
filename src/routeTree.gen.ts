@@ -33,6 +33,7 @@ import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
 import { Route as GuidePromotionRouteImport } from './routes/guide.promotion'
 import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submit'
+import { Route as BetaRoomsRoomIdRouteImport } from './routes/beta-rooms.$roomId'
 import { Route as AlbumHandleAlbumRouteImport } from './routes/album.$handle.$album'
 import { Route as ApiPublicSpotifyCallbackRouteImport } from './routes/api/public/spotify/callback'
 import { Route as ApiPublicHooksCleanupChatMediaRouteImport } from './routes/api/public/hooks/cleanup-chat-media'
@@ -159,6 +160,11 @@ const CuratorOsgSubmitRoute = CuratorOsgSubmitRouteImport.update({
   path: '/osg-submit',
   getParentRoute: () => CuratorRoute,
 } as any)
+const BetaRoomsRoomIdRoute = BetaRoomsRoomIdRouteImport.update({
+  id: '/beta-rooms/$roomId',
+  path: '/beta-rooms/$roomId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlbumHandleAlbumRoute = AlbumHandleAlbumRouteImport.update({
   id: '/album/$handle/$album',
   path: '/album/$handle/$album',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
+  '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
@@ -239,6 +246,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
+  '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
@@ -271,6 +279,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/top100': typeof Top100Route
   '/upgrade': typeof UpgradeRoute
+  '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/t/$trackId': typeof TTrackIdRoute
@@ -304,6 +313,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/top100'
     | '/upgrade'
+    | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
     | '/guide/promotion'
     | '/t/$trackId'
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/top100'
     | '/upgrade'
+    | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
     | '/guide/promotion'
     | '/t/$trackId'
@@ -366,6 +377,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/top100'
     | '/upgrade'
+    | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
     | '/guide/promotion'
     | '/t/$trackId'
@@ -398,6 +410,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   Top100Route: typeof Top100Route
   UpgradeRoute: typeof UpgradeRoute
+  BetaRoomsRoomIdRoute: typeof BetaRoomsRoomIdRoute
   GuidePromotionRoute: typeof GuidePromotionRoute
   TTrackIdRoute: typeof TTrackIdRoute
   UHandleRoute: typeof UHandleRoute
@@ -579,6 +592,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CuratorOsgSubmitRouteImport
       parentRoute: typeof CuratorRoute
     }
+    '/beta-rooms/$roomId': {
+      id: '/beta-rooms/$roomId'
+      path: '/beta-rooms/$roomId'
+      fullPath: '/beta-rooms/$roomId'
+      preLoaderRoute: typeof BetaRoomsRoomIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/album/$handle/$album': {
       id: '/album/$handle/$album'
       path: '/album/$handle/$album'
@@ -648,6 +668,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   Top100Route: Top100Route,
   UpgradeRoute: UpgradeRoute,
+  BetaRoomsRoomIdRoute: BetaRoomsRoomIdRoute,
   GuidePromotionRoute: GuidePromotionRoute,
   TTrackIdRoute: TTrackIdRoute,
   UHandleRoute: UHandleRoute,
