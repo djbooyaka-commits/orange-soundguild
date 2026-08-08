@@ -107,3 +107,90 @@ export function parseSpotifyTrackId(input: string): string | null {
   if (/^[A-Za-z0-9]{22}$/.test(raw)) return raw;
   return null;
 }
+
+export function parseSpotifyPlaylistId(input: string): string | null {
+  const raw = input.trim();
+  const uri = raw.match(/^spotify:playlist:([A-Za-z0-9]+)$/);
+  if (uri) return uri[1];
+  const url = raw.match(/open\.spotify\.com\/(?:[a-z-]+\/)?playlist\/([A-Za-z0-9]+)/);
+  if (url) return url[1];
+  if (/^[A-Za-z0-9]{16,}$/.test(raw)) return raw;
+  return null;
+}
+
+/** Client-credentials token — enough to read public playlists (no user OAuth). */
+export async function getBetaAppToken(): Promise<string | null> {
+  const clientId = process.env["SPOTIFY_CLIENT_ID"];
+  const clientSecret = process.env["SPOTIFY_CLIENT_SECRET"];
+  if (!clientId || !clientSecret) return null;
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "client_credentials" }),
+  });
+  if (!res.ok) {
+    console.error(`Beta app token failed [${res.status}]`);
+    return null;
+  }
+  const json = await res.json();
+  return (json.access_token as string) ?? null;
+}
+
+export async function fetchBetaPlaylistMeta(token: string, playlistId: string) {
+  const res = await fetch(
+    `https://api.spotify.com/v1/playlists/${playlistId}?fields=name,images(url)`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) return null;
+  const json = await res.json();
+  return {
+    name: (json.name as string) ?? "Playlist",
+    imageUrl: (json.images?.[0]?.url as string | undefined) ?? null,
+  };
+}
+
+export async function fetchBetaPlaylistTracks(token: string, playlistId: string) {
+  const out: Array<{ id: string; name: string; artist: string }> = [];
+  let url: string | null =
+    `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100&fields=next,items(track(id,name,artists(name)))`;
+  for (let page = 0; page < 10 && url; page++) {
+    const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) break;
+    const body: any = await res.json();
+    for (const it of body.items ?? []) {
+      const t = it?.track;
+      if (!t?.id) continue;
+      out.push({
+        id: t.id as string,
+        name: (t.name as string) ?? "",
+        artist: ((t.artists ?? []).map((a: any) => a.name).join(", ") as string) ?? "",
+      });
+    }
+    url = (body.next as string | null) ?? null;
+  }
+  return out;
+}
+
+export async function betaPlaylistContainsTrack(
+  token: string,
+  playlistId: string,
+  trackId: string,
+): Promise<boolean> {
+  const tracks = await fetchBetaPlaylistTracks(token, playlistId);
+  return tracks.some((t) => t.id === trackId);
+}
+
+export async function betaAddTrackToPlaylist(
+  token: string,
+  playlistId: string,
+  trackId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ uris: [`spotify:track:${trackId}`] }),
+  });
+  if (!res.ok) return { ok: false, error: `spotify_${res.status}` };
+  return { ok: true };
+}
