@@ -155,6 +155,12 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     }
   };
 
+  // Passing members (at/above minimum) sort to the top
+  const passRank = (p: { weekly_points: number; weekly_min: number }) =>
+    p.weekly_points >= (p.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
+  const sortByPass = <T extends { weekly_points: number; weekly_min: number }>(rows: T[]) =>
+    [...rows].sort((a, b) => passRank(a) - passRank(b) || b.weekly_points - a.weekly_points);
+
   // Group rosters by curator
   const rostersByCurator = rosters.reduce<Record<string, RosterRow[]>>((acc, r) => {
     (acc[r.curator_id] ||= []).push(r);
@@ -395,7 +401,11 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                 Pts removed
               </span>
             )}
-            {below && <span className="font-semibold">Below minimum</span>}
+            {below ? (
+              <span className="font-semibold">Below minimum</span>
+            ) : (
+              <span className="font-semibold">Pass</span>
+            )}
           </span>
         </div>
         {a.showDeduct && (
@@ -485,7 +495,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
           </form>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {picks.map((a, i) =>
+            {sortByPass(picks.map((a, i) => ({ ...a, avatar: avatars[i] ?? null }))).map((a) =>
               renderMemberCard(
                 {
                   key: a.id,
@@ -496,7 +506,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   weekly_points: a.weekly_points,
                   weekly_min: a.weekly_min,
                   last_deduction_at: a.last_deduction_at ?? null,
-                  avatar: avatars[i] ?? null,
+                  avatar: a.avatar,
                   showDeduct: true,
                 },
                 <button
@@ -581,7 +591,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {rows.map((r) =>
+              {sortByPass(rows).map((r) =>
                 renderMemberCard({
                   key: `${r.curator_id}:${r.artist_id}`,
                   curator_id: r.curator_id,
