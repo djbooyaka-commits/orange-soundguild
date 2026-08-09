@@ -493,7 +493,7 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    const after = await pointsFor(supabaseAdmin, data.roomId, context.userId);
+    const after = await pointsForPlaylist(supabaseAdmin, data.roomId, context.userId, pl.id);
     return { id: row.id as string, cost: SUBMIT_COST, remaining: after.available, name };
   });
 
