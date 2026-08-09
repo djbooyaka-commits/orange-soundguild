@@ -155,6 +155,12 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     }
   };
 
+  // Passing members (at/above minimum) sort to the top
+  const passRank = (p: { weekly_points: number; weekly_min: number }) =>
+    p.weekly_points >= (p.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
+  const sortByPass = <T extends { weekly_points: number; weekly_min: number }>(rows: T[]) =>
+    [...rows].sort((a, b) => passRank(a) - passRank(b) || b.weekly_points - a.weekly_points);
+
   // Group rosters by curator
   const rostersByCurator = rosters.reduce<Record<string, RosterRow[]>>((acc, r) => {
     (acc[r.curator_id] ||= []).push(r);
