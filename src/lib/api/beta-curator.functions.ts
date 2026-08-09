@@ -378,8 +378,21 @@ export const getBetaRoomPoints = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertMember(supabaseAdmin, data.roomId, context.userId);
-    const p = await pointsFor(supabaseAdmin, data.roomId, context.userId);
-    return { ...p, cost: SUBMIT_COST, dailyLimit: MAX_SUBMISSIONS_PER_DAY };
+    const rows = await pointsByPlaylist(supabaseAdmin, data.roomId, context.userId);
+    const totals = rows.reduce(
+      (acc, r) => ({
+        earned: acc.earned + r.earned,
+        spent: acc.spent + r.spent,
+        available: acc.available + r.available,
+      }),
+      { earned: 0, spent: 0, available: 0 },
+    );
+    return {
+      ...totals,
+      byPlaylist: rows,
+      cost: SUBMIT_COST,
+      dailyLimit: MAX_SUBMISSIONS_PER_DAY,
+    };
   });
 
 /* ----------------------------- submissions ----------------------------- */
