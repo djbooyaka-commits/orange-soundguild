@@ -155,11 +155,15 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     }
   };
 
-  // Passing members (at/above minimum) sort to the top
-  const passRank = (p: { weekly_points: number; weekly_min: number }) =>
-    p.weekly_points >= (p.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
-  const sortByPass = <T extends { weekly_points: number; weekly_min: number }>(rows: T[]) =>
-    [...rows].sort((a, b) => passRank(a) - passRank(b) || b.weekly_points - a.weekly_points);
+  // Passing members (at/above minimum, or green star = pts removed in last 24h) sort to the top
+  const isRecentlyDeducted = (p: { last_deduction_at?: string | null }) =>
+    !!p.last_deduction_at &&
+    Date.now() - new Date(p.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
+  const passRank = (p: { weekly_points: number; weekly_min: number; last_deduction_at?: string | null }) =>
+    isRecentlyDeducted(p) || p.weekly_points >= (p.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
+  const sortByPass = <T extends { weekly_points: number; weekly_min: number; last_deduction_at?: string | null }>(
+    rows: T[],
+  ) => [...rows].sort((a, b) => passRank(a) - passRank(b) || b.weekly_points - a.weekly_points);
 
   // Group rosters by curator
   const rostersByCurator = rosters.reduce<Record<string, RosterRow[]>>((acc, r) => {
@@ -335,7 +339,8 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     const recentlyDeducted =
       !!a.last_deduction_at &&
       Date.now() - new Date(a.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
-    const below = a.weekly_points < min;
+    // A green star (points removed by the curator in the last 24h) counts as a pass
+    const below = !recentlyDeducted && a.weekly_points < min;
     const typeLabel =
       a.account_type === "pioneer"
         ? "Pioneer"
