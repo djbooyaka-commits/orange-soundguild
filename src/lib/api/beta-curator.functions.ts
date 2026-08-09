@@ -38,22 +38,81 @@ async function assertMember(supabaseAdmin: any, roomId: string, userId: string) 
   return room;
 }
 
-async function pointsFor(supabaseAdmin: any, roomId: string, userId: string) {
-  const { count: earned } = await supabaseAdmin
-    .from("beta_stream_points")
-    .select("id", { count: "exact", head: true })
-    .eq("room_id", roomId)
-    .eq("user_id", userId);
-  const { data: subs } = await supabaseAdmin
-    .from("beta_submissions")
-    .select("cost_points, status")
-    .eq("room_id", roomId)
-    .eq("submitter_user_id", userId)
-    .in("status", ["pending", "approved"]);
-  const spent = (subs ?? []).reduce((n: number, s: any) => n + (s.cost_points ?? 0), 0);
-  const e = earned ?? 0;
-  return { earned: e, spent, available: Math.max(0, e - spent) };
+/**
+ * Points are earned per playlist: a counted play only funds the playlist that
+ * contains that track. Submitting spends the points permanently (no refund on
+ * reject) for that playlist only.
+ */
+async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: string) {
+  const [{ data: tracks }, { data: plays }, { data: subs }, { data: pls }] = await Promise.all([
+    supabaseAdmin
+      .from("beta_room_tracks")
+      .select("playlist_id, spotify_track_id")
+      .eq("room_id", roomId),
+    supabaseAdmin
+      .from("beta_stream_points")
+      .select("spotify_track_id")
+      .eq("room_id", roomId)
+      .eq("user_id", userId),
+    supabaseAdmin
+      .from("beta_submissions")
+      .select("playlist_id, cost_points")
+      .eq("room_id", roomId)
+      .eq("submitter_user_id", userId),
+    supabaseAdmin.from("beta_room_playlists").select("id").eq("room_id", roomId),
+  ]);
+
+  const byTrack = new Map<string, string[]>();
+  for (const t of tracks ?? []) {
+    if (!t.playlist_id) continue;
+    const list = byTrack.get(t.spotify_track_id) ?? [];
+    list.push(t.playlist_id as string);
+    byTrack.set(t.spotify_track_id, list);
+  }
+
+  const earned = new Map<string, number>();
+  for (const p of plays ?? []) {
+    for (const pid of byTrack.get(p.spotify_track_id) ?? []) {
+      earned.set(pid, (earned.get(pid) ?? 0) + 1);
+    }
+  }
+
+  const spent = new Map<string, number>();
+  for (const s of subs ?? []) {
+    if (!s.playlist_id) continue;
+    spent.set(s.playlist_id as string, (spent.get(s.playlist_id) ?? 0) + (s.cost_points ?? 0));
+  }
+
+  const ids = new Set<string>([
+    ...(pls ?? []).map((p: any) => p.id as string),
+    ...earned.keys(),
+    ...spent.keys(),
+  ]);
+  const rows = [...ids].map((playlistId) => {
+    const e = earned.get(playlistId) ?? 0;
+    const s = spent.get(playlistId) ?? 0;
+    return { playlistId, earned: e, spent: s, available: Math.max(0, e - s) };
+  });
+  return rows;
 }
+
+async function pointsForPlaylist(
+  supabaseAdmin: any,
+  roomId: string,
+  userId: string,
+  playlistId: string,
+) {
+  const rows = await pointsByPlaylist(supabaseAdmin, roomId, userId);
+  return (
+    rows.find((r) => r.playlistId === playlistId) ?? {
+      playlistId,
+      earned: 0,
+      spent: 0,
+      available: 0,
+    }
+  );
+}
+
 
 /* ----------------------------- invite link ----------------------------- */
 
@@ -319,8 +378,21 @@ export const getBetaRoomPoints = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertMember(supabaseAdmin, data.roomId, context.userId);
-    const p = await pointsFor(supabaseAdmin, data.roomId, context.userId);
-    return { ...p, cost: SUBMIT_COST, dailyLimit: MAX_SUBMISSIONS_PER_DAY };
+    const rows = await pointsByPlaylist(supabaseAdmin, data.roomId, context.userId);
+    const totals = rows.reduce(
+      (acc, r) => ({
+        earned: acc.earned + r.earned,
+        spent: acc.spent + r.spent,
+        available: acc.available + r.available,
+      }),
+      { earned: 0, spent: 0, available: 0 },
+    );
+    return {
+      ...totals,
+      byPlaylist: rows,
+      cost: SUBMIT_COST,
+      dailyLimit: MAX_SUBMISSIONS_PER_DAY,
+    };
   });
 
 /* ----------------------------- submissions ----------------------------- */
@@ -378,10 +450,12 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
       }
     }
 
-    // Points
-    const points = await pointsFor(supabaseAdmin, data.roomId, context.userId);
+    // Points — must be earned by streaming this playlist
+    const points = await pointsForPlaylist(supabaseAdmin, data.roomId, context.userId, pl.id);
     if (points.available < SUBMIT_COST) {
-      throw new Error(`You need ${SUBMIT_COST} points — you have ${points.available}`);
+      throw new Error(
+        `You need ${SUBMIT_COST} points earned from "${pl.name}" — you have ${points.available}`,
+      );
     }
 
     // Optional metadata
@@ -419,7 +493,7 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    const after = await pointsFor(supabaseAdmin, data.roomId, context.userId);
+    const after = await pointsForPlaylist(supabaseAdmin, data.roomId, context.userId, pl.id);
     return { id: row.id as string, cost: SUBMIT_COST, remaining: after.available, name };
   });
 

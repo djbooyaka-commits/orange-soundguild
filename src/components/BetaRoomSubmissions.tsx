@@ -34,10 +34,16 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const submitFn = useServerFn(submitBetaTrack);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [points, setPoints] = useState<{ available: number; cost: number; dailyLimit: number }>({
+  const [points, setPoints] = useState<{
+    available: number;
+    cost: number;
+    dailyLimit: number;
+    byPlaylist: Record<string, number>;
+  }>({
     available: 0,
     cost: 50,
     dailyLimit: 2,
+    byPlaylist: {},
   });
   const [mine, setMine] = useState<Submission[]>([]);
   const [queue, setQueue] = useState<Submission[]>([]);
@@ -54,7 +60,14 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
         mineFn({ data: { roomId } }) as Promise<Submission[]>,
       ]);
       setPlaylists(pl ?? []);
-      setPoints({ available: pts.available, cost: pts.cost, dailyLimit: pts.dailyLimit });
+      setPoints({
+        available: pts.available,
+        cost: pts.cost,
+        dailyLimit: pts.dailyLimit,
+        byPlaylist: Object.fromEntries(
+          (pts.byPlaylist ?? []).map((r: any) => [r.playlistId, r.available]),
+        ),
+      });
       setMine(my ?? []);
       if (!playlistId && pl?.[0]) setPlaylistId(pl[0].id);
       if (isOwner) {
@@ -100,6 +113,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
     }
   };
 
+  const selectedPoints = points.byPlaylist[playlistId] ?? 0;
   const pending = queue.filter((q) => q.status === "pending");
   const reviewed = queue.filter((q) => q.status !== "pending");
 
@@ -190,10 +204,12 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
             <h2 className="font-semibold">Submit a track</h2>
             <p className="text-sm text-muted-foreground">
               Spend {points.cost} points to submit 1 track. Max {points.dailyLimit} every 24 hours.
+              Points are earned per playlist and can only be spent on the playlist you streamed.
+              Submitting spends them right away.
             </p>
           </div>
           <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
-            Points: <span className="font-semibold">{points.available}</span>
+            Points here: <span className="font-semibold">{selectedPoints}</span>
           </div>
         </div>
 
@@ -206,7 +222,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
             {playlists.length === 0 && <option value="">No playlists yet</option>}
             {playlists.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {p.name} · {points.byPlaylist[p.id] ?? 0} pts
               </option>
             ))}
           </select>
@@ -219,7 +235,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
           />
           <button
             type="submit"
-            disabled={busy || !url.trim() || !playlistId || points.available < points.cost}
+            disabled={busy || !url.trim() || !playlistId || selectedPoints < points.cost}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
