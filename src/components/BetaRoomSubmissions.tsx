@@ -113,6 +113,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
     }
   };
 
+  const selectedPoints = points.byPlaylist[playlistId] ?? 0;
   const pending = queue.filter((q) => q.status === "pending");
   const reviewed = queue.filter((q) => q.status !== "pending");
 
