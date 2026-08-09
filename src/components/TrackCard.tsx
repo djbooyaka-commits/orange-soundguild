@@ -80,9 +80,44 @@ export function TrackCard({ track, onDelete, canEdit }: { track: Track; onDelete
           {playing ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
         </button>
 
-        <span className="absolute left-3 top-3 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur">
-          {track.genre}
-        </span>
+        <div className="absolute left-3 top-3">
+          {isAdmin ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setGenreOpen((v) => !v);
+              }}
+              className="inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur transition hover:bg-primary hover:text-primary-foreground"
+              aria-label="Change genre"
+            >
+              <Tag className="h-3 w-3" /> {genre}
+            </button>
+          ) : (
+            <span className="rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur">
+              {genre}
+            </span>
+          )}
+          {isAdmin && genreOpen && (
+            <select
+              autoFocus
+              disabled={genreBusy}
+              value={ADMIN_GENRES.includes(genre) ? genre : ""}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setAdminGenre(e.target.value)}
+              onBlur={() => setGenreOpen(false)}
+              className="mt-1 block h-8 max-w-[9rem] rounded-md border border-border bg-background px-2 text-xs outline-none"
+            >
+              <option value="" disabled>
+                Select genre
+              </option>
+              {ADMIN_GENRES.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          )}
+        </div>
+
         <AddToPlaylistMenu trackId={track.id} trackTitle={track.title} />
         {(onDelete || canEdit) && (
           <div className="absolute right-3 top-3 flex items-center gap-1.5">
