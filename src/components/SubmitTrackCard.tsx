@@ -190,7 +190,12 @@ export function SubmitTrackCard() {
                   {" "}
                   Available on this playlist: <b>{selected.available_points}</b> pts.
                 </>
-              )}
+              )}{" "}
+              O.S.G Artist playlists aren&apos;t listed here — those track changes are free on the{" "}
+              <a href="/curator/osg-submit" className="underline">
+                OSG submit page
+              </a>
+              .
             </div>
           </div>
 
