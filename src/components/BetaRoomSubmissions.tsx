@@ -203,10 +203,12 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
             <h2 className="font-semibold">Submit a track</h2>
             <p className="text-sm text-muted-foreground">
               Spend {points.cost} points to submit 1 track. Max {points.dailyLimit} every 24 hours.
+              Points are earned per playlist and can only be spent on the playlist you streamed.
+              Submitting spends them right away.
             </p>
           </div>
           <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
-            Points: <span className="font-semibold">{points.available}</span>
+            Points here: <span className="font-semibold">{selectedPoints}</span>
           </div>
         </div>
 
@@ -219,7 +221,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
             {playlists.length === 0 && <option value="">No playlists yet</option>}
             {playlists.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {p.name} · {points.byPlaylist[p.id] ?? 0} pts
               </option>
             ))}
           </select>
@@ -232,7 +234,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
           />
           <button
             type="submit"
-            disabled={busy || !url.trim() || !playlistId || points.available < points.cost}
+            disabled={busy || !url.trim() || !playlistId || selectedPoints < points.cost}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
