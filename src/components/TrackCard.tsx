@@ -1,15 +1,44 @@
-import { Play, Pause, Heart, Trash2, Pencil } from "lucide-react";
+import { useState } from "react";
+import { Play, Pause, Heart, Trash2, Pencil, Tag } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { usePlayer } from "./player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import type { Track } from "@/lib/tracks";
 import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
 import { EditTrackDialog } from "./EditTrackDialog";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-
+const ADMIN_GENRES = [
+  "Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Afrobeats", "Amapiano",
+  "Hip-Hop", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Psytrance", "POP", "Rock", "R&B", "Other",
+];
 
 export function TrackCard({ track, onDelete, canEdit }: { track: Track; onDelete?: (id: string) => void | Promise<void>; canEdit?: boolean }) {
   const { current, isPlaying, play, toggle } = usePlayer();
+  const isAdmin = useIsAdmin();
+  const [genre, setGenre] = useState(track.genre);
+  const [genreOpen, setGenreOpen] = useState(false);
+  const [genreBusy, setGenreBusy] = useState(false);
+
+  const setAdminGenre = async (next: string) => {
+    setGenreBusy(true);
+    try {
+      const { error } = await supabase.rpc("admin_set_track_genre", {
+        _track_id: track.id,
+        _genre: next,
+      });
+      if (error) throw error;
+      setGenre(next);
+      setGenreOpen(false);
+      toast.success(`Genre set to ${next}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update genre");
+    } finally {
+      setGenreBusy(false);
+    }
+  };
   const navigate = useNavigate();
   const active = current?.id === track.id;
   const playing = active && isPlaying;
