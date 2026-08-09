@@ -335,7 +335,8 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     const recentlyDeducted =
       !!a.last_deduction_at &&
       Date.now() - new Date(a.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
-    const below = a.weekly_points < min;
+    // A green star (points removed by the curator in the last 24h) counts as a pass
+    const below = !recentlyDeducted && a.weekly_points < min;
     const typeLabel =
       a.account_type === "pioneer"
         ? "Pioneer"
