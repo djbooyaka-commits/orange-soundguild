@@ -34,10 +34,16 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const submitFn = useServerFn(submitBetaTrack);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [points, setPoints] = useState<{ available: number; cost: number; dailyLimit: number }>({
+  const [points, setPoints] = useState<{
+    available: number;
+    cost: number;
+    dailyLimit: number;
+    byPlaylist: Record<string, number>;
+  }>({
     available: 0,
     cost: 50,
     dailyLimit: 2,
+    byPlaylist: {},
   });
   const [mine, setMine] = useState<Submission[]>([]);
   const [queue, setQueue] = useState<Submission[]>([]);
