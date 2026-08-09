@@ -1,15 +1,44 @@
-import { Play, Pause, Heart, Trash2, Pencil } from "lucide-react";
+import { useState } from "react";
+import { Play, Pause, Heart, Trash2, Pencil, Tag } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { usePlayer } from "./player/PlayerContext";
 import { useTrackLike } from "@/lib/likes";
 import type { Track } from "@/lib/tracks";
 import { AddToPlaylistMenu } from "./AddToPlaylistMenu";
 import { EditTrackDialog } from "./EditTrackDialog";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-
+const ADMIN_GENRES = [
+  "Electronic", "House", "Tech House", "Drum and Bass", "Afro House", "Afrobeats", "Amapiano",
+  "Hip-Hop", "Indie", "Lo-fi", "Ambient", "Jazz", "Techno", "Psytrance", "POP", "Rock", "R&B", "Other",
+];
 
 export function TrackCard({ track, onDelete, canEdit }: { track: Track; onDelete?: (id: string) => void | Promise<void>; canEdit?: boolean }) {
   const { current, isPlaying, play, toggle } = usePlayer();
+  const isAdmin = useIsAdmin();
+  const [genre, setGenre] = useState(track.genre);
+  const [genreOpen, setGenreOpen] = useState(false);
+  const [genreBusy, setGenreBusy] = useState(false);
+
+  const setAdminGenre = async (next: string) => {
+    setGenreBusy(true);
+    try {
+      const { error } = await supabase.rpc("admin_set_track_genre", {
+        _track_id: track.id,
+        _genre: next,
+      });
+      if (error) throw error;
+      setGenre(next);
+      setGenreOpen(false);
+      toast.success(`Genre set to ${next}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update genre");
+    } finally {
+      setGenreBusy(false);
+    }
+  };
   const navigate = useNavigate();
   const active = current?.id === track.id;
   const playing = active && isPlaying;
@@ -51,9 +80,44 @@ export function TrackCard({ track, onDelete, canEdit }: { track: Track; onDelete
           {playing ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
         </button>
 
-        <span className="absolute left-3 top-3 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur">
-          {track.genre}
-        </span>
+        <div className="absolute left-3 top-3">
+          {isAdmin ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setGenreOpen((v) => !v);
+              }}
+              className="inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur transition hover:bg-primary hover:text-primary-foreground"
+              aria-label="Change genre"
+            >
+              <Tag className="h-3 w-3" /> {genre}
+            </button>
+          ) : (
+            <span className="rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur">
+              {genre}
+            </span>
+          )}
+          {isAdmin && genreOpen && (
+            <select
+              autoFocus
+              disabled={genreBusy}
+              value={ADMIN_GENRES.includes(genre) ? genre : ""}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setAdminGenre(e.target.value)}
+              onBlur={() => setGenreOpen(false)}
+              className="mt-1 block h-8 max-w-[9rem] rounded-md border border-border bg-background px-2 text-xs outline-none"
+            >
+              <option value="" disabled>
+                Select genre
+              </option>
+              {ADMIN_GENRES.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          )}
+        </div>
+
         <AddToPlaylistMenu trackId={track.id} trackTitle={track.title} />
         {(onDelete || canEdit) && (
           <div className="absolute right-3 top-3 flex items-center gap-1.5">
