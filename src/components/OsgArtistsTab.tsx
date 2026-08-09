@@ -591,7 +591,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {rows.map((r) =>
+              {sortByPass(rows).map((r) =>
                 renderMemberCard({
                   key: `${r.curator_id}:${r.artist_id}`,
                   curator_id: r.curator_id,
