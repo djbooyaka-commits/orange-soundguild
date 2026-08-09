@@ -301,7 +301,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
       await setMinFn({ data: { min: n } });
       await refresh();
       setMinInput("");
-      toast.success(`Weekly minimum set to ${n}`);
+      toast.success(`Minimum set to ${n}`);
     } catch (err: any) {
       toast.error(err?.message ?? "Could not save minimum");
     } finally {
@@ -383,7 +383,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             ) : (
               <TrendingUp className="h-3.5 w-3.5" />
             )}
-            {a.weekly_points} / {min} pts this week
+            {a.weekly_points} / {min} total pts
           </span>
           <span className="inline-flex items-center gap-2">
             {recentlyDeducted && (
@@ -443,7 +443,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
               <h2 className="font-semibold">My OSG Artists</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Users you've added. Each needs at least{" "}
-                <span className="font-medium text-foreground">{myWeeklyMin} points/week</span>{" "}
+                 <span className="font-medium text-foreground">{myWeeklyMin} total points</span>{" "}
                 from streaming your OSG playlist.
               </p>
             </div>
