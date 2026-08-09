@@ -495,7 +495,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
           </form>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {picks.map((a, i) =>
+            {sortByPass(picks.map((a, i) => ({ ...a, avatar: avatars[i] ?? null }))).map((a) =>
               renderMemberCard(
                 {
                   key: a.id,
@@ -506,7 +506,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   weekly_points: a.weekly_points,
                   weekly_min: a.weekly_min,
                   last_deduction_at: a.last_deduction_at ?? null,
-                  avatar: avatars[i] ?? null,
+                  avatar: a.avatar,
                   showDeduct: true,
                 },
                 <button
