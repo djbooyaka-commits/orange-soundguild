@@ -60,7 +60,14 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
         mineFn({ data: { roomId } }) as Promise<Submission[]>,
       ]);
       setPlaylists(pl ?? []);
-      setPoints({ available: pts.available, cost: pts.cost, dailyLimit: pts.dailyLimit });
+      setPoints({
+        available: pts.available,
+        cost: pts.cost,
+        dailyLimit: pts.dailyLimit,
+        byPlaylist: Object.fromEntries(
+          (pts.byPlaylist ?? []).map((r: any) => [r.playlistId, r.available]),
+        ),
+      });
       setMine(my ?? []);
       if (!playlistId && pl?.[0]) setPlaylistId(pl[0].id);
       if (isOwner) {
