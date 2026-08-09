@@ -395,7 +395,11 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                 Pts removed
               </span>
             )}
-            {below && <span className="font-semibold">Below minimum</span>}
+            {below ? (
+              <span className="font-semibold">Below minimum</span>
+            ) : (
+              <span className="font-semibold">Pass</span>
+            )}
           </span>
         </div>
         {a.showDeduct && (
