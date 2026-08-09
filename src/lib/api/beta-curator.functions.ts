@@ -450,10 +450,12 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
       }
     }
 
-    // Points
-    const points = await pointsFor(supabaseAdmin, data.roomId, context.userId);
+    // Points — must be earned by streaming this playlist
+    const points = await pointsForPlaylist(supabaseAdmin, data.roomId, context.userId, pl.id);
     if (points.available < SUBMIT_COST) {
-      throw new Error(`You need ${SUBMIT_COST} points — you have ${points.available}`);
+      throw new Error(
+        `You need ${SUBMIT_COST} points earned from "${pl.name}" — you have ${points.available}`,
+      );
     }
 
     // Optional metadata
