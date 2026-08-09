@@ -1558,6 +1558,10 @@ export type Database = {
         Args: { _banned: boolean; _user_id: string }
         Returns: undefined
       }
+      admin_set_track_genre: {
+        Args: { _genre: string; _track_id: string }
+        Returns: undefined
+      }
       admin_update_payout_status: {
         Args: {
           _new_status: Database["public"]["Enums"]["payout_status"]
