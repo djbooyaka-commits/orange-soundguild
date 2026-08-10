@@ -6,11 +6,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBetaRoom, joinBetaRoom } from "@/lib/api/beta-rooms.functions";
 import { syncLastfmBetaRoom } from "@/lib/api/lastfm.functions";
+import { listBetaRoomPlaylists } from "@/lib/api/beta-curator.functions";
 import { LastfmConnectCard } from "@/components/LastfmConnectCard";
 import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
+import { BetaPlaylistRoom } from "@/components/BetaPlaylistRoom";
 import { BetaRoomInvite } from "@/components/BetaRoomInvite";
 import { BetaRoomSubmissions } from "@/components/BetaRoomSubmissions";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
 
 export const Route = createFileRoute("/beta-rooms/$roomId")({
   head: () => ({
