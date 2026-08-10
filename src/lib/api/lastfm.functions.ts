@@ -152,11 +152,19 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
       .from("beta_room_tracks")
       .select("spotify_track_id, track_name, artist_name")
       .eq("room_id", data.roomId);
-    const watchList = (watch ?? []).map((t: any) => ({
-      spotifyTrackId: t.spotify_track_id as string,
-      name: (t.track_name ?? "") as string,
-      artist: (t.artist_name ?? "") as string,
-    }));
+    const seenWatch = new Set<string>();
+    const watchList = (watch ?? [])
+      .filter((t: any) => {
+        const key = String(t.spotify_track_id);
+        if (seenWatch.has(key)) return false;
+        seenWatch.add(key);
+        return true;
+      })
+      .map((t: any) => ({
+        spotifyTrackId: t.spotify_track_id as string,
+        name: (t.track_name ?? "") as string,
+        artist: (t.artist_name ?? "") as string,
+      }));
 
     if (watchList.length === 0) {
       return {
