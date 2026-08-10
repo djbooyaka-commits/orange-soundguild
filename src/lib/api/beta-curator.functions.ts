@@ -44,23 +44,30 @@ async function assertMember(supabaseAdmin: any, roomId: string, userId: string) 
  * reject) for that playlist only.
  */
 async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: string) {
-  const [{ data: tracks }, { data: plays }, { data: subs }, { data: pls }] = await Promise.all([
-    supabaseAdmin
-      .from("beta_room_tracks")
-      .select("playlist_id, spotify_track_id")
-      .eq("room_id", roomId),
-    supabaseAdmin
-      .from("beta_stream_points")
-      .select("spotify_track_id")
-      .eq("room_id", roomId)
-      .eq("user_id", userId),
-    supabaseAdmin
-      .from("beta_submissions")
-      .select("playlist_id, cost_points")
-      .eq("room_id", roomId)
-      .eq("submitter_user_id", userId),
-    supabaseAdmin.from("beta_room_playlists").select("id").eq("room_id", roomId),
-  ]);
+  const [{ data: tracks }, { data: plays }, { data: subs }, { data: pls }, { data: adjustments }] =
+    await Promise.all([
+      supabaseAdmin
+        .from("beta_room_tracks")
+        .select("playlist_id, spotify_track_id")
+        .eq("room_id", roomId),
+      supabaseAdmin
+        .from("beta_stream_points")
+        .select("spotify_track_id")
+        .eq("room_id", roomId)
+        .eq("user_id", userId),
+      supabaseAdmin
+        .from("beta_submissions")
+        .select("playlist_id, cost_points")
+        .eq("room_id", roomId)
+        .eq("submitter_user_id", userId),
+      supabaseAdmin.from("beta_room_playlists").select("id").eq("room_id", roomId),
+      supabaseAdmin
+        .from("beta_point_adjustments")
+        .select("playlist_id, delta")
+        .eq("room_id", roomId)
+        .eq("user_id", userId),
+    ]);
+
 
   const byTrack = new Map<string, string[]>();
   for (const t of tracks ?? []) {
@@ -82,6 +89,13 @@ async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: stri
     if (!s.playlist_id) continue;
     spent.set(s.playlist_id as string, (spent.get(s.playlist_id) ?? 0) + (s.cost_points ?? 0));
   }
+  // Curator-recorded point removals for a playlist room count as spend
+  for (const a of adjustments ?? []) {
+    if (!a.playlist_id) continue;
+    const d = Math.abs(a.delta ?? 0);
+    spent.set(a.playlist_id as string, (spent.get(a.playlist_id) ?? 0) + d);
+  }
+
 
   const ids = new Set<string>([
     ...(pls ?? []).map((p: any) => p.id as string),

@@ -6,11 +6,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBetaRoom, joinBetaRoom } from "@/lib/api/beta-rooms.functions";
 import { syncLastfmBetaRoom } from "@/lib/api/lastfm.functions";
+import { listBetaRoomPlaylists } from "@/lib/api/beta-curator.functions";
 import { LastfmConnectCard } from "@/components/LastfmConnectCard";
 import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
+import { BetaPlaylistRoom } from "@/components/BetaPlaylistRoom";
 import { BetaRoomInvite } from "@/components/BetaRoomInvite";
 import { BetaRoomSubmissions } from "@/components/BetaRoomSubmissions";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
 
 export const Route = createFileRoute("/beta-rooms/$roomId")({
   head: () => ({
@@ -33,8 +36,10 @@ function BetaRoomDetail() {
   const getFn = useServerFn(getBetaRoom);
   const syncLastfmFn = useServerFn(syncLastfmBetaRoom);
   const joinFn = useServerFn(joinBetaRoom);
+  const playlistsFn = useServerFn(listBetaRoomPlaylists);
 
   const [room, setRoom] = useState<RoomData | null>(null);
+  const [playlists, setPlaylists] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [busyLastfm, setBusyLastfm] = useState(false);
@@ -44,12 +49,22 @@ function BetaRoomDetail() {
     try {
       const data = await getFn({ data: { roomId } });
       setRoom(data);
+      try {
+        const pls = (await playlistsFn({ data: { roomId } })) as Array<{
+          id: string;
+          name: string;
+        }>;
+        setPlaylists(pls ?? []);
+      } catch {
+        setPlaylists([]);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Could not load room");
     } finally {
       setLoading(false);
     }
-  }, [getFn, roomId]);
+  }, [getFn, playlistsFn, roomId]);
+
 
   useEffect(() => {
     if (!user) {
@@ -163,12 +178,24 @@ function BetaRoomDetail() {
       </header>
 
       <Tabs defaultValue="tracking" className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="tracking">Stream Tracker</TabsTrigger>
           <TabsTrigger value="playlists">Curator playlists</TabsTrigger>
           {room.isOwner && <TabsTrigger value="invite">Invite link</TabsTrigger>}
           <TabsTrigger value="submissions">Track submissions</TabsTrigger>
+          {playlists.map((p) => (
+            <TabsTrigger key={p.id} value={`pl-${p.id}`}>
+              {p.name}
+            </TabsTrigger>
+          ))}
         </TabsList>
+
+        {playlists.map((p) => (
+          <TabsContent key={p.id} value={`pl-${p.id}`}>
+            <BetaPlaylistRoom playlistId={p.id} />
+          </TabsContent>
+        ))}
+
 
         <TabsContent value="tracking" className="space-y-6">
           <section className="rounded-xl border border-border bg-card p-5">
