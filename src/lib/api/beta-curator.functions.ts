@@ -642,7 +642,7 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
           playlist_id: sub.playlist_id,
           spotify_track_id: sub.spotify_track_id,
         },
-        { onConflict: "room_id,spotify_track_id" },
+        { onConflict: "room_id,playlist_id,spotify_track_id" },
       );
     }
 
