@@ -36,8 +36,10 @@ function BetaRoomDetail() {
   const getFn = useServerFn(getBetaRoom);
   const syncLastfmFn = useServerFn(syncLastfmBetaRoom);
   const joinFn = useServerFn(joinBetaRoom);
+  const playlistsFn = useServerFn(listBetaRoomPlaylists);
 
   const [room, setRoom] = useState<RoomData | null>(null);
+  const [playlists, setPlaylists] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [busyLastfm, setBusyLastfm] = useState(false);
@@ -47,12 +49,22 @@ function BetaRoomDetail() {
     try {
       const data = await getFn({ data: { roomId } });
       setRoom(data);
+      try {
+        const pls = (await playlistsFn({ data: { roomId } })) as Array<{
+          id: string;
+          name: string;
+        }>;
+        setPlaylists(pls ?? []);
+      } catch {
+        setPlaylists([]);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Could not load room");
     } finally {
       setLoading(false);
     }
-  }, [getFn, roomId]);
+  }, [getFn, playlistsFn, roomId]);
+
 
   useEffect(() => {
     if (!user) {
