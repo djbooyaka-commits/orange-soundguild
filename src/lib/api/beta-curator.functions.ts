@@ -89,6 +89,13 @@ async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: stri
     if (!s.playlist_id) continue;
     spent.set(s.playlist_id as string, (spent.get(s.playlist_id) ?? 0) + (s.cost_points ?? 0));
   }
+  // Curator-recorded point removals for a playlist room count as spend
+  for (const a of adjustments ?? []) {
+    if (!a.playlist_id) continue;
+    const d = Math.abs(a.delta ?? 0);
+    spent.set(a.playlist_id as string, (spent.get(a.playlist_id) ?? 0) + d);
+  }
+
 
   const ids = new Set<string>([
     ...(pls ?? []).map((p: any) => p.id as string),
