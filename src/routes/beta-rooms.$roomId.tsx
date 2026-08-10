@@ -178,12 +178,24 @@ function BetaRoomDetail() {
       </header>
 
       <Tabs defaultValue="tracking" className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="tracking">Stream Tracker</TabsTrigger>
           <TabsTrigger value="playlists">Curator playlists</TabsTrigger>
           {room.isOwner && <TabsTrigger value="invite">Invite link</TabsTrigger>}
           <TabsTrigger value="submissions">Track submissions</TabsTrigger>
+          {playlists.map((p) => (
+            <TabsTrigger key={p.id} value={`pl-${p.id}`}>
+              {p.name}
+            </TabsTrigger>
+          ))}
         </TabsList>
+
+        {playlists.map((p) => (
+          <TabsContent key={p.id} value={`pl-${p.id}`}>
+            <BetaPlaylistRoom playlistId={p.id} />
+          </TabsContent>
+        ))}
+
 
         <TabsContent value="tracking" className="space-y-6">
           <section className="rounded-xl border border-border bg-card p-5">
