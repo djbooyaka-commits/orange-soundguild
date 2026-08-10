@@ -278,7 +278,7 @@ async function importPlaylistTracks(
         track_name: t.name,
         artist_name: t.artist,
       },
-      { onConflict: "room_id,spotify_track_id" },
+      { onConflict: "room_id,playlist_id,spotify_track_id" },
     );
   }
   return { imported: tracks.length, name: meta?.name ?? null };
