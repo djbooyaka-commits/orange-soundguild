@@ -44,23 +44,30 @@ async function assertMember(supabaseAdmin: any, roomId: string, userId: string) 
  * reject) for that playlist only.
  */
 async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: string) {
-  const [{ data: tracks }, { data: plays }, { data: subs }, { data: pls }] = await Promise.all([
-    supabaseAdmin
-      .from("beta_room_tracks")
-      .select("playlist_id, spotify_track_id")
-      .eq("room_id", roomId),
-    supabaseAdmin
-      .from("beta_stream_points")
-      .select("spotify_track_id")
-      .eq("room_id", roomId)
-      .eq("user_id", userId),
-    supabaseAdmin
-      .from("beta_submissions")
-      .select("playlist_id, cost_points")
-      .eq("room_id", roomId)
-      .eq("submitter_user_id", userId),
-    supabaseAdmin.from("beta_room_playlists").select("id").eq("room_id", roomId),
-  ]);
+  const [{ data: tracks }, { data: plays }, { data: subs }, { data: pls }, { data: adjustments }] =
+    await Promise.all([
+      supabaseAdmin
+        .from("beta_room_tracks")
+        .select("playlist_id, spotify_track_id")
+        .eq("room_id", roomId),
+      supabaseAdmin
+        .from("beta_stream_points")
+        .select("spotify_track_id")
+        .eq("room_id", roomId)
+        .eq("user_id", userId),
+      supabaseAdmin
+        .from("beta_submissions")
+        .select("playlist_id, cost_points")
+        .eq("room_id", roomId)
+        .eq("submitter_user_id", userId),
+      supabaseAdmin.from("beta_room_playlists").select("id").eq("room_id", roomId),
+      supabaseAdmin
+        .from("beta_point_adjustments")
+        .select("playlist_id, delta")
+        .eq("room_id", roomId)
+        .eq("user_id", userId),
+    ]);
+
 
   const byTrack = new Map<string, string[]>();
   for (const t of tracks ?? []) {
