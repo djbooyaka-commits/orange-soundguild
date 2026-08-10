@@ -118,6 +118,54 @@ export type Database = {
         }
         Relationships: []
       }
+      beta_point_adjustments: {
+        Row: {
+          created_at: string
+          curator_id: string
+          delta: number
+          id: string
+          playlist_id: string
+          reason: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          delta: number
+          id?: string
+          playlist_id: string
+          reason?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          delta?: number
+          id?: string
+          playlist_id?: string
+          reason?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_point_adjustments_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "beta_room_playlists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "beta_point_adjustments_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "beta_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_room_members: {
         Row: {
           created_at: string
@@ -163,6 +211,7 @@ export type Database = {
           spotify_playlist_id: string
           track_hold_days: number
           updated_at: string
+          weekly_min: number
         }
         Insert: {
           created_at?: string
@@ -173,6 +222,7 @@ export type Database = {
           spotify_playlist_id: string
           track_hold_days?: number
           updated_at?: string
+          weekly_min?: number
         }
         Update: {
           created_at?: string
@@ -183,6 +233,7 @@ export type Database = {
           spotify_playlist_id?: string
           track_hold_days?: number
           updated_at?: string
+          weekly_min?: number
         }
         Relationships: [
           {
