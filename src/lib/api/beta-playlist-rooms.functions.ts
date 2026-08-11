@@ -193,3 +193,26 @@ export const adjustBetaPlaylistPoints = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const removeBetaRoomMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; userId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    userId: String(data?.userId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId)
+      throw new Error("Only the room owner can remove members");
+    if (data.userId === room.owner_id) throw new Error("You can't remove the room owner");
+
+    const { error } = await supabaseAdmin
+      .from("beta_room_members")
+      .delete()
+      .eq("room_id", room.id)
+      .eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
