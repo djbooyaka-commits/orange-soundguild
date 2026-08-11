@@ -16,6 +16,7 @@ import {
   getBetaPlaylistRoom,
   setBetaPlaylistWeeklyMin,
   adjustBetaPlaylistPoints,
+  removeBetaRoomMember,
 } from "@/lib/api/beta-playlist-rooms.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
