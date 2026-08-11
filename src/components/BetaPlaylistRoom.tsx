@@ -9,6 +9,7 @@ import {
   Settings,
   Star,
   TrendingUp,
+  UserMinus,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const getFn = useServerFn(getBetaPlaylistRoom);
   const setMinFn = useServerFn(setBetaPlaylistWeeklyMin);
   const adjustFn = useServerFn(adjustBetaPlaylistPoints);
+  const removeMemberFn = useServerFn(removeBetaRoomMember);
 
   const [data, setData] = useState<RoomData | null>(null);
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
@@ -59,6 +61,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [savingMin, setSavingMin] = useState(false);
   const [deductInputs, setDeductInputs] = useState<Record<string, string>>({});
   const [deductingId, setDeductingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const r = (await getFn({ data: { playlistId } })) as RoomData;
@@ -120,6 +123,20 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     }
   };
 
+  const doRemoveMember = async (userId: string, username: string | null) => {
+    if (!window.confirm(`Remove @${username ?? "this user"} from the room?`)) return;
+    setRemovingId(userId);
+    try {
+      await removeMemberFn({ data: { playlistId, userId } });
+      await refresh();
+      toast.success("Member removed");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not remove member");
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
   if (loading) {
     return <p className="text-sm text-muted-foreground">Loading room…</p>;
   }
@@ -155,9 +172,9 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               <p className="text-sm text-muted-foreground">
                 Everyone invited to this room needs at least{" "}
                 <span className="font-medium text-foreground">
-                  {data.playlist.weeklyMin} total points
+                  {data.playlist.weeklyMin} total points per week
                 </span>{" "}
-                from streaming this playlist. Tracking {data.playlist.trackCount} track
+                for their tracks to stay on the playlist. Tracking {data.playlist.trackCount} track
                 {data.playlist.trackCount === 1 ? "" : "s"}.
               </p>
             </div>
@@ -286,6 +303,22 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                       )}
                       Remove pts
                     </button>
+                    {!m.is_me && (
+                      <button
+                        type="button"
+                        onClick={() => doRemoveMember(m.user_id, m.username)}
+                        disabled={removingId === m.user_id}
+                        className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-muted-foreground hover:border-destructive hover:text-destructive disabled:opacity-50"
+                        title="Remove member from room"
+                      >
+                        {removingId === m.user_id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <UserMinus className="h-3.5 w-3.5" />
+                        )}
+                        Remove
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
