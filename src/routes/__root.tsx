@@ -14,6 +14,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PlayerProvider } from "@/components/player/PlayerContext";
 import { PlayerBar } from "@/components/player/PlayerBar";
+import SubscriptionRenewalBanner from "@/components/SubscriptionRenewalBanner";
+
 import { UploadsProvider } from "@/lib/uploads";
 import { LikesProvider } from "@/lib/likes";
 import { AuthProvider } from "@/hooks/useAuth";
