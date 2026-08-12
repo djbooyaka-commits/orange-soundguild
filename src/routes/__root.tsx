@@ -171,7 +171,9 @@ function RootComponent() {
             <UploadsProvider>
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
               <Outlet />
+              {!isAuthPage && <SubscriptionRenewalBanner />}
               {!hidePlayer && <PlayerBar />}
+
               <Toaster />
             </UploadsProvider>
           </LikesProvider>
