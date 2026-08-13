@@ -263,7 +263,7 @@ function PhantomBuy({
       </div>
       {qr ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-3">
-          <img src={qr} alt="Scan with Phantom" className="h-48 w-48" />
+          <img src={qr} alt="Scan with Phantom" className="h-48 w-48"  loading="lazy" decoding="async" />
           {cfg && (
             <button
               type="button"

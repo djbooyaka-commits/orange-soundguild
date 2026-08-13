@@ -164,7 +164,7 @@ export function PhantomPayPanel({ tier = "artist" }: Props) {
             </div>
           ) : qrDataUrl ? (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-white p-4">
-              <img src={qrDataUrl} alt="Scan with Phantom" className="h-56 w-56" />
+              <img src={qrDataUrl} alt="Scan with Phantom" className="h-56 w-56"  loading="lazy" decoding="async" />
               <p className="text-center text-xs text-muted-foreground">
                 Open Phantom on your phone, tap Scan, and confirm the payment.
               </p>

@@ -197,7 +197,7 @@ export function CuratorPlaylistManager() {
             className={`flex flex-wrap items-center gap-3 rounded-md border p-3 ${p.is_osg ? "border-primary/60 bg-primary/5" : "border-border"}`}
           >
             {p.image_url ? (
-              <img src={p.image_url} alt="" className="h-12 w-12 rounded object-cover" />
+              <img src={p.image_url} alt="" className="h-12 w-12 rounded object-cover"  loading="lazy" decoding="async" />
             ) : (
               <div className="h-12 w-12 rounded bg-muted" />
             )}

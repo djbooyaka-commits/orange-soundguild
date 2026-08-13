@@ -67,7 +67,7 @@ export function SuperfanPublicProfile({ userId, displayName }: { userId: string;
             <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
               <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted">
                 {trackCover ? (
-                  <img src={trackCover} alt="" className="h-full w-full object-cover" />
+                  <img src={trackCover} alt="" className="h-full w-full object-cover"  loading="lazy" decoding="async" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
                     <Music2 className="h-6 w-6 text-muted-foreground" />

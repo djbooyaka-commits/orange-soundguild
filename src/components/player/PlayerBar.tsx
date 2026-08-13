@@ -27,7 +27,7 @@ export function PlayerBar() {
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-white/5">
             {current ? (
-              <img src={current.cover} alt="" className="h-full w-full object-cover" />
+              <img src={current.cover} alt="" className="h-full w-full object-cover"  loading="lazy" decoding="async" />
             ) : null}
           </div>
           <div className="min-w-0">

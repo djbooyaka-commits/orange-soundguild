@@ -58,7 +58,7 @@ export function CuratorInvitesInbox() {
         {items.map((i) => (
           <li key={i.id} className="flex items-center gap-3 rounded-md border border-border p-3">
             {i.curator_avatar ? (
-              <img src={i.curator_avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+              <img src={i.curator_avatar} alt="" className="h-10 w-10 rounded-full object-cover"  loading="lazy" decoding="async" />
             ) : (
               <div className="h-10 w-10 rounded-full bg-muted" />
             )}
