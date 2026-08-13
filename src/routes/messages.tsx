@@ -969,7 +969,7 @@ function ChatPane({
           {pendingFile?.type.startsWith("video/") ? (
             <video src={pendingPreview} className="h-16 w-16 rounded-lg object-cover" muted playsInline />
           ) : (
-            <img src={pendingPreview} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
+            <img src={pendingPreview} alt="Preview" className="h-16 w-16 rounded-lg object-cover"  loading="lazy" decoding="async" />
           )}
           <div className="flex-1 truncate text-xs text-muted-foreground">
             {pendingFile?.name}

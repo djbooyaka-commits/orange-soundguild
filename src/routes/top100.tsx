@@ -200,7 +200,7 @@ function Top100() {
                       className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-border sm:h-14 sm:w-14"
                       aria-label={playing ? `Pause ${t.title}` : `Play ${t.title}`}
                     >
-                      <img src={t.cover} alt="" className="h-full w-full object-cover" />
+                      <img src={t.cover} alt="" className="h-full w-full object-cover"  loading="lazy" decoding="async" />
                       <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100 data-[active=true]:opacity-100" data-active={active}>
                         {playing ? (
                           <Pause className="h-5 w-5 fill-white text-white" />

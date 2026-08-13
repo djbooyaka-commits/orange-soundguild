@@ -203,7 +203,7 @@ function SearchPage() {
                       >
                         <div className="h-10 w-10 overflow-hidden rounded-full bg-secondary text-center text-sm font-semibold uppercase leading-10 text-secondary-foreground">
                           {p.avatarUrl ? (
-                            <img src={p.avatarUrl} alt="" className="h-full w-full object-cover" />
+                            <img src={p.avatarUrl} alt="" className="h-full w-full object-cover"  loading="lazy" decoding="async" />
                           ) : (
                             (p.username ?? "U").charAt(0)
                           )}
@@ -235,7 +235,7 @@ function SearchPage() {
                         className="flex items-center gap-3 p-3 hover:bg-muted"
                       >
                         <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded bg-secondary">
-                          <img src={t.coverUrl ?? cover2} alt={`${t.title} cover art`} className="h-full w-full object-cover" />
+                          <img src={t.coverUrl ?? cover2} alt={`${t.title} cover art`} className="h-full w-full object-cover"  loading="lazy" decoding="async" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-medium">{t.title}</div>

@@ -181,7 +181,7 @@ export function Comments({ trackId, title }: { trackId: string; title: string })
       <li key={c.id} className={`flex gap-3 ${isReply ? "ml-11" : ""}`}>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
           {p?.avatar_url ? (
-            <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+            <img src={p.avatar_url} alt="" className="h-full w-full object-cover"  loading="lazy" decoding="async" />
           ) : (
             name.slice(0, 1).toUpperCase()
           )}

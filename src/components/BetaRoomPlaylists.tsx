@@ -157,7 +157,7 @@ export function BetaRoomPlaylists({
             className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3"
           >
             {p.imageUrl ? (
-              <img src={p.imageUrl} alt="" className="h-12 w-12 rounded object-cover" />
+              <img src={p.imageUrl} alt="" className="h-12 w-12 rounded object-cover"  loading="lazy" decoding="async" />
             ) : (
               <div className="h-12 w-12 rounded bg-muted" />
             )}

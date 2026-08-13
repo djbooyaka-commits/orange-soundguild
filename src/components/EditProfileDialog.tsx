@@ -191,7 +191,7 @@ export function EditProfileDialog({
             >
               <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
                 {preview ? (
-                  <img src={preview} alt="" className="h-full w-full object-cover" />
+                  <img src={preview} alt="" className="h-full w-full object-cover"  loading="lazy" decoding="async" />
                 ) : (
                   <ImageIcon className="h-5 w-5" />
                 )}

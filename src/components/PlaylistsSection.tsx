@@ -16,20 +16,20 @@ function PlaylistCover({
   isLiked: boolean;
 }) {
   if (coverUrl) {
-    return <img src={coverUrl} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" />;
+    return <img src={coverUrl} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover"  loading="lazy" decoding="async" />;
   }
   const covers = tracks.map((t) => t.cover).filter(Boolean).slice(0, 4);
   if (covers.length >= 4) {
     return (
       <div className="grid h-12 w-12 flex-shrink-0 grid-cols-2 grid-rows-2 overflow-hidden rounded-lg">
         {covers.map((c, i) => (
-          <img key={i} src={c} alt="" className="h-full w-full object-cover" />
+          <img key={i} src={c} alt="" className="h-full w-full object-cover"  loading="lazy" decoding="async" />
         ))}
       </div>
     );
   }
   if (covers.length >= 1) {
-    return <img src={covers[0]} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" />;
+    return <img src={covers[0]} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover"  loading="lazy" decoding="async" />;
   }
   return (
     <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
@@ -266,7 +266,7 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                         >
                           {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
                         </button>
-                        <img src={t.cover} alt="" className="h-8 w-8 rounded object-cover" />
+                        <img src={t.cover} alt="" className="h-8 w-8 rounded object-cover"  loading="lazy" decoding="async" />
                         <div className="min-w-0 flex-1">
                           <p className={`truncate text-sm ${active ? "text-primary" : ""}`}>{t.title}</p>
                           <p className="truncate text-xs text-muted-foreground">

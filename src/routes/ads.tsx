@@ -293,7 +293,7 @@ function AdsPage() {
                             : "border-border bg-card hover:border-primary/40"
                         }`}
                       >
-                        <img src={t.cover} alt="" className="h-12 w-12 rounded-md object-cover" />
+                        <img src={t.cover} alt="" className="h-12 w-12 rounded-md object-cover"  loading="lazy" decoding="async" />
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold">{t.title}</p>
                           <p className="truncate text-xs text-muted-foreground">{t.genre}</p>
@@ -331,7 +331,7 @@ function AdsPage() {
               {imageUrl && /^https:\/\//i.test(imageUrl) && (
                 <div className="rounded-xl border border-border bg-card p-3">
                   <p className="mb-2 text-xs text-muted-foreground">Preview</p>
-                  <img src={imageUrl} alt="Preview" className="h-32 w-full rounded-md object-cover" />
+                  <img src={imageUrl} alt="Preview" className="h-32 w-full rounded-md object-cover"  loading="lazy" decoding="async" />
                   {headline && <p className="mt-2 text-sm font-semibold">{headline}</p>}
                 </div>
               )}
