@@ -49,6 +49,15 @@ const OFFICIAL_PLAYLISTS: { label: string; url: string }[] = [
   { label: "Tidal — Pioneer OSG Artist Top 100", url: "https://tidal.com/playlist/74192aba-7563-4520-83b9-33ca73b4527a" },
 ];
 
+const PLAYLIST_BY_PLATFORM: Record<PlatformId, string> = {
+  spotify: OFFICIAL_PLAYLISTS[0]!.url,
+  apple_music: OFFICIAL_PLAYLISTS[1]!.url,
+  youtube: OFFICIAL_PLAYLISTS[2]!.url,
+  tidal: OFFICIAL_PLAYLISTS[3]!.url,
+};
+
+
+
 
 type MySubmission = {
   id: string;
@@ -69,7 +78,7 @@ function PlaylistSubmitPage() {
   const canSubmit = accountType === "artist" || accountType === "pioneer";
 
   const [platform, setPlatform] = useState<PlatformId>("spotify");
-  const [playlistUrl, setPlaylistUrl] = useState("");
+  
   const [trackUrl, setTrackUrl] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -95,17 +104,17 @@ function PlaylistSubmitPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    const url = playlistUrl.trim();
-    if (!/^https?:\/\//i.test(url)) {
-      toast.error("Enter a full playlist link starting with https://");
+    const track = trackUrl.trim();
+    if (!/^https?:\/\//i.test(track)) {
+      toast.error("Enter a full track link starting with https://");
       return;
     }
     setSaving(true);
     const { error } = await supabase.from("playlist_submissions").insert({
       user_id: user.id,
       platform,
-      playlist_url: url,
-      track_url: trackUrl.trim() || null,
+      playlist_url: PLAYLIST_BY_PLATFORM[platform],
+      track_url: track,
       note: note.trim() || null,
     });
     setSaving(false);
@@ -114,11 +123,11 @@ function PlaylistSubmitPage() {
       return;
     }
     toast.success("Sent to the Orange Sound Guild team");
-    setPlaylistUrl("");
     setTrackUrl("");
     setNote("");
     void loadMine();
   }
+
 
   if (authLoading || typeLoading) {
     return (
@@ -222,26 +231,24 @@ function PlaylistSubmitPage() {
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium">Playlist link</label>
-              <input
-                required
-                className={inputCls}
-                placeholder="https://open.spotify.com/playlist/..."
-                value={playlistUrl}
-                onChange={(e) => setPlaylistUrl(e.target.value)}
-              />
+            <div className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
+              Submitting to:{" "}
+              <span className="font-medium text-foreground">
+                {OFFICIAL_PLAYLISTS.find((p) => p.url === PLAYLIST_BY_PLATFORM[platform])?.label}
+              </span>
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium">Your track link (optional)</label>
+              <label className="mb-1 block text-sm font-medium">Your track link</label>
               <input
+                required
                 className={inputCls}
                 placeholder="Link to the track you'd like placed"
                 value={trackUrl}
                 onChange={(e) => setTrackUrl(e.target.value)}
               />
             </div>
+
 
             <div>
               <label className="mb-1 block text-sm font-medium">Note (optional)</label>
