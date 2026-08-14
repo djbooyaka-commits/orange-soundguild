@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, ExternalLink, ListMusic } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 
 type Row = {
@@ -98,7 +99,18 @@ export function PlaylistSubmissionsAdmin() {
                 <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold">
                   {PLATFORM_LABEL[r.platform] ?? r.platform}
                 </span>
-                <span className="font-medium">@{r.username ?? "unknown"}</span>
+                {r.username ? (
+                  <Link
+                    to="/u/$handle"
+                    params={{ handle: r.username }}
+                    target="_blank"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    @{r.username}
+                  </Link>
+                ) : (
+                  <span className="font-medium">@unknown</span>
+                )}
                 <span className="text-xs capitalize text-muted-foreground">{r.account_type}</span>
                 <span
                   className={
