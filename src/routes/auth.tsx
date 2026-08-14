@@ -25,13 +25,14 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [refCode, setRefCode] = useState("");
   const [pioneerCode, setPioneerCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [agreedTos, setAgreedTos] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
 
   useEffect(() => {
