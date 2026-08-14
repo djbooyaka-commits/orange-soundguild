@@ -191,10 +191,10 @@ function AuthPage() {
         </Link>
 
         <h1 className="text-2xl font-bold tracking-tight">
-          {mode === "signin" ? "Welcome back" : "Create account"}
+          {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create account" : "Reset password"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {mode === "signin" ? "Sign in to upload and like tracks." : "Join to share your sound."}
+          {mode === "signin" ? "Sign in to upload and like tracks." : mode === "signup" ? "Join to share your sound." : "We'll email you a link to set a new password."}
         </p>
 
         {mode === "signup" && (
@@ -208,83 +208,125 @@ function AuthPage() {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={onGoogle}
-          disabled={busy || (mode === "signup" && !agreedTos)}
-          className="mt-6 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-background text-sm font-medium hover:bg-muted disabled:opacity-50"
-        >
-          Continue with Google
-        </button>
+        {mode !== "forgot" && (
+          <>
+            <button
+              type="button"
+              onClick={onGoogle}
+              disabled={busy || (mode === "signup" && !agreedTos)}
+              className="mt-6 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-background text-sm font-medium hover:bg-muted disabled:opacity-50"
+            >
+              Continue with Google
+            </button>
 
-        <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-          <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
-        </div>
+            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        )}
 
-        <form onSubmit={onEmail} className="space-y-3">
-          <input
-            type="email"
-            required
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-          />
-          <input
-            type="password"
-            required
-            minLength={6}
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-          />
-          {mode === "signup" && (
-            <input
-              type="text"
-              placeholder="Referral code (optional)"
-              value={refCode}
-              onChange={(e) => setRefCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12))}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-            />
-          )}
-          {mode === "signup" && (
-            <input
-              type="text"
-              placeholder="Pioneer invite code (optional)"
-              value={pioneerCode}
-              onChange={(e) => setPioneerCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 16))}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-            />
-          )}
-          {mode === "signup" && (
-            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+        {mode === "forgot" ? (
+          forgotSent ? (
+            <div className="mt-6 rounded-md border border-border bg-muted/40 p-4 text-center text-sm text-muted-foreground">
+              If an account exists for <span className="font-medium text-foreground">{email}</span>, a reset link is on its way. Check your inbox and follow the link to set a new password.
+            </div>
+          ) : (
+            <form onSubmit={onForgot} className="mt-6 space-y-3">
               <input
-                type="checkbox"
-                checked={agreedTos}
-                onChange={(e) => setAgreedTos(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+                type="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
               />
-              <span>
-                I agree to the{" "}
-                <Link to="/terms" target="_blank" className="font-medium text-primary hover:underline">
-                  Terms of Service
-                </Link>
-                .
-              </span>
-            </label>
-          )}
-          <button
-            type="submit"
-            disabled={busy || (mode === "signup" && !agreedTos)}
-            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground hover:brightness-105 disabled:opacity-50"
-          >
-            {mode === "signin" ? "Sign in" : "Sign up"}
-          </button>
-        </form>
+              <button
+                type="submit"
+                disabled={busy}
+                className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground hover:brightness-105 disabled:opacity-50"
+              >
+                {busy ? "Sending…" : "Send reset link"}
+              </button>
+            </form>
+          )
+        ) : (
+          <form onSubmit={onEmail} className="space-y-3">
+            <input
+              type="email"
+              required
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+            />
+            <input
+              type="password"
+              required
+              minLength={6}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+            />
+            {mode === "signup" && (
+              <input
+                type="text"
+                placeholder="Referral code (optional)"
+                value={refCode}
+                onChange={(e) => setRefCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12))}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+              />
+            )}
+            {mode === "signup" && (
+              <input
+                type="text"
+                placeholder="Pioneer invite code (optional)"
+                value={pioneerCode}
+                onChange={(e) => setPioneerCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 16))}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-mono uppercase tracking-widest outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+              />
+            )}
+            {mode === "signup" && (
+              <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={agreedTos}
+                  onChange={(e) => setAgreedTos(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+                />
+                <span>
+                  I agree to the{" "}
+                  <Link to="/terms" target="_blank" className="font-medium text-primary hover:underline">
+                    Terms of Service
+                  </Link>
+                  .
+                </span>
+              </label>
+            )}
+            <button
+              type="submit"
+              disabled={busy || (mode === "signup" && !agreedTos)}
+              className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground hover:brightness-105 disabled:opacity-50"
+            >
+              {mode === "signin" ? "Sign in" : "Sign up"}
+            </button>
+          </form>
+        )}
+
+        {mode === "signin" && (
+          <div className="mt-3 text-center">
+            <button
+              type="button"
+              onClick={() => { setMode("forgot"); setForgotSent(false); }}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          {mode === "signin" ? "No account?" : "Already have one?"}{" "}
+          {mode === "signin" ? "No account?" : mode === "signup" ? "Already have one?" : "Remembered it?"}{" "}
           <button
             type="button"
             onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
