@@ -104,17 +104,17 @@ function PlaylistSubmitPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    const url = playlistUrl.trim();
-    if (!/^https?:\/\//i.test(url)) {
-      toast.error("Enter a full playlist link starting with https://");
+    const track = trackUrl.trim();
+    if (!/^https?:\/\//i.test(track)) {
+      toast.error("Enter a full track link starting with https://");
       return;
     }
     setSaving(true);
     const { error } = await supabase.from("playlist_submissions").insert({
       user_id: user.id,
       platform,
-      playlist_url: url,
-      track_url: trackUrl.trim() || null,
+      playlist_url: PLAYLIST_BY_PLATFORM[platform],
+      track_url: track,
       note: note.trim() || null,
     });
     setSaving(false);
@@ -123,11 +123,11 @@ function PlaylistSubmitPage() {
       return;
     }
     toast.success("Sent to the Orange Sound Guild team");
-    setPlaylistUrl("");
     setTrackUrl("");
     setNote("");
     void loadMine();
   }
+
 
   if (authLoading || typeLoading) {
     return (
