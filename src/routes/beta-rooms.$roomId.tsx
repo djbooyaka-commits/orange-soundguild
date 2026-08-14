@@ -179,15 +179,16 @@ function BetaRoomDetail() {
 
       <Tabs defaultValue="tracking" className="space-y-6">
         <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <TabsTrigger value="tracking">Stream Tracker</TabsTrigger>
-          <TabsTrigger value="playlists">Curator playlists</TabsTrigger>
-          {room.isOwner && <TabsTrigger value="invite">Invite link</TabsTrigger>}
-          <TabsTrigger value="submissions">Track submissions</TabsTrigger>
+          <TabsTrigger value="tracking" className="shrink-0">Stream Tracker</TabsTrigger>
+          <TabsTrigger value="playlists" className="shrink-0">Curator playlists</TabsTrigger>
+          {room.isOwner && <TabsTrigger value="invite" className="shrink-0">Invite link</TabsTrigger>}
+          <TabsTrigger value="submissions" className="shrink-0">Track submissions</TabsTrigger>
           {playlists.map((p) => (
-            <TabsTrigger key={p.id} value={`pl-${p.id}`}>
+            <TabsTrigger key={p.id} value={`pl-${p.id}`} className="max-w-[45vw] shrink-0 truncate">
               {p.name}
             </TabsTrigger>
           ))}
+
         </TabsList>
 
         {playlists.map((p) => (
