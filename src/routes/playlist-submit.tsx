@@ -141,6 +141,30 @@ function PlaylistSubmitPage() {
           </ul>
         </div>
 
+        <section className="mt-6 rounded-2xl border border-border bg-card/50 p-4">
+          <h2 className="text-base font-semibold">Official Orange Sound Guild playlists</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Follow, save or like these on your platform of choice.
+          </p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {OFFICIAL_PLAYLISTS.map((p) => (
+              <li key={p.label}>
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium transition hover:border-primary hover:text-primary"
+                >
+                  <span>{p.label}</span>
+                  <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+
+
 
         {!user ? (
           <div className="mt-8 rounded-2xl border border-border bg-card/50 p-6 text-center">
