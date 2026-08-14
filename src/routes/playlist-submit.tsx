@@ -132,6 +132,16 @@ function PlaylistSubmitPage() {
           straight to the Orange Sound Guild team for review.
         </p>
 
+        <div className="mt-4 rounded-2xl border border-border bg-card/50 p-4 text-sm">
+          <p className="font-semibold">Submission rules</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>Only music uploaded to Orange Sound Guild will be added.</li>
+            <li>3 submissions every 15 days for Artists.</li>
+            <li>1 submission every 15 days for Pioneer Artists.</li>
+          </ul>
+        </div>
+
+
         {!user ? (
           <div className="mt-8 rounded-2xl border border-border bg-card/50 p-6 text-center">
             <p className="text-muted-foreground">Sign in to submit a playlist.</p>
