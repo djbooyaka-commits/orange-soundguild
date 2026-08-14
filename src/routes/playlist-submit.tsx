@@ -78,7 +78,7 @@ function PlaylistSubmitPage() {
   const canSubmit = accountType === "artist" || accountType === "pioneer";
 
   const [platform, setPlatform] = useState<PlatformId>("spotify");
-  const [playlistUrl, setPlaylistUrl] = useState("");
+  const [trackUrl2Unused] = useState("");
   const [trackUrl, setTrackUrl] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
