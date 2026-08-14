@@ -36,7 +36,7 @@ export function PlaylistSubmissionsAdmin() {
     setLoading(true);
     const { data, error } = await supabase.rpc("list_playlist_submissions_admin");
     if (error) toast.error(error.message);
-    setRows(((data ?? []) as Row[]) ?? []);
+    setRows((data ?? []) as unknown as Row[]);
     setLoading(false);
   }, []);
 
@@ -49,7 +49,7 @@ export function PlaylistSubmissionsAdmin() {
     const { error } = await supabase.rpc("review_playlist_submission", {
       _id: id,
       _status: status,
-      _note: notes[id]?.trim() || null,
+      _note: notes[id]?.trim() || undefined,
     });
     setBusy(null);
     if (error) {
