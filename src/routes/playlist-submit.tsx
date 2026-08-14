@@ -39,6 +39,17 @@ const PLATFORMS = [
 
 type PlatformId = (typeof PLATFORMS)[number]["id"];
 
+const OFFICIAL_PLAYLISTS: { label: string; url: string }[] = [
+  { label: "Spotify — Pioneer OSG Artist Top 100", url: "https://open.spotify.com/playlist/7eqF5QBIif2l1vPhygo5D2" },
+  {
+    label: "Apple Music — Pioneer OSG Artist Top 100",
+    url: "https://music.apple.com/ph/playlist/pioneer-osg-artist-top-100-artist/pl.u-b3b8aj7TKYEGe7b",
+  },
+  { label: "YouTube Music — Pioneer OSG Artist Top 100", url: "https://music.youtube.com/playlist?list=PLDuxOnqbSQ2U" },
+  { label: "Tidal — Pioneer OSG Artist Top 100", url: "https://tidal.com/playlist/74192aba-7563-4520-83b9-33ca73b4527a" },
+];
+
+
 type MySubmission = {
   id: string;
   platform: string;
@@ -140,6 +151,30 @@ function PlaylistSubmitPage() {
             <li>1 submission every 15 days for Pioneer Artists.</li>
           </ul>
         </div>
+
+        <section className="mt-6 rounded-2xl border border-border bg-card/50 p-4">
+          <h2 className="text-base font-semibold">Official Orange Sound Guild playlists</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Follow, save or like these on your platform of choice.
+          </p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {OFFICIAL_PLAYLISTS.map((p) => (
+              <li key={p.label}>
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium transition hover:border-primary hover:text-primary"
+                >
+                  <span>{p.label}</span>
+                  <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+
 
 
         {!user ? (
