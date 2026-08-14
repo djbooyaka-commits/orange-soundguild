@@ -145,6 +145,23 @@ function AuthPage() {
     }
   };
 
+  const onForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setForgotSent(true);
+      toast.success("Reset link sent. Check your email.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send reset email");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onGoogle = async () => {
     if (mode === "signup" && !agreedTos) {
       toast.error("You must agree to the Terms of Service to create an account.");
