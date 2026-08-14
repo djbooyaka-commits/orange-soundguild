@@ -49,6 +49,15 @@ const OFFICIAL_PLAYLISTS: { label: string; url: string }[] = [
   { label: "Tidal — Pioneer OSG Artist Top 100", url: "https://tidal.com/playlist/74192aba-7563-4520-83b9-33ca73b4527a" },
 ];
 
+const PLAYLIST_BY_PLATFORM: Record<PlatformId, string> = {
+  spotify: OFFICIAL_PLAYLISTS[0]!.url,
+  apple_music: OFFICIAL_PLAYLISTS[1]!.url,
+  youtube: OFFICIAL_PLAYLISTS[2]!.url,
+  tidal: OFFICIAL_PLAYLISTS[3]!.url,
+};
+
+
+
 
 type MySubmission = {
   id: string;
