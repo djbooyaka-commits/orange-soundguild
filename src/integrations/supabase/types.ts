@@ -869,6 +869,48 @@ export type Database = {
         }
         Relationships: []
       }
+      playlist_submissions: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          id: string
+          note: string | null
+          platform: Database["public"]["Enums"]["playlist_platform"]
+          playlist_url: string
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["playlist_submission_status"]
+          track_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          platform: Database["public"]["Enums"]["playlist_platform"]
+          playlist_url: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["playlist_submission_status"]
+          track_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          platform?: Database["public"]["Enums"]["playlist_platform"]
+          playlist_url?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["playlist_submission_status"]
+          track_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       playlist_tracks: {
         Row: {
           added_at: string
@@ -1849,6 +1891,23 @@ export type Database = {
           spotify_playlist_id: string
         }[]
       }
+      list_playlist_submissions_admin: {
+        Args: never
+        Returns: {
+          account_type: Database["public"]["Enums"]["account_type"]
+          admin_note: string
+          created_at: string
+          id: string
+          note: string
+          platform: Database["public"]["Enums"]["playlist_platform"]
+          playlist_url: string
+          reviewed_at: string
+          status: Database["public"]["Enums"]["playlist_submission_status"]
+          track_url: string
+          user_id: string
+          username: string
+        }[]
+      }
       list_playlists_for_submission: {
         Args: never
         Returns: {
@@ -1882,6 +1941,14 @@ export type Database = {
       }
       review_curator_submission: {
         Args: { _approve: boolean; _note?: string; _submission_id: string }
+        Returns: undefined
+      }
+      review_playlist_submission: {
+        Args: {
+          _id: string
+          _note?: string
+          _status: Database["public"]["Enums"]["playlist_submission_status"]
+        }
         Returns: undefined
       }
       run_monthly_royalty_payout: {
@@ -1943,6 +2010,8 @@ export type Database = {
       friend_status: "pending" | "accepted" | "declined"
       payout_method: "paypal" | "phantom"
       payout_status: "pending" | "processing" | "paid" | "rejected"
+      playlist_platform: "spotify" | "apple_music" | "youtube" | "tidal"
+      playlist_submission_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2080,6 +2149,8 @@ export const Constants = {
       friend_status: ["pending", "accepted", "declined"],
       payout_method: ["paypal", "phantom"],
       payout_status: ["pending", "processing", "paid", "rejected"],
+      playlist_platform: ["spotify", "apple_music", "youtube", "tidal"],
+      playlist_submission_status: ["pending", "approved", "rejected"],
     },
   },
 } as const
