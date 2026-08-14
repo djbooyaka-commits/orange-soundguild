@@ -39,6 +39,17 @@ const PLATFORMS = [
 
 type PlatformId = (typeof PLATFORMS)[number]["id"];
 
+const OFFICIAL_PLAYLISTS: { label: string; url: string }[] = [
+  { label: "Spotify — Pioneer OSG Artist Top 100", url: "https://open.spotify.com/playlist/7eqF5QBIif2l1vPhygo5D2" },
+  {
+    label: "Apple Music — Pioneer OSG Artist Top 100",
+    url: "https://music.apple.com/ph/playlist/pioneer-osg-artist-top-100-artist/pl.u-b3b8aj7TKYEGe7b",
+  },
+  { label: "YouTube Music — Pioneer OSG Artist Top 100", url: "https://music.youtube.com/playlist?list=PLDuxOnqbSQ2U" },
+  { label: "Tidal — Pioneer OSG Artist Top 100", url: "https://tidal.com/playlist/74192aba-7563-4520-83b9-33ca73b4527a" },
+];
+
+
 type MySubmission = {
   id: string;
   platform: string;
