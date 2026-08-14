@@ -141,62 +141,6 @@ function PlaylistSubmitPage() {
           </ul>
         </div>
 
-        <section className="mt-8">
-          <h2 className="text-lg font-bold tracking-tight">Official OSG playlists</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Follow, save or like these playlists to support Orange Sound Guild artists.
-          </p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-border bg-card/50 p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold">Spotify</span>
-                <a
-                  href="https://open.spotify.com/playlist/7eqF5QBIif2l1vPhygo5D2"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                >
-                  Open <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-              <iframe
-                title="Orange Sound Guild Spotify playlist"
-                src="https://open.spotify.com/embed/playlist/7eqF5QBIif2l1vPhygo5D2?utm_source=generator"
-                width="100%"
-                height="380"
-                loading="lazy"
-                className="rounded-xl"
-                frameBorder="0"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              />
-            </div>
-            <div className="rounded-2xl border border-border bg-card/50 p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold">Apple Music</span>
-                <a
-                  href="https://music.apple.com/ph/playlist/pioneer-osg-artist-top-100-artist/pl.u-b3b8aj7TKYEGe7b"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                >
-                  Open <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-              <iframe
-                title="Pioneer OSG Artist Top 100 Apple Music playlist"
-                src="https://embed.music.apple.com/ph/playlist/pioneer-osg-artist-top-100-artist/pl.u-b3b8aj7TKYEGe7b"
-                width="100%"
-                height="380"
-                loading="lazy"
-                className="rounded-xl"
-                frameBorder="0"
-                sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
-                allow="autoplay *; encrypted-media *; clipboard-write"
-              />
-            </div>
-          </div>
-        </section>
-
 
         {!user ? (
           <div className="mt-8 rounded-2xl border border-border bg-card/50 p-6 text-center">
