@@ -222,26 +222,24 @@ function PlaylistSubmitPage() {
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium">Playlist link</label>
-              <input
-                required
-                className={inputCls}
-                placeholder="https://open.spotify.com/playlist/..."
-                value={playlistUrl}
-                onChange={(e) => setPlaylistUrl(e.target.value)}
-              />
+            <div className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
+              Submitting to:{" "}
+              <span className="font-medium text-foreground">
+                {OFFICIAL_PLAYLISTS.find((p) => p.url === PLAYLIST_BY_PLATFORM[platform])?.label}
+              </span>
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium">Your track link (optional)</label>
+              <label className="mb-1 block text-sm font-medium">Your track link</label>
               <input
+                required
                 className={inputCls}
                 placeholder="Link to the track you'd like placed"
                 value={trackUrl}
                 onChange={(e) => setTrackUrl(e.target.value)}
               />
             </div>
+
 
             <div>
               <label className="mb-1 block text-sm font-medium">Note (optional)</label>
