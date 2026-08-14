@@ -5,6 +5,7 @@ import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt, Ticket, C
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { RoyaltyPoolAdmin } from "@/components/RoyaltyPoolAdmin";
+import { PlaylistSubmissionsAdmin } from "@/components/PlaylistSubmissionsAdmin";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import {
@@ -56,6 +57,7 @@ const ADMIN_TABS = [
   { id: "page", label: "Artist Welcome page" },
   { id: "users", label: "Users" },
   { id: "ads", label: "Ad scripts" },
+  { id: "playlists", label: "Playlist submissions" },
   { id: "royalties", label: "Royalty pool" },
   { id: "accounting", label: "Site accounting" },
 ] as const;
@@ -328,6 +330,7 @@ function AdminPage() {
 
             {tab === "users" && <UsersAdmin />}
             {tab === "ads" && <AdScriptsAdmin />}
+            {tab === "playlists" && <PlaylistSubmissionsAdmin />}
             {tab === "royalties" && <RoyaltyPoolAdmin />}
             {tab === "accounting" && <SiteAccounting />}
           </div>

@@ -19,6 +19,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as RoyaltiesRouteImport } from './routes/royalties'
 import { Route as ReferralsRouteImport } from './routes/referrals'
 import { Route as PostsRouteImport } from './routes/posts'
+import { Route as PlaylistSubmitRouteImport } from './routes/playlist-submit'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as DiscoverRouteImport } from './routes/discover'
@@ -88,6 +89,11 @@ const ReferralsRoute = ReferralsRouteImport.update({
 const PostsRoute = PostsRouteImport.update({
   id: '/posts',
   path: '/posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlaylistSubmitRoute = PlaylistSubmitRouteImport.update({
+  id: '/playlist-submit',
+  path: '/playlist-submit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesRoute = MessagesRouteImport.update({
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
+  '/playlist-submit': typeof PlaylistSubmitRoute
   '/posts': typeof PostsRoute
   '/referrals': typeof ReferralsRoute
   '/royalties': typeof RoyaltiesRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
+  '/playlist-submit': typeof PlaylistSubmitRoute
   '/posts': typeof PostsRoute
   '/referrals': typeof ReferralsRoute
   '/royalties': typeof RoyaltiesRoute
@@ -269,6 +277,7 @@ export interface FileRoutesById {
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
+  '/playlist-submit': typeof PlaylistSubmitRoute
   '/posts': typeof PostsRoute
   '/referrals': typeof ReferralsRoute
   '/royalties': typeof RoyaltiesRoute
@@ -303,6 +312,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/library'
     | '/messages'
+    | '/playlist-submit'
     | '/posts'
     | '/referrals'
     | '/royalties'
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/library'
     | '/messages'
+    | '/playlist-submit'
     | '/posts'
     | '/referrals'
     | '/royalties'
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/library'
     | '/messages'
+    | '/playlist-submit'
     | '/posts'
     | '/referrals'
     | '/royalties'
@@ -400,6 +412,7 @@ export interface RootRouteChildren {
   DiscoverRoute: typeof DiscoverRoute
   LibraryRoute: typeof LibraryRoute
   MessagesRoute: typeof MessagesRoute
+  PlaylistSubmitRoute: typeof PlaylistSubmitRoute
   PostsRoute: typeof PostsRoute
   ReferralsRoute: typeof ReferralsRoute
   RoyaltiesRoute: typeof RoyaltiesRoute
@@ -492,6 +505,13 @@ declare module '@tanstack/react-router' {
       path: '/posts'
       fullPath: '/posts'
       preLoaderRoute: typeof PostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/playlist-submit': {
+      id: '/playlist-submit'
+      path: '/playlist-submit'
+      fullPath: '/playlist-submit'
+      preLoaderRoute: typeof PlaylistSubmitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages': {
@@ -658,6 +678,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiscoverRoute: DiscoverRoute,
   LibraryRoute: LibraryRoute,
   MessagesRoute: MessagesRoute,
+  PlaylistSubmitRoute: PlaylistSubmitRoute,
   PostsRoute: PostsRoute,
   ReferralsRoute: ReferralsRoute,
   RoyaltiesRoute: RoyaltiesRoute,
