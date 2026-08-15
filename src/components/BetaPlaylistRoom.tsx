@@ -170,11 +170,11 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
             <div>
               <h2 className="font-semibold">{data.playlist.name} room</h2>
               <p className="text-sm text-muted-foreground">
-                Everyone invited to this room needs at least{" "}
+                Each needs at least{" "}
                 <span className="font-medium text-foreground">
-                  {data.playlist.weeklyMin} total points per week
+                  {data.playlist.weeklyMin} total points
                 </span>{" "}
-                for their tracks to stay on the playlist. Tracking {data.playlist.trackCount} track
+                from streaming your OSG playlist. Tracking {data.playlist.trackCount} track
                 {data.playlist.trackCount === 1 ? "" : "s"}.
               </p>
             </div>
