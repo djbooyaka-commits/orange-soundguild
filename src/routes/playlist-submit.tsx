@@ -39,25 +39,51 @@ const PLATFORMS = [
 
 type PlatformId = (typeof PLATFORMS)[number]["id"];
 
-const OFFICIAL_PLAYLISTS: { label: string; url: string }[] = [
+// All Spotify playlists available for submission (Top 100 + genre playlists)
+const SPOTIFY_PLAYLISTS: { label: string; url: string }[] = [
   { label: "Spotify — Pioneer OSG Artist Top 100", url: "https://open.spotify.com/playlist/7eqF5QBIif2l1vPhygo5D2" },
-  {
-    label: "Apple Music — Pioneer OSG Artist Top 100",
-    url: "https://music.apple.com/ph/playlist/pioneer-osg-artist-top-100-artist/pl.u-b3b8aj7TKYEGe7b",
-  },
-  { label: "YouTube Music — Pioneer OSG Artist Top 100", url: "https://music.youtube.com/playlist?list=PLDuxOnqbSQ2U" },
-  { label: "Tidal — Pioneer OSG Artist Top 100", url: "https://tidal.com/playlist/74192aba-7563-4520-83b9-33ca73b4527a" },
+  { label: "Spotify — Electronic OSG", url: "https://open.spotify.com/playlist/2YyW7Is4IYcDHDLj9pgD6r" },
+  { label: "Spotify — House OSG", url: "https://open.spotify.com/playlist/5YlvupSOizFaf3jSaBnao2" },
+  { label: "Spotify — Tech House OSG", url: "https://open.spotify.com/playlist/0ONyF4oaDRCXbxmFfLHvwH" },
+  { label: "Spotify — Drum and Bass OSG", url: "https://open.spotify.com/playlist/2pg7mGn6IL4mADLuEIL0Wn" },
+  { label: "Spotify — Afro House OSG", url: "https://open.spotify.com/playlist/4xGLfF8xfgwWACQ3cKFMTh" },
+  { label: "Spotify — Afrobeats OSG", url: "https://open.spotify.com/playlist/1zSf4QGvsZ1m3L5U6YfNsf" },
+  { label: "Spotify — Hip-Hop OSG", url: "https://open.spotify.com/playlist/51xKogbXRFuNpK92lKSDNx" },
+  { label: "Spotify — Lo-fi OSG", url: "https://open.spotify.com/playlist/5ahIniapvTvsoHVjDIg33w" },
+  { label: "Spotify — Indie OSG", url: "https://open.spotify.com/playlist/230BlC0Ifpvr5XokfaIZgH" },
+  { label: "Spotify — Ambient OSG", url: "https://open.spotify.com/playlist/5Vfv2vXvuaBl9lYhdY6Tga" },
+  { label: "Spotify — Jazz OSG", url: "https://open.spotify.com/playlist/3anGG0pJCA7O33i6fQuCka" },
+  { label: "Spotify — Techno OSG", url: "https://open.spotify.com/playlist/2lpPDZcwgwErZvasX61Om6" },
+  { label: "Spotify — Psytrance OSG", url: "https://open.spotify.com/playlist/2cbeHywboh5bVyDV29mf0k" },
+  { label: "Spotify — POP OSG", url: "https://open.spotify.com/playlist/0dGqgXJyGCSVp8E8eTxASv" },
+  { label: "Spotify — Rock OSG", url: "https://open.spotify.com/playlist/47nZXoBHtvvYXtuZ5iUGXc" },
+  { label: "Spotify — R&B OSG", url: "https://open.spotify.com/playlist/1tICZK79ENqcmSrGrrYDaC" },
 ];
 
-const PLAYLIST_BY_PLATFORM: Record<PlatformId, string> = {
-  spotify: OFFICIAL_PLAYLISTS[0]!.url,
-  apple_music: OFFICIAL_PLAYLISTS[1]!.url,
-  youtube: OFFICIAL_PLAYLISTS[2]!.url,
-  tidal: OFFICIAL_PLAYLISTS[3]!.url,
+const APPLE_PLAYLIST = { label: "Apple Music — Pioneer OSG Artist Top 100", url: "https://music.apple.com/ph/playlist/pioneer-osg-artist-top-100-artist/pl.u-b3b8aj7TKYEGe7b" };
+const YOUTUBE_PLAYLIST = { label: "YouTube Music — Pioneer OSG Artist Top 100", url: "https://music.youtube.com/playlist?list=PLDuxOnqbSQ2U" };
+const TIDAL_PLAYLIST = { label: "Tidal — Pioneer OSG Artist Top 100", url: "https://tidal.com/playlist/74192aba-7563-4520-83b9-33ca73b4527a" };
+
+// Playlists shown in the follow/save section
+const OFFICIAL_PLAYLISTS: { label: string; url: string }[] = [
+  ...SPOTIFY_PLAYLISTS,
+  APPLE_PLAYLIST,
+  YOUTUBE_PLAYLIST,
+  TIDAL_PLAYLIST,
+];
+
+// Default playlist url per platform
+const DEFAULT_PLAYLIST_BY_PLATFORM: Record<PlatformId, string> = {
+  spotify: SPOTIFY_PLAYLISTS[0]!.url,
+  apple_music: APPLE_PLAYLIST.url,
+  youtube: YOUTUBE_PLAYLIST.url,
+  tidal: TIDAL_PLAYLIST.url,
 };
 
-
-
+function labelForPlaylistUrl(url: string): string {
+  const found = OFFICIAL_PLAYLISTS.find((p) => p.url === url);
+  return found ? found.label : url;
+}
 
 type MySubmission = {
   id: string;
@@ -78,12 +104,16 @@ function PlaylistSubmitPage() {
   const canSubmit = accountType === "artist" || accountType === "pioneer";
 
   const [platform, setPlatform] = useState<PlatformId>("spotify");
-  
+  const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState<string>(SPOTIFY_PLAYLISTS[0]!.url);
   const [trackUrl, setTrackUrl] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [mine, setMine] = useState<MySubmission[]>([]);
   const [loadingMine, setLoadingMine] = useState(true);
+
+  // The playlist url that will be submitted for the current platform
+  const activePlaylistUrl =
+    platform === "spotify" ? spotifyPlaylistUrl : DEFAULT_PLAYLIST_BY_PLATFORM[platform];
 
   const loadMine = useCallback(async () => {
     if (!user) return;
@@ -113,7 +143,7 @@ function PlaylistSubmitPage() {
     const { error } = await supabase.from("playlist_submissions").insert({
       user_id: user.id,
       platform,
-      playlist_url: PLAYLIST_BY_PLATFORM[platform],
+      playlist_url: activePlaylistUrl,
       track_url: track,
       note: note.trim() || null,
     });
@@ -127,7 +157,6 @@ function PlaylistSubmitPage() {
     setNote("");
     void loadMine();
   }
-
 
   if (authLoading || typeLoading) {
     return (
@@ -183,9 +212,6 @@ function PlaylistSubmitPage() {
           </ul>
         </section>
 
-
-
-
         {!user ? (
           <div className="mt-8 rounded-2xl border border-border bg-card/50 p-6 text-center">
             <p className="text-muted-foreground">Sign in to submit a playlist.</p>
@@ -231,10 +257,27 @@ function PlaylistSubmitPage() {
               </div>
             </div>
 
+            {platform === "spotify" && (
+              <div>
+                <label className="mb-1 block text-sm font-medium">Spotify playlist</label>
+                <select
+                  className={inputCls}
+                  value={spotifyPlaylistUrl}
+                  onChange={(e) => setSpotifyPlaylistUrl(e.target.value)}
+                >
+                  {SPOTIFY_PLAYLISTS.map((p) => (
+                    <option key={p.url} value={p.url}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
               Submitting to:{" "}
               <span className="font-medium text-foreground">
-                {OFFICIAL_PLAYLISTS.find((p) => p.url === PLAYLIST_BY_PLATFORM[platform])?.label}
+                {labelForPlaylistUrl(activePlaylistUrl)}
               </span>
             </div>
 
@@ -248,7 +291,6 @@ function PlaylistSubmitPage() {
                 onChange={(e) => setTrackUrl(e.target.value)}
               />
             </div>
-
 
             <div>
               <label className="mb-1 block text-sm font-medium">Note (optional)</label>
@@ -307,7 +349,7 @@ function PlaylistSubmitPage() {
                       rel="noreferrer"
                       className="mt-2 inline-flex items-center gap-1 break-all text-primary hover:underline"
                     >
-                      <ExternalLink className="h-3.5 w-3.5" /> {s.playlist_url}
+                      <ExternalLink className="h-3.5 w-3.5" /> {labelForPlaylistUrl(s.playlist_url)}
                     </a>
                     {s.admin_note && (
                       <p className="mt-1 text-xs text-muted-foreground">Team note: {s.admin_note}</p>
