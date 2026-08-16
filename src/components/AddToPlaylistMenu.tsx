@@ -19,7 +19,7 @@ export function AddToPlaylistMenu({
 }: {
   trackId: string;
   trackTitle: string;
-  variant?: "overlay" | "inline";
+  variant?: "overlay" | "inline" | "player";
 }) {
   const { user } = useAuth();
   const { playlists, create, addTrack } = useMyPlaylists();
@@ -31,7 +31,10 @@ export function AddToPlaylistMenu({
     "absolute right-12 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/85 text-foreground backdrop-blur transition hover:bg-primary hover:text-primary-foreground";
   const inlineClass =
     "inline-flex h-12 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium text-foreground transition hover:border-primary/40";
-  const triggerClass = variant === "inline" ? inlineClass : overlayClass;
+  const playerClass =
+    "flex h-9 w-9 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white";
+  const triggerClass =
+    variant === "inline" ? inlineClass : variant === "player" ? playerClass : overlayClass;
 
   const handleAdd = async (playlistId: string, playlistName: string) => {
     try {

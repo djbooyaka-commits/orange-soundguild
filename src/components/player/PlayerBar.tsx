@@ -1,7 +1,29 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, Shuffle, Heart } from "lucide-react";
 import { formatTime, usePlayer } from "./PlayerContext";
 import { Waveform } from "./Waveform";
 import { formatArtistLine } from "@/lib/tracks";
+import { useTrackLike } from "@/lib/likes";
+import { AddToPlaylistMenu } from "@/components/AddToPlaylistMenu";
+
+function TrackActions({ trackId, title }: { trackId: string; title: string }) {
+  const { liked, count, toggle } = useTrackLike(trackId);
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      <button
+        onClick={toggle}
+        aria-label={liked ? "Unlike track" : "Like track"}
+        aria-pressed={liked}
+        className={`flex h-9 items-center gap-1 rounded-full px-2 text-xs hover:bg-white/10 ${liked ? "text-primary" : "text-white/70 hover:text-white"}`}
+      >
+        <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
+        <span className="tabular-nums">{count}</span>
+      </button>
+      <div className="relative">
+        <AddToPlaylistMenu trackId={trackId} trackTitle={title} variant="player" />
+      </div>
+    </div>
+  );
+}
 
 export function PlayerBar() {
   const { current, isPlaying, toggle, progress, currentTime, duration, seek, volume, setVolume, shuffle, toggleShuffle, next, prev } = usePlayer();
@@ -38,6 +60,7 @@ export function PlayerBar() {
               {current ? formatArtistLine(current.artist, current.collaborators) : "Pick a track to start"}
             </p>
           </div>
+          {current ? <TrackActions trackId={current.id} title={current.title} /> : null}
         </div>
 
         {/* Controls */}
