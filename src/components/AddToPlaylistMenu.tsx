@@ -19,7 +19,7 @@ export function AddToPlaylistMenu({
 }: {
   trackId: string;
   trackTitle: string;
-  variant?: "overlay" | "inline";
+  variant?: "overlay" | "inline" | "player";
 }) {
   const { user } = useAuth();
   const { playlists, create, addTrack } = useMyPlaylists();
