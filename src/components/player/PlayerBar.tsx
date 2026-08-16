@@ -60,6 +60,7 @@ export function PlayerBar() {
               {current ? formatArtistLine(current.artist, current.collaborators) : "Pick a track to start"}
             </p>
           </div>
+          {current ? <TrackActions trackId={current.id} title={current.title} /> : null}
         </div>
 
         {/* Controls */}
