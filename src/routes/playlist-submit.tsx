@@ -177,8 +177,8 @@ function PlaylistSubmitPage() {
           <ListMusic className="h-7 w-7 text-primary" /> Playlist submissions
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Artists and Pioneer artists can send Spotify, Apple Music, YouTube and Tidal playlist links
-          straight to the Orange Sound Guild team for review.
+          Artists and Pioneer Artists can send Spotify, Apple Music, YouTube, and Tidal links
+          straight to the Orange Sound Guild team for review to be added to a free playlist.
         </p>
 
         <div className="mt-4 rounded-2xl border border-border bg-card/50 p-4 text-sm">
