@@ -9,6 +9,7 @@ import {
   reviewBetaSubmission,
   submitBetaTrack,
   getBetaRoomPoints,
+  addBetaSubmissionToSpotify,
 } from "@/lib/api/beta-curator.functions";
 
 type Playlist = { id: string; name: string; holdDays: number };
@@ -23,6 +24,7 @@ type Submission = {
   status: "pending" | "approved" | "rejected";
   curator_note: string | null;
   created_at: string;
+  reviewed_at?: string | null;
 };
 
 export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwner: boolean }) {
@@ -32,6 +34,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const queueFn = useServerFn(listBetaSubmissionsForOwner);
   const reviewFn = useServerFn(reviewBetaSubmission);
   const submitFn = useServerFn(submitBetaTrack);
+  const addToSpotifyFn = useServerFn(addBetaSubmissionToSpotify);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [points, setPoints] = useState<{
@@ -51,6 +54,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
   const refresh = useCallback(async () => {
     try {
