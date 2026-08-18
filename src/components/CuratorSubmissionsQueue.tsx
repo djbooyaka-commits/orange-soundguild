@@ -19,6 +19,7 @@ type Row = {
   status: "pending" | "approved" | "rejected";
   curator_note: string | null;
   created_at: string;
+  reviewed_at?: string | null;
 };
 
 export function CuratorSubmissionsQueue() {
@@ -207,6 +208,9 @@ export function CuratorSubmissionsQueue() {
                   </a>
                   <p className="truncate text-muted-foreground">
                     From @{s.submitter_username} → {s.playlist_name}
+                    {s.reviewed_at
+                      ? `${s.status === "approved" ? " · added " : " · reviewed "}${new Date(s.reviewed_at).toLocaleDateString()}`
+                      : ""}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
