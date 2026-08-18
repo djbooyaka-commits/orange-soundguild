@@ -9,6 +9,7 @@ import {
   reviewBetaSubmission,
   submitBetaTrack,
   getBetaRoomPoints,
+  addBetaSubmissionToSpotify,
 } from "@/lib/api/beta-curator.functions";
 
 type Playlist = { id: string; name: string; holdDays: number };
@@ -23,6 +24,7 @@ type Submission = {
   status: "pending" | "approved" | "rejected";
   curator_note: string | null;
   created_at: string;
+  reviewed_at?: string | null;
 };
 
 export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwner: boolean }) {
@@ -32,6 +34,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const queueFn = useServerFn(listBetaSubmissionsForOwner);
   const reviewFn = useServerFn(reviewBetaSubmission);
   const submitFn = useServerFn(submitBetaTrack);
+  const addToSpotifyFn = useServerFn(addBetaSubmissionToSpotify);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [points, setPoints] = useState<{
@@ -51,6 +54,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
   const refresh = useCallback(async () => {
     try {
@@ -103,11 +107,24 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const review = async (id: string, approve: boolean) => {
     setBusyId(id);
     try {
-      const r: any = await reviewFn({ data: { submissionId: id, approve } });
+      const r: any = await reviewFn({ data: { submissionId: id, approve, note: notes[id] } });
       toast.success(approve ? (r.spotifyNote ?? "Approved") : "Rejected");
       await refresh();
     } catch (e: any) {
       toast.error(e?.message ?? "Could not review submission");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const addApprovedToSpotify = async (id: string) => {
+    setBusyId(id);
+    try {
+      const r: any = await addToSpotifyFn({ data: { submissionId: id } });
+      toast.success(r?.spotifyNote ?? "Added to your Spotify playlist");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to add to Spotify");
     } finally {
       setBusyId(null);
     }
@@ -134,69 +151,129 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
             </div>
           </div>
 
-          <ul className="mt-4 space-y-2">
-            {pending.length === 0 && (
-              <li className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-                No pending submissions.
-              </li>
-            )}
-            {pending.map((s) => (
-              <li
-                key={s.id}
-                className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <a
-                    href={s.spotify_track_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="truncate text-sm font-medium hover:text-primary"
-                  >
-                    {s.spotify_track_name ?? s.spotify_track_url}
-                  </a>
-                  <p className="text-xs text-muted-foreground">
-                    @{s.submitter_username ?? "unknown"} · {s.playlist_name ?? "playlist"} ·{" "}
-                    {s.cost_points} pts · {new Date(s.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <button
-                  onClick={() => review(s.id, true)}
-                  disabled={busyId === s.id}
-                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {busyId === s.id ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Check className="h-3 w-3" />
-                  )}
-                  Approve
-                </button>
-                <button
-                  onClick={() => review(s.id, false)}
-                  disabled={busyId === s.id}
-                  className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
-                >
-                  <X className="h-3 w-3" /> Reject
-                </button>
-              </li>
-            ))}
-          </ul>
+          {pending.length === 0 ? (
+            <div className="mt-4 rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+              No pending submissions.
+            </div>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {pending.map((s) => (
+                <li key={s.id} className="rounded-md border border-border p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={s.spotify_track_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-sm font-medium hover:underline"
+                      >
+                        {s.spotify_track_name ?? s.spotify_track_url}
+                      </a>
+                      <p className="text-xs text-muted-foreground">
+                        From @{s.submitter_username ?? "unknown"} → {s.playlist_name ?? "playlist"} ·
+                        spent {s.cost_points} pts · sent{" "}
+                        {new Date(s.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="text"
+                      placeholder="Optional note to the submitter"
+                      value={notes[s.id] ?? ""}
+                      onChange={(e) => setNotes((n) => ({ ...n, [s.id]: e.target.value }))}
+                      className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => review(s.id, true)}
+                        disabled={busyId === s.id}
+                        className="inline-flex items-center gap-1 rounded-md bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                      >
+                        {busyId === s.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Check className="h-3 w-3" />
+                        )}
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => review(s.id, false)}
+                        disabled={busyId === s.id}
+                        className="inline-flex items-center gap-1 rounded-md bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                      >
+                        <X className="h-3 w-3" />
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
 
           {reviewed.length > 0 && (
-            <>
-              <h3 className="mt-6 text-sm font-semibold">Recently reviewed</h3>
-              <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                {reviewed.slice(0, 10).map((s) => (
-                  <li key={s.id} className="flex justify-between gap-3">
-                    <span className="truncate">{s.spotify_track_name ?? s.spotify_track_url}</span>
-                    <span className="shrink-0 capitalize">{s.status}</span>
+            <details className="mt-4 text-sm">
+              <summary className="cursor-pointer text-muted-foreground">
+                History ({reviewed.length})
+              </summary>
+              <ul className="mt-2 space-y-2 text-xs">
+                {reviewed.map((s) => (
+                  <li
+                    key={s.id}
+                    className="flex items-center justify-between gap-3 rounded-md border border-border p-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={s.spotify_track_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate hover:underline"
+                      >
+                        {s.spotify_track_name ?? s.spotify_track_url}
+                      </a>
+                      <p className="truncate text-muted-foreground">
+                        From @{s.submitter_username ?? "unknown"} → {s.playlist_name ?? "playlist"}
+                        {s.status === "approved" && s.reviewed_at
+                          ? ` · added ${new Date(s.reviewed_at).toLocaleDateString()}`
+                          : s.reviewed_at
+                            ? ` · reviewed ${new Date(s.reviewed_at).toLocaleDateString()}`
+                            : ""}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {s.status === "approved" && (
+                        <button
+                          onClick={() => addApprovedToSpotify(s.id)}
+                          disabled={busyId === s.id}
+                          className="inline-flex items-center gap-1 rounded-md bg-emerald-500/90 px-2 py-1 font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                        >
+                          {busyId === s.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Check className="h-3 w-3" />
+                          )}
+                          Add to Spotify
+                        </button>
+                      )}
+                      <span
+                        className={`rounded-full px-2 py-0.5 font-medium ${
+                          s.status === "approved"
+                            ? "bg-emerald-500/15 text-emerald-500"
+                            : "bg-destructive/15 text-destructive"
+                        }`}
+                      >
+                        {s.status}
+                      </span>
+                    </div>
                   </li>
                 ))}
               </ul>
-            </>
+            </details>
           )}
         </div>
       )}
+
 
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center justify-between gap-3">
@@ -265,7 +342,10 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                   {s.spotify_track_name ?? s.spotify_track_url}
                 </a>
                 <p className="text-xs text-muted-foreground">
-                  {s.cost_points} pts · {new Date(s.created_at).toLocaleDateString()}
+                  {s.cost_points} pts · sent {new Date(s.created_at).toLocaleDateString()}
+                  {s.reviewed_at
+                    ? `${s.status === "approved" ? " · added " : " · reviewed "}${new Date(s.reviewed_at).toLocaleDateString()}`
+                    : ""}
                   {s.curator_note ? ` · ${s.curator_note}` : ""}
                 </p>
               </div>
