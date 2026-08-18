@@ -662,3 +662,49 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
 
     return { ok: true, spotifyNote };
   });
+
+/** Re-adds an already approved beta submission to the owner's Spotify playlist. */
+export const addBetaSubmissionToSpotify = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { submissionId: string }) => ({
+    submissionId: String(data?.submissionId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sub } = await supabaseAdmin
+      .from("beta_submissions")
+      .select("id, room_id, playlist_id, spotify_track_id, status")
+      .eq("id", data.submissionId)
+      .maybeSingle();
+    if (!sub) throw new Error("Submission not found");
+    await assertOwner(supabaseAdmin, sub.room_id as string, context.userId);
+    if (sub.status !== "approved") throw new Error("Only approved submissions can be added");
+
+    const { getBetaAccessToken, betaAddTrackToPlaylist, betaPlaylistContainsTrack } = await import(
+      "./beta-spotify.server"
+    );
+    const { data: pl } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("spotify_playlist_id")
+      .eq("id", sub.playlist_id)
+      .maybeSingle();
+    const token = await getBetaAccessToken(context.userId, supabaseAdmin);
+    if (!token || !pl) return { spotifyNote: "Connect Spotify to add tracks automatically." };
+
+    const already = await betaPlaylistContainsTrack(
+      token,
+      pl.spotify_playlist_id as string,
+      sub.spotify_track_id as string,
+    );
+    if (already) return { spotifyNote: "Already on the playlist." };
+    const res = await betaAddTrackToPlaylist(
+      token,
+      pl.spotify_playlist_id as string,
+      sub.spotify_track_id as string,
+    );
+    return {
+      spotifyNote: res.ok
+        ? "Added to your Spotify playlist."
+        : "Spotify rejected the add — add it manually.",
+    };
+  });
