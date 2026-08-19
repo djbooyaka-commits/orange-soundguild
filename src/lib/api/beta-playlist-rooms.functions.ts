@@ -66,7 +66,9 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
           .eq("playlist_id", pl.id),
         supabaseAdmin
           .from("beta_playlist_member_links")
-          .select("user_id, spotify_artist_url, spotify_artist_name, track_url, track_name")
+          .select(
+            "user_id, spotify_artist_url, spotify_artist_name, track_url, track_name, track2_url, track2_name",
+          )
           .eq("playlist_id", pl.id),
       ]);
 
