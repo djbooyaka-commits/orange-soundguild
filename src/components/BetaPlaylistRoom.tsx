@@ -86,6 +86,16 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       map[m.user_id] = signed[i] ?? null;
     });
     setAvatars(map);
+    setLinkInputs(() => {
+      const next: Record<string, { artist: string; track: string }> = {};
+      r.members.forEach((m) => {
+        next[m.user_id] = {
+          artist: m.spotify_artist_url ?? "",
+          track: m.track_url ?? "",
+        };
+      });
+      return next;
+    });
   }, [getFn, playlistId]);
 
   useEffect(() => {
@@ -146,6 +156,28 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       toast.error(err?.message ?? "Could not remove member");
     } finally {
       setRemovingId(null);
+    }
+  };
+
+  const saveLink = async (userId: string) => {
+    const artist = (linkInputs[userId]?.artist ?? "").trim();
+    const track = (linkInputs[userId]?.track ?? "").trim();
+    setSavingLinkId(userId);
+    try {
+      await setLinkFn({
+        data: {
+          playlistId,
+          userId,
+          spotifyArtistUrl: artist || null,
+          trackUrl: track || null,
+        },
+      });
+      await refresh();
+      toast.success("Links saved");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save links");
+    } finally {
+      setSavingLinkId(null);
     }
   };
 
