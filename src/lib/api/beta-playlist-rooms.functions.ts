@@ -149,6 +149,9 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         spotify_artist_name: (l?.spotify_artist_name as string | null) ?? null,
         track_url: (l?.track_url as string | null) ?? null,
         track_name: (l?.track_name as string | null) ?? null,
+        track2_url: (l?.track2_url as string | null) ?? null,
+        track2_name: (l?.track2_name as string | null) ?? null,
+        lastfm_username: lastfmByUser.get(uid) ?? null,
       };
     });
 
