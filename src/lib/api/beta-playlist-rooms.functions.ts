@@ -253,6 +253,8 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
       spotifyArtistName?: string | null;
       trackUrl?: string | null;
       trackName?: string | null;
+      track2Url?: string | null;
+      track2Name?: string | null;
     }) => ({
       playlistId: String(data?.playlistId ?? ""),
       userId: String(data?.userId ?? ""),
