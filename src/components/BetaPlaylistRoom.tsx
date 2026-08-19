@@ -166,6 +166,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const saveLink = async (userId: string) => {
     const artist = (linkInputs[userId]?.artist ?? "").trim();
     const track = (linkInputs[userId]?.track ?? "").trim();
+    const track2 = (linkInputs[userId]?.track2 ?? "").trim();
     setSavingLinkId(userId);
     try {
       await setLinkFn({
@@ -174,6 +175,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           userId,
           spotifyArtistUrl: artist || null,
           trackUrl: track || null,
+          track2Url: track2 || null,
         },
       });
       await refresh();
