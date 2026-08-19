@@ -365,6 +365,100 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     )}
                   </div>
                 )}
+
+                {/* Spotify artist profile + track link */}
+                <div className="space-y-1.5 rounded-md border border-border bg-muted/20 p-2">
+                  <div className="text-[11px] font-semibold text-muted-foreground">
+                    Spotify links
+                  </div>
+
+                  {/* Artist profile link — display for members, editable for owner */}
+                  {m.spotify_artist_url && !data.isOwner ? (
+                    <a
+                      href={m.spotify_artist_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-xs hover:border-primary/50"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate">
+                        Artist: {m.spotify_artist_name ?? m.spotify_artist_url}
+                      </span>
+                    </a>
+                  ) : data.isOwner ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="url"
+                        placeholder="https://open.spotify.com/artist/…"
+                        value={linkInputs[m.user_id]?.artist ?? ""}
+                        onChange={(e) =>
+                          setLinkInputs((s) => ({
+                            ...s,
+                            [m.user_id]: {
+                              artist: e.target.value,
+                              track: s[m.user_id]?.track ?? "",
+                            },
+                          }))
+                        }
+                        className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted-foreground">
+                      No Spotify artist link
+                    </div>
+                  )}
+
+                  {/* Track link — display for members, editable for owner */}
+                  {m.track_url && !data.isOwner ? (
+                    <a
+                      href={m.track_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-xs hover:border-primary/50"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate">
+                        Track: {m.track_name ?? m.track_url}
+                      </span>
+                    </a>
+                  ) : data.isOwner ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="url"
+                        placeholder="https://open.spotify.com/track/…"
+                        value={linkInputs[m.user_id]?.track ?? ""}
+                        onChange={(e) =>
+                          setLinkInputs((s) => ({
+                            ...s,
+                            [m.user_id]: {
+                              artist: s[m.user_id]?.artist ?? "",
+                              track: e.target.value,
+                            },
+                          }))
+                        }
+                        className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => saveLink(m.user_id)}
+                        disabled={savingLinkId === m.user_id}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+                      >
+                        {savingLinkId === m.user_id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5" />
+                        )}
+                        Save
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted-foreground">
+                      No track link
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
