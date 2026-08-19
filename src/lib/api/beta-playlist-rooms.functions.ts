@@ -118,6 +118,16 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
       (links ?? []).map((l: any) => [l.user_id as string, l]),
     );
 
+    const { data: lastfm } = userIds.length
+      ? await supabaseAdmin
+          .from("lastfm_connections")
+          .select("user_id, lastfm_username")
+          .in("user_id", userIds)
+      : { data: [] as any[] };
+    const lastfmByUser = new Map<string, string>(
+      (lastfm ?? []).map((l: any) => [l.user_id as string, l.lastfm_username as string]),
+    );
+
     const min = (pl.weekly_min as number) ?? DEFAULT_WEEKLY_MIN;
     const members_ = userIds.map((uid) => {
       const p = profileById.get(uid);
