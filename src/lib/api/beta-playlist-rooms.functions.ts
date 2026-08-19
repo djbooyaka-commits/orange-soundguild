@@ -49,7 +49,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     await assertRoomMember(supabaseAdmin, room, context.userId);
     const isOwner = room.owner_id === context.userId;
 
-    const [{ data: members }, { data: tracks }, { data: subs }, { data: adjustments }] =
+    const [{ data: members }, { data: tracks }, { data: subs }, { data: adjustments }, { data: links }] =
       await Promise.all([
         supabaseAdmin.from("beta_room_members").select("user_id").eq("room_id", room.id),
         supabaseAdmin
@@ -63,6 +63,10 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         supabaseAdmin
           .from("beta_point_adjustments")
           .select("user_id, delta, created_at")
+          .eq("playlist_id", pl.id),
+        supabaseAdmin
+          .from("beta_playlist_member_links")
+          .select("user_id, spotify_artist_url, spotify_artist_name, track_url, track_name")
           .eq("playlist_id", pl.id),
       ]);
 
@@ -108,6 +112,9 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
           .in("id", userIds)
       : { data: [] as any[] };
     const profileById = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+    const linkByUser = new Map<string, any>(
+      (links ?? []).map((l: any) => [l.user_id as string, l]),
+    );
 
     const min = (pl.weekly_min as number) ?? DEFAULT_WEEKLY_MIN;
     const members_ = userIds.map((uid) => {
@@ -116,6 +123,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         0,
         (earned.get(uid) ?? 0) - (spent.get(uid) ?? 0) + (adjusted.get(uid) ?? 0),
       );
+      const l = linkByUser.get(uid);
       return {
         user_id: uid,
         username: (p?.username as string | null) ?? null,
@@ -125,6 +133,10 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         weekly_min: min,
         last_deduction_at: lastAdjust.get(uid) ?? null,
         is_me: uid === context.userId,
+        spotify_artist_url: (l?.spotify_artist_url as string | null) ?? null,
+        spotify_artist_name: (l?.spotify_artist_name as string | null) ?? null,
+        track_url: (l?.track_url as string | null) ?? null,
+        track_name: (l?.track_name as string | null) ?? null,
       };
     });
 
@@ -212,6 +224,48 @@ export const removeBetaRoomMember = createServerFn({ method: "POST" })
       .delete()
       .eq("room_id", room.id)
       .eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      playlistId: string;
+      userId: string;
+      spotifyArtistUrl?: string | null;
+      spotifyArtistName?: string | null;
+      trackUrl?: string | null;
+      trackName?: string | null;
+    }) => ({
+      playlistId: String(data?.playlistId ?? ""),
+      userId: String(data?.userId ?? ""),
+      spotifyArtistUrl: data?.spotifyArtistUrl ? String(data.spotifyArtistUrl).slice(0, 2048) : null,
+      spotifyArtistName: data?.spotifyArtistName ? String(data.spotifyArtistName).slice(0, 300) : null,
+      trackUrl: data?.trackUrl ? String(data.trackUrl).slice(0, 2048) : null,
+      trackName: data?.trackName ? String(data.trackName).slice(0, 300) : null,
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId)
+      throw new Error("Only the room owner can set member links");
+
+    const { error } = await supabaseAdmin
+      .from("beta_playlist_member_links")
+      .upsert(
+        {
+          playlist_id: pl.id,
+          user_id: data.userId,
+          spotify_artist_url: data.spotifyArtistUrl || null,
+          spotify_artist_name: data.spotifyArtistName || null,
+          track_url: data.trackUrl || null,
+          track_name: data.trackName || null,
+        },
+        { onConflict: "playlist_id,user_id" },
+      );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
