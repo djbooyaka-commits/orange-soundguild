@@ -282,6 +282,8 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
           spotify_artist_name: data.spotifyArtistName || null,
           track_url: data.trackUrl || null,
           track_name: data.trackName || null,
+          track2_url: data.track2Url || null,
+          track2_name: data.track2Name || null,
         },
         { onConflict: "playlist_id,user_id" },
       );
