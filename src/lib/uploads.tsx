@@ -150,7 +150,9 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
     (async () => {
       const { data, error } = await supabase
         .from("tracks")
-        .select("*")
+        .select(
+          "id, user_id, title, genre, audio_url, cover_art_url, created_at, plays_count, album, track_number, price_cents",
+        )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error || !data || cancelled) return;
