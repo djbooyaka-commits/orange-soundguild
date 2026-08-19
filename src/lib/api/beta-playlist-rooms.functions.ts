@@ -66,7 +66,9 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
           .eq("playlist_id", pl.id),
         supabaseAdmin
           .from("beta_playlist_member_links")
-          .select("user_id, spotify_artist_url, spotify_artist_name, track_url, track_name")
+          .select(
+            "user_id, spotify_artist_url, spotify_artist_name, track_url, track_name, track2_url, track2_name",
+          )
           .eq("playlist_id", pl.id),
       ]);
 
@@ -116,6 +118,16 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
       (links ?? []).map((l: any) => [l.user_id as string, l]),
     );
 
+    const { data: lastfm } = userIds.length
+      ? await supabaseAdmin
+          .from("lastfm_connections")
+          .select("user_id, lastfm_username")
+          .in("user_id", userIds)
+      : { data: [] as any[] };
+    const lastfmByUser = new Map<string, string>(
+      (lastfm ?? []).map((l: any) => [l.user_id as string, l.lastfm_username as string]),
+    );
+
     const min = (pl.weekly_min as number) ?? DEFAULT_WEEKLY_MIN;
     const members_ = userIds.map((uid) => {
       const p = profileById.get(uid);
@@ -137,6 +149,9 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         spotify_artist_name: (l?.spotify_artist_name as string | null) ?? null,
         track_url: (l?.track_url as string | null) ?? null,
         track_name: (l?.track_name as string | null) ?? null,
+        track2_url: (l?.track2_url as string | null) ?? null,
+        track2_name: (l?.track2_name as string | null) ?? null,
+        lastfm_username: lastfmByUser.get(uid) ?? null,
       };
     });
 
@@ -238,6 +253,8 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
       spotifyArtistName?: string | null;
       trackUrl?: string | null;
       trackName?: string | null;
+      track2Url?: string | null;
+      track2Name?: string | null;
     }) => ({
       playlistId: String(data?.playlistId ?? ""),
       userId: String(data?.userId ?? ""),
@@ -245,6 +262,8 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
       spotifyArtistName: data?.spotifyArtistName ? String(data.spotifyArtistName).slice(0, 300) : null,
       trackUrl: data?.trackUrl ? String(data.trackUrl).slice(0, 2048) : null,
       trackName: data?.trackName ? String(data.trackName).slice(0, 300) : null,
+      track2Url: data?.track2Url ? String(data.track2Url).slice(0, 2048) : null,
+      track2Name: data?.track2Name ? String(data.track2Name).slice(0, 300) : null,
     }),
   )
   .handler(async ({ context, data }) => {
@@ -263,6 +282,8 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
           spotify_artist_name: data.spotifyArtistName || null,
           track_url: data.trackUrl || null,
           track_name: data.trackName || null,
+          track2_url: data.track2Url || null,
+          track2_name: data.track2Name || null,
         },
         { onConflict: "playlist_id,user_id" },
       );
