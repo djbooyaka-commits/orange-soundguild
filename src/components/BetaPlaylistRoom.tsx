@@ -3,9 +3,11 @@ import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
+  ExternalLink,
   Loader2,
   Minus,
   Music,
+  Plus,
   Settings,
   Star,
   TrendingUp,
@@ -18,6 +20,7 @@ import {
   setBetaPlaylistWeeklyMin,
   adjustBetaPlaylistPoints,
   removeBetaRoomMember,
+  setBetaPlaylistMemberLink,
 } from "@/lib/api/beta-playlist-rooms.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
@@ -33,6 +36,10 @@ type Member = {
   weekly_min: number;
   last_deduction_at: string | null;
   is_me: boolean;
+  spotify_artist_url: string | null;
+  spotify_artist_name: string | null;
+  track_url: string | null;
+  track_name: string | null;
 };
 
 type RoomData = {
@@ -53,6 +60,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const setMinFn = useServerFn(setBetaPlaylistWeeklyMin);
   const adjustFn = useServerFn(adjustBetaPlaylistPoints);
   const removeMemberFn = useServerFn(removeBetaRoomMember);
+  const setLinkFn = useServerFn(setBetaPlaylistMemberLink);
 
   const [data, setData] = useState<RoomData | null>(null);
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
@@ -62,6 +70,10 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [deductInputs, setDeductInputs] = useState<Record<string, string>>({});
   const [deductingId, setDeductingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [linkInputs, setLinkInputs] = useState<
+    Record<string, { artist: string; track: string }>
+  >({});
+  const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const r = (await getFn({ data: { playlistId } })) as RoomData;
