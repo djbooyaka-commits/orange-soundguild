@@ -40,6 +40,9 @@ type Member = {
   spotify_artist_name: string | null;
   track_url: string | null;
   track_name: string | null;
+  track2_url: string | null;
+  track2_name: string | null;
+  lastfm_username: string | null;
 };
 
 type RoomData = {
