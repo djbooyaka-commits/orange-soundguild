@@ -118,6 +118,50 @@ export type Database = {
         }
         Relationships: []
       }
+      beta_playlist_member_links: {
+        Row: {
+          created_at: string
+          id: string
+          playlist_id: string
+          spotify_artist_name: string | null
+          spotify_artist_url: string | null
+          track_name: string | null
+          track_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          playlist_id: string
+          spotify_artist_name?: string | null
+          spotify_artist_url?: string | null
+          track_name?: string | null
+          track_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          playlist_id?: string
+          spotify_artist_name?: string | null
+          spotify_artist_url?: string | null
+          track_name?: string | null
+          track_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_playlist_member_links_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "beta_room_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_point_adjustments: {
         Row: {
           created_at: string
