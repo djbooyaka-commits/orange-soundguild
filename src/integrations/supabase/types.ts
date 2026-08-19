@@ -127,6 +127,8 @@ export type Database = {
           spotify_artist_url: string | null
           track_name: string | null
           track_url: string | null
+          track2_name: string | null
+          track2_url: string | null
           updated_at: string
           user_id: string
         }
@@ -138,6 +140,8 @@ export type Database = {
           spotify_artist_url?: string | null
           track_name?: string | null
           track_url?: string | null
+          track2_name?: string | null
+          track2_url?: string | null
           updated_at?: string
           user_id: string
         }
@@ -149,6 +153,8 @@ export type Database = {
           spotify_artist_url?: string | null
           track_name?: string | null
           track_url?: string | null
+          track2_name?: string | null
+          track2_url?: string | null
           updated_at?: string
           user_id?: string
         }
