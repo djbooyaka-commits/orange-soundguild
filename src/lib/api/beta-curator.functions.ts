@@ -52,7 +52,7 @@ async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: stri
         .eq("room_id", roomId),
       supabaseAdmin
         .from("beta_stream_points")
-        .select("spotify_track_id")
+        .select("spotify_track_id, playlist_id")
         .eq("room_id", roomId)
         .eq("user_id", userId),
       supabaseAdmin
@@ -69,19 +69,20 @@ async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: stri
     ]);
 
 
-  const byTrack = new Map<string, string[]>();
+  // A track can sit on several playlists; a play must only fund ONE of them.
+  // Newer plays carry the playlist they were counted for; legacy plays fall
+  // back to the first playlist that added the track.
+  const byTrack = new Map<string, string>();
   for (const t of tracks ?? []) {
     if (!t.playlist_id) continue;
-    const list = byTrack.get(t.spotify_track_id) ?? [];
-    list.push(t.playlist_id as string);
-    byTrack.set(t.spotify_track_id, list);
+    if (!byTrack.has(t.spotify_track_id)) byTrack.set(t.spotify_track_id, t.playlist_id as string);
   }
 
   const earned = new Map<string, number>();
   for (const p of plays ?? []) {
-    for (const pid of byTrack.get(p.spotify_track_id) ?? []) {
-      earned.set(pid, (earned.get(pid) ?? 0) + 1);
-    }
+    const pid = (p.playlist_id as string | null) ?? byTrack.get(p.spotify_track_id) ?? null;
+    if (!pid) continue;
+    earned.set(pid, (earned.get(pid) ?? 0) + 1);
   }
 
   const spent = new Map<string, number>();

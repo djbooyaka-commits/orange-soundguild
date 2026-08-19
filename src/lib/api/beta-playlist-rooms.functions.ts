@@ -81,11 +81,30 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     if (userIds.length && trackIds.length) {
       const { data: plays } = await supabaseAdmin
         .from("beta_stream_points")
-        .select("user_id, spotify_track_id")
+        .select("user_id, spotify_track_id, playlist_id")
         .eq("room_id", room.id)
         .in("user_id", userIds)
         .in("spotify_track_id", trackIds);
+      // Only count plays attributed to THIS playlist. Legacy rows without an
+      // attribution count only if no other playlist also holds the track.
+      const { data: allRoomTracks } = await supabaseAdmin
+        .from("beta_room_tracks")
+        .select("spotify_track_id, playlist_id, created_at")
+        .eq("room_id", room.id)
+        .order("created_at", { ascending: true });
+      const firstPlaylistByTrack = new Map<string, string>();
+      for (const t of allRoomTracks ?? []) {
+        if (!t.playlist_id) continue;
+        if (!firstPlaylistByTrack.has(t.spotify_track_id)) {
+          firstPlaylistByTrack.set(t.spotify_track_id, t.playlist_id as string);
+        }
+      }
       for (const p of plays ?? []) {
+        const pid =
+          (p.playlist_id as string | null) ??
+          firstPlaylistByTrack.get(p.spotify_track_id as string) ??
+          null;
+        if (pid !== pl.id) continue;
         earned.set(p.user_id as string, (earned.get(p.user_id as string) ?? 0) + 1);
       }
     }
