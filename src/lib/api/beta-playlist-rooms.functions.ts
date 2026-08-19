@@ -262,6 +262,8 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
       spotifyArtistName: data?.spotifyArtistName ? String(data.spotifyArtistName).slice(0, 300) : null,
       trackUrl: data?.trackUrl ? String(data.trackUrl).slice(0, 2048) : null,
       trackName: data?.trackName ? String(data.trackName).slice(0, 300) : null,
+      track2Url: data?.track2Url ? String(data.track2Url).slice(0, 2048) : null,
+      track2Name: data?.track2Name ? String(data.track2Name).slice(0, 300) : null,
     }),
   )
   .handler(async ({ context, data }) => {
