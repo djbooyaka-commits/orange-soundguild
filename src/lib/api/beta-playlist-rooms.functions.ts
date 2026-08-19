@@ -228,3 +228,45 @@ export const removeBetaRoomMember = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      playlistId: string;
+      userId: string;
+      spotifyArtistUrl?: string | null;
+      spotifyArtistName?: string | null;
+      trackUrl?: string | null;
+      trackName?: string | null;
+    }) => ({
+      playlistId: String(data?.playlistId ?? ""),
+      userId: String(data?.userId ?? ""),
+      spotifyArtistUrl: data?.spotifyArtistUrl ? String(data.spotifyArtistUrl).slice(0, 2048) : null,
+      spotifyArtistName: data?.spotifyArtistName ? String(data.spotifyArtistName).slice(0, 300) : null,
+      trackUrl: data?.trackUrl ? String(data.trackUrl).slice(0, 2048) : null,
+      trackName: data?.trackName ? String(data.trackName).slice(0, 300) : null,
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId)
+      throw new Error("Only the room owner can set member links");
+
+    const { error } = await supabaseAdmin
+      .from("beta_playlist_member_links")
+      .upsert(
+        {
+          playlist_id: pl.id,
+          user_id: data.userId,
+          spotify_artist_url: data.spotifyArtistUrl || null,
+          spotify_artist_name: data.spotifyArtistName || null,
+          track_url: data.trackUrl || null,
+          track_name: data.trackName || null,
+        },
+        { onConflict: "playlist_id,user_id" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
