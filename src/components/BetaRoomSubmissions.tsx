@@ -12,7 +12,7 @@ import {
   addBetaSubmissionToSpotify,
 } from "@/lib/api/beta-curator.functions";
 
-type Playlist = { id: string; name: string; holdDays: number };
+type Playlist = { id: string; name: string; holdDays: number; isTeam?: boolean };
 type Submission = {
   id: string;
   playlist_id: string;
@@ -63,7 +63,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
         pointsFn({ data: { roomId } }) as Promise<any>,
         mineFn({ data: { roomId } }) as Promise<Submission[]>,
       ]);
-      setPlaylists(pl ?? []);
+      setPlaylists((pl ?? []).filter((x) => !x.isTeam));
       setPoints({
         available: pts.available,
         cost: pts.cost,
@@ -73,7 +73,8 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
         ),
       });
       setMine(my ?? []);
-      if (!playlistId && pl?.[0]) setPlaylistId(pl[0].id);
+      const submittable = (pl ?? []).filter((x) => !x.isTeam);
+      if (!playlistId && submittable[0]) setPlaylistId(submittable[0].id);
       if (isOwner) {
         const q = (await queueFn({ data: { roomId } })) as Submission[];
         setQueue(q ?? []);
@@ -282,7 +283,8 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
             <p className="text-sm text-muted-foreground">
               Spend {points.cost} points to submit 1 track. Max {points.dailyLimit} every 24 hours.
               Points are earned per playlist and can only be spent on the playlist you streamed.
-              Submitting spends them right away.
+              Submitting spends them right away. Team playlists aren&apos;t listed here — points
+              can&apos;t be used on them.
             </p>
           </div>
           <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
