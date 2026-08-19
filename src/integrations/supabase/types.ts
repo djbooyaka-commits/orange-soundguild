@@ -256,6 +256,7 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          is_team: boolean
           name: string
           room_id: string
           spotify_playlist_id: string
@@ -267,6 +268,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          is_team?: boolean
           name: string
           room_id: string
           spotify_playlist_id: string
@@ -278,6 +280,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          is_team?: boolean
           name?: string
           room_id?: string
           spotify_playlist_id?: string

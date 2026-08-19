@@ -1,0 +1,1 @@
+ALTER TABLE public.beta_room_playlists ADD COLUMN IF NOT EXISTS is_team boolean NOT NULL DEFAULT false;

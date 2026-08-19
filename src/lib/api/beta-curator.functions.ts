@@ -185,7 +185,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
     await assertMember(supabaseAdmin, data.roomId, context.userId);
     const { data: rows } = await supabaseAdmin
       .from("beta_room_playlists")
-      .select("id, spotify_playlist_id, name, image_url, track_hold_days, created_at")
+      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at")
       .eq("room_id", data.roomId)
       .order("created_at", { ascending: true });
 
@@ -209,6 +209,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
       name: r.name as string,
       imageUrl: (r.image_url as string | null) ?? null,
       holdDays: (r.track_hold_days as number) ?? 30,
+      isTeam: Boolean(r.is_team),
       trackCount: counts.get(r.id) ?? 0,
     }));
   });
@@ -400,6 +401,28 @@ export const setBetaPlaylistHoldDays = createServerFn({ method: "POST" })
     return { ok: true, days: data.days };
   });
 
+export const setBetaPlaylistTeam = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; isTeam: boolean }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    isTeam: Boolean(data?.isTeam),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: pl } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("id, room_id")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (!pl) throw new Error("Playlist not found");
+    await assertOwner(supabaseAdmin, pl.room_id as string, context.userId);
+    await supabaseAdmin
+      .from("beta_room_playlists")
+      .update({ is_team: data.isTeam })
+      .eq("id", pl.id);
+    return { ok: true, isTeam: data.isTeam };
+  });
+
 /* ------------------------------- points -------------------------------- */
 
 export const getBetaRoomPoints = createServerFn({ method: "POST" })
@@ -445,11 +468,16 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
 
     const { data: pl } = await supabaseAdmin
       .from("beta_room_playlists")
-      .select("id, room_id, track_hold_days, name")
+      .select("id, room_id, track_hold_days, name, is_team")
       .eq("id", data.playlistId)
       .eq("room_id", data.roomId)
       .maybeSingle();
     if (!pl) throw new Error("Pick a playlist in this room");
+    if ((pl as any).is_team) {
+      throw new Error(
+        `"${pl.name}" is a team playlist — points can't be used to submit to it. Track changes there are handled by the curator.`,
+      );
+    }
 
     // Daily limit
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

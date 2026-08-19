@@ -8,6 +8,7 @@ import {
   syncBetaRoomPlaylist,
   removeBetaRoomPlaylist,
   setBetaPlaylistHoldDays,
+  setBetaPlaylistTeam,
 } from "@/lib/api/beta-curator.functions";
 
 type Playlist = {
@@ -16,6 +17,7 @@ type Playlist = {
   name: string;
   imageUrl: string | null;
   holdDays: number;
+  isTeam: boolean;
   trackCount: number;
 };
 
@@ -33,6 +35,7 @@ export function BetaRoomPlaylists({
   const syncFn = useServerFn(syncBetaRoomPlaylist);
   const removeFn = useServerFn(removeBetaRoomPlaylist);
   const holdFn = useServerFn(setBetaPlaylistHoldDays);
+  const teamFn = useServerFn(setBetaPlaylistTeam);
 
   const [items, setItems] = useState<Playlist[]>([]);
   const [url, setUrl] = useState("");
@@ -108,6 +111,20 @@ export function BetaRoomPlaylists({
     }
   };
 
+  const toggleTeam = async (p: Playlist) => {
+    setBusyId(p.id);
+    try {
+      await teamFn({ data: { playlistId: p.id, isTeam: !p.isTeam } });
+      toast.success(!p.isTeam ? "Marked as a team playlist" : "Team mark removed");
+      await refresh();
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not update playlist");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center gap-3">
@@ -162,7 +179,14 @@ export function BetaRoomPlaylists({
               <div className="h-12 w-12 rounded bg-muted" />
             )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{p.name}</p>
+              <p className="flex items-center gap-2 truncate text-sm font-medium">
+                {p.name}
+                {p.isTeam && (
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    Team
+                  </span>
+                )}
+              </p>
               <a
                 href={`https://open.spotify.com/playlist/${p.spotifyPlaylistId}`}
                 target="_blank"
@@ -200,6 +224,16 @@ export function BetaRoomPlaylists({
                     Save
                   </button>
                 </div>
+                <label className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={p.isTeam}
+                    onChange={() => toggleTeam(p)}
+                    disabled={busyId === p.id}
+                    className="h-3 w-3 accent-[hsl(var(--primary))]"
+                  />
+                  <span title="Team playlists can't be submitted to with points">Team</span>
+                </label>
                 <button
                   onClick={() => sync(p.id)}
                   disabled={busyId === p.id}
