@@ -147,11 +147,13 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!member && room.owner_id !== context.userId) throw new Error("Join this room first");
 
-    // Get watch list
+    // Get watch list — one entry per track, bound to a single playlist so a
+    // track that sits on several playlists only funds one of them.
     const { data: watch } = await supabaseAdmin
       .from("beta_room_tracks")
-      .select("spotify_track_id, track_name, artist_name")
-      .eq("room_id", data.roomId);
+      .select("spotify_track_id, track_name, artist_name, playlist_id, created_at")
+      .eq("room_id", data.roomId)
+      .order("created_at", { ascending: true });
     const seenWatch = new Set<string>();
     const watchList = (watch ?? [])
       .filter((t: any) => {
@@ -164,6 +166,7 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
         spotifyTrackId: t.spotify_track_id as string,
         name: (t.track_name ?? "") as string,
         artist: (t.artist_name ?? "") as string,
+        playlistId: (t.playlist_id ?? null) as string | null,
       }));
 
     if (watchList.length === 0) {
