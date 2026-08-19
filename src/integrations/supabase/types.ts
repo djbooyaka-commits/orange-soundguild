@@ -381,6 +381,7 @@ export type Database = {
           created_at: string
           id: string
           played_at: string
+          playlist_id: string | null
           room_id: string
           source: string | null
           spotify_track_id: string
@@ -391,6 +392,7 @@ export type Database = {
           created_at?: string
           id?: string
           played_at: string
+          playlist_id?: string | null
           room_id: string
           source?: string | null
           spotify_track_id: string
@@ -401,6 +403,7 @@ export type Database = {
           created_at?: string
           id?: string
           played_at?: string
+          playlist_id?: string | null
           room_id?: string
           source?: string | null
           spotify_track_id?: string
@@ -408,6 +411,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "beta_stream_points_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "beta_room_playlists"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "beta_stream_points_room_id_fkey"
             columns: ["room_id"]

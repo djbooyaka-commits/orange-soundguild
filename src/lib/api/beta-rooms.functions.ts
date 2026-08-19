@@ -293,9 +293,18 @@ export const syncBetaRoom = createServerFn({ method: "POST" })
 
     const { data: watch } = await supabaseAdmin
       .from("beta_room_tracks")
-      .select("spotify_track_id")
-      .eq("room_id", data.roomId);
-    const watched = new Set((watch ?? []).map((t: any) => t.spotify_track_id));
+      .select("spotify_track_id, playlist_id, created_at")
+      .eq("room_id", data.roomId)
+      .order("created_at", { ascending: true });
+    // One playlist per track: the oldest entry wins, so a track that appears on
+    // several playlists only awards points to that one playlist.
+    const playlistByTrack = new Map<string, string | null>();
+    for (const t of watch ?? []) {
+      if (!playlistByTrack.has(t.spotify_track_id)) {
+        playlistByTrack.set(t.spotify_track_id, (t.playlist_id ?? null) as string | null);
+      }
+    }
+    const watched = new Set(playlistByTrack.keys());
 
     let added = 0;
     let matched = 0;
@@ -311,6 +320,7 @@ export const syncBetaRoom = createServerFn({ method: "POST" })
         room_id: data.roomId,
         user_id: context.userId,
         spotify_track_id: track.id,
+        playlist_id: playlistByTrack.get(track.id) ?? null,
         spotify_track_name: track.name ?? null,
         played_at: item.played_at,
         source: item.context?.type ?? "unknown",
