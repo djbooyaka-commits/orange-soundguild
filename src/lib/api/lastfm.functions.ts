@@ -219,6 +219,7 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
             room_id: data.roomId,
             user_id: context.userId,
             spotify_track_id: w.spotifyTrackId,
+            playlist_id: w.playlistId,
             spotify_track_name: item.name,
             played_at: item.playedAt,
             source: "lastfm",
