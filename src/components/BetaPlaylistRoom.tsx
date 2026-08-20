@@ -317,29 +317,39 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
 
                 <div
                   className={`flex items-center justify-between rounded-md px-2 py-1.5 text-xs ${
-                    below ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                    isTeam
+                      ? below
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-primary/10 text-primary"
+                      : "bg-muted text-foreground"
                   }`}
                 >
                   <span className="inline-flex items-center gap-1">
-                    {below ? (
-                      <AlertTriangle className="h-3.5 w-3.5" />
+                    {isTeam ? (
+                      below ? (
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                      ) : (
+                        <TrendingUp className="h-3.5 w-3.5" />
+                      )
                     ) : (
                       <TrendingUp className="h-3.5 w-3.5" />
                     )}
-                    {m.points} / {min} total pts
+                    {isTeam ? `${m.points} / ${min} total pts` : `${m.points} total pts`}
                   </span>
-                  <span className="inline-flex items-center gap-2">
-                    {recentlyDeducted && (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-500"
-                        title="Points were removed by the curator in the last 24 hours"
-                      >
-                        <Star className="h-3 w-3 fill-current" />
-                        Pts removed
-                      </span>
-                    )}
-                    <span className="font-semibold">{below ? "Below minimum" : "Pass"}</span>
-                  </span>
+                  {isTeam && (
+                    <span className="inline-flex items-center gap-2">
+                      {recentlyDeducted && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-500"
+                          title="Points were removed by the curator in the last 24 hours"
+                        >
+                          <Star className="h-3 w-3 fill-current" />
+                          Pts removed
+                        </span>
+                      )}
+                      <span className="font-semibold">{below ? "Below minimum" : "Pass"}</span>
+                    </span>
+                  )}
                 </div>
 
                 {data.isOwner && (
