@@ -8,6 +8,7 @@ import {
   Minus,
   Music,
   Plus,
+  RefreshCw,
   Settings,
   Star,
   TrendingUp,
@@ -22,6 +23,7 @@ import {
   removeBetaRoomMember,
   setBetaPlaylistMemberLink,
 } from "@/lib/api/beta-playlist-rooms.functions";
+import { syncLastfmPlaylist } from "@/lib/api/lastfm.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
 
@@ -65,6 +67,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const adjustFn = useServerFn(adjustBetaPlaylistPoints);
   const removeMemberFn = useServerFn(removeBetaRoomMember);
   const setLinkFn = useServerFn(setBetaPlaylistMemberLink);
+  const syncFn = useServerFn(syncLastfmPlaylist);
 
   const [data, setData] = useState<RoomData | null>(null);
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
@@ -78,6 +81,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     Record<string, { artist: string; track: string; track2: string }>
   >({});
   const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const r = (await getFn({ data: { playlistId } })) as RoomData;
@@ -196,6 +201,32 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const isRecentlyDeducted = (m: Member) =>
     !!m.last_deduction_at &&
     Date.now() - new Date(m.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
+  const runSync = async () => {
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const r: any = await syncFn({ data: { playlistId } });
+      if (!r.connected) {
+        setSyncMsg("Connect your Last.fm account on the Stream Tracker tab first.");
+      } else if (r.error) {
+        setSyncMsg(r.errorMessage ?? `Last.fm error: ${r.error}`);
+      } else if (r.added) {
+        setSyncMsg(
+          `+${r.added} point${r.added === 1 ? "" : "s"} for this playlist (scanned ${r.scanned} scrobbles).`,
+        );
+      } else {
+        setSyncMsg(
+          `Up to date — scanned ${r.scanned} scrobble${r.scanned === 1 ? "" : "s"}, ${r.matched} matched this playlist's ${r.watching} track${r.watching === 1 ? "" : "s"}.`,
+        );
+      }
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const isTeam = data.playlist.isTeam;
   const passRank = (m: Member) =>
     !isTeam || isRecentlyDeducted(m) || m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
@@ -243,6 +274,21 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               </p>
             </div>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={runSync}
+              disabled={syncing}
+              className="inline-flex items-center gap-2 rounded-md border border-[#D51007]/30 bg-[#D51007]/5 px-3 py-2 text-sm hover:bg-[#D51007]/10 disabled:opacity-50"
+            >
+              {syncing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Sync this playlist
+            </button>
+          </div>
           {data.isOwner && isTeam && (
             <form onSubmit={saveMin} className="flex items-center gap-2">
               <Settings className="h-4 w-4 text-muted-foreground" />
@@ -264,6 +310,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
             </form>
           )}
         </div>
+
+        {syncMsg && <p className="mt-3 text-xs text-muted-foreground">{syncMsg}</p>}
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {members.length === 0 && (
