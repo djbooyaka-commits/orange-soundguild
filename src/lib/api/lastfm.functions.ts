@@ -154,20 +154,34 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
       .select("spotify_track_id, track_name, artist_name, playlist_id, created_at")
       .eq("room_id", data.roomId)
       .order("created_at", { ascending: true });
-    const seenWatch = new Set<string>();
-    const watchList = (watch ?? [])
-      .filter((t: any) => {
-        const key = String(t.spotify_track_id);
-        if (seenWatch.has(key)) return false;
-        seenWatch.add(key);
-        return true;
-      })
-      .map((t: any) => ({
-        spotifyTrackId: t.spotify_track_id as string,
-        name: (t.track_name ?? "") as string,
-        artist: (t.artist_name ?? "") as string,
-        playlistId: (t.playlist_id ?? null) as string | null,
-      }));
+
+    // Team playlists win when the same track sits on several playlists, so a
+    // team room's points never leak to a regular playlist that shares the track.
+    const { data: pls } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("id, is_team")
+      .eq("room_id", data.roomId);
+    const teamPlaylists = new Set(
+      (pls ?? []).filter((p: any) => p.is_team).map((p: any) => String(p.id)),
+    );
+
+    const bestByTrack = new Map<string, any>();
+    for (const t of watch ?? []) {
+      const key = String(t.spotify_track_id);
+      const prev = bestByTrack.get(key);
+      const isTeam = t.playlist_id ? teamPlaylists.has(String(t.playlist_id)) : false;
+      if (!prev) {
+        bestByTrack.set(key, { ...t, isTeam });
+        continue;
+      }
+      if (isTeam && !prev.isTeam) bestByTrack.set(key, { ...t, isTeam });
+    }
+    const watchList = [...bestByTrack.values()].map((t: any) => ({
+      spotifyTrackId: t.spotify_track_id as string,
+      name: (t.track_name ?? "") as string,
+      artist: (t.artist_name ?? "") as string,
+      playlistId: (t.playlist_id ?? null) as string | null,
+    }));
 
     if (watchList.length === 0) {
       return {
