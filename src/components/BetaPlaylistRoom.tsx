@@ -196,8 +196,9 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const isRecentlyDeducted = (m: Member) =>
     !!m.last_deduction_at &&
     Date.now() - new Date(m.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
+  const isTeam = data.playlist.isTeam;
   const passRank = (m: Member) =>
-    isRecentlyDeducted(m) || m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
+    !isTeam || isRecentlyDeducted(m) || m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
   const members = [...data.members].sort(
     (a, b) => passRank(a) - passRank(b) || b.points - a.points,
   );
@@ -219,18 +220,30 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               </span>
             )}
             <div>
-              <h2 className="font-semibold">{data.playlist.name} room</h2>
+              <h2 className="font-semibold">
+                {data.playlist.name} room
+                {isTeam && (
+                  <span className="ml-2 align-middle text-base text-orange-500" title="Team room">
+                    ★
+                  </span>
+                )}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                Each needs at least{" "}
-                <span className="font-medium text-foreground">
-                  {data.playlist.weeklyMin} total points
-                </span>{" "}
-                from streaming your OSG playlist. Tracking {data.playlist.trackCount} track
+                {isTeam ? (
+                  <>
+                    Each needs at least{" "}
+                    <span className="font-medium text-foreground">
+                      {data.playlist.weeklyMin} total points
+                    </span>{" "}
+                    from streaming your OSG playlist.{" "}
+                  </>
+                ) : null}
+                Tracking {data.playlist.trackCount} track
                 {data.playlist.trackCount === 1 ? "" : "s"}.
               </p>
             </div>
           </div>
-          {data.isOwner && (
+          {data.isOwner && isTeam && (
             <form onSubmit={saveMin} className="flex items-center gap-2">
               <Settings className="h-4 w-4 text-muted-foreground" />
               <input
