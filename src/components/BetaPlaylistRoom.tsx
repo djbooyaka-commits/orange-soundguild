@@ -396,7 +396,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   </div>
                 )}
 
-                {/* Spotify artist profile + 2 track links + Last.fm */}
+                {/* Spotify artist profile + 2 track links + Last.fm (team rooms only) */}
+                {isTeam && (
                 <div className="space-y-1.5 rounded-md border border-border bg-muted/20 p-2">
                   <div className="text-[11px] font-semibold text-muted-foreground">
                     Spotify links
