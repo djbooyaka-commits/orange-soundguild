@@ -517,6 +517,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     </div>
                   )}
                 </div>
+                )}
               </div>
             );
           })}
