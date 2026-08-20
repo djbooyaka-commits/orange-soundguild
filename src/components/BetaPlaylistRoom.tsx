@@ -219,7 +219,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           `Up to date — scanned ${r.scanned} scrobble${r.scanned === 1 ? "" : "s"}, ${r.matched} matched this playlist's ${r.watching} track${r.watching === 1 ? "" : "s"}.`,
         );
       }
-      await load();
+      await refresh();
     } catch (e: any) {
       toast.error(e?.message ?? "Sync failed");
     } finally {
