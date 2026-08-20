@@ -13,7 +13,7 @@ const DEFAULT_WEEKLY_MIN = 600;
 async function loadPlaylist(supabaseAdmin: any, playlistId: string) {
   const { data: pl } = await supabaseAdmin
     .from("beta_room_playlists")
-    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id")
+    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team")
     .eq("id", playlistId)
     .maybeSingle();
   if (!pl) throw new Error("Playlist not found");
@@ -183,6 +183,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         spotifyPlaylistId: pl.spotify_playlist_id as string,
         weeklyMin: min,
         trackCount: trackIds.length,
+        isTeam: (pl.is_team as boolean | null) ?? false,
       },
       isOwner,
       members: members_,

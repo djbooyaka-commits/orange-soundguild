@@ -53,6 +53,7 @@ type RoomData = {
     spotifyPlaylistId: string;
     weeklyMin: number;
     trackCount: number;
+    isTeam: boolean;
   };
   isOwner: boolean;
   members: Member[];
@@ -195,8 +196,9 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const isRecentlyDeducted = (m: Member) =>
     !!m.last_deduction_at &&
     Date.now() - new Date(m.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
+  const isTeam = data.playlist.isTeam;
   const passRank = (m: Member) =>
-    isRecentlyDeducted(m) || m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
+    !isTeam || isRecentlyDeducted(m) || m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
   const members = [...data.members].sort(
     (a, b) => passRank(a) - passRank(b) || b.points - a.points,
   );
@@ -218,18 +220,30 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               </span>
             )}
             <div>
-              <h2 className="font-semibold">{data.playlist.name} room</h2>
+              <h2 className="font-semibold">
+                {data.playlist.name} room
+                {isTeam && (
+                  <span className="ml-2 align-middle text-base text-orange-500" title="Team room">
+                    ★
+                  </span>
+                )}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                Each needs at least{" "}
-                <span className="font-medium text-foreground">
-                  {data.playlist.weeklyMin} total points
-                </span>{" "}
-                from streaming your OSG playlist. Tracking {data.playlist.trackCount} track
+                {isTeam ? (
+                  <>
+                    Each needs at least{" "}
+                    <span className="font-medium text-foreground">
+                      {data.playlist.weeklyMin} total points
+                    </span>{" "}
+                    from streaming your OSG playlist.{" "}
+                  </>
+                ) : null}
+                Tracking {data.playlist.trackCount} track
                 {data.playlist.trackCount === 1 ? "" : "s"}.
               </p>
             </div>
           </div>
-          {data.isOwner && (
+          {data.isOwner && isTeam && (
             <form onSubmit={saveMin} className="flex items-center gap-2">
               <Settings className="h-4 w-4 text-muted-foreground" />
               <input
@@ -303,29 +317,39 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
 
                 <div
                   className={`flex items-center justify-between rounded-md px-2 py-1.5 text-xs ${
-                    below ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                    isTeam
+                      ? below
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-primary/10 text-primary"
+                      : "bg-muted text-foreground"
                   }`}
                 >
                   <span className="inline-flex items-center gap-1">
-                    {below ? (
-                      <AlertTriangle className="h-3.5 w-3.5" />
+                    {isTeam ? (
+                      below ? (
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                      ) : (
+                        <TrendingUp className="h-3.5 w-3.5" />
+                      )
                     ) : (
                       <TrendingUp className="h-3.5 w-3.5" />
                     )}
-                    {m.points} / {min} total pts
+                    {isTeam ? `${m.points} / ${min} total pts` : `${m.points} total pts`}
                   </span>
-                  <span className="inline-flex items-center gap-2">
-                    {recentlyDeducted && (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-500"
-                        title="Points were removed by the curator in the last 24 hours"
-                      >
-                        <Star className="h-3 w-3 fill-current" />
-                        Pts removed
-                      </span>
-                    )}
-                    <span className="font-semibold">{below ? "Below minimum" : "Pass"}</span>
-                  </span>
+                  {isTeam && (
+                    <span className="inline-flex items-center gap-2">
+                      {recentlyDeducted && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-500"
+                          title="Points were removed by the curator in the last 24 hours"
+                        >
+                          <Star className="h-3 w-3 fill-current" />
+                          Pts removed
+                        </span>
+                      )}
+                      <span className="font-semibold">{below ? "Below minimum" : "Pass"}</span>
+                    </span>
+                  )}
                 </div>
 
                 {data.isOwner && (
@@ -372,7 +396,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   </div>
                 )}
 
-                {/* Spotify artist profile + 2 track links + Last.fm */}
+                {/* Spotify artist profile + 2 track links + Last.fm (team rooms only) */}
+                {isTeam && (
                 <div className="space-y-1.5 rounded-md border border-border bg-muted/20 p-2">
                   <div className="text-[11px] font-semibold text-muted-foreground">
                     Spotify links
@@ -492,6 +517,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     </div>
                   )}
                 </div>
+                )}
               </div>
             );
           })}
