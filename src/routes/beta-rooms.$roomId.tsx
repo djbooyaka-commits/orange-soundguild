@@ -39,7 +39,7 @@ function BetaRoomDetail() {
   const playlistsFn = useServerFn(listBetaRoomPlaylists);
 
   const [room, setRoom] = useState<RoomData | null>(null);
-  const [playlists, setPlaylists] = useState<Array<{ id: string; name: string }>>([]);
+  const [playlists, setPlaylists] = useState<Array<{ id: string; name: string; isTeam?: boolean }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [busyLastfm, setBusyLastfm] = useState(false);
@@ -53,6 +53,7 @@ function BetaRoomDetail() {
         const pls = (await playlistsFn({ data: { roomId } })) as Array<{
           id: string;
           name: string;
+          isTeam?: boolean;
         }>;
         setPlaylists(pls ?? []);
       } catch {
@@ -186,6 +187,7 @@ function BetaRoomDetail() {
           {playlists.map((p) => (
             <TabsTrigger key={p.id} value={`pl-${p.id}`} className="max-w-[45vw] shrink-0 truncate">
               {p.name}
+              {p.isTeam && <span className="ml-1 text-orange-400" title="Team playlist">★</span>}
             </TabsTrigger>
           ))}
 
