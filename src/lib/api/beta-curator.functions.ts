@@ -284,18 +284,28 @@ async function importPlaylistTracks(
   }
 
   // Replace this playlist's tracked tracks with the current playlist contents.
+  // Batched: large playlists (400+ tracks) time out when upserted one row at a time.
   await supabaseAdmin.from("beta_room_tracks").delete().eq("playlist_id", playlistRowId);
-  for (const t of tracks) {
-    await supabaseAdmin.from("beta_room_tracks").upsert(
-      {
-        room_id: roomId,
-        playlist_id: playlistRowId,
-        spotify_track_id: t.id,
-        track_name: t.name,
-        artist_name: t.artist,
-      },
-      { onConflict: "room_id,playlist_id,spotify_track_id" },
-    );
+  const seen = new Set<string>();
+  const rows = tracks
+    .filter((t) => {
+      if (!t.id || seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    })
+    .map((t) => ({
+      room_id: roomId,
+      playlist_id: playlistRowId,
+      spotify_track_id: t.id,
+      track_name: t.name,
+      artist_name: t.artist,
+    }));
+  const CHUNK = 200;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const { error: upErr } = await supabaseAdmin
+      .from("beta_room_tracks")
+      .upsert(rows.slice(i, i + CHUNK), { onConflict: "room_id,playlist_id,spotify_track_id" });
+    if (upErr) throw new Error(upErr.message);
   }
   return { imported: tracks.length, name: meta?.name ?? null };
 }
