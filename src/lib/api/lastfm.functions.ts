@@ -262,3 +262,123 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
       watching: watchList.length,
     };
   });
+
+/**
+ * Per-playlist Last.fm sync. Only matches the tracks that belong to THIS
+ * playlist, and credits the points to it. Because each room's points table
+ * has a (room, user, track, played_at) uniqueness guard, a shared track can
+ * only be counted once per room — the playlist you sync from claims it.
+ */
+export const syncLastfmPlaylist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { fetchLastfmRecentTracks, matchTrack, getLastfmApiKey, lastfmErrorMessage } =
+      await import("./lastfm.server");
+
+    const empty = {
+      added: 0,
+      connected: true,
+      error: null as string | null,
+      errorMessage: null as string | null,
+      scanned: 0,
+      matched: 0,
+      watching: 0,
+    };
+
+    const { key: apiKey, error: keyError } = getLastfmApiKey();
+    if (!apiKey)
+      return { ...empty, error: keyError, errorMessage: lastfmErrorMessage(keyError!) };
+
+    const { data: pl } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("id, room_id, name")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (!pl) throw new Error("Playlist not found");
+
+    const { data: room } = await supabaseAdmin
+      .from("beta_rooms")
+      .select("id, owner_id")
+      .eq("id", pl.room_id)
+      .maybeSingle();
+    if (!room) throw new Error("Room not found");
+
+    const { data: member } = await supabaseAdmin
+      .from("beta_room_members")
+      .select("id")
+      .eq("room_id", pl.room_id)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!member && room.owner_id !== context.userId) throw new Error("Join this room first");
+
+    const { data: conn } = await supabaseAdmin
+      .from("lastfm_connections")
+      .select("lastfm_username")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!conn) return { ...empty, connected: false };
+
+    const { data: watch } = await supabaseAdmin
+      .from("beta_room_tracks")
+      .select("spotify_track_id, track_name, artist_name")
+      .eq("room_id", pl.room_id)
+      .eq("playlist_id", pl.id);
+
+    const watchList = (watch ?? []).map((t: any) => ({
+      spotifyTrackId: String(t.spotify_track_id),
+      name: (t.track_name ?? "") as string,
+      artist: (t.artist_name ?? "") as string,
+    }));
+    if (watchList.length === 0) return empty;
+
+    // Fixed 24h lookback — the per-room uniqueness guard prevents double counting,
+    // and a shared global cursor would starve the other playlists in this room.
+    const fromTimestamp = Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000);
+    const { items, error } = await fetchLastfmRecentTracks(
+      conn.lastfm_username,
+      apiKey,
+      fromTimestamp,
+    );
+    if (error)
+      return {
+        ...empty,
+        error,
+        errorMessage: lastfmErrorMessage(error),
+        watching: watchList.length,
+      };
+
+    let added = 0;
+    let matched = 0;
+    for (const item of items) {
+      for (const w of watchList) {
+        if (matchTrack(item.name, item.artist, w.name, w.artist)) {
+          matched++;
+          const { error: insErr } = await supabaseAdmin.from("beta_stream_points").insert({
+            room_id: pl.room_id,
+            user_id: context.userId,
+            playlist_id: pl.id,
+            spotify_track_id: w.spotifyTrackId,
+            spotify_track_name: item.name,
+            played_at: item.playedAt,
+            source: "lastfm",
+          });
+          if (!insErr) added++;
+          break;
+        }
+      }
+    }
+
+    return {
+      added,
+      connected: true,
+      error: null as string | null,
+      errorMessage: null as string | null,
+      scanned: items.length,
+      matched,
+      watching: watchList.length,
+    };
+  });
