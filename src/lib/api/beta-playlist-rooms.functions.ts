@@ -183,6 +183,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         spotifyPlaylistId: pl.spotify_playlist_id as string,
         weeklyMin: min,
         trackCount: trackIds.length,
+        isTeam: (pl.is_team as boolean | null) ?? false,
       },
       isOwner,
       members: members_,
