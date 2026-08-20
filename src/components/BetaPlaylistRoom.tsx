@@ -53,6 +53,7 @@ type RoomData = {
     spotifyPlaylistId: string;
     weeklyMin: number;
     trackCount: number;
+    isTeam: boolean;
   };
   isOwner: boolean;
   members: Member[];
