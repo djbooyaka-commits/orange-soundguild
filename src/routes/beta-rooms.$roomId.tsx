@@ -178,7 +178,7 @@ function BetaRoomDetail() {
       </header>
 
       <Tabs defaultValue="tracking" className="space-y-6">
-        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 p-1">
           <TabsTrigger value="tracking" className="shrink-0">Stream Tracker</TabsTrigger>
           <TabsTrigger value="playlists" className="shrink-0">Curator playlists</TabsTrigger>
           {room.isOwner && <TabsTrigger value="invite" className="shrink-0">Invite link</TabsTrigger>}
