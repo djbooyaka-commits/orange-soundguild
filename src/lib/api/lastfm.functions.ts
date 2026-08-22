@@ -105,6 +105,11 @@ export const syncLastfmBetaRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { roomId: string }) => ({ roomId: String(data?.roomId ?? "") }))
   .handler(async ({ context, data }) => {
+    throw new Error("Open a playlist room and use Start tracking instead");
+    void context;
+    void data;
+    /* Legacy room-wide sync is intentionally disabled because Last.fm cannot
+       identify which playlist supplied a shared track. */
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { fetchLastfmRecentTracks, matchTrack, getLastfmApiKey, lastfmErrorMessage } =
       await import("./lastfm.server");
@@ -275,6 +280,11 @@ export const syncLastfmPlaylist = createServerFn({ method: "POST" })
     playlistId: String(data?.playlistId ?? ""),
   }))
   .handler(async ({ context, data }) => {
+    throw new Error("Use Start tracking and Stop tracking for this playlist instead");
+    void context;
+    void data;
+    /* Legacy lookback sync is intentionally disabled so plays before Start
+       can never be awarded to a playlist. */
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { fetchLastfmRecentTracks, matchTrack, getLastfmApiKey, lastfmErrorMessage } =
       await import("./lastfm.server");
