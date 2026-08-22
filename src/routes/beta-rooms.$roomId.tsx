@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, FlaskConical, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBetaRoom, joinBetaRoom } from "@/lib/api/beta-rooms.functions";
-import { syncLastfmBetaRoom } from "@/lib/api/lastfm.functions";
 import { listBetaRoomPlaylists } from "@/lib/api/beta-curator.functions";
 import { LastfmConnectCard } from "@/components/LastfmConnectCard";
 import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
@@ -34,7 +33,6 @@ function BetaRoomDetail() {
   const { roomId } = Route.useParams();
   const { user, loading: authLoading } = useAuth();
   const getFn = useServerFn(getBetaRoom);
-  const syncLastfmFn = useServerFn(syncLastfmBetaRoom);
   const joinFn = useServerFn(joinBetaRoom);
   const playlistsFn = useServerFn(listBetaRoomPlaylists);
 
@@ -42,8 +40,6 @@ function BetaRoomDetail() {
   const [playlists, setPlaylists] = useState<Array<{ id: string; name: string; isTeam?: boolean }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [busyLastfm, setBusyLastfm] = useState(false);
-  const [lastfmMsg, setLastfmMsg] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -74,32 +70,6 @@ function BetaRoomDetail() {
     }
     void refresh();
   }, [user, refresh]);
-
-  const syncLastfm = async () => {
-    setBusyLastfm(true);
-    setLastfmMsg(null);
-    try {
-      const r: any = await syncLastfmFn({ data: { roomId } });
-      if (!r.connected) {
-        setLastfmMsg("Connect Last.fm below first, then sync.");
-      } else if (r.error) {
-        setLastfmMsg(r.errorMessage ?? `Last.fm error: ${r.error}`);
-      } else if (r.added) {
-        setLastfmMsg(
-          `+${r.added} point${r.added === 1 ? "" : "s"} via Last.fm (scanned ${r.scanned} scrobbles)`,
-        );
-      } else {
-        setLastfmMsg(
-          `Up to date — scanned ${r.scanned} scrobble${r.scanned === 1 ? "" : "s"}, ${r.matched} matched the ${r.watching} tracked track${r.watching === 1 ? "" : "s"}.`,
-        );
-      }
-      await refresh();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Last.fm sync failed");
-    } finally {
-      setBusyLastfm(false);
-    }
-  };
 
   const join = async () => {
     setBusy(true);
@@ -206,24 +176,10 @@ function BetaRoomDetail() {
               <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
                 Your points: <span className="font-semibold">{room.myPoints}</span>
               </div>
-              <button
-                onClick={syncLastfm}
-                disabled={busyLastfm}
-                className="inline-flex items-center gap-2 rounded-md border border-[#D51007]/30 bg-[#D51007]/5 px-3 py-2 text-sm hover:bg-[#D51007]/10 disabled:opacity-50"
-              >
-                {busyLastfm ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                Sync via Last.fm
-              </button>
             </div>
-            {lastfmMsg && <p className="mt-3 text-xs text-muted-foreground">{lastfmMsg}</p>}
             <p className="mt-3 text-xs text-muted-foreground">
-              Tracking {room.tracks.length} track{room.tracks.length === 1 ? "" : "s"} from this
-              room&apos;s curator playlists. Plays count from anywhere — no Spotify connection or
-              Premium needed, just Last.fm scrobbling.
+              Open a playlist room and press Start tracking before listening. Press Stop when you
+              finish; only plays during that session can earn points for the selected playlist.
             </p>
           </section>
 

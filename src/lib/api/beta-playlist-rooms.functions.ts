@@ -49,7 +49,14 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     await assertRoomMember(supabaseAdmin, room, context.userId);
     const isOwner = room.owner_id === context.userId;
 
-    const [{ data: members }, { data: tracks }, { data: subs }, { data: adjustments }, { data: links }] =
+    const [
+      { data: members },
+      { data: tracks },
+      { data: subs },
+      { data: adjustments },
+      { data: links },
+      { data: activeTracking },
+    ] =
       await Promise.all([
         supabaseAdmin.from("beta_room_members").select("user_id").eq("room_id", room.id),
         supabaseAdmin
@@ -70,6 +77,13 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
             "user_id, spotify_artist_url, spotify_artist_name, track_url, track_name, track2_url, track2_name",
           )
           .eq("playlist_id", pl.id),
+        supabaseAdmin
+          .from("beta_playlist_tracking_sessions")
+          .select("started_at")
+          .eq("playlist_id", pl.id)
+          .eq("user_id", context.userId)
+          .is("stopped_at", null)
+          .maybeSingle(),
       ]);
 
     const userIds = Array.from(new Set((members ?? []).map((m: any) => m.user_id as string)));
@@ -185,6 +199,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         trackCount: trackIds.length,
         isTeam: (pl.is_team as boolean | null) ?? false,
       },
+      trackingStartedAt: (activeTracking?.started_at as string | null) ?? null,
       isOwner,
       members: members_,
     };
