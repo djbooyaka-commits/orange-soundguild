@@ -8,8 +8,9 @@ import {
   Minus,
   Music,
   Plus,
-  RefreshCw,
+  Play,
   Settings,
+  Square,
   Star,
   TrendingUp,
   UserMinus,
@@ -23,9 +24,13 @@ import {
   removeBetaRoomMember,
   setBetaPlaylistMemberLink,
 } from "@/lib/api/beta-playlist-rooms.functions";
-import { syncLastfmPlaylist } from "@/lib/api/lastfm.functions";
+import {
+  startLastfmPlaylistTracking,
+  stopLastfmPlaylistTracking,
+} from "@/lib/api/lastfm.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
+import { Button } from "@/components/ui/button";
 
 const DEFAULT_WEEKLY_MIN = 600;
 
@@ -58,6 +63,7 @@ type RoomData = {
     isTeam: boolean;
   };
   isOwner: boolean;
+  trackingStartedAt: string | null;
   members: Member[];
 };
 
@@ -67,7 +73,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const adjustFn = useServerFn(adjustBetaPlaylistPoints);
   const removeMemberFn = useServerFn(removeBetaRoomMember);
   const setLinkFn = useServerFn(setBetaPlaylistMemberLink);
-  const syncFn = useServerFn(syncLastfmPlaylist);
+  const startTrackingFn = useServerFn(startLastfmPlaylistTracking);
+  const stopTrackingFn = useServerFn(stopLastfmPlaylistTracking);
 
   const [data, setData] = useState<RoomData | null>(null);
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
@@ -81,8 +88,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     Record<string, { artist: string; track: string; track2: string }>
   >({});
   const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [changingTracking, setChangingTracking] = useState(false);
+  const [trackingMsg, setTrackingMsg] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const r = (await getFn({ data: { playlistId } })) as RoomData;
@@ -201,29 +208,26 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const isRecentlyDeducted = (m: Member) =>
     !!m.last_deduction_at &&
     Date.now() - new Date(m.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
-  const runSync = async () => {
-    setSyncing(true);
-    setSyncMsg(null);
+  const toggleTracking = async () => {
+    setChangingTracking(true);
+    setTrackingMsg(null);
     try {
-      const r: any = await syncFn({ data: { playlistId } });
-      if (!r.connected) {
-        setSyncMsg("Connect your Last.fm account on the Stream Tracker tab first.");
-      } else if (r.error) {
-        setSyncMsg(r.errorMessage ?? `Last.fm error: ${r.error}`);
-      } else if (r.added) {
-        setSyncMsg(
-          `+${r.added} point${r.added === 1 ? "" : "s"} for this playlist (scanned ${r.scanned} scrobbles).`,
+      if (data.trackingStartedAt) {
+        const result = await stopTrackingFn({ data: { playlistId } });
+        setTrackingMsg(
+          result.added
+            ? `Tracking stopped. +${result.added} point${result.added === 1 ? "" : "s"} added to this playlist.`
+            : `Tracking stopped. ${result.scanned} play${result.scanned === 1 ? " was" : "s were"} checked; no new matching points were found.`,
         );
       } else {
-        setSyncMsg(
-          `Up to date — scanned ${r.scanned} scrobble${r.scanned === 1 ? "" : "s"}, ${r.matched} matched this playlist's ${r.watching} track${r.watching === 1 ? "" : "s"}.`,
-        );
+        await startTrackingFn({ data: { playlistId } });
+        setTrackingMsg("Tracking started. Only plays made from now until you press Stop can earn points for this playlist.");
       }
       await refresh();
     } catch (e: any) {
-      toast.error(e?.message ?? "Sync failed");
+      toast.error(e?.message ?? "Could not change tracking");
     } finally {
-      setSyncing(false);
+      setChangingTracking(false);
     }
   };
 
@@ -275,19 +279,21 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
+            <Button
               type="button"
-              onClick={runSync}
-              disabled={syncing}
-              className="inline-flex items-center gap-2 rounded-md border border-[#D51007]/30 bg-[#D51007]/5 px-3 py-2 text-sm hover:bg-[#D51007]/10 disabled:opacity-50"
+              onClick={toggleTracking}
+              disabled={changingTracking}
+              variant={data.trackingStartedAt ? "destructive" : "default"}
             >
-              {syncing ? (
+              {changingTracking ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : data.trackingStartedAt ? (
+                <Square className="h-4 w-4" />
               ) : (
-                <RefreshCw className="h-4 w-4" />
+                <Play className="h-4 w-4" />
               )}
-              Sync this playlist
-            </button>
+              {data.trackingStartedAt ? "Stop tracking" : "Start tracking"}
+            </Button>
           </div>
           {data.isOwner && isTeam && (
             <form onSubmit={saveMin} className="flex items-center gap-2">
@@ -311,7 +317,12 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           )}
         </div>
 
-        {syncMsg && <p className="mt-3 text-xs text-muted-foreground">{syncMsg}</p>}
+        {data.trackingStartedAt && (
+          <p className="mt-3 text-xs font-medium text-primary">
+            Tracking this playlist since {new Date(data.trackingStartedAt).toLocaleTimeString()}.
+          </p>
+        )}
+        {trackingMsg && <p className="mt-3 text-xs text-muted-foreground">{trackingMsg}</p>}
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {members.length === 0 && (

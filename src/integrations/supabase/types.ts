@@ -168,6 +168,44 @@ export type Database = {
           },
         ]
       }
+      beta_playlist_tracking_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          playlist_id: string
+          started_at: string
+          stopped_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          playlist_id: string
+          started_at?: string
+          stopped_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          playlist_id?: string
+          started_at?: string
+          stopped_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_playlist_tracking_sessions_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "beta_room_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_point_adjustments: {
         Row: {
           created_at: string
