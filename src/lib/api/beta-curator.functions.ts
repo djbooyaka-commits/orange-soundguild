@@ -190,19 +190,20 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
       .eq("room_id", data.roomId)
       .order("created_at", { ascending: true });
 
-    const ids = (rows ?? []).map((r: any) => r.id);
-    const counts = new Map<string, number>();
-    if (ids.length) {
-      const { data: tracks } = await supabaseAdmin
-        .from("beta_room_tracks")
-        .select("playlist_id")
-        .in("playlist_id", ids);
-      for (const t of tracks ?? []) {
-        const pid = (t as any).playlist_id as string | null;
-        if (!pid) continue;
-        counts.set(pid, (counts.get(pid) ?? 0) + 1);
-      }
-    }
+    // Do not load all track rows to calculate these totals. Database reads are
+    // capped at 1,000 rows, which made playlists later in a large room appear
+    // to have zero tracks even though their imports completed successfully.
+    const countEntries = await Promise.all(
+      (rows ?? []).map(async (row: any) => {
+        const { count, error } = await supabaseAdmin
+          .from("beta_room_tracks")
+          .select("id", { count: "exact", head: true })
+          .eq("playlist_id", row.id);
+        if (error) throw new Error(error.message);
+        return [row.id as string, count ?? 0] as const;
+      }),
+    );
+    const counts = new Map<string, number>(countEntries);
 
     return (rows ?? []).map((r: any) => ({
       id: r.id as string,
