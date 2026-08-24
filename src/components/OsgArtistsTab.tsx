@@ -11,6 +11,7 @@ import {
   listOsgPlaylistSubmissions,
   listOsgArtistFollowLinks,
   curatorSetOsgArtistFollowLink,
+  curatorSetOsgTrackLinks,
   adjustOsgPoints,
   setOsgWeeklyMin,
 } from "@/lib/api/osg-picks.functions";
@@ -62,8 +63,11 @@ type FollowLinkRow = {
   spotify_artist_id: string;
   spotify_artist_url: string;
   spotify_artist_name: string | null;
+  track_urls: string[] | null;
   updated_at: string;
 };
+
+const emptyTracks = () => ["", "", "", "", ""];
 
 export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const listFn = useServerFn(listMyOsgArtistPicks);
@@ -92,6 +96,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const [linkInputs, setLinkInputs] = useState<Record<string, string>>({});
   const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
   const setLinkFn = useServerFn(curatorSetOsgArtistFollowLink);
+  const setTracksFn = useServerFn(curatorSetOsgTrackLinks);
+  const [trackInputs, setTrackInputs] = useState<Record<string, string[]>>({});
+  const [savingTracksId, setSavingTracksId] = useState<string | null>(null);
 
   const myWeeklyMin = picks[0]?.weekly_min ?? DEFAULT_WEEKLY_MIN;
 
@@ -106,7 +113,16 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     setPicks(rows);
     setRosters(rosterRows);
     setSubmissions(subs);
-    setFollowLinks(links);
+    setFollowLinks(links as FollowLinkRow[]);
+    setTrackInputs(() => {
+      const next: Record<string, string[]> = {};
+      (links as FollowLinkRow[]).forEach((l) => {
+        const arr = emptyTracks();
+        (l.track_urls ?? []).slice(0, 5).forEach((u, i) => { arr[i] = u; });
+        next[l.user_id] = arr;
+      });
+      return next;
+    });
     const [signedPicks, signedRoster] = await Promise.all([
       signMany(rows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))),
       signMany(rosterRows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))),
@@ -230,11 +246,27 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     }
   };
 
+  const saveTracks = async (artistId: string) => {
+    const current = trackInputs[artistId] ?? emptyTracks();
+    setSavingTracksId(artistId);
+    try {
+      await setTracksFn({ data: { artistId, urls: current.map((u) => u.trim()).filter(Boolean) } });
+      await refresh();
+      toast.success("Track links saved");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save track links");
+    } finally {
+      setSavingTracksId(null);
+    }
+  };
+
   const renderFollowLink = (curatorId: string, artistId: string, editable = false) => {
     const link = followLinkByKey.get(`${curatorId}:${artistId}`);
+    const tracks = (link?.track_urls ?? []).filter(Boolean).slice(0, 5);
+    const inputs = trackInputs[artistId] ?? emptyTracks();
     return (
       <div className="space-y-2">
-        {link ? (
+        {link?.spotify_artist_url ? (
           <a
             href={link.spotify_artist_url}
             target="_blank"
@@ -251,33 +283,88 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             No Spotify artist link yet
           </div>
         )}
+
+        {tracks.length > 0 && (
+          <div className="space-y-1">
+            {tracks.map((u, i) => (
+              <a
+                key={`${artistId}-track-${i}`}
+                href={u}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs hover:border-primary/50"
+              >
+                <Music className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate text-primary underline-offset-2 hover:underline">
+                  Track {i + 1}
+                </span>
+              </a>
+            ))}
+          </div>
+        )}
+
         {editable && (
-          <div className="flex items-center gap-2">
-            <input
-              type="url"
-              placeholder="https://open.spotify.com/artist/..."
-              value={linkInputs[artistId] ?? ""}
-              onChange={(e) => setLinkInputs((s) => ({ ...s, [artistId]: e.target.value }))}
-              className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
-            />
-            <button
-              type="button"
-              onClick={() => saveLink(artistId)}
-              disabled={savingLinkId === artistId || !(linkInputs[artistId] ?? "").trim()}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
-            >
-              {savingLinkId === artistId ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Plus className="h-3.5 w-3.5" />
-              )}
-              {link ? "Update" : "Add link"}
-            </button>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="url"
+                placeholder="https://open.spotify.com/artist/..."
+                value={linkInputs[artistId] ?? ""}
+                onChange={(e) => setLinkInputs((s) => ({ ...s, [artistId]: e.target.value }))}
+                className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => saveLink(artistId)}
+                disabled={savingLinkId === artistId || !(linkInputs[artistId] ?? "").trim()}
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                {savingLinkId === artistId ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+                {link?.spotify_artist_url ? "Update" : "Add link"}
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              {inputs.map((val, i) => (
+                <input
+                  key={`${artistId}-in-${i}`}
+                  type="url"
+                  placeholder={`Track link ${i + 1}`}
+                  value={val}
+                  onChange={(e) =>
+                    setTrackInputs((s) => {
+                      const next = [...(s[artistId] ?? emptyTracks())];
+                      next[i] = e.target.value;
+                      return { ...s, [artistId]: next };
+                    })
+                  }
+                  className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => saveTracks(artistId)}
+                disabled={savingTracksId === artistId}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                {savingTracksId === artistId ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+                Save track links
+              </button>
+            </div>
           </div>
         )}
       </div>
     );
   };
+
 
   const doDeduct = async (artistId: string) => {
     const raw = deductInputs[artistId]?.trim();

@@ -176,6 +176,7 @@ export const listOsgArtistFollowLinks = createServerFn({ method: "GET" })
       spotify_artist_id: string;
       spotify_artist_url: string;
       spotify_artist_name: string | null;
+      track_urls: string[] | null;
       updated_at: string;
     }>;
   });
@@ -249,4 +250,23 @@ export const curatorSetOsgArtistFollowLink = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     return { id: id as string, spotifyArtistId, artistUrl, artistName };
+  });
+
+const curatorSetTrackLinksSchema = z.object({
+  artistId: z.string().uuid(),
+  urls: z.array(z.string().trim().max(500)).max(5),
+});
+
+/** Curator sets up to 5 track links for a member of their OSG Artists list. */
+export const curatorSetOsgTrackLinks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => curatorSetTrackLinksSchema.parse(data))
+  .handler(async ({ context, data }) => {
+    const urls = data.urls.map((u) => u.trim()).filter(Boolean);
+    const { data: id, error } = await (context.supabase as any).rpc("curator_set_osg_track_links", {
+      _artist_id: data.artistId,
+      _urls: urls,
+    });
+    if (error) throw new Error(error.message);
+    return { id: id as string, urls };
   });

@@ -129,6 +129,12 @@ export type Database = {
           track_url: string | null
           track2_name: string | null
           track2_url: string | null
+          track3_name: string | null
+          track3_url: string | null
+          track4_name: string | null
+          track4_url: string | null
+          track5_name: string | null
+          track5_url: string | null
           updated_at: string
           user_id: string
         }
@@ -142,6 +148,12 @@ export type Database = {
           track_url?: string | null
           track2_name?: string | null
           track2_url?: string | null
+          track3_name?: string | null
+          track3_url?: string | null
+          track4_name?: string | null
+          track4_url?: string | null
+          track5_name?: string | null
+          track5_url?: string | null
           updated_at?: string
           user_id: string
         }
@@ -155,6 +167,12 @@ export type Database = {
           track_url?: string | null
           track2_name?: string | null
           track2_url?: string | null
+          track3_name?: string | null
+          track3_url?: string | null
+          track4_name?: string | null
+          track4_url?: string | null
+          track5_name?: string | null
+          track5_url?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -807,9 +825,10 @@ export type Database = {
           created_at: string
           curator_id: string
           id: string
-          spotify_artist_id: string
+          spotify_artist_id: string | null
           spotify_artist_name: string | null
-          spotify_artist_url: string
+          spotify_artist_url: string | null
+          track_urls: string[]
           updated_at: string
           user_id: string
         }
@@ -817,9 +836,10 @@ export type Database = {
           created_at?: string
           curator_id: string
           id?: string
-          spotify_artist_id: string
+          spotify_artist_id?: string | null
           spotify_artist_name?: string | null
-          spotify_artist_url: string
+          spotify_artist_url?: string | null
+          track_urls?: string[]
           updated_at?: string
           user_id: string
         }
@@ -827,9 +847,10 @@ export type Database = {
           created_at?: string
           curator_id?: string
           id?: string
-          spotify_artist_id?: string
+          spotify_artist_id?: string | null
           spotify_artist_name?: string | null
-          spotify_artist_url?: string
+          spotify_artist_url?: string | null
+          track_urls?: string[]
           updated_at?: string
           user_id?: string
         }
@@ -1806,6 +1827,10 @@ export type Database = {
         }
         Returns: string
       }
+      curator_set_osg_track_links: {
+        Args: { _artist_id: string; _urls: string[] }
+        Returns: string
+      }
       curator_set_track_hold_days: {
         Args: { _days: number; _playlist_id: string }
         Returns: number
@@ -1964,6 +1989,7 @@ export type Database = {
           spotify_artist_id: string
           spotify_artist_name: string
           spotify_artist_url: string
+          track_urls: string[]
           updated_at: string
           user_id: string
         }[]
