@@ -109,12 +109,17 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     });
     setAvatars(map);
     setLinkInputs(() => {
-      const next: Record<string, { artist: string; track: string; track2: string }> = {};
+      const next: Record<string, { artist: string; tracks: string[] }> = {};
       r.members.forEach((m) => {
         next[m.user_id] = {
           artist: m.spotify_artist_url ?? "",
-          track: m.track_url ?? "",
-          track2: m.track2_url ?? "",
+          tracks: [
+            m.track_url ?? "",
+            m.track2_url ?? "",
+            m.track3_url ?? "",
+            m.track4_url ?? "",
+            m.track5_url ?? "",
+          ],
         };
       });
       return next;
