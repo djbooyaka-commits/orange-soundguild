@@ -176,6 +176,7 @@ export const listOsgArtistFollowLinks = createServerFn({ method: "GET" })
       spotify_artist_id: string;
       spotify_artist_url: string;
       spotify_artist_name: string | null;
+      track_urls: string[] | null;
       updated_at: string;
     }>;
   });
