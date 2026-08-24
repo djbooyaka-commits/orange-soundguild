@@ -189,8 +189,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
 
   const saveLink = async (userId: string) => {
     const artist = (linkInputs[userId]?.artist ?? "").trim();
-    const track = (linkInputs[userId]?.track ?? "").trim();
-    const track2 = (linkInputs[userId]?.track2 ?? "").trim();
+    const tracks = (linkInputs[userId]?.tracks ?? []).map((t) => t.trim());
     setSavingLinkId(userId);
     try {
       await setLinkFn({
@@ -198,8 +197,11 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           playlistId,
           userId,
           spotifyArtistUrl: artist || null,
-          trackUrl: track || null,
-          track2Url: track2 || null,
+          trackUrl: tracks[0] || null,
+          track2Url: tracks[1] || null,
+          track3Url: tracks[2] || null,
+          track4Url: tracks[3] || null,
+          track5Url: tracks[4] || null,
         },
       });
       await refresh();
