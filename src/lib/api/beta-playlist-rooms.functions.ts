@@ -343,7 +343,7 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
           track4_name: data.track4Name || null,
           track5_url: data.track5Url || null,
           track5_name: data.track5Name || null,
-        },
+        } as any,
         { onConflict: "playlist_id,user_id" },
       );
     if (error) throw new Error(error.message);
