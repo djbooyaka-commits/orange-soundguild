@@ -74,7 +74,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         supabaseAdmin
           .from("beta_playlist_member_links")
           .select(
-            "user_id, spotify_artist_url, spotify_artist_name, track_url, track_name, track2_url, track2_name",
+            "user_id, spotify_artist_url, spotify_artist_name, track_url, track_name, track2_url, track2_name, track3_url, track3_name, track4_url, track4_name, track5_url, track5_name",
           )
           .eq("playlist_id", pl.id),
         supabaseAdmin
@@ -184,6 +184,12 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         track_name: (l?.track_name as string | null) ?? null,
         track2_url: (l?.track2_url as string | null) ?? null,
         track2_name: (l?.track2_name as string | null) ?? null,
+        track3_url: (l?.track3_url as string | null) ?? null,
+        track3_name: (l?.track3_name as string | null) ?? null,
+        track4_url: (l?.track4_url as string | null) ?? null,
+        track4_name: (l?.track4_name as string | null) ?? null,
+        track5_url: (l?.track5_url as string | null) ?? null,
+        track5_name: (l?.track5_name as string | null) ?? null,
         lastfm_username: lastfmByUser.get(uid) ?? null,
       };
     });
@@ -290,6 +296,12 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
       trackName?: string | null;
       track2Url?: string | null;
       track2Name?: string | null;
+      track3Url?: string | null;
+      track3Name?: string | null;
+      track4Url?: string | null;
+      track4Name?: string | null;
+      track5Url?: string | null;
+      track5Name?: string | null;
     }) => ({
       playlistId: String(data?.playlistId ?? ""),
       userId: String(data?.userId ?? ""),
@@ -299,6 +311,12 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
       trackName: data?.trackName ? String(data.trackName).slice(0, 300) : null,
       track2Url: data?.track2Url ? String(data.track2Url).slice(0, 2048) : null,
       track2Name: data?.track2Name ? String(data.track2Name).slice(0, 300) : null,
+      track3Url: data?.track3Url ? String(data.track3Url).slice(0, 2048) : null,
+      track3Name: data?.track3Name ? String(data.track3Name).slice(0, 300) : null,
+      track4Url: data?.track4Url ? String(data.track4Url).slice(0, 2048) : null,
+      track4Name: data?.track4Name ? String(data.track4Name).slice(0, 300) : null,
+      track5Url: data?.track5Url ? String(data.track5Url).slice(0, 2048) : null,
+      track5Name: data?.track5Name ? String(data.track5Name).slice(0, 300) : null,
     }),
   )
   .handler(async ({ context, data }) => {
@@ -319,7 +337,13 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
           track_name: data.trackName || null,
           track2_url: data.track2Url || null,
           track2_name: data.track2Name || null,
-        },
+          track3_url: data.track3Url || null,
+          track3_name: data.track3Name || null,
+          track4_url: data.track4Url || null,
+          track4_name: data.track4Name || null,
+          track5_url: data.track5Url || null,
+          track5_name: data.track5Name || null,
+        } as any,
         { onConflict: "playlist_id,user_id" },
       );
     if (error) throw new Error(error.message);

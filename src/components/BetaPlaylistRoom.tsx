@@ -49,6 +49,12 @@ type Member = {
   track_name: string | null;
   track2_url: string | null;
   track2_name: string | null;
+  track3_url: string | null;
+  track3_name: string | null;
+  track4_url: string | null;
+  track4_name: string | null;
+  track5_url: string | null;
+  track5_name: string | null;
   lastfm_username: string | null;
 };
 
@@ -85,7 +91,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [deductingId, setDeductingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [linkInputs, setLinkInputs] = useState<
-    Record<string, { artist: string; track: string; track2: string }>
+    Record<string, { artist: string; tracks: string[] }>
   >({});
   const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
   const [changingTracking, setChangingTracking] = useState(false);
@@ -103,12 +109,17 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     });
     setAvatars(map);
     setLinkInputs(() => {
-      const next: Record<string, { artist: string; track: string; track2: string }> = {};
+      const next: Record<string, { artist: string; tracks: string[] }> = {};
       r.members.forEach((m) => {
         next[m.user_id] = {
           artist: m.spotify_artist_url ?? "",
-          track: m.track_url ?? "",
-          track2: m.track2_url ?? "",
+          tracks: [
+            m.track_url ?? "",
+            m.track2_url ?? "",
+            m.track3_url ?? "",
+            m.track4_url ?? "",
+            m.track5_url ?? "",
+          ],
         };
       });
       return next;
@@ -178,8 +189,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
 
   const saveLink = async (userId: string) => {
     const artist = (linkInputs[userId]?.artist ?? "").trim();
-    const track = (linkInputs[userId]?.track ?? "").trim();
-    const track2 = (linkInputs[userId]?.track2 ?? "").trim();
+    const tracks = (linkInputs[userId]?.tracks ?? []).map((t) => t.trim());
     setSavingLinkId(userId);
     try {
       await setLinkFn({
@@ -187,8 +197,11 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           playlistId,
           userId,
           spotifyArtistUrl: artist || null,
-          trackUrl: track || null,
-          track2Url: track2 || null,
+          trackUrl: tracks[0] || null,
+          track2Url: tracks[1] || null,
+          track3Url: tracks[2] || null,
+          track4Url: tracks[3] || null,
+          track5Url: tracks[4] || null,
         },
       });
       await refresh();
@@ -455,7 +468,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   </div>
                 )}
 
-                {/* Spotify artist profile + 2 track links + Last.fm (team rooms only) */}
+                {/* Spotify artist profile + up to 5 track links + Last.fm (team rooms only) */}
                 {isTeam && (
                 <div className="space-y-1.5 rounded-md border border-border bg-muted/20 p-2">
                   <div className="text-[11px] font-semibold text-muted-foreground">
@@ -467,6 +480,9 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     { url: m.spotify_artist_url, label: `Artist: ${m.spotify_artist_name ?? m.spotify_artist_url}` },
                     { url: m.track_url, label: `Track 1: ${m.track_name ?? m.track_url}` },
                     { url: m.track2_url, label: `Track 2: ${m.track2_name ?? m.track2_url}` },
+                    { url: m.track3_url, label: `Track 3: ${m.track3_name ?? m.track3_url}` },
+                    { url: m.track4_url, label: `Track 4: ${m.track4_name ?? m.track4_url}` },
+                    { url: m.track5_url, label: `Track 5: ${m.track5_name ?? m.track5_url}` },
                   ]
                     .filter((x) => !!x.url)
                     .map((x) => (
@@ -482,11 +498,17 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                       </a>
                     ))}
 
-                  {!m.spotify_artist_url && !m.track_url && !m.track2_url && !data.isOwner && (
-                    <div className="rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted-foreground">
-                      No Spotify links yet
-                    </div>
-                  )}
+                  {!m.spotify_artist_url &&
+                    !m.track_url &&
+                    !m.track2_url &&
+                    !m.track3_url &&
+                    !m.track4_url &&
+                    !m.track5_url &&
+                    !data.isOwner && (
+                      <div className="rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted-foreground">
+                        No Spotify links yet
+                      </div>
+                    )}
 
                   {/* Last.fm profile */}
                   {m.lastfm_username ? (
@@ -519,60 +541,48 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                             ...s,
                             [m.user_id]: {
                               artist: e.target.value,
-                              track: s[m.user_id]?.track ?? "",
-                              track2: s[m.user_id]?.track2 ?? "",
+                              tracks: s[m.user_id]?.tracks ?? [],
                             },
                           }))
                         }
                         className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
                       />
-                      <input
-                        type="url"
-                        placeholder="Track 1 — https://open.spotify.com/track/…"
-                        value={linkInputs[m.user_id]?.track ?? ""}
-                        onChange={(e) =>
-                          setLinkInputs((s) => ({
-                            ...s,
-                            [m.user_id]: {
-                              artist: s[m.user_id]?.artist ?? "",
-                              track: e.target.value,
-                              track2: s[m.user_id]?.track2 ?? "",
-                            },
-                          }))
-                        }
-                        className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
-                      />
-                      <div className="flex items-center gap-2">
+                      {Array.from({ length: 5 }).map((_, i) => (
                         <input
+                          key={i}
                           type="url"
-                          placeholder="Track 2 — https://open.spotify.com/track/…"
-                          value={linkInputs[m.user_id]?.track2 ?? ""}
+                          placeholder={`Track ${i + 1} — https://open.spotify.com/track/…`}
+                          value={linkInputs[m.user_id]?.tracks?.[i] ?? ""}
                           onChange={(e) =>
-                            setLinkInputs((s) => ({
-                              ...s,
-                              [m.user_id]: {
-                                artist: s[m.user_id]?.artist ?? "",
-                                track: s[m.user_id]?.track ?? "",
-                                track2: e.target.value,
-                              },
-                            }))
+                            setLinkInputs((s) => {
+                              const prev = s[m.user_id]?.tracks ?? [];
+                              const tracks = [...prev];
+                              tracks[i] = e.target.value;
+                              return {
+                                ...s,
+                                [m.user_id]: {
+                                  artist: s[m.user_id]?.artist ?? "",
+                                  tracks,
+                                },
+                              };
+                            })
                           }
-                          className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                          className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
                         />
-                        <button
-                          type="button"
-                          onClick={() => saveLink(m.user_id)}
-                          disabled={savingLinkId === m.user_id}
-                          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
-                        >
-                          {savingLinkId === m.user_id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Plus className="h-3.5 w-3.5" />
-                          )}
-                          Save
-                        </button>
-                      </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => saveLink(m.user_id)}
+                        disabled={savingLinkId === m.user_id}
+                        className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+                      >
+                        {savingLinkId === m.user_id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5" />
+                        )}
+                        Save links
+                      </button>
                     </div>
                   )}
                 </div>
