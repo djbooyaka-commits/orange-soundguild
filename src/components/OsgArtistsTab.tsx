@@ -11,6 +11,7 @@ import {
   listOsgPlaylistSubmissions,
   listOsgArtistFollowLinks,
   curatorSetOsgArtistFollowLink,
+  curatorSetOsgTrackLinks,
   adjustOsgPoints,
   setOsgWeeklyMin,
 } from "@/lib/api/osg-picks.functions";
@@ -62,8 +63,11 @@ type FollowLinkRow = {
   spotify_artist_id: string;
   spotify_artist_url: string;
   spotify_artist_name: string | null;
+  track_urls: string[] | null;
   updated_at: string;
 };
+
+const emptyTracks = () => ["", "", "", "", ""];
 
 export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const listFn = useServerFn(listMyOsgArtistPicks);
@@ -92,6 +96,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const [linkInputs, setLinkInputs] = useState<Record<string, string>>({});
   const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
   const setLinkFn = useServerFn(curatorSetOsgArtistFollowLink);
+  const setTracksFn = useServerFn(curatorSetOsgTrackLinks);
+  const [trackInputs, setTrackInputs] = useState<Record<string, string[]>>({});
+  const [savingTracksId, setSavingTracksId] = useState<string | null>(null);
 
   const myWeeklyMin = picks[0]?.weekly_min ?? DEFAULT_WEEKLY_MIN;
 
@@ -106,7 +113,16 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     setPicks(rows);
     setRosters(rosterRows);
     setSubmissions(subs);
-    setFollowLinks(links);
+    setFollowLinks(links as FollowLinkRow[]);
+    setTrackInputs(() => {
+      const next: Record<string, string[]> = {};
+      (links as FollowLinkRow[]).forEach((l) => {
+        const arr = emptyTracks();
+        (l.track_urls ?? []).slice(0, 5).forEach((u, i) => { arr[i] = u; });
+        next[l.user_id] = arr;
+      });
+      return next;
+    });
     const [signedPicks, signedRoster] = await Promise.all([
       signMany(rows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))),
       signMany(rosterRows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))),
