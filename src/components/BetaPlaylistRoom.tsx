@@ -49,6 +49,12 @@ type Member = {
   track_name: string | null;
   track2_url: string | null;
   track2_name: string | null;
+  track3_url: string | null;
+  track3_name: string | null;
+  track4_url: string | null;
+  track4_name: string | null;
+  track5_url: string | null;
+  track5_name: string | null;
   lastfm_username: string | null;
 };
 
