@@ -46,16 +46,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+      setSession((prev) => (prev?.access_token === data.session?.access_token ? prev : data.session));
       setLoading(false);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const user = useMemo(() => {
+    const next = session?.user ?? null;
+    if (userRef.current?.id !== next?.id) userRef.current = next;
+    return userRef.current;
+  }, [session?.user?.id, session]);
+
   return (
     <Ctx.Provider
       value={{
-        user: session?.user ?? null,
+        user,
         session,
         loading,
         signOut: async () => {
