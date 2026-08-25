@@ -16,9 +16,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Keep the same `user` object identity while the signed-in user doesn't change,
+  // so background token refreshes (e.g. when returning to the tab) don't make the
+  // whole page re-run its data effects and look like a reload.
+  const userRef = useRef<User | null>(null);
+
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
-      setSession(s);
+      setSession((prev) => (prev?.access_token === s?.access_token ? prev : s));
       // Credit the artist whose track share link brought this user in.
       // Fires for both email confirmation and Google OAuth returns.
       if (event === "SIGNED_IN" && s?.user) {
