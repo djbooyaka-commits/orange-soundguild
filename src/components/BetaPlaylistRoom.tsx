@@ -89,6 +89,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [savingMin, setSavingMin] = useState(false);
   const [deductInputs, setDeductInputs] = useState<Record<string, string>>({});
   const [deductingId, setDeductingId] = useState<string | null>(null);
+  const [awardInputs, setAwardInputs] = useState<Record<string, string>>({});
+  const [awardingId, setAwardingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [linkInputs, setLinkInputs] = useState<
     Record<string, { artist: string; tracks: string[] }>
@@ -170,6 +172,26 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       toast.error(err?.message ?? "Could not remove points");
     } finally {
       setDeductingId(null);
+    }
+  };
+
+  const doAward = async (userId: string) => {
+    const raw = awardInputs[userId]?.trim();
+    const n = raw ? Math.abs(parseInt(raw, 10)) : NaN;
+    if (!n || !isFinite(n) || n <= 0) {
+      toast.error("Enter a positive number of points");
+      return;
+    }
+    setAwardingId(userId);
+    try {
+      await adjustFn({ data: { playlistId, userId, delta: n, reason: "Manual Last.fm check" } });
+      setAwardInputs((s) => ({ ...s, [userId]: "" }));
+      await refresh();
+      toast.success(`Added ${n} pts`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not add points");
+    } finally {
+      setAwardingId(null);
     }
   };
 
@@ -424,8 +446,37 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   )}
                 </div>
 
+                {data.isOwner && isTeam && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="pts to add"
+                      value={awardInputs[m.user_id] ?? ""}
+                      onChange={(e) =>
+                        setAwardInputs((s) => ({ ...s, [m.user_id]: e.target.value }))
+                      }
+                      className="w-32 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => doAward(m.user_id)}
+                      disabled={awardingId === m.user_id}
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+                      title="Add points after a manual Last.fm check"
+                    >
+                      {awardingId === m.user_id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5" />
+                      )}
+                      Add pts
+                    </button>
+                  </div>
+                )}
+
                 {data.isOwner && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <input
                       type="number"
                       min={1}
