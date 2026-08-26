@@ -89,6 +89,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [savingMin, setSavingMin] = useState(false);
   const [deductInputs, setDeductInputs] = useState<Record<string, string>>({});
   const [deductingId, setDeductingId] = useState<string | null>(null);
+  const [awardInputs, setAwardInputs] = useState<Record<string, string>>({});
+  const [awardingId, setAwardingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [linkInputs, setLinkInputs] = useState<
     Record<string, { artist: string; tracks: string[] }>
