@@ -173,6 +173,26 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     }
   };
 
+  const doAward = async (userId: string) => {
+    const raw = awardInputs[userId]?.trim();
+    const n = raw ? Math.abs(parseInt(raw, 10)) : NaN;
+    if (!n || !isFinite(n) || n <= 0) {
+      toast.error("Enter a positive number of points");
+      return;
+    }
+    setAwardingId(userId);
+    try {
+      await adjustFn({ data: { playlistId, userId, delta: n, reason: "Manual Last.fm check" } });
+      setAwardInputs((s) => ({ ...s, [userId]: "" }));
+      await refresh();
+      toast.success(`Added ${n} pts`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not add points");
+    } finally {
+      setAwardingId(null);
+    }
+  };
+
   const doRemoveMember = async (userId: string, username: string | null) => {
     if (!window.confirm(`Remove @${username ?? "this user"} from the room?`)) return;
     setRemovingId(userId);
