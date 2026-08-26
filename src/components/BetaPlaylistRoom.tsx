@@ -446,8 +446,37 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   )}
                 </div>
 
+                {data.isOwner && isTeam && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="pts to add"
+                      value={awardInputs[m.user_id] ?? ""}
+                      onChange={(e) =>
+                        setAwardInputs((s) => ({ ...s, [m.user_id]: e.target.value }))
+                      }
+                      className="w-32 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => doAward(m.user_id)}
+                      disabled={awardingId === m.user_id}
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+                      title="Add points after a manual Last.fm check"
+                    >
+                      {awardingId === m.user_id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5" />
+                      )}
+                      Add pts
+                    </button>
+                  </div>
+                )}
+
                 {data.isOwner && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <input
                       type="number"
                       min={1}
