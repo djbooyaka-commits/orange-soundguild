@@ -636,8 +636,10 @@ export type Database = {
           id: string
           image_url: string | null
           is_osg: boolean
+          is_team: boolean
           name: string
           spotify_playlist_id: string
+          team_weekly_min: number
           track_hold_days: number
         }
         Insert: {
@@ -646,8 +648,10 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_osg?: boolean
+          is_team?: boolean
           name: string
           spotify_playlist_id: string
+          team_weekly_min?: number
           track_hold_days?: number
         }
         Update: {
@@ -656,8 +660,10 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_osg?: boolean
+          is_team?: boolean
           name?: string
           spotify_playlist_id?: string
+          team_weekly_min?: number
           track_hold_days?: number
         }
         Relationships: []
@@ -712,6 +718,123 @@ export type Database = {
           {
             foreignKeyName: "curator_submissions_curator_playlist_id_fkey"
             columns: ["curator_playlist_id"]
+            isOneToOne: false
+            referencedRelation: "curator_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curator_team_member_links: {
+        Row: {
+          created_at: string
+          curator_id: string
+          id: string
+          playlist_id: string
+          spotify_artist_name: string | null
+          spotify_artist_url: string | null
+          track_urls: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          id?: string
+          playlist_id: string
+          spotify_artist_name?: string | null
+          spotify_artist_url?: string | null
+          track_urls?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          id?: string
+          playlist_id?: string
+          spotify_artist_name?: string | null
+          spotify_artist_url?: string | null
+          track_urls?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curator_team_member_links_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "curator_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curator_team_members: {
+        Row: {
+          created_at: string
+          curator_id: string
+          id: string
+          playlist_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          id?: string
+          playlist_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          id?: string
+          playlist_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curator_team_members_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "curator_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curator_team_point_adjustments: {
+        Row: {
+          created_at: string
+          curator_id: string
+          delta: number
+          id: string
+          playlist_id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          delta: number
+          id?: string
+          playlist_id: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          delta?: number
+          id?: string
+          playlist_id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curator_team_point_adjustments_playlist_id_fkey"
+            columns: ["playlist_id"]
             isOneToOne: false
             referencedRelation: "curator_playlists"
             referencedColumns: ["id"]
@@ -1835,6 +1958,54 @@ export type Database = {
         Args: { _days: number; _playlist_id: string }
         Returns: number
       }
+      curator_team_add_member: {
+        Args: { _playlist_id: string; _username: string }
+        Returns: string
+      }
+      curator_team_adjust_points: {
+        Args: {
+          _delta: number
+          _playlist_id: string
+          _reason?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      curator_team_remove_member: {
+        Args: { _member_id: string }
+        Returns: undefined
+      }
+      curator_team_roster: {
+        Args: { _playlist_id: string }
+        Returns: {
+          account_type: Database["public"]["Enums"]["account_type"]
+          avatar_url: string
+          is_me: boolean
+          last_deduction_at: string
+          member_id: string
+          points: number
+          spotify_artist_name: string
+          spotify_artist_url: string
+          track_urls: string[]
+          user_id: string
+          username: string
+          weekly_min: number
+        }[]
+      }
+      curator_team_set_links: {
+        Args: {
+          _artist_name: string
+          _artist_url: string
+          _playlist_id: string
+          _urls: string[]
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      curator_team_set_weekly_min: {
+        Args: { _min: number; _playlist_id: string }
+        Returns: undefined
+      }
       generate_referral_code: { Args: never; Returns: string }
       generate_track_codes: {
         Args: { _count: number; _track_id: string }
@@ -1933,6 +2104,19 @@ export type Database = {
           status: Database["public"]["Enums"]["curator_invite_status"]
           user_id: string
           username: string
+        }[]
+      }
+      list_my_curator_team_rooms: {
+        Args: never
+        Returns: {
+          curator_id: string
+          curator_username: string
+          image_url: string
+          is_owner: boolean
+          name: string
+          playlist_id: string
+          spotify_playlist_id: string
+          team_weekly_min: number
         }[]
       }
       list_my_osg_artist_picks: {
@@ -2095,6 +2279,10 @@ export type Database = {
       }
       set_curator_playlist_is_osg: {
         Args: { _is_osg: boolean; _playlist_id: string }
+        Returns: undefined
+      }
+      set_curator_playlist_is_team: {
+        Args: { _is_team: boolean; _playlist_id: string }
         Returns: undefined
       }
       submit_curator_track: {
