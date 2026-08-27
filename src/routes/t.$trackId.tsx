@@ -173,10 +173,7 @@ function TrackPage() {
   };
 
   const shareUrl = useMemo(() => {
-    const origin =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : "https://orangesoundguild.com";
+    const origin = publicOrigin();
     return artistRefCode
       ? `${origin}/t/${trackId}?ref=${artistRefCode}`
       : `${origin}/t/${trackId}`;

@@ -405,7 +405,7 @@ function ProfilePage() {
 
 function ShareProfileButton({ handle }: { handle: string }) {
   if (!handle) return null;
-  const url = `${window.location.origin}/u/${encodeURIComponent(handle)}`;
+  const url = `${publicOrigin()}/u/${encodeURIComponent(handle)}`;
   const onShare = async () => {
     try {
       if (navigator.share) {

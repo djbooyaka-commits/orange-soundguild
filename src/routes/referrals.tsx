@@ -71,8 +71,7 @@ function ReferralsPage() {
   }
 
   const canEarn = info.accountType === "artist" || info.accountType === "superfan";
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://orange-soundguild.lovable.app";
-  const refLink = info.referralCode ? `${origin}/auth?ref=${info.referralCode}` : "";
+  const refLink = info.referralCode ? `${publicOrigin()}/auth?ref=${info.referralCode}` : "";
 
   const copy = (v: string, l: string) =>
     navigator.clipboard.writeText(v).then(() => toast.success(`${l} copied`)).catch(() => toast.error("Copy failed"));
