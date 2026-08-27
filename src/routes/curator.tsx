@@ -13,6 +13,8 @@ import { CuratorSubmissionsQueue } from "@/components/CuratorSubmissionsQueue";
 import { OsgArtistsTab } from "@/components/OsgArtistsTab";
 import { acceptCuratorInviteByLink } from "@/lib/api/curator-invites.functions";
 import { canUseOsgArtists } from "@/lib/api/osg-picks.functions";
+import { listMyCuratorTeamRooms, type CuratorTeamRoom as TeamRoomType } from "@/lib/api/curator-team.functions";
+import { CuratorTeamRoom } from "@/components/CuratorTeamRoom";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -38,6 +40,26 @@ function CuratorPage() {
   const [canUseOsg, setCanUseOsg] = useState(false);
   const [activeTab, setActiveTab] = useState("main");
   const canUseOsgFn = useServerFn(canUseOsgArtists);
+  const teamRoomsFn = useServerFn(listMyCuratorTeamRooms);
+  const [teamRooms, setTeamRooms] = useState<TeamRoomType[]>([]);
+
+  useEffect(() => {
+    if (!user) {
+      setTeamRooms([]);
+      return;
+    }
+    let cancelled = false;
+    teamRoomsFn()
+      .then((r) => {
+        if (!cancelled) setTeamRooms((r ?? []) as TeamRoomType[]);
+      })
+      .catch(() => {
+        if (!cancelled) setTeamRooms([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, teamRoomsFn]);
 
   useEffect(() => {
     if (!user) {
@@ -149,9 +171,15 @@ function CuratorPage() {
       )}
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList>
+            <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="main">{isSuperfan ? "Curator" : "Stream Tracker"}</TabsTrigger>
               {canUseOsg && <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>}
+              {teamRooms.map((r) => (
+                <TabsTrigger key={r.playlist_id} value={`team-${r.playlist_id}`}>
+                  <span className="mr-1 text-primary">★</span>
+                  {r.name}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
             <TabsContent value="main" className="space-y-6">
@@ -223,6 +251,12 @@ function CuratorPage() {
                 <OsgArtistsTab myUserId={user.id} />
               </TabsContent>
             )}
+
+            {teamRooms.map((r) => (
+              <TabsContent key={r.playlist_id} value={`team-${r.playlist_id}`}>
+                <CuratorTeamRoom room={r} />
+              </TabsContent>
+            ))}
           </Tabs>
     </main>
   );
