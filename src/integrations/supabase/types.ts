@@ -1913,6 +1913,13 @@ export type Database = {
         Args: { _playlist_id: string; _spotify_track_id: string }
         Returns: undefined
       }
+      beta_playlist_earned_points: {
+        Args: { p_playlist_id: string }
+        Returns: {
+          points: number
+          user_id: string
+        }[]
+      }
       beta_room_leaderboard: {
         Args: { _room: string }
         Returns: {
