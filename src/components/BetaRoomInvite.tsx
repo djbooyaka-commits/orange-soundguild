@@ -1,3 +1,4 @@
+import { publicOrigin } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link2, Copy, Check } from "lucide-react";
