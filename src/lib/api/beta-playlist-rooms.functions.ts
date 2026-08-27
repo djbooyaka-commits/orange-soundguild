@@ -92,15 +92,17 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     );
 
     const earned = new Map<string, number>();
-    if (userIds.length && trackIds.length) {
+    if (userIds.length) {
+      // Count every play ever attributed to THIS playlist, even if the track
+      // has since been removed from the playlist — points must never drop on
+      // their own. Only curator adjustments can reduce them.
       const { data: plays } = await supabaseAdmin
         .from("beta_stream_points")
         .select("user_id, spotify_track_id, playlist_id")
         .eq("room_id", room.id)
-        .in("user_id", userIds)
-        .in("spotify_track_id", trackIds);
-      // Only count plays attributed to THIS playlist. Legacy rows without an
-      // attribution count only if no other playlist also holds the track.
+        .in("user_id", userIds);
+      // Legacy rows without an attribution fall back to the playlist that
+      // first held the track in this room.
       const { data: allRoomTracks } = await supabaseAdmin
         .from("beta_room_tracks")
         .select("spotify_track_id, playlist_id, created_at")
@@ -122,6 +124,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         earned.set(p.user_id as string, (earned.get(p.user_id as string) ?? 0) + 1);
       }
     }
+
 
     const spent = new Map<string, number>();
     for (const s of subs ?? []) {
