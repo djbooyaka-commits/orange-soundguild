@@ -1,3 +1,4 @@
+import { publicOrigin } from "@/lib/utils";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Navbar } from "@/components/Navbar";
@@ -405,7 +406,7 @@ function ProfilePage() {
 
 function ShareProfileButton({ handle }: { handle: string }) {
   if (!handle) return null;
-  const url = `${window.location.origin}/u/${encodeURIComponent(handle)}`;
+  const url = `${publicOrigin()}/u/${encodeURIComponent(handle)}`;
   const onShare = async () => {
     try {
       if (navigator.share) {

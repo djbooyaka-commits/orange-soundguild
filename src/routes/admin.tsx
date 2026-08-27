@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { publicOrigin } from "@/lib/utils";
 import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt, Ticket, Copy, Users, Megaphone } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
@@ -649,7 +650,7 @@ function PioneerInvites() {
   }
 
   async function copyLink(code: string) {
-    const url = `${window.location.origin}/auth?pioneer=${encodeURIComponent(code)}`;
+    const url = `${publicOrigin()}/auth?pioneer=${encodeURIComponent(code)}`;
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Invite link copied");

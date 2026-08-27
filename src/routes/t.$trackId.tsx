@@ -1,3 +1,4 @@
+import { publicOrigin } from "@/lib/utils";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -173,10 +174,7 @@ function TrackPage() {
   };
 
   const shareUrl = useMemo(() => {
-    const origin =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : "https://orangesoundguild.com";
+    const origin = publicOrigin();
     return artistRefCode
       ? `${origin}/t/${trackId}?ref=${artistRefCode}`
       : `${origin}/t/${trackId}`;
