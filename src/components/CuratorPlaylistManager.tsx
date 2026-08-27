@@ -7,16 +7,16 @@ import {
   removeCuratorPlaylist,
   getCuratorEarnedPoints,
   importMySpotifyCuratorPlaylists,
-  setCuratorPlaylistIsOsg,
   setCuratorPlaylistHoldDays,
 } from "@/lib/api/curator.functions";
+import { setCuratorPlaylistIsTeam } from "@/lib/api/curator-team.functions";
 
 type Playlist = {
   id: string;
   spotify_playlist_id: string;
   name: string;
   image_url: string | null;
-  is_osg?: boolean;
+  is_team?: boolean;
   track_hold_days?: number | null;
 };
 
@@ -26,7 +26,7 @@ export function CuratorPlaylistManager() {
   const removeFn = useServerFn(removeCuratorPlaylist);
   const earnedFn = useServerFn(getCuratorEarnedPoints);
   const importFn = useServerFn(importMySpotifyCuratorPlaylists);
-  const setOsgFn = useServerFn(setCuratorPlaylistIsOsg);
+  const setTeamFn = useServerFn(setCuratorPlaylistIsTeam);
   const setHoldFn = useServerFn(setCuratorPlaylistHoldDays);
 
   const [items, setItems] = useState<Playlist[]>([]);
@@ -104,13 +104,13 @@ export function CuratorPlaylistManager() {
     }
   };
 
-  const toggleOsg = async (p: Playlist) => {
+  const toggleTeam = async (p: Playlist) => {
     setTogglingId(p.id);
     try {
-      await setOsgFn({ data: { playlistId: p.id, isOsg: !p.is_osg } });
+      await setTeamFn({ data: { playlistId: p.id, isTeam: !p.is_team } });
       await refresh();
     } catch (ex: any) {
-      setErr(ex?.message ?? "Failed to update OSG playlist");
+      setErr(ex?.message ?? "Failed to update Team playlist");
     } finally {
       setTogglingId(null);
     }
@@ -194,7 +194,7 @@ export function CuratorPlaylistManager() {
         {items.map((p) => (
           <li
             key={p.id}
-            className={`flex flex-wrap items-center gap-3 rounded-md border p-3 ${p.is_osg ? "border-primary/60 bg-primary/5" : "border-border"}`}
+            className={`flex flex-wrap items-center gap-3 rounded-md border p-3 ${p.is_team ? "border-primary/60 bg-primary/5" : "border-border"}`}
           >
             {p.image_url ? (
               <img src={p.image_url} alt="" className="h-12 w-12 rounded object-cover"  loading="lazy" decoding="async" />
@@ -204,9 +204,9 @@ export function CuratorPlaylistManager() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">
                 {p.name}
-                {p.is_osg && (
+                {p.is_team && (
                   <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                    <Star className="h-3 w-3" /> OSG Artists playlist
+                    <Star className="h-3 w-3" /> Team playlist
                   </span>
                 )}
               </p>
@@ -245,13 +245,13 @@ export function CuratorPlaylistManager() {
               </button>
             </div>
             <button
-              onClick={() => toggleOsg(p)}
+              onClick={() => toggleTeam(p)}
               disabled={busy || togglingId === p.id}
-              className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50 ${p.is_osg ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90" : "border-border hover:bg-muted"}`}
-              title={p.is_osg ? "Unset as OSG Artists playlist" : "Mark as your OSG Artists playlist"}
+              className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50 ${p.is_team ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90" : "border-border hover:bg-muted"}`}
+              title={p.is_team ? "Unset as Team playlist" : "Mark as a Team playlist"}
             >
               {togglingId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Star className="h-3 w-3" />}
-              {p.is_osg ? "OSG" : "Set OSG"}
+              {p.is_team ? "Team" : "Set Team"}
             </button>
             <button
               onClick={() => remove(p.id)}
