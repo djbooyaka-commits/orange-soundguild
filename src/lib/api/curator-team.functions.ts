@@ -101,8 +101,8 @@ export const curatorTeamSetLinks = createServerFn({ method: "POST" })
     const { error } = await context.supabase.rpc("curator_team_set_links", {
       _playlist_id: data.playlistId,
       _user_id: data.userId,
-      _artist_url: data.artistUrl || null,
-      _artist_name: null,
+      _artist_url: data.artistUrl,
+      _artist_name: "",
       _urls: data.urls,
     });
     if (error) throw new Error(error.message);
@@ -123,7 +123,7 @@ export const curatorTeamAdjustPoints = createServerFn({ method: "POST" })
       _playlist_id: data.playlistId,
       _user_id: data.userId,
       _delta: data.delta,
-      _reason: data.reason || null,
+      _reason: data.reason,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
