@@ -28,9 +28,7 @@ export function CuratorInviteManager() {
 
   const inviteUrl = useMemo(() => {
     if (!user) return "";
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : "https://orangesoundguild.com";
-    return `${origin}/curator?invite=${user.id}`;
+    return `${publicOrigin()}/curator?invite=${user.id}`;
   }, [user]);
 
   const refresh = async () => {
