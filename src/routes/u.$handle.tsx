@@ -98,6 +98,14 @@ function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
+
+  // "/u/me" is only a local alias — redirect to the real shareable /u/<username> URL
+  useEffect(() => {
+    if (isMe && profile?.username && profile.username !== handle) {
+      navigate({ to: "/u/$handle", params: { handle: profile.username }, replace: true });
+    }
+  }, [isMe, profile?.username, handle, navigate]);
 
   // Load profile (own or viewed user) from database
   useEffect(() => {
