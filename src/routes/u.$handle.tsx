@@ -298,6 +298,7 @@ function ProfilePage() {
                   )}
                 </>
               )}
+              <ShareProfileButton handle={profile?.username?.trim() || (isMe ? "" : decodeURIComponent(handle))} />
               {isMe && profile?.is_banned && (
                 <span className="inline-flex h-10 items-center gap-2 rounded-full bg-destructive/10 px-3 text-xs font-semibold text-destructive">
                   Your account is banned
@@ -399,6 +400,36 @@ function ProfilePage() {
         </div>
       </main>
     </div>
+  );
+}
+
+function ShareProfileButton({ handle }: { handle: string }) {
+  if (!handle) return null;
+  const url = `${window.location.origin}/u/${encodeURIComponent(handle)}`;
+  const onShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `@${handle} on Orange Sound Guild`, url });
+        return;
+      }
+      throw new Error("no-native-share");
+    } catch {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Profile link copied!");
+      } catch {
+        toast.error(`Copy this link: ${url}`);
+      }
+    }
+  };
+  return (
+    <button
+      onClick={onShare}
+      title="Copy shareable profile link"
+      className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-semibold hover:bg-muted"
+    >
+      <Share2 className="h-4 w-4" /> Share
+    </button>
   );
 }
 
