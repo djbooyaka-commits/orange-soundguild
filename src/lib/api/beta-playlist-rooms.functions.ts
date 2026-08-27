@@ -93,37 +93,18 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
 
     const earned = new Map<string, number>();
     if (userIds.length) {
-      // Count every play ever attributed to THIS playlist, even if the track
-      // has since been removed from the playlist — points must never drop on
-      // their own. Only curator adjustments can reduce them.
-      const { data: plays } = await supabaseAdmin
-        .from("beta_stream_points")
-        .select("user_id, spotify_track_id, playlist_id")
-        .eq("room_id", room.id)
-        .in("user_id", userIds);
-      // Legacy rows without an attribution fall back to the playlist that
-      // first held the track in this room.
-      const { data: allRoomTracks } = await supabaseAdmin
-        .from("beta_room_tracks")
-        .select("spotify_track_id, playlist_id, created_at")
-        .eq("room_id", room.id)
-        .order("created_at", { ascending: true });
-      const firstPlaylistByTrack = new Map<string, string>();
-      for (const t of allRoomTracks ?? []) {
-        if (!t.playlist_id) continue;
-        if (!firstPlaylistByTrack.has(t.spotify_track_id)) {
-          firstPlaylistByTrack.set(t.spotify_track_id, t.playlist_id as string);
-        }
-      }
-      for (const p of plays ?? []) {
-        const pid =
-          (p.playlist_id as string | null) ??
-          firstPlaylistByTrack.get(p.spotify_track_id as string) ??
-          null;
-        if (pid !== pl.id) continue;
-        earned.set(p.user_id as string, (earned.get(p.user_id as string) ?? 0) + 1);
+      // Aggregate in SQL: counting client-side truncated at the API row limit
+      // once a playlist had thousands of plays, which zeroed out totals.
+      const { data: rows } = await supabaseAdmin.rpc("beta_playlist_earned_points", {
+        p_playlist_id: pl.id,
+      });
+      const memberSet = new Set(userIds);
+      for (const r of (rows ?? []) as any[]) {
+        if (!memberSet.has(r.user_id as string)) continue;
+        earned.set(r.user_id as string, Number(r.points) || 0);
       }
     }
+
 
 
     const spent = new Map<string, number>();
