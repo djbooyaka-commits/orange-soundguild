@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { TrackCard } from "@/components/TrackCard";
@@ -20,7 +20,7 @@ import { SuperfanPublicProfile } from "@/components/SuperfanPublicProfile";
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
 import defaultAvatar from "@/assets/avatar.jpg";
-import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck, Award, Globe, Instagram, Twitter, Youtube, Music, Play, Shuffle } from "lucide-react";
+import { Upload, Users, Music2, Pencil, UserCheck, UserPlus, ShieldOff, ShieldCheck, Award, Globe, Instagram, Twitter, Youtube, Music, Play, Shuffle, Share2 } from "lucide-react";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { useRoyaltyProgress } from "@/hooks/useRoyaltyProgress";
 import { FriendButton } from "@/components/FriendButton";
