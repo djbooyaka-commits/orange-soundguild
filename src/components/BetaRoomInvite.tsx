@@ -23,9 +23,7 @@ export function BetaRoomInvite({ roomId }: { roomId: string }) {
     };
   }, [inviteFn, roomId]);
 
-  const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://orangesoundguild.com";
-  const inviteUrl = code ? `${origin}/beta-rooms?invite=${code}` : "";
+  const inviteUrl = code ? `${publicOrigin()}/beta-rooms?invite=${code}` : "";
 
   const copy = async () => {
     try {
