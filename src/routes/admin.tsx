@@ -758,23 +758,33 @@ const ACCOUNT_TYPES: AdminUser["account_type"][] = ["fan", "artist", "superfan",
 
 function UsersAdmin() {
   const [rows, setRows] = useState<AdminUser[]>([]);
+  const [refs, setRefs] = useState<Record<string, string | null>>({});
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
 
   async function reload() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, username, avatar_url, account_type, created_at")
-      .order("created_at", { ascending: false })
-      .limit(500);
+    const [{ data, error }, { data: refRows }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, username, avatar_url, account_type, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabase.rpc("admin_list_referrers"),
+    ]);
     setLoading(false);
     if (error) {
       toast.error(error.message);
       return;
     }
     setRows((data ?? []) as AdminUser[]);
+    const map: Record<string, string | null> = {};
+    for (const r of (refRows ?? []) as { user_id: string; referrer_username: string | null }[]) {
+      map[r.user_id] = r.referrer_username;
+    }
+    setRefs(map);
   }
 
   useEffect(() => {
@@ -796,9 +806,31 @@ function UsersAdmin() {
     toast.success(`Account changed to ${next}`);
   }
 
+  async function saveReferrer(id: string) {
+    const value = (drafts[id] ?? "").trim();
+    setSavingId(id);
+    const { error } = await supabase.rpc("admin_set_referrer", {
+      _user_id: id,
+      _referrer: value,
+    });
+    setSavingId(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setDrafts((d) => {
+      const n = { ...d };
+      delete n[id];
+      return n;
+    });
+    await reload();
+    toast.success(value ? "Referrer updated" : "Referrer cleared");
+  }
+
   const filtered = q.trim()
     ? rows.filter((u) => (u.username ?? "").toLowerCase().includes(q.trim().toLowerCase()))
     : rows;
+
 
   return (
     <section className="rounded-2xl border border-border bg-card/50 p-5">
