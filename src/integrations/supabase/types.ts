@@ -1871,6 +1871,14 @@ export type Database = {
         Returns: string
       }
       add_osg_artist_pick: { Args: { _username: string }; Returns: string }
+      admin_list_referrers: {
+        Args: never
+        Returns: {
+          referrer_id: string
+          referrer_username: string
+          user_id: string
+        }[]
+      }
       admin_royalty_pool_summary: {
         Args: { p_period_start?: string }
         Returns: {
