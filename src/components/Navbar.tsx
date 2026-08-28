@@ -212,6 +212,13 @@ export function Navbar() {
               <DropdownMenuItem asChild>
                 <Link to="/referrals">Referrals</Link>
               </DropdownMenuItem>
+              {accountType !== "artist" && accountType !== "superfan" && (
+                <DropdownMenuItem asChild>
+                  <Link to="/upgrade" className="flex items-center gap-2 font-medium text-primary">
+                    <Sparkles className="h-4 w-4" /> Upgrade
+                  </Link>
+                </DropdownMenuItem>
+              )}
               {accountType === "superfan" && (
                 <DropdownMenuItem asChild>
                   <Link to="/curator">Curator</Link>
