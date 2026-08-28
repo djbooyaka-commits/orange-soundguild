@@ -1896,6 +1896,10 @@ export type Database = {
         Args: { _banned: boolean; _user_id: string }
         Returns: undefined
       }
+      admin_set_referrer: {
+        Args: { _referrer: string; _user_id: string }
+        Returns: boolean
+      }
       admin_set_track_genre: {
         Args: { _genre: string; _track_id: string }
         Returns: undefined
