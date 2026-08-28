@@ -1871,6 +1871,14 @@ export type Database = {
         Returns: string
       }
       add_osg_artist_pick: { Args: { _username: string }; Returns: string }
+      admin_list_referrers: {
+        Args: never
+        Returns: {
+          referrer_id: string
+          referrer_username: string
+          user_id: string
+        }[]
+      }
       admin_royalty_pool_summary: {
         Args: { p_period_start?: string }
         Returns: {
@@ -1895,6 +1903,10 @@ export type Database = {
       admin_set_banned: {
         Args: { _banned: boolean; _user_id: string }
         Returns: undefined
+      }
+      admin_set_referrer: {
+        Args: { _referrer: string; _user_id: string }
+        Returns: boolean
       }
       admin_set_track_genre: {
         Args: { _genre: string; _track_id: string }

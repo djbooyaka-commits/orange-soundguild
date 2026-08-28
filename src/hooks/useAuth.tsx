@@ -28,12 +28,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fires for both email confirmation and Google OAuth returns.
       if (event === "SIGNED_IN" && s?.user) {
         try {
-          const code = window.sessionStorage.getItem("ref_code");
+          const code =
+            window.localStorage.getItem("ref_code") ??
+            window.sessionStorage.getItem("ref_code");
           if (code) {
             claimReferral({ data: { code } })
               .catch(() => {})
               .finally(() => {
                 try {
+                  window.localStorage.removeItem("ref_code");
                   window.sessionStorage.removeItem("ref_code");
                 } catch {
                   /* ignore */
@@ -44,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           /* ignore */
         }
       }
+
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession((prev) => (prev?.access_token === data.session?.access_token ? prev : data.session));

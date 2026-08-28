@@ -71,14 +71,14 @@ function AuthPage() {
       const clean = q.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
       setRefCode(clean);
       try {
-        window.sessionStorage.setItem("ref_code", clean);
+        window.localStorage.setItem("ref_code", clean);
       } catch {
         /* ignore */
       }
       setMode("signup");
     } else {
       try {
-        const stored = window.sessionStorage.getItem("ref_code");
+        const stored = window.localStorage.getItem("ref_code");
         if (stored) setRefCode(stored);
       } catch {
         /* ignore */
@@ -89,14 +89,14 @@ function AuthPage() {
       const cleanPi = pi.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 16);
       setPioneerCode(cleanPi);
       try {
-        window.sessionStorage.setItem("pioneer_code", cleanPi);
+        window.localStorage.setItem("pioneer_code", cleanPi);
       } catch {
         /* ignore */
       }
       setMode("signup");
     } else {
       try {
-        const stored = window.sessionStorage.getItem("pioneer_code");
+        const stored = window.localStorage.getItem("pioneer_code");
         if (stored) setPioneerCode(stored);
       } catch {
         /* ignore */
@@ -127,12 +127,6 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        try {
-          window.sessionStorage.removeItem("ref_code");
-          window.sessionStorage.removeItem("pioneer_code");
-        } catch {
-          /* ignore */
-        }
         toast.success("Account created. Check your email if confirmation is required.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
