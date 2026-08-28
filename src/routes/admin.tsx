@@ -903,6 +903,26 @@ function UsersAdmin() {
                       )}
                     </div>
                   </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={drafts[u.id] ?? refs[u.id] ?? ""}
+                        onChange={(e) =>
+                          setDrafts((d) => ({ ...d, [u.id]: e.target.value }))
+                        }
+                        placeholder="username or code"
+                        className="w-40 rounded-md border border-border bg-background px-2 py-1 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => saveReferrer(u.id)}
+                        disabled={savingId === u.id || drafts[u.id] === undefined}
+                        className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-muted disabled:opacity-40"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
