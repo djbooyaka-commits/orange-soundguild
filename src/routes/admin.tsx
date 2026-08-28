@@ -863,6 +863,8 @@ function UsersAdmin() {
                 <th className="px-3 py-2 text-left">User</th>
                 <th className="px-3 py-2 text-left">Joined</th>
                 <th className="px-3 py-2 text-left">Account type</th>
+                <th className="px-3 py-2 text-left">Referred by</th>
+
               </tr>
             </thead>
             <tbody>
