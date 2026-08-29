@@ -17,6 +17,7 @@ type Playlist = {
   name: string;
   image_url: string | null;
   available_points: number;
+  daily_submission_limit?: number | null;
 };
 
 type Submission = {
@@ -69,6 +70,7 @@ export function SubmitTrackCard() {
       Date.now() - new Date(s.created_at).getTime() < 24 * 60 * 60 * 1000 &&
       s.playlist_name === selected?.name,
   ).length;
+  const dailyLimit = Math.max(1, Math.min(6, Number(selected?.daily_submission_limit ?? 3)));
 
 
   const submit = async (e: React.FormEvent) => {
@@ -184,7 +186,8 @@ export function SubmitTrackCard() {
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <div>
               Cost: <b>50 pts</b>, or <b>45 pts</b> if you follow every artist on the playlist on
-              Spotify. Max 5 submissions per playlist every 24 hours ({recentCount}/5 used on this playlist).
+              Spotify. Max {dailyLimit} submission{dailyLimit === 1 ? "" : "s"} to this playlist every 24 hours (
+              {recentCount}/{dailyLimit} used).
               {selected && (
                 <>
                   {" "}
@@ -201,7 +204,7 @@ export function SubmitTrackCard() {
 
           <button
             type="submit"
-            disabled={busy || !trackUrl.trim() || recentCount >= 5}
+            disabled={busy || !trackUrl.trim() || recentCount >= dailyLimit}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
