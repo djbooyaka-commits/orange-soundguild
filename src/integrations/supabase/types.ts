@@ -2254,6 +2254,7 @@ export type Database = {
           available_points: number
           curator_id: string
           curator_username: string
+          daily_submission_limit: number
           id: string
           image_url: string
           name: string
