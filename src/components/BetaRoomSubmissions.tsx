@@ -8,6 +8,7 @@ import {
   listBetaSubmissionsForOwner,
   reviewBetaSubmission,
   submitBetaTrack,
+  setBetaRoomDailyLimit,
   getBetaRoomPoints,
   addBetaSubmissionToSpotify,
 } from "@/lib/api/beta-curator.functions";
@@ -34,6 +35,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const queueFn = useServerFn(listBetaSubmissionsForOwner);
   const reviewFn = useServerFn(reviewBetaSubmission);
   const submitFn = useServerFn(submitBetaTrack);
+  const setLimitFn = useServerFn(setBetaRoomDailyLimit);
   const addToSpotifyFn = useServerFn(addBetaSubmissionToSpotify);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -55,6 +57,8 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [limitDraft, setLimitDraft] = useState<string>("");
+  const [savingLimit, setSavingLimit] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -88,6 +92,21 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  const saveLimit = async () => {
+    const limit = Math.max(1, Math.min(6, Math.round(Number(limitDraft || points.dailyLimit) || 1)));
+    setSavingLimit(true);
+    try {
+      await setLimitFn({ data: { roomId, limit } });
+      setLimitDraft(String(limit));
+      toast.success(`Members can now submit ${limit} track${limit === 1 ? "" : "s"} every 24 hours`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not save the limit");
+    } finally {
+      setSavingLimit(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -291,6 +310,32 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
             Points here: <span className="font-semibold">{selectedPoints}</span>
           </div>
         </div>
+
+        {isOwner && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
+            <label className="text-xs text-muted-foreground" htmlFor="beta-daily-limit">
+              Tracks a member can submit every 24 hours
+            </label>
+            <input
+              id="beta-daily-limit"
+              type="number"
+              min={1}
+              max={6}
+              value={limitDraft || String(points.dailyLimit)}
+              onChange={(e) => setLimitDraft(e.target.value)}
+              className="w-14 rounded border border-border bg-background px-2 py-1 text-xs"
+            />
+            <button
+              type="button"
+              onClick={saveLimit}
+              disabled={savingLimit}
+              className="rounded border border-border px-2 py-1 text-xs font-medium hover:bg-muted disabled:opacity-50"
+            >
+              Save
+            </button>
+            <span className="text-xs text-muted-foreground">1–6</span>
+          </div>
+        )}
 
         <form onSubmit={submit} className="mt-4 flex flex-col gap-2 sm:flex-row">
           <select
