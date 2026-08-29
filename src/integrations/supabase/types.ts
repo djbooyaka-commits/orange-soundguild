@@ -405,6 +405,7 @@ export type Database = {
       beta_rooms: {
         Row: {
           created_at: string
+          daily_submission_limit: number
           description: string | null
           id: string
           invite_code: string
@@ -414,6 +415,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          daily_submission_limit?: number
           description?: string | null
           id?: string
           invite_code?: string
@@ -423,6 +425,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          daily_submission_limit?: number
           description?: string | null
           id?: string
           invite_code?: string
@@ -633,6 +636,7 @@ export type Database = {
         Row: {
           created_at: string
           curator_id: string
+          daily_submission_limit: number
           id: string
           image_url: string | null
           is_osg: boolean
@@ -645,6 +649,7 @@ export type Database = {
         Insert: {
           created_at?: string
           curator_id: string
+          daily_submission_limit?: number
           id?: string
           image_url?: string | null
           is_osg?: boolean
@@ -657,6 +662,7 @@ export type Database = {
         Update: {
           created_at?: string
           curator_id?: string
+          daily_submission_limit?: number
           id?: string
           image_url?: string | null
           is_osg?: boolean
@@ -1959,6 +1965,10 @@ export type Database = {
       credit_track_sale: {
         Args: { _amount_cents: number; _track_id: string }
         Returns: undefined
+      }
+      curator_set_daily_submission_limit: {
+        Args: { _limit: number; _playlist_id: string }
+        Returns: number
       }
       curator_set_osg_artist_follow_link: {
         Args: {
