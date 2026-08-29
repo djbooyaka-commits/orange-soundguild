@@ -8,12 +8,17 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  */
 
 const SUBMIT_COST = 50;
-const MAX_SUBMISSIONS_PER_DAY = 2;
+const DEFAULT_SUBMISSIONS_PER_DAY = 2;
+
+function clampDailyLimit(n: unknown): number {
+  const v = Math.round(Number(n) || 0);
+  return Math.max(1, Math.min(6, v || DEFAULT_SUBMISSIONS_PER_DAY));
+}
 
 async function assertOwner(supabaseAdmin: any, roomId: string, userId: string) {
   const { data: room } = await supabaseAdmin
     .from("beta_rooms")
-    .select("id, owner_id, invite_code, name")
+    .select("id, owner_id, invite_code, name, daily_submission_limit")
     .eq("id", roomId)
     .maybeSingle();
   if (!room || room.owner_id !== userId) throw new Error("Only the room owner can do that");
@@ -23,7 +28,7 @@ async function assertOwner(supabaseAdmin: any, roomId: string, userId: string) {
 async function assertMember(supabaseAdmin: any, roomId: string, userId: string) {
   const { data: room } = await supabaseAdmin
     .from("beta_rooms")
-    .select("id, owner_id, invite_code, name")
+    .select("id, owner_id, invite_code, name, daily_submission_limit")
     .eq("id", roomId)
     .maybeSingle();
   if (!room) throw new Error("Room not found");
@@ -435,6 +440,23 @@ export const setBetaPlaylistTeam = createServerFn({ method: "POST" })
     return { ok: true, isTeam: data.isTeam };
   });
 
+export const setBetaRoomDailyLimit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { roomId: string; limit: number }) => ({
+    roomId: String(data?.roomId ?? ""),
+    limit: clampDailyLimit(data?.limit),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await assertOwner(supabaseAdmin, data.roomId, context.userId);
+    const { error } = await supabaseAdmin
+      .from("beta_rooms")
+      .update({ daily_submission_limit: data.limit })
+      .eq("id", data.roomId);
+    if (error) throw new Error(error.message);
+    return { ok: true, limit: data.limit };
+  });
+
 /* ------------------------------- points -------------------------------- */
 
 export const getBetaRoomPoints = createServerFn({ method: "POST" })
@@ -442,7 +464,7 @@ export const getBetaRoomPoints = createServerFn({ method: "POST" })
   .inputValidator((data: { roomId: string }) => ({ roomId: String(data?.roomId ?? "") }))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await assertMember(supabaseAdmin, data.roomId, context.userId);
+    const room = await assertMember(supabaseAdmin, data.roomId, context.userId);
     const rows = await pointsByPlaylist(supabaseAdmin, data.roomId, context.userId);
     const totals = rows.reduce(
       (acc, r) => ({
@@ -456,7 +478,7 @@ export const getBetaRoomPoints = createServerFn({ method: "POST" })
       ...totals,
       byPlaylist: rows,
       cost: SUBMIT_COST,
-      dailyLimit: MAX_SUBMISSIONS_PER_DAY,
+      dailyLimit: clampDailyLimit((room as any)?.daily_submission_limit),
     };
   });
 
@@ -499,8 +521,9 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
       .eq("room_id", data.roomId)
       .eq("submitter_user_id", context.userId)
       .gte("created_at", since);
-    if ((recent ?? 0) >= MAX_SUBMISSIONS_PER_DAY) {
-      throw new Error(`You can submit ${MAX_SUBMISSIONS_PER_DAY} tracks every 24 hours`);
+    const dailyLimit = clampDailyLimit((room as any)?.daily_submission_limit);
+    if ((recent ?? 0) >= dailyLimit) {
+      throw new Error(`You can submit ${dailyLimit} track${dailyLimit === 1 ? "" : "s"} every 24 hours`);
     }
 
     // Hold window — same track can't come back too soon
