@@ -8,6 +8,7 @@ import {
   getCuratorEarnedPoints,
   importMySpotifyCuratorPlaylists,
   setCuratorPlaylistHoldDays,
+  setCuratorPlaylistDailyLimit,
 } from "@/lib/api/curator.functions";
 import { setCuratorPlaylistIsTeam } from "@/lib/api/curator-team.functions";
 
@@ -18,6 +19,7 @@ type Playlist = {
   image_url: string | null;
   is_team?: boolean;
   track_hold_days?: number | null;
+  daily_submission_limit?: number | null;
 };
 
 export function CuratorPlaylistManager() {
@@ -28,6 +30,7 @@ export function CuratorPlaylistManager() {
   const importFn = useServerFn(importMySpotifyCuratorPlaylists);
   const setTeamFn = useServerFn(setCuratorPlaylistIsTeam);
   const setHoldFn = useServerFn(setCuratorPlaylistHoldDays);
+  const setLimitFn = useServerFn(setCuratorPlaylistDailyLimit);
 
   const [items, setItems] = useState<Playlist[]>([]);
   const [earned, setEarned] = useState(0);
@@ -37,6 +40,8 @@ export function CuratorPlaylistManager() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [holdDrafts, setHoldDrafts] = useState<Record<string, string>>({});
   const [savingHoldId, setSavingHoldId] = useState<string | null>(null);
+  const [limitDrafts, setLimitDrafts] = useState<Record<string, string>>({});
+  const [savingLimitId, setSavingLimitId] = useState<string | null>(null);
 
   const [err, setErr] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
@@ -113,6 +118,22 @@ export function CuratorPlaylistManager() {
       setErr(ex?.message ?? "Failed to update Team playlist");
     } finally {
       setTogglingId(null);
+    }
+  };
+
+  const saveLimit = async (p: Playlist) => {
+    const raw = limitDrafts[p.id] ?? String(p.daily_submission_limit ?? 3);
+    const limit = Math.max(1, Math.min(6, Math.round(Number(raw) || 1)));
+    setSavingLimitId(p.id);
+    setErr(null);
+    try {
+      await setLimitFn({ data: { playlistId: p.id, limit } });
+      setLimitDrafts((d) => ({ ...d, [p.id]: String(limit) }));
+      await refresh();
+    } catch (ex: any) {
+      setErr(ex?.message ?? "Failed to save submission limit");
+    } finally {
+      setSavingLimitId(null);
     }
   };
 
@@ -242,6 +263,29 @@ export function CuratorPlaylistManager() {
                 className="ml-1 rounded border border-border px-2 py-0.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
               >
                 {savingHoldId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+              </button>
+            </div>
+            <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1">
+              <label className="text-xs text-muted-foreground" htmlFor={`dlimit-${p.id}`}>
+                Submissions / 24h
+              </label>
+              <input
+                id={`dlimit-${p.id}`}
+                type="number"
+                min={1}
+                max={6}
+                value={limitDrafts[p.id] ?? String(p.daily_submission_limit ?? 3)}
+                onChange={(e) => setLimitDrafts((d) => ({ ...d, [p.id]: e.target.value }))}
+                className="w-12 rounded border border-border bg-background px-1 py-0.5 text-xs"
+                title="How many tracks each member can submit to this playlist every 24 hours (1-6)"
+              />
+              <button
+                type="button"
+                onClick={() => saveLimit(p)}
+                disabled={savingLimitId === p.id}
+                className="ml-1 rounded border border-border px-2 py-0.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+              >
+                {savingLimitId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
               </button>
             </div>
             <button
