@@ -44,7 +44,7 @@ type Room = {
 function BetaRoomsPage() {
   const { user, loading: authLoading } = useAuth();
   const { accountType } = useAccountType();
-  const { isAdmin } = useIsAdmin();
+  const isAdmin = useIsAdmin();
   const canCreateRoom = isAdmin || accountType === "artist" || accountType === "superfan";
   const listFn = useServerFn(listBetaRooms);
   const createFn = useServerFn(createBetaRoom);
