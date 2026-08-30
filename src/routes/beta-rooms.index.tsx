@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { FlaskConical, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccountType } from "@/hooks/useAccountType";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import {
   listBetaRooms,
   createBetaRoom,
