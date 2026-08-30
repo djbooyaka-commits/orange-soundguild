@@ -55,6 +55,17 @@ export const createBetaRoom = createServerFn({ method: "POST" })
   })
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [{ data: profile }, { data: roleRow }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("account_type").eq("id", context.userId).maybeSingle(),
+      supabaseAdmin.from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle(),
+    ]);
+    const accountType = (profile as any)?.account_type as string | null;
+    const isAdmin = !!roleRow;
+    if (!isAdmin && accountType !== "artist" && accountType !== "superfan") {
+      throw new Error("Only Artist and Superfan accounts can create stream tracker rooms");
+    }
+
     const { data: row, error } = await supabaseAdmin
       .from("beta_rooms")
       .insert({
