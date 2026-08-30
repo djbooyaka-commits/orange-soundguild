@@ -240,7 +240,9 @@ function BetaRoomsPage() {
 
       {rooms.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-          No beta rooms yet. Create one above to start testing.
+          {canCreateRoom
+            ? "No beta rooms yet. Create one above to start testing."
+            : "No beta rooms yet. Only Artist and Superfan accounts can create stream tracker rooms."}
         </div>
       ) : (
         <ul className="space-y-3">
