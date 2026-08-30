@@ -210,6 +210,7 @@ function BetaRoomsPage() {
         </ul>
       </section>
 
+      {canCreateRoom && (
       <section className="mb-8 rounded-xl border border-border bg-card p-5">
         <h2 className="font-semibold">Create a test room</h2>
         <div className="mt-3 space-y-2">
