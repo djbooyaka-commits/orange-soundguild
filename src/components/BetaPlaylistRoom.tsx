@@ -409,6 +409,19 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   </div>
                 </Link>
 
+                {m.lastfm_username && (
+                  <a
+                    href={`https://www.last.fm/user/${encodeURIComponent(m.lastfm_username)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-[#D51007] hover:underline"
+                    title="Open Last.fm profile"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    last.fm/{m.lastfm_username}
+                  </a>
+                )}
+
                 <div
                   className={`flex items-center justify-between rounded-md px-2 py-1.5 text-xs ${
                     isTeam
