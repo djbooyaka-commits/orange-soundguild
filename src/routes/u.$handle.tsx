@@ -94,12 +94,12 @@ function ProfilePage() {
   const { isArtist, accountType } = useAccountType();
 
 
-  const isMe = handle === CURRENT_USER.handle || (!!user && profileUserId === user.id);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
+  const isMe = handle === CURRENT_USER.handle || (!!user && profileUserId === user.id);
 
   // "/u/me" is only a local alias — redirect to the real shareable /u/<username> URL
   useEffect(() => {
