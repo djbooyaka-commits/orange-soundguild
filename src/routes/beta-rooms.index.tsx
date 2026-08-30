@@ -236,6 +236,7 @@ function BetaRoomsPage() {
           </button>
         </div>
       </section>
+      )}
 
       {rooms.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
