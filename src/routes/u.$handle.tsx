@@ -94,7 +94,7 @@ function ProfilePage() {
   const { isArtist, accountType } = useAccountType();
 
 
-  const isMe = handle === CURRENT_USER.handle;
+  const isMe = handle === CURRENT_USER.handle || (!!user && profileUserId === user.id);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
