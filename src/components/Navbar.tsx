@@ -8,6 +8,7 @@ import { useAccountType } from "@/hooks/useAccountType";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useHasStRooms } from "@/hooks/useHasStRooms";
+import { useHasBetaRooms } from "@/hooks/useHasBetaRooms";
 import { FriendRequestsBell } from "./FriendRequestsBell";
 import {
   DropdownMenu,
@@ -38,6 +39,7 @@ export function Navbar() {
   const isAdmin = useIsAdmin();
   const unreadMessages = useUnreadMessages();
   const hasStRooms = useHasStRooms();
+  const hasBetaRooms = useHasBetaRooms();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
@@ -231,7 +233,7 @@ export function Navbar() {
                   </Link>
                 </DropdownMenuItem>
               )}
-              {(isAdmin || accountType === "superfan") && (
+              {(isAdmin || accountType === "superfan" || hasBetaRooms) && (
                 <DropdownMenuItem asChild>
                   <Link to="/beta-rooms" className="flex items-center gap-2">
                     <FlaskConical className="h-4 w-4" /> Beta Rooms
