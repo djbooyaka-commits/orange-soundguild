@@ -9,6 +9,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  */
 
 const DEFAULT_WEEKLY_MIN = 600;
+/** Unused points expire after this many days. */
+const POINT_TTL_DAYS = 30;
 
 async function loadPlaylist(supabaseAdmin: any, playlistId: string) {
   const { data: pl } = await supabaseAdmin
