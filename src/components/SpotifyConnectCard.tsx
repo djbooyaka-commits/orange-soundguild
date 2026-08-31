@@ -67,6 +67,8 @@ export function SpotifyConnectCard() {
     const storedClientId = window.localStorage.getItem("spotifyAppClientIdDraft");
     if (storedClientId) setClientId(storedClientId);
 
+    let timer: ReturnType<typeof setInterval> | undefined;
+
     void (async () => {
       const s = await refresh();
       if (s?.connected) {
@@ -79,14 +81,34 @@ export function SpotifyConnectCard() {
         } catch {
           // ignore
         }
+        // Spotify only keeps the last 50 plays, so a long session can outrun a
+        // single manual sync. Keep syncing quietly while this page is open.
+        timer = setInterval(
+          () => {
+            if (document.visibilityState === "hidden") return;
+            void (async () => {
+              try {
+                const r = await pollFn();
+                if (r.added && r.added > 0) await refresh();
+              } catch {
+                // ignore
+              }
+            })();
+          },
+          4 * 60 * 1000,
+        );
       }
     })();
     const params = new URLSearchParams(window.location.search);
     const flag = params.get("spotify");
     if (flag === "connected") setMsg("Spotify connected!");
     else if (flag && flag !== "connected") setMsg(`Spotify error: ${flag}`);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const toggleAppSetup = () => {
     setShowApp((current) => {
