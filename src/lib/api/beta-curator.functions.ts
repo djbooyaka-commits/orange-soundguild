@@ -49,6 +49,8 @@ async function assertMember(supabaseAdmin: any, roomId: string, userId: string) 
  * reject) for that playlist only.
  */
 async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: string) {
+  // Unused points expire after 30 days; spends/removals age out with them.
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const [{ data: tracks }, { data: plays }, { data: subs }, { data: pls }, { data: adjustments }] =
     await Promise.all([
       supabaseAdmin
@@ -59,18 +61,21 @@ async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: stri
         .from("beta_stream_points")
         .select("spotify_track_id, playlist_id")
         .eq("room_id", roomId)
-        .eq("user_id", userId),
+        .eq("user_id", userId)
+        .gte("played_at", cutoff),
       supabaseAdmin
         .from("beta_submissions")
         .select("playlist_id, cost_points")
         .eq("room_id", roomId)
-        .eq("submitter_user_id", userId),
+        .eq("submitter_user_id", userId)
+        .gte("created_at", cutoff),
       supabaseAdmin.from("beta_room_playlists").select("id").eq("room_id", roomId),
       supabaseAdmin
         .from("beta_point_adjustments")
         .select("playlist_id, delta")
         .eq("room_id", roomId)
-        .eq("user_id", userId),
+        .eq("user_id", userId)
+        .gte("created_at", cutoff),
     ]);
 
 
