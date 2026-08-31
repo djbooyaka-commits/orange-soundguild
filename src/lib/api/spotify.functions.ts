@@ -190,17 +190,18 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       ? new Date(conn.last_polled_at).getTime() - OVERLAP_MS
       : Date.now() - 24 * 60 * 60 * 1000;
 
-    // recently-played caps at 50 per call, so page backwards from "now" until we
-    // reach the cursor (an overnight playlist session is far more than 50 plays).
+    // recently-played caps at 50 per call. Page FORWARD with Spotify's own
+    // cursors (body.next), which walks from the cursor towards "now" — paging
+    // backwards with `before` walked off the end of the history and capped
+    // every sync at 50 plays.
     const items: any[] = [];
-    let before: number | null = null;
-    for (let page = 0; page < 10; page++) {
-      const url = new URL("https://api.spotify.com/v1/me/player/recently-played");
-      url.searchParams.set("limit", "50");
-      if (before == null) url.searchParams.set("after", String(after));
-      else url.searchParams.set("before", String(before));
+    const firstUrl = new URL("https://api.spotify.com/v1/me/player/recently-played");
+    firstUrl.searchParams.set("limit", "50");
+    firstUrl.searchParams.set("after", String(after));
+    let nextUrl: string | null = firstUrl.toString();
 
-      const res = await fetch(url.toString(), {
+    for (let page = 0; page < 20 && nextUrl; page++) {
+      const res = await fetch(nextUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) {
@@ -211,6 +212,7 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
           res.status === 403 && lower.includes("not registered for this application");
         // NOTE: recently-played works for FREE Spotify accounts. A 403 here is
         // almost always the app's dev-mode allowed-users cap, not a Premium issue.
+        if (page > 0) break; // keep whatever we already collected
         return {
           added: 0,
           connected: true,
@@ -222,13 +224,11 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       }
       const body = await res.json();
       const pageItems: any[] = body.items ?? [];
-      if (pageItems.length === 0) break;
       items.push(...pageItems);
-
-      const oldest = Math.min(...pageItems.map((i) => new Date(i.played_at).getTime()));
-      if (pageItems.length < 50 || oldest <= after) break;
-      before = oldest;
+      if (pageItems.length === 0) break;
+      nextUrl = (body.next as string | null) ?? null;
     }
+
 
     const { data: playlists } = await supabaseAdmin
       .from("curator_playlists")
