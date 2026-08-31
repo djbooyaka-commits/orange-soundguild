@@ -49,6 +49,10 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     await assertRoomMember(supabaseAdmin, room, context.userId);
     const isOwner = room.owner_id === context.userId;
 
+    // Unused points expire after 30 days, so spends and curator removals older
+    // than the window no longer count against the current balance.
+    const cutoff = new Date(Date.now() - POINT_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
     const [
       { data: members },
       { data: tracks },
@@ -66,11 +70,13 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         supabaseAdmin
           .from("beta_submissions")
           .select("submitter_user_id, cost_points")
-          .eq("playlist_id", pl.id),
+          .eq("playlist_id", pl.id)
+          .gte("created_at", cutoff),
         supabaseAdmin
           .from("beta_point_adjustments")
           .select("user_id, delta, created_at")
-          .eq("playlist_id", pl.id),
+          .eq("playlist_id", pl.id)
+          .gte("created_at", cutoff),
         supabaseAdmin
           .from("beta_playlist_member_links")
           .select(
