@@ -201,7 +201,7 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
     let nextUrl: string | null = firstUrl.toString();
 
     for (let page = 0; page < 20 && nextUrl; page++) {
-      const res = await fetch(nextUrl, {
+      const res: Response = await fetch(nextUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) {
@@ -222,7 +222,7 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
               : `spotify_${res.status}`,
         };
       }
-      const body = await res.json();
+      const body: any = await res.json();
       const pageItems: any[] = body.items ?? [];
       items.push(...pageItems);
       if (pageItems.length === 0) break;
