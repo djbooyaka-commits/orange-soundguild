@@ -178,7 +178,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
 
   const isRecentlyDeducted = (m: CuratorTeamMember) =>
     !!m.last_deduction_at &&
-    Date.now() - new Date(m.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
+    Date.now() - new Date(m.last_deduction_at).getTime() < 3 * 24 * 60 * 60 * 1000;
   const passRank = (m: CuratorTeamMember) =>
     isRecentlyDeducted(m) || m.points >= (m.weekly_min || 0) ? 0 : 1;
   const sorted = [...members].sort((a, b) => passRank(a) - passRank(b) || b.points - a.points);
