@@ -243,7 +243,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
 
   const isRecentlyDeducted = (m: Member) =>
     !!m.last_deduction_at &&
-    Date.now() - new Date(m.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
+    Date.now() - new Date(m.last_deduction_at).getTime() < 3 * 24 * 60 * 60 * 1000;
   const toggleTracking = async () => {
     setChangingTracking(true);
     setTrackingMsg(null);

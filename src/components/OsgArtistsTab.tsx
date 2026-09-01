@@ -171,10 +171,10 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     }
   };
 
-  // Passing members (at/above minimum, or green star = pts removed in last 24h) sort to the top
+  // Passing members (at/above minimum, or green star = pts removed in last 3 days) sort to the top
   const isRecentlyDeducted = (p: { last_deduction_at?: string | null }) =>
     !!p.last_deduction_at &&
-    Date.now() - new Date(p.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
+    Date.now() - new Date(p.last_deduction_at).getTime() < 3 * 24 * 60 * 60 * 1000;
   const passRank = (p: { weekly_points: number; weekly_min: number; last_deduction_at?: string | null }) =>
     isRecentlyDeducted(p) || p.weekly_points >= (p.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
   const sortByPass = <T extends { weekly_points: number; weekly_min: number; last_deduction_at?: string | null }>(
@@ -425,8 +425,8 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     const min = a.weekly_min || DEFAULT_WEEKLY_MIN;
     const recentlyDeducted =
       !!a.last_deduction_at &&
-      Date.now() - new Date(a.last_deduction_at).getTime() < 24 * 60 * 60 * 1000;
-    // A green star (points removed by the curator in the last 24h) counts as a pass
+      Date.now() - new Date(a.last_deduction_at).getTime() < 3 * 24 * 60 * 60 * 1000;
+    // A green star (points removed by the curator in the last 3 days) counts as a pass
     const below = !recentlyDeducted && a.weekly_points < min;
     const typeLabel =
       a.account_type === "pioneer"
