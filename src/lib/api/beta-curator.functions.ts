@@ -226,7 +226,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
     }));
   });
 
-async function importPlaylistTracks(
+export async function importPlaylistTracks(
   supabaseAdmin: any,
   roomId: string,
   playlistRowId: string,

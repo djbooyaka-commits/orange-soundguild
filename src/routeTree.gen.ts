@@ -38,6 +38,7 @@ import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submi
 import { Route as BetaRoomsRoomIdRouteImport } from './routes/beta-rooms.$roomId'
 import { Route as AlbumHandleAlbumRouteImport } from './routes/album.$handle.$album'
 import { Route as ApiPublicSpotifyCallbackRouteImport } from './routes/api/public/spotify/callback'
+import { Route as ApiPublicHooksSyncPlaylistTracksRouteImport } from './routes/api/public/hooks/sync-playlist-tracks'
 import { Route as ApiPublicHooksCleanupChatMediaRouteImport } from './routes/api/public/hooks/cleanup-chat-media'
 import { Route as ApiPublicHooksCleanupChatLinksRouteImport } from './routes/api/public/hooks/cleanup-chat-links'
 import { Route as ApiPublicOgTrackTrackIdRouteImport } from './routes/api/public/og/track.$trackId'
@@ -188,6 +189,12 @@ const ApiPublicSpotifyCallbackRoute =
     path: '/api/public/spotify/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksSyncPlaylistTracksRoute =
+  ApiPublicHooksSyncPlaylistTracksRouteImport.update({
+    id: '/api/public/hooks/sync-playlist-tracks',
+    path: '/api/public/hooks/sync-playlist-tracks',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksCleanupChatMediaRoute =
   ApiPublicHooksCleanupChatMediaRouteImport.update({
     id: '/api/public/hooks/cleanup-chat-media',
@@ -237,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
+  '/api/public/hooks/sync-playlist-tracks': typeof ApiPublicHooksSyncPlaylistTracksRoute
   '/api/public/spotify/callback': typeof ApiPublicSpotifyCallbackRoute
   '/api/public/og/track/$trackId': typeof ApiPublicOgTrackTrackIdRoute
 }
@@ -271,6 +279,7 @@ export interface FileRoutesByTo {
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
+  '/api/public/hooks/sync-playlist-tracks': typeof ApiPublicHooksSyncPlaylistTracksRoute
   '/api/public/spotify/callback': typeof ApiPublicSpotifyCallbackRoute
   '/api/public/og/track/$trackId': typeof ApiPublicOgTrackTrackIdRoute
 }
@@ -306,6 +315,7 @@ export interface FileRoutesById {
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
+  '/api/public/hooks/sync-playlist-tracks': typeof ApiPublicHooksSyncPlaylistTracksRoute
   '/api/public/spotify/callback': typeof ApiPublicSpotifyCallbackRoute
   '/api/public/og/track/$trackId': typeof ApiPublicOgTrackTrackIdRoute
 }
@@ -342,6 +352,7 @@ export interface FileRouteTypes {
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
+    | '/api/public/hooks/sync-playlist-tracks'
     | '/api/public/spotify/callback'
     | '/api/public/og/track/$trackId'
   fileRoutesByTo: FileRoutesByTo
@@ -376,6 +387,7 @@ export interface FileRouteTypes {
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
+    | '/api/public/hooks/sync-playlist-tracks'
     | '/api/public/spotify/callback'
     | '/api/public/og/track/$trackId'
   id:
@@ -410,6 +422,7 @@ export interface FileRouteTypes {
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
+    | '/api/public/hooks/sync-playlist-tracks'
     | '/api/public/spotify/callback'
     | '/api/public/og/track/$trackId'
   fileRoutesById: FileRoutesById
@@ -444,6 +457,7 @@ export interface RootRouteChildren {
   AlbumHandleAlbumRoute: typeof AlbumHandleAlbumRoute
   ApiPublicHooksCleanupChatLinksRoute: typeof ApiPublicHooksCleanupChatLinksRoute
   ApiPublicHooksCleanupChatMediaRoute: typeof ApiPublicHooksCleanupChatMediaRoute
+  ApiPublicHooksSyncPlaylistTracksRoute: typeof ApiPublicHooksSyncPlaylistTracksRoute
   ApiPublicSpotifyCallbackRoute: typeof ApiPublicSpotifyCallbackRoute
   ApiPublicOgTrackTrackIdRoute: typeof ApiPublicOgTrackTrackIdRoute
 }
@@ -653,6 +667,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSpotifyCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/sync-playlist-tracks': {
+      id: '/api/public/hooks/sync-playlist-tracks'
+      path: '/api/public/hooks/sync-playlist-tracks'
+      fullPath: '/api/public/hooks/sync-playlist-tracks'
+      preLoaderRoute: typeof ApiPublicHooksSyncPlaylistTracksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/cleanup-chat-media': {
       id: '/api/public/hooks/cleanup-chat-media'
       path: '/api/public/hooks/cleanup-chat-media'
@@ -718,6 +739,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlbumHandleAlbumRoute: AlbumHandleAlbumRoute,
   ApiPublicHooksCleanupChatLinksRoute: ApiPublicHooksCleanupChatLinksRoute,
   ApiPublicHooksCleanupChatMediaRoute: ApiPublicHooksCleanupChatMediaRoute,
+  ApiPublicHooksSyncPlaylistTracksRoute: ApiPublicHooksSyncPlaylistTracksRoute,
   ApiPublicSpotifyCallbackRoute: ApiPublicSpotifyCallbackRoute,
   ApiPublicOgTrackTrackIdRoute: ApiPublicOgTrackTrackIdRoute,
 }
