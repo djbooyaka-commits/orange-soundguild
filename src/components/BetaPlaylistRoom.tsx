@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
   ExternalLink,
+  Info,
   Loader2,
   Minus,
   Music,
@@ -358,6 +359,15 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           </p>
         )}
         {trackingMsg && <p className="mt-3 text-xs text-muted-foreground">{trackingMsg}</p>}
+
+        <div className="mt-4 flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+          <p className="text-sm font-medium leading-relaxed text-foreground">
+            Press <strong>Start tracking</strong> before listening to this playlist on Spotify. Press{" "}
+            <strong>Stop</strong> when you finish; only plays during this session can earn points
+            for this playlist.
+          </p>
+        </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {members.length === 0 && (
