@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, FlaskConical } from "lucide-react";
+import { ArrowLeft, FlaskConical, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBetaRoom, joinBetaRoom } from "@/lib/api/beta-rooms.functions";
