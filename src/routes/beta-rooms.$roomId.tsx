@@ -220,7 +220,15 @@ function BetaRoomDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="playlists">
+        <TabsContent value="playlists" className="space-y-4">
+          <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <p className="text-sm font-medium leading-relaxed text-foreground">
+              Open a playlist tab and press <strong>Start tracking</strong> before listening. Press{" "}
+              <strong>Stop</strong> when you finish; only plays during that session can earn points
+              for the selected playlist.
+            </p>
+          </div>
           <BetaRoomPlaylists roomId={roomId} isOwner={room.isOwner} onChanged={refresh} />
         </TabsContent>
 
