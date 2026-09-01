@@ -244,5 +244,11 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
       .is("stopped_at", null);
     if (stopError) throw new Error(stopError.message);
 
-    return { active: false, added, matched, scanned: eligibleItems.length };
+    return {
+      active: false,
+      added,
+      matched,
+      scanned: eligibleItems.length,
+      warning: fetchError ? lastfmErrorMessage(fetchError) : null,
+    };
   });
