@@ -146,7 +146,9 @@ export async function fetchLastfmRecentTracks(
   }
 
 
-  const tracks: any[] = body?.recenttracks?.track ?? [];
+  // Last.fm returns a single object (not an array) when there is exactly one scrobble.
+  const rawTracks = body?.recenttracks?.track;
+  const tracks: any[] = Array.isArray(rawTracks) ? rawTracks : rawTracks ? [rawTracks] : [];
   // Filter out "now playing" tracks (no date) and map to our shape
   const items: LastfmScrobble[] = tracks
     .filter((t) => t.date?.uts && !t["@attr"]?.nowplaying)
