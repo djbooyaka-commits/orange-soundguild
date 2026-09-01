@@ -177,10 +177,14 @@ function BetaRoomDetail() {
                 Your points: <span className="font-semibold">{room.myPoints}</span>
               </div>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Open a playlist room and press Start tracking before listening. Press Stop when you
-              finish; only plays during that session can earn points for the selected playlist.
-            </p>
+            <div className="mt-4 flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <p className="text-sm font-medium leading-relaxed text-foreground">
+                Open a playlist room and press <strong>Start tracking</strong> before listening.
+                Press <strong>Stop</strong> when you finish; only plays during that session can
+                earn points for the selected playlist.
+              </p>
+            </div>
           </section>
 
           <LastfmConnectCard />
