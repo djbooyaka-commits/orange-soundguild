@@ -193,14 +193,22 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
 
     const stoppedAt = new Date();
     const startedAtMs = new Date(session.started_at).getTime();
-    const { items, error } = await fetchLastfmRecentTracks(
-      connection.lastfm_username,
-      apiKey,
-      Math.floor(startedAtMs / 1000),
-    );
-    if (error) throw new Error(lastfmErrorMessage(error));
+    let items: Awaited<ReturnType<typeof fetchLastfmRecentTracks>>["items"] = [];
+    let fetchError: string | null = null;
+    try {
+      const result = await fetchLastfmRecentTracks(
+        connection.lastfm_username,
+        apiKey,
+        Math.floor(startedAtMs / 1000),
+      );
+      items = result.items;
+      fetchError = result.error;
+    } catch (e) {
+      console.error("Last.fm stop-tracking fetch failed", e);
+      fetchError = "lastfm_unavailable";
+    }
 
-    const eligibleItems = items.filter(
+    const eligibleItems = (Array.isArray(items) ? items : []).filter(
       (item) => item.uts * 1000 >= startedAtMs && item.uts * 1000 <= stoppedAt.getTime(),
     );
     let added = 0;
