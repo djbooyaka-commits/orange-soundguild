@@ -46,6 +46,7 @@ export function SpotifyConnectCard() {
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [syncedAt, setSyncedAt] = useState<number | null>(null);
   const [showApp, setShowApp] = useState(true);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -136,11 +137,17 @@ export function SpotifyConnectCard() {
     try {
       const r = await pollFn();
       setMsg(spotifyPollMessage(r));
+      if (!r.error) setSyncedAt(Date.now());
       await refresh();
     } catch (e: any) {
       setMsg(e?.message ?? "Poll failed");
     } finally {
       setBusy(false);
+      window.setTimeout(() => setSyncedAt((current) => {
+        // only clear if no newer sync happened during the timeout
+        if (current && Date.now() - current >= 2500) return null;
+        return current;
+      }), 2500);
     }
   };
 
@@ -218,13 +225,19 @@ export function SpotifyConnectCard() {
           </div>
           <Button
             type="button"
-            variant="success"
+            variant={busy || (syncedAt && Date.now() - syncedAt < 2500) ? "success" : "default"}
             onClick={poll}
             disabled={busy}
             title="Automatic point updates are on; click to sync immediately"
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sync now
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : syncedAt && Date.now() - syncedAt < 2500 ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {busy ? "Syncing…" : syncedAt && Date.now() - syncedAt < 2500 ? "Synced" : "Sync now"}
           </Button>
           <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
             <CheckCircle2 className="h-4 w-4" /> Auto update on
