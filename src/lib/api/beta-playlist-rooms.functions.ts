@@ -234,8 +234,6 @@ export const adjustBetaPlaylistPoints = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
     if (room.owner_id !== context.userId) throw new Error("Only the room owner can adjust points");
-    if (data.delta > 0 && !((pl as any).is_team ?? false))
-      throw new Error("Points can only be added on team playlists");
 
     const { data: member } = await supabaseAdmin
       .from("beta_room_members")
