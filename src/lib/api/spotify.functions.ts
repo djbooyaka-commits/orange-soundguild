@@ -164,15 +164,11 @@ async function refreshIfNeeded(
   return newAccess;
 }
 
-export const pollSpotifyRecent = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
+export async function pollSpotifyRecentForUser(userId: string, supabaseAdmin: any) {
     const { data: conn } = await supabaseAdmin
       .from("spotify_connections")
       .select("user_id, access_token, refresh_token, expires_at, last_polled_at")
-      .eq("user_id", context.userId)
+      .eq("user_id", userId)
       .maybeSingle();
     if (!conn) return { added: 0, connected: false };
 
@@ -190,18 +186,14 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       ? new Date(conn.last_polled_at).getTime() - OVERLAP_MS
       : Date.now() - 24 * 60 * 60 * 1000;
 
-    // recently-played caps at 50 per call. Page FORWARD with Spotify's own
-    // cursors (body.next), which walks from the cursor towards "now" — paging
-    // backwards with `before` walked off the end of the history and capped
-    // every sync at 50 plays.
+    // Spotify retains only a short recent-play history. Frequent background
+    // polling prevents an overnight session from overflowing that window.
     const items: any[] = [];
-    const firstUrl = new URL("https://api.spotify.com/v1/me/player/recently-played");
-    firstUrl.searchParams.set("limit", "50");
-    firstUrl.searchParams.set("after", String(after));
-    let nextUrl: string | null = firstUrl.toString();
-
-    for (let page = 0; page < 20 && nextUrl; page++) {
-      const res: Response = await fetch(nextUrl, {
+    const recentUrl = new URL("https://api.spotify.com/v1/me/player/recently-played");
+    recentUrl.searchParams.set("limit", "50");
+    recentUrl.searchParams.set("after", String(after));
+    {
+      const res: Response = await fetch(recentUrl.toString(), {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) {
@@ -212,7 +204,6 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
           res.status === 403 && lower.includes("not registered for this application");
         // NOTE: recently-played works for FREE Spotify accounts. A 403 here is
         // almost always the app's dev-mode allowed-users cap, not a Premium issue.
-        if (page > 0) break; // keep whatever we already collected
         return {
           added: 0,
           connected: true,
@@ -225,8 +216,6 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       const body: any = await res.json();
       const pageItems: any[] = body.items ?? [];
       items.push(...pageItems);
-      if (pageItems.length === 0) break;
-      nextUrl = (body.next as string | null) ?? null;
     }
 
 
@@ -238,12 +227,12 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
 
     const inviteeCache = new Map<string, boolean>();
     const isInvitee = async (curatorId: string) => {
-      if (curatorId === context.userId) return true;
+      if (curatorId === userId) return true;
       const cached = inviteeCache.get(curatorId);
       if (cached !== undefined) return cached;
       const { data } = await supabaseAdmin.rpc("is_accepted_invitee", {
         _curator: curatorId,
-        _user: context.userId,
+        _user: userId,
       });
       const ok = !!data;
       inviteeCache.set(curatorId, ok);
@@ -277,7 +266,7 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       // Spotify's recently-played only reports tracks played long enough to count,
       // so we credit every match. Dedup handled by unique (user_id, spotify_track_id, played_at).
       const { error } = await supabaseAdmin.from("stream_points").insert({
-        user_id: context.userId,
+        user_id: userId,
         curator_playlist_id: match.cpId,
         spotify_track_id: track.id,
         spotify_track_name: track.name ?? null,
@@ -292,7 +281,7 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       await supabaseAdmin
         .from("spotify_connections")
         .update({ last_polled_at: new Date(maxEvaluatedAt).toISOString() })
-        .eq("user_id", context.userId);
+        .eq("user_id", userId);
     }
 
     return {
@@ -301,4 +290,11 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
       scanned: sorted.length,
       skippedNotCurated,
     };
+}
+
+export const pollSpotifyRecent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    return pollSpotifyRecentForUser(context.userId, supabaseAdmin);
   });
