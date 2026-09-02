@@ -469,7 +469,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   )}
                 </div>
 
-                {data.isOwner && isTeam && (
+                {data.isOwner && (
                   <div className="flex flex-wrap items-center gap-2">
                     <input
                       type="number"
