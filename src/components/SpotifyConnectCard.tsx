@@ -137,11 +137,17 @@ export function SpotifyConnectCard() {
     try {
       const r = await pollFn();
       setMsg(spotifyPollMessage(r));
+      if (!r.error) setSyncedAt(Date.now());
       await refresh();
     } catch (e: any) {
       setMsg(e?.message ?? "Poll failed");
     } finally {
       setBusy(false);
+      window.setTimeout(() => setSyncedAt((current) => {
+        // only clear if no newer sync happened during the timeout
+        if (current && Date.now() - current >= 2500) return null;
+        return current;
+      }), 2500);
     }
   };
 
