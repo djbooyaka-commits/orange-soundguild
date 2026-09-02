@@ -1946,6 +1946,15 @@ export type Database = {
           username: string
         }[]
       }
+      beta_room_points_by_playlist: {
+        Args: { p_room_id: string; p_user_id: string }
+        Returns: {
+          adjust: number
+          earned: number
+          playlist_id: string
+          spent: number
+        }[]
+      }
       can_use_osg_artists: { Args: never; Returns: boolean }
       cancel_curator_invite: {
         Args: { _invite_id: string }

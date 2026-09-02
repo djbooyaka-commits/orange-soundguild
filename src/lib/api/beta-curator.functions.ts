@@ -49,74 +49,24 @@ async function assertMember(supabaseAdmin: any, roomId: string, userId: string) 
  * reject) for that playlist only.
  */
 async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: string) {
-  // Unused points expire after 30 days; spends/removals age out with them.
-  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const [{ data: tracks }, { data: plays }, { data: subs }, { data: pls }, { data: adjustments }] =
-    await Promise.all([
-      supabaseAdmin
-        .from("beta_room_tracks")
-        .select("playlist_id, spotify_track_id")
-        .eq("room_id", roomId),
-      supabaseAdmin
-        .from("beta_stream_points")
-        .select("spotify_track_id, playlist_id")
-        .eq("room_id", roomId)
-        .eq("user_id", userId)
-        .gte("played_at", cutoff),
-      supabaseAdmin
-        .from("beta_submissions")
-        .select("playlist_id, cost_points")
-        .eq("room_id", roomId)
-        .eq("submitter_user_id", userId)
-        .gte("created_at", cutoff),
-      supabaseAdmin.from("beta_room_playlists").select("id").eq("room_id", roomId),
-      supabaseAdmin
-        .from("beta_point_adjustments")
-        .select("playlist_id, delta")
-        .eq("room_id", roomId)
-        .eq("user_id", userId)
-        .gte("created_at", cutoff),
-    ]);
+  // Aggregated server-side: rooms can hold far more than 1000 tracks/plays, and
+  // fetching raw rows silently truncated totals (users saw far fewer points
+  // than they earned). Unused points expire after 30 days.
+  const { data, error } = await supabaseAdmin.rpc("beta_room_points_by_playlist", {
+    p_room_id: roomId,
+    p_user_id: userId,
+  });
+  if (error) throw new Error(error.message);
 
-
-  // A track can sit on several playlists; a play must only fund ONE of them.
-  // Newer plays carry the playlist they were counted for; legacy plays fall
-  // back to the first playlist that added the track.
-  const byTrack = new Map<string, string>();
-  for (const t of tracks ?? []) {
-    if (!t.playlist_id) continue;
-    if (!byTrack.has(t.spotify_track_id)) byTrack.set(t.spotify_track_id, t.playlist_id as string);
-  }
-
-  const earned = new Map<string, number>();
-  for (const p of plays ?? []) {
-    const pid = (p.playlist_id as string | null) ?? byTrack.get(p.spotify_track_id) ?? null;
-    if (!pid) continue;
-    earned.set(pid, (earned.get(pid) ?? 0) + 1);
-  }
-
-  const spent = new Map<string, number>();
-  for (const s of subs ?? []) {
-    if (!s.playlist_id) continue;
-    spent.set(s.playlist_id as string, (spent.get(s.playlist_id) ?? 0) + (s.cost_points ?? 0));
-  }
-  // Curator-recorded point removals for a playlist room count as spend
-  for (const a of adjustments ?? []) {
-    if (!a.playlist_id) continue;
-    const d = Math.abs(a.delta ?? 0);
-    spent.set(a.playlist_id as string, (spent.get(a.playlist_id) ?? 0) + d);
-  }
-
-
-  const ids = new Set<string>([
-    ...(pls ?? []).map((p: any) => p.id as string),
-    ...earned.keys(),
-    ...spent.keys(),
-  ]);
-  const rows = [...ids].map((playlistId) => {
-    const e = earned.get(playlistId) ?? 0;
-    const s = spent.get(playlistId) ?? 0;
-    return { playlistId, earned: e, spent: s, available: e - s };
+  const rows = ((data ?? []) as Array<{
+    playlist_id: string;
+    earned: number;
+    spent: number;
+    adjust: number;
+  }>).map((r) => {
+    const earned = Number(r.earned ?? 0) + Math.max(0, Number(r.adjust ?? 0));
+    const spent = Number(r.spent ?? 0) + Math.abs(Math.min(0, Number(r.adjust ?? 0)));
+    return { playlistId: r.playlist_id, earned, spent, available: earned - spent };
   });
 
   // If a playlist was over-charged (spend recorded against it while the points
@@ -135,6 +85,7 @@ async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: stri
   }
   return rows;
 }
+
 
 
 async function pointsForPlaylist(
