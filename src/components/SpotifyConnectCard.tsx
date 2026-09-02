@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Music2, Loader2, CheckCircle2, RefreshCw, Settings2, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   getSpotifyAuthUrl,
   getMySpotifyStatus,
@@ -81,11 +82,11 @@ export function SpotifyConnectCard() {
         } catch {
           // ignore
         }
-        // Spotify only keeps the last 50 plays, so a long session can outrun a
-        // single manual sync. Keep syncing quietly while this page is open.
+        // Spotify only exposes a limited recent-play window. Keep syncing while
+        // this page is open, including when it is in a background tab, so an
+        // overnight listening session cannot outrun that window.
         timer = setInterval(
           () => {
-            if (document.visibilityState === "hidden") return;
             void (async () => {
               try {
                 const r = await pollFn();
@@ -215,14 +216,19 @@ export function SpotifyConnectCard() {
           <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
             Your points: <span className="font-semibold">{status.points}</span>
           </div>
-          <button
+          <Button
+            type="button"
+            variant="success"
             onClick={poll}
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
+            title="Automatic point updates are on; click to sync immediately"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Sync now
-          </button>
+          </Button>
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
+            <CheckCircle2 className="h-4 w-4" /> Auto update on
+          </span>
           <button
             onClick={disconnect}
             disabled={busy}
