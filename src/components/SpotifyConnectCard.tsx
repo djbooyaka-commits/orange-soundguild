@@ -225,13 +225,19 @@ export function SpotifyConnectCard() {
           </div>
           <Button
             type="button"
-            variant="success"
+            variant={busy || (syncedAt && Date.now() - syncedAt < 2500) ? "success" : "default"}
             onClick={poll}
             disabled={busy}
             title="Automatic point updates are on; click to sync immediately"
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sync now
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : syncedAt && Date.now() - syncedAt < 2500 ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {busy ? "Syncing…" : syncedAt && Date.now() - syncedAt < 2500 ? "Synced" : "Sync now"}
           </Button>
           <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
             <CheckCircle2 className="h-4 w-4" /> Auto update on
