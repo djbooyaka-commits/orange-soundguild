@@ -433,6 +433,19 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   </a>
                 )}
 
+                {isTeam && m.joined_at && (
+                  <span className="inline-flex w-fit items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Joined{" "}
+                    {new Date(m.joined_at)
+                      .toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })
+                      .replace(/ /g, "-")}
+                  </span>
+                )}
+
                 <div
                   className={`flex items-center justify-between rounded-md px-2 py-1.5 text-xs ${
                     isTeam
