@@ -412,6 +412,14 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">
                       @{m.username ?? "user"}
+                      {isTeam && below && (
+                        <span
+                          className="ml-1 align-middle text-destructive"
+                          title="No pass this week — below the weekly minimum"
+                        >
+                          ★
+                        </span>
+                      )}
                       {m.is_me && <span className="ml-2 text-xs text-primary">(you)</span>}
                     </p>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
