@@ -57,6 +57,7 @@ type Member = {
   track5_url: string | null;
   track5_name: string | null;
   lastfm_username: string | null;
+  joined_at: string | null;
 };
 
 type RoomData = {
@@ -430,6 +431,19 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     <ExternalLink className="h-3 w-3" />
                     last.fm/{m.lastfm_username}
                   </a>
+                )}
+
+                {isTeam && m.joined_at && (
+                  <span className="inline-flex w-fit items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Joined{" "}
+                    {new Date(m.joined_at)
+                      .toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })
+                      .replace(/ /g, "-")}
+                  </span>
                 )}
 
                 <div
