@@ -57,6 +57,7 @@ type Member = {
   track5_url: string | null;
   track5_name: string | null;
   lastfm_username: string | null;
+  joined_at: string | null;
 };
 
 type RoomData = {
