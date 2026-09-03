@@ -95,6 +95,9 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
       ]);
 
     const userIds = Array.from(new Set((members ?? []).map((m: any) => m.user_id as string)));
+    const joinedByUser = new Map<string, string>(
+      (members ?? []).map((m: any) => [m.user_id as string, m.created_at as string]),
+    );
     const trackIds = Array.from(
       new Set((tracks ?? []).map((t: any) => t.spotify_track_id as string)),
     );
@@ -183,6 +186,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         track5_url: (l?.track5_url as string | null) ?? null,
         track5_name: (l?.track5_name as string | null) ?? null,
         lastfm_username: lastfmByUser.get(uid) ?? null,
+        joined_at: joinedByUser.get(uid) ?? null,
       };
     });
 
