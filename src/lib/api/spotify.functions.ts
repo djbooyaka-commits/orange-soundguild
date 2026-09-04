@@ -193,9 +193,27 @@ export async function pollSpotifyRecentForUser(userId: string, supabaseAdmin: an
     recentUrl.searchParams.set("limit", "50");
     recentUrl.searchParams.set("after", String(after));
     {
-      const res: Response = await fetch(recentUrl.toString(), {
+      let res: Response = await fetch(recentUrl.toString(), {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+      // Spotify rate limit: honour Retry-After once for short waits.
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get("retry-after") ?? "0");
+        if (retryAfter > 0 && retryAfter <= 5) {
+          await new Promise((r) => setTimeout(r, retryAfter * 1000));
+          res = await fetch(recentUrl.toString(), {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+        }
+        if (res.status === 429) {
+          return {
+            added: 0,
+            connected: true,
+            error: "spotify_rate_limited",
+            retryAfter: Number(res.headers.get("retry-after") ?? retryAfter) || null,
+          };
+        }
+      }
       if (!res.ok) {
         const t = await res.text();
         console.error(`Spotify recently-played failed [${res.status}]: ${t}`);
@@ -217,6 +235,7 @@ export async function pollSpotifyRecentForUser(userId: string, supabaseAdmin: an
       const pageItems: any[] = body.items ?? [];
       items.push(...pageItems);
     }
+
 
 
     const { data: playlists } = await supabaseAdmin
