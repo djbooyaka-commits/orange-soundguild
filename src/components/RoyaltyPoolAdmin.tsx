@@ -80,7 +80,10 @@ export function RoyaltyPoolAdmin() {
           />
           <button
             type="button"
-            onClick={() => void load(month)}
+            onClick={() => {
+              void load(month);
+              void loadTotals();
+            }}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border hover:bg-muted"
             aria-label="Refresh pool"
           >
