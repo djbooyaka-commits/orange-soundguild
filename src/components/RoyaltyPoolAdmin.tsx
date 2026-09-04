@@ -27,6 +27,11 @@ export function RoyaltyPoolAdmin() {
   const [month, setMonth] = useState(() => monthValue(new Date()));
   const [row, setRow] = useState<PoolSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unpaidAll, setUnpaidAll] = useState<{
+    pool_cents: number;
+    paid_cents: number;
+    unpaid_cents: number;
+  } | null>(null);
 
   async function load(m: string) {
     setLoading(true);
@@ -42,9 +47,18 @@ export function RoyaltyPoolAdmin() {
     setRow((data ?? null) as PoolSummary | null);
   }
 
+  async function loadTotals() {
+    const { data } = await (supabase as any).rpc("admin_royalty_unpaid_total").maybeSingle();
+    setUnpaidAll((data ?? null) as typeof unpaidAll);
+  }
+
   useEffect(() => {
     void load(month);
   }, [month]);
+
+  useEffect(() => {
+    void loadTotals();
+  }, []);
 
   const pool = row?.pool_cents ?? 0;
   const paid = row?.paid_out_cents ?? 0;
