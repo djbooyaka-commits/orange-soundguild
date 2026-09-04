@@ -27,6 +27,11 @@ export function RoyaltyPoolAdmin() {
   const [month, setMonth] = useState(() => monthValue(new Date()));
   const [row, setRow] = useState<PoolSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unpaidAll, setUnpaidAll] = useState<{
+    pool_cents: number;
+    paid_cents: number;
+    unpaid_cents: number;
+  } | null>(null);
 
   async function load(m: string) {
     setLoading(true);
@@ -42,9 +47,18 @@ export function RoyaltyPoolAdmin() {
     setRow((data ?? null) as PoolSummary | null);
   }
 
+  async function loadTotals() {
+    const { data } = await (supabase as any).rpc("admin_royalty_unpaid_total").maybeSingle();
+    setUnpaidAll((data ?? null) as typeof unpaidAll);
+  }
+
   useEffect(() => {
     void load(month);
   }, [month]);
+
+  useEffect(() => {
+    void loadTotals();
+  }, []);
 
   const pool = row?.pool_cents ?? 0;
   const paid = row?.paid_out_cents ?? 0;
@@ -66,7 +80,10 @@ export function RoyaltyPoolAdmin() {
           />
           <button
             type="button"
-            onClick={() => void load(month)}
+            onClick={() => {
+              void load(month);
+              void loadTotals();
+            }}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border hover:bg-muted"
             aria-label="Refresh pool"
           >
@@ -79,6 +96,22 @@ export function RoyaltyPoolAdmin() {
         Money owed to the monthly royalty pool: $5 per Artist subscription + $3 per Superfan
         subscription paid in the selected month.
       </p>
+
+      <div className="mb-5 rounded-xl border-2 border-primary/40 bg-primary/5 p-4">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+          Total still owed (all time)
+        </div>
+        <div className="mt-1 text-4xl font-bold tracking-tight text-primary">
+          {fmtUsd(unpaidAll?.unpaid_cents ?? 0)}
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Set this money aside. All royalty pool money ever earned (
+          {fmtUsd(unpaidAll?.pool_cents ?? 0)}) minus everything paid out so far (
+          {fmtUsd(unpaidAll?.paid_cents ?? 0)}).
+        </p>
+      </div>
+
+
 
       {loading ? (
         <div className="flex justify-center py-8">
