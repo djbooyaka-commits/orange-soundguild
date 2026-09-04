@@ -1917,6 +1917,14 @@ export type Database = {
           total_weighted_plays: number
         }[]
       }
+      admin_royalty_unpaid_total: {
+        Args: never
+        Returns: {
+          paid_cents: number
+          pool_cents: number
+          unpaid_cents: number
+        }[]
+      }
       admin_set_account_type: {
         Args: {
           _type: Database["public"]["Enums"]["account_type"]
