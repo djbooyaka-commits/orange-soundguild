@@ -11,11 +11,16 @@ import {
   deleteMySpotifyApp,
 } from "@/lib/api/spotify.functions";
 
-function spotifyPollMessage(result: { added?: number; error?: string | null; scanned?: number; skippedNotCurated?: number }) {
+function spotifyPollMessage(result: { added?: number; error?: string | null; scanned?: number; skippedNotCurated?: number; retryAfter?: number | null }) {
   if (result.error === "spotify_account_not_allowed" || result.error === "spotify_403") {
     return "Spotify blocked tracking: this account isn't on the app's allowed-user list yet. Once the site's Spotify app is approved for Extended Quota (free, via Spotify Developer Dashboard), this cap disappears and any Spotify user works. For now, use your own Spotify app below to skip the cap immediately.";
   }
+  if (result.error === "spotify_rate_limited" || result.error === "spotify_429") {
+    const wait = result.retryAfter ? Math.ceil(result.retryAfter / 60) : null;
+    return `Spotify is asking us to slow down (too many checks in a short time). Nothing is lost — your plays will be picked up on the next check${wait ? ` in about ${wait} minute${wait === 1 ? "" : "s"}` : " shortly"}.`;
+  }
   if (result.error) return `Spotify sync error: ${result.error}`;
+
   if (result.added) return `+${result.added} new stream point${result.added === 1 ? "" : "s"}`;
   if (result.scanned && result.skippedNotCurated === result.scanned) {
     return `Up to date — scanned ${result.scanned} recent play${result.scanned === 1 ? "" : "s"}, but none were played from a tracked Curator playlist. Play the playlist from the playlist page (not from Liked Songs, search, or an autoplay/radio queue) so Spotify reports the playlist.`;
