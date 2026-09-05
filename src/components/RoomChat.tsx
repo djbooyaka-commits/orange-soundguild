@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Send, Trash2, Pencil, MessagesSquare, Loader2 } from "lucide-react";
+import { Send, Trash2, Pencil, MessagesSquare, Loader2, ImagePlus, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { signMany } from "@/lib/signMedia";
@@ -13,6 +13,45 @@ import {
   type ChatScope,
   type RoomChatMessage,
 } from "@/lib/api/room-chat.functions";
+
+const VIDEO_EXTS = ["mp4", "webm", "mov", "m4v", "ogg"];
+const MAX_VIDEO_SECONDS = 20;
+const isVideoUrl = (u: string) => {
+  const clean = u.split("?")[0];
+  const ext = clean.split(".").pop()?.toLowerCase() ?? "";
+  return VIDEO_EXTS.includes(ext);
+};
+
+const URL_RE = /((?:https?:\/\/|www\.)[^\s]+)/gi;
+
+function Linkified({ text, mine }: { text: string; mine: boolean }) {
+  const parts = text.split(URL_RE);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (!part) return null;
+        URL_RE.lastIndex = 0;
+        if (URL_RE.test(part)) {
+          URL_RE.lastIndex = 0;
+          const href = part.startsWith("http") ? part : `https://${part}`;
+          return (
+            <a
+              key={i}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className={`break-all underline underline-offset-2 ${mine ? "" : "text-primary"}`}
+            >
+              {part}
+            </a>
+          );
+        }
+        URL_RE.lastIndex = 0;
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
 
 type Props = {
   scope: ChatScope;
@@ -33,6 +72,9 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
@@ -100,14 +142,63 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
+  const pickFile = async (f: File | null) => {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    if (!f) {
+      setPendingFile(null);
+      setPendingPreview(null);
+      return;
+    }
+    const isImg = f.type.startsWith("image/");
+    const isVid = f.type.startsWith("video/");
+    if (!isImg && !isVid) return toast.error("Please pick an image or video file.");
+    const maxBytes = isVid ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (f.size > maxBytes) {
+      return toast.error(isVid ? "Video is too large (max 50MB)." : "Image is too large (max 10MB).");
+    }
+    if (isVid) {
+      const url = URL.createObjectURL(f);
+      const duration = await new Promise<number>((resolve) => {
+        const v = document.createElement("video");
+        v.preload = "metadata";
+        v.onloadedmetadata = () => resolve(v.duration || 0);
+        v.onerror = () => resolve(0);
+        v.src = url;
+      });
+      if (!duration || duration > MAX_VIDEO_SECONDS + 0.5) {
+        URL.revokeObjectURL(url);
+        return toast.error(`Videos must be ${MAX_VIDEO_SECONDS} seconds or less.`);
+      }
+      setPendingFile(f);
+      setPendingPreview(url);
+      return;
+    }
+    setPendingFile(f);
+    setPendingPreview(URL.createObjectURL(f));
+  };
+
   const send = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const body = text.trim();
-    if (!body || sending) return;
+    if ((!body && !pendingFile) || sending) return;
     setSending(true);
     try {
-      await postFn({ data: { scope, roomKey, body } });
+      let imageUrl: string | null = null;
+      if (pendingFile) {
+        const { data: auth } = await supabase.auth.getUser();
+        const uid = auth.user?.id;
+        if (!uid) throw new Error("Please sign in again.");
+        const ext = (pendingFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const path = `${uid}/${crypto.randomUUID()}.${ext || "jpg"}`;
+        const { error: upErr } = await supabase.storage
+          .from("chat-images")
+          .upload(path, pendingFile, { contentType: pendingFile.type, upsert: false });
+        if (upErr) throw new Error(upErr.message);
+        imageUrl = path;
+      }
+      await postFn({ data: { scope, roomKey, body, imageUrl } });
       setText("");
+      await pickFile(null);
       await load();
     } catch (err: any) {
       toast.error(err?.message ?? "Could not send message");
@@ -177,6 +268,7 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
                   >
                     {mine && !isEditing && (
                       <div className="flex flex-col gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
+                        {!m.image_url && (
                         <button
                           type="button"
                           onClick={() => {
@@ -189,6 +281,7 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => void remove(m.id)}
@@ -248,7 +341,29 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
                               : "rounded-bl-sm bg-muted text-foreground"
                           }`}
                         >
-                          <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                          {m.image_url &&
+                            (isVideoUrl(m.image_url) ? (
+                              <video
+                                src={m.image_url}
+                                controls
+                                playsInline
+                                className="mb-1 max-h-72 w-auto max-w-full rounded-lg"
+                              />
+                            ) : (
+                              <a href={m.image_url} target="_blank" rel="noreferrer" className="mb-1 block">
+                                <img
+                                  src={m.image_url}
+                                  alt="Shared media"
+                                  className="max-h-72 w-auto max-w-full rounded-lg object-cover"
+                                  loading="lazy"
+                                />
+                              </a>
+                            ))}
+                          {m.body && (
+                            <p className="whitespace-pre-wrap break-words">
+                              <Linkified text={m.body} mine={mine} />
+                            </p>
+                          )}
                           <p
                             className={`mt-1 text-[10px] ${
                               mine ? "text-primary-foreground/70" : "text-muted-foreground"
@@ -266,7 +381,43 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
             )}
           </div>
 
+          {pendingPreview && (
+            <div className="flex items-center gap-3 border-t border-border bg-muted/40 p-3">
+              {pendingFile?.type.startsWith("video/") ? (
+                <video src={pendingPreview} className="h-16 w-16 rounded-lg object-cover" muted playsInline />
+              ) : (
+                <img src={pendingPreview} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
+              )}
+              <div className="flex-1 truncate text-xs text-muted-foreground">{pendingFile?.name}</div>
+              <button
+                type="button"
+                onClick={() => void pickFile(null)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background hover:bg-muted"
+                aria-label="Remove attachment"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           <form onSubmit={send} className="flex items-end gap-2 border-t border-border p-3">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={(e) => void pickFile(e.target.files?.[0] ?? null)}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={sending}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+              aria-label="Attach photo or video (max 20s)"
+              title="Attach photo or video (max 20s)"
+            >
+              {pendingFile?.type.startsWith("video/") ? <Video className="h-4 w-4" /> : <ImagePlus className="h-4 w-4" />}
+            </button>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -283,7 +434,7 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
             />
             <button
               type="submit"
-              disabled={sending || !text.trim()}
+              disabled={sending || (!text.trim() && !pendingFile)}
               className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               <Send className="h-3.5 w-3.5" /> Send
