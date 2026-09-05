@@ -44,6 +44,32 @@ function CuratorPage() {
   const canUseOsgFn = useServerFn(canUseOsgArtists);
   const teamRoomsFn = useServerFn(listMyCuratorTeamRooms);
   const [teamRooms, setTeamRooms] = useState<TeamRoomType[]>([]);
+  const joinedPlaylistsFn = useServerFn(listPlaylistsForSubmission);
+  const [chatRooms, setChatRooms] = useState<Array<{ curatorId: string; username: string }>>([]);
+
+  useEffect(() => {
+    if (!user) {
+      setChatRooms([]);
+      return;
+    }
+    let cancelled = false;
+    joinedPlaylistsFn()
+      .then((rows) => {
+        if (cancelled) return;
+        const map = new Map<string, string>();
+        for (const p of (rows ?? []) as Array<{ curator_id: string; curator_username: string }>) {
+          if (!map.has(p.curator_id)) map.set(p.curator_id, p.curator_username);
+        }
+        setChatRooms(Array.from(map, ([curatorId, username]) => ({ curatorId, username })));
+      })
+      .catch(() => {
+        if (!cancelled) setChatRooms([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, joinedPlaylistsFn]);
+
 
   useEffect(() => {
     if (!user) {
