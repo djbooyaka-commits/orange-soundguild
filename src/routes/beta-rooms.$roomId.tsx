@@ -242,6 +242,10 @@ function BetaRoomDetail() {
         <TabsContent value="submissions">
           <BetaRoomSubmissions roomId={roomId} isOwner={room.isOwner} />
         </TabsContent>
+
+        <TabsContent value="chat">
+          <RoomChat scope="beta" roomKey={roomId} title={`${room.name} chat`} />
+        </TabsContent>
       </Tabs>
     </main>
   );
