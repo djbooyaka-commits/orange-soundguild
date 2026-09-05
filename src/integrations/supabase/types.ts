@@ -1416,6 +1416,7 @@ export type Database = {
           edited_at: string | null
           id: string
           image_url: string | null
+          reply_to: string | null
           room_key: string
           scope: string
           user_id: string
@@ -1426,6 +1427,7 @@ export type Database = {
           edited_at?: string | null
           id?: string
           image_url?: string | null
+          reply_to?: string | null
           room_key: string
           scope: string
           user_id: string
@@ -1436,11 +1438,20 @@ export type Database = {
           edited_at?: string | null
           id?: string
           image_url?: string | null
+          reply_to?: string | null
           room_key?: string
           scope?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "room_chat_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "room_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       royalty_payouts: {
         Row: {

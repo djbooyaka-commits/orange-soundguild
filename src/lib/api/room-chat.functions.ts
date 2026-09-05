@@ -19,6 +19,9 @@ export type RoomChatMessage = {
   created_at: string;
   edited_at: string | null;
   is_me: boolean;
+  reply_to: string | null;
+  reply_username: string | null;
+  reply_body: string | null;
 };
 
 function parseInput(data: {
@@ -27,6 +30,7 @@ function parseInput(data: {
   body?: string;
   imageUrl?: string | null;
   sinceId?: string;
+  replyTo?: string | null;
 }) {
   const scope = data?.scope === "curator" ? "curator" : "beta";
   return {
@@ -34,6 +38,7 @@ function parseInput(data: {
     roomKey: String(data?.roomKey ?? ""),
     body: typeof data?.body === "string" ? data.body : "",
     imageUrl: typeof data?.imageUrl === "string" && data.imageUrl ? data.imageUrl.slice(0, 500) : null,
+    replyTo: typeof data?.replyTo === "string" && data.replyTo ? data.replyTo : null,
   };
 }
 
@@ -84,7 +89,7 @@ export const listRoomChat = createServerFn({ method: "POST" })
 
     const { data: rows } = await supabaseAdmin
       .from("room_chat_messages")
-      .select("id, user_id, body, image_url, created_at, edited_at")
+      .select("id, user_id, body, image_url, created_at, edited_at, reply_to")
       .eq("scope", data.scope)
       .eq("room_key", data.roomKey)
       .order("created_at", { ascending: false })
@@ -116,7 +121,26 @@ export const listRoomChat = createServerFn({ method: "POST" })
       }),
     );
 
-    return list.map((m: any) => ({
+    const byMessageId = new Map(list.map((m: any) => [m.id, m]));
+    const missingParents = Array.from(
+      new Set(list.map((m: any) => m.reply_to).filter((id: any) => id && !byMessageId.has(id))),
+    ) as string[];
+    if (missingParents.length) {
+      const { data: parents } = await supabaseAdmin
+        .from("room_chat_messages")
+        .select("id, user_id, body, image_url")
+        .in("id", missingParents);
+      for (const p of parents ?? []) byMessageId.set(p.id, p);
+      const parentIds = Array.from(new Set((parents ?? []).map((p: any) => p.user_id)));
+      const extra = parentIds.length
+        ? (await supabaseAdmin.from("profiles").select("id, username, avatar_url").in("id", parentIds)).data ?? []
+        : [];
+      for (const p of extra) if (!byId.has(p.id)) byId.set(p.id, p);
+    }
+
+    return list.map((m: any) => {
+      const parent = m.reply_to ? byMessageId.get(m.reply_to) : null;
+      return {
       id: m.id,
       user_id: m.user_id,
       username: byId.get(m.user_id)?.username ?? null,
@@ -126,7 +150,11 @@ export const listRoomChat = createServerFn({ method: "POST" })
       created_at: m.created_at,
       edited_at: m.edited_at ?? null,
       is_me: m.user_id === context.userId,
-    })) as RoomChatMessage[];
+      reply_to: m.reply_to ?? null,
+      reply_username: parent ? byId.get(parent.user_id)?.username ?? null : null,
+      reply_body: parent ? (parent.body || (parent.image_url ? "Photo" : "")) : null,
+      };
+    }) as RoomChatMessage[];
   });
 
 export const postRoomChat = createServerFn({ method: "POST" })
@@ -148,6 +176,7 @@ export const postRoomChat = createServerFn({ method: "POST" })
       user_id: context.userId,
       body,
       image_url: data.imageUrl,
+      reply_to: data.replyTo,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -209,4 +238,26 @@ export const deleteRoomChatMessage = createServerFn({ method: "POST" })
 
     await supabaseAdmin.from("room_chat_messages").delete().eq("id", data.messageId);
     return { ok: true };
+  });
+
+export const latestRoomChatAt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(parseInput)
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    try {
+      await assertMember(supabaseAdmin, data.scope, data.roomKey, context.userId);
+    } catch {
+      return { created_at: null as string | null };
+    }
+    const { data: row } = await supabaseAdmin
+      .from("room_chat_messages")
+      .select("created_at")
+      .eq("scope", data.scope)
+      .eq("room_key", data.roomKey)
+      .neq("user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return { created_at: (row?.created_at as string | undefined) ?? null };
   });
