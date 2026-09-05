@@ -24,6 +24,8 @@ import {
   adjustBetaPlaylistPoints,
   removeBetaRoomMember,
   setBetaPlaylistMemberLink,
+  betaPlaylistPointHistory,
+  type BetaPointEvent,
 } from "@/lib/api/beta-playlist-rooms.functions";
 import {
   startLastfmPlaylistTracking,
