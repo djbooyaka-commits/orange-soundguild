@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Send, Trash2, MessagesSquare } from "lucide-react";
 import { toast } from "sonner";
+import { signMany } from "@/lib/signMedia";
 import {
   listRoomChat,
   postRoomChat,
@@ -31,7 +32,23 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
   const load = useCallback(async () => {
     try {
       const data = (await listFn({ data: { scope, roomKey } })) as RoomChatMessage[];
-      setMessages(data ?? []);
+      const rows = data ?? [];
+      // avatar_url is a storage path — sign it so the image actually loads
+      const unique = Array.from(
+        new Set(rows.map((m) => m.avatar_url).filter((p): p is string => !!p)),
+      );
+      const signed = unique.length
+        ? await signMany(unique.map((path) => ({ bucket: "avatars" as const, path })))
+        : [];
+      const byPath = new Map(unique.map((p, i) => [p, signed[i] ?? null]));
+      setMessages(
+        rows.map((m) => ({
+          ...m,
+          avatar_url: m.avatar_url
+            ? (m.avatar_url.startsWith("http") ? m.avatar_url : byPath.get(m.avatar_url) ?? null)
+            : null,
+        })),
+      );
       setError(null);
     } catch (e: any) {
       setError(e?.message ?? "Could not load chat");
