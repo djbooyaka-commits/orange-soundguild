@@ -370,3 +370,24 @@ export const getCuratorEarnedPoints = createServerFn({ method: "GET" })
     const { data } = await context.supabase.rpc("get_curator_earned_points");
     return { points: (data as number | null) ?? 0 };
   });
+
+export const curatorAdjustPlaylistPoints = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; userId: string; delta: number; reason?: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    userId: String(data?.userId ?? ""),
+    delta: Math.trunc(Number(data?.delta) || 0),
+    reason: String(data?.reason ?? "").slice(0, 200),
+  }))
+  .handler(async ({ data, context }) => {
+    if (!data.playlistId) throw new Error("Pick a playlist");
+    if (!data.delta) throw new Error("Enter a number of points");
+    const { data: balance, error } = await context.supabase.rpc("curator_adjust_playlist_points", {
+      _playlist_id: data.playlistId,
+      _user_id: data.userId,
+      _delta: data.delta,
+      _reason: data.reason,
+    });
+    if (error) throw new Error(error.message);
+    return { balance: (balance as number | null) ?? 0 };
+  });

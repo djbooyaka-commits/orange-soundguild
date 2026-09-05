@@ -2117,6 +2117,15 @@ export type Database = {
         Args: { _amount_cents: number; _track_id: string }
         Returns: undefined
       }
+      curator_adjust_playlist_points: {
+        Args: {
+          _delta: number
+          _playlist_id: string
+          _reason?: string
+          _user_id: string
+        }
+        Returns: number
+      }
       curator_set_daily_submission_limit: {
         Args: { _limit: number; _playlist_id: string }
         Returns: number
