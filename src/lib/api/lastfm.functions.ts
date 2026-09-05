@@ -195,18 +195,34 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
     const startedAtMs = new Date(session.started_at).getTime();
     let items: Awaited<ReturnType<typeof fetchLastfmRecentTracks>>["items"] = [];
     let fetchError: string | null = null;
-    try {
-      const result = await fetchLastfmRecentTracks(
-        connection.lastfm_username,
-        apiKey,
-        Math.floor(startedAtMs / 1000),
-      );
-      items = result.items;
-      fetchError = result.error;
-    } catch (e) {
-      console.error("Last.fm stop-tracking fetch failed", e);
-      fetchError = "lastfm_unavailable";
+    // Last.fm occasionally rate-limits or times out. Retry before giving up so a
+    // single hiccup doesn't silently discard a whole listening session.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const result = await fetchLastfmRecentTracks(
+          connection.lastfm_username,
+          apiKey,
+          Math.floor(startedAtMs / 1000),
+        );
+        items = result.items;
+        fetchError = result.error;
+      } catch (e) {
+        console.error("Last.fm stop-tracking fetch failed", e);
+        items = [];
+        fetchError = "lastfm_unavailable";
+      }
+      if (!fetchError) break;
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
     }
+
+    // If Last.fm could not be read, keep the session open so the user can press
+    // Stop again instead of losing every play they made.
+    if (fetchError) {
+      throw new Error(
+        `${lastfmErrorMessage(fetchError)} Your session is still running — press Stop again in a moment.`,
+      );
+    }
+
 
     const eligibleItems = (Array.isArray(items) ? items : []).filter(
       (item) => item.uts * 1000 >= startedAtMs && item.uts * 1000 <= stoppedAt.getTime(),
