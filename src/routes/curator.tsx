@@ -217,6 +217,11 @@ function CuratorPage() {
                   {r.name}
                 </TabsTrigger>
               ))}
+              {chatRoomTabs.map((c) => (
+                <TabsTrigger key={`chat-${c.curatorId}`} value={`chat-${c.curatorId}`}>
+                  Chat{chatRoomTabs.length > 1 ? ` · @${c.username}` : ""}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
             <TabsContent value="main" className="space-y-6">
