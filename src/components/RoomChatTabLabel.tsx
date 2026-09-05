@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import type { ChatScope } from "@/lib/api/room-chat.functions";
+import { latestRoomChatAt, type ChatScope } from "@/lib/api/room-chat.functions";
 
 type Props = {
   scope: ChatScope;
@@ -13,83 +14,90 @@ type Props = {
 
 export function RoomChatTabLabel({ scope, roomKey, active, children }: Props) {
   const { user } = useAuth();
+  const latestFn = useServerFn(latestRoomChatAt);
   const [unread, setUnread] = useState(false);
+  const activeRef = useRef(active);
+  activeRef.current = active;
 
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    const storageKey = `osg:room-chat-read:${user.id}:${scope}:${roomKey}`;
+  const storageKey = user ? `osg:room-chat-read:${user.id}:${scope}:${roomKey}` : null;
 
-    const markRead = (createdAt: string) => {
-      try {
-        window.localStorage.setItem(storageKey, createdAt);
-      } catch {
-        /* ignore unavailable storage */
-      }
-      setUnread(false);
-    };
+  const readStamp = useCallback(() => {
+    if (!storageKey) return null;
+    try {
+      return window.localStorage.getItem(storageKey);
+    } catch {
+      return null;
+    }
+  }, [storageKey]);
 
-    void supabase
-      .from("room_chat_messages")
-      .select("created_at,user_id")
-      .eq("scope", scope)
-      .eq("room_key", roomKey)
-      .neq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled || !data?.created_at) return;
-        let lastRead: string | null = null;
+  const markRead = useCallback(
+    (stamp: string) => {
+      if (storageKey) {
         try {
-          lastRead = window.localStorage.getItem(storageKey);
+          window.localStorage.setItem(storageKey, stamp);
         } catch {
           /* ignore unavailable storage */
         }
-        if (!lastRead || active) markRead(data.created_at);
-        else setUnread(data.created_at > lastRead);
-      });
+      }
+      setUnread(false);
+    },
+    [storageKey],
+  );
 
+  const check = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = (await latestFn({ data: { scope, roomKey } })) as { created_at: string | null };
+      const latest = res?.created_at;
+      if (!latest) return;
+      if (activeRef.current) {
+        markRead(latest);
+        return;
+      }
+      const last = readStamp();
+      setUnread(!last || latest > last);
+    } catch {
+      /* ignore */
+    }
+  }, [latestFn, markRead, readStamp, roomKey, scope, user]);
+
+  // Poll + realtime so the marker shows up even if a realtime event is missed.
+  useEffect(() => {
+    if (!user) return;
+    void check();
+    const id = window.setInterval(() => void check(), 20000);
+    return () => window.clearInterval(id);
+  }, [check, user]);
+
+  useEffect(() => {
+    if (!user) return;
     const channel = supabase
       .channel(`room-chat-alert:${scope}:${roomKey}:${user.id}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "room_chat_messages", filter: `room_key=eq.${roomKey}` },
-        (payload) => {
-          const message = payload.new as { scope?: string; user_id?: string; created_at?: string };
-          if (message.scope !== scope || message.user_id === user.id) return;
-          const createdAt = message.created_at ?? new Date().toISOString();
-          if (active) markRead(createdAt);
-          else setUnread(true);
-        },
+        () => void check(),
       )
       .subscribe();
-
     return () => {
-      cancelled = true;
       void supabase.removeChannel(channel);
     };
-  }, [active, roomKey, scope, user]);
+  }, [check, roomKey, scope, user]);
 
+  // Opening the tab clears the marker.
   useEffect(() => {
     if (!active || !user) return;
-    const storageKey = `osg:room-chat-read:${user.id}:${scope}:${roomKey}`;
-    try {
-      window.localStorage.setItem(storageKey, new Date().toISOString());
-    } catch {
-      /* ignore unavailable storage */
-    }
-    setUnread(false);
-  }, [active, roomKey, scope, user]);
+    markRead(new Date().toISOString());
+  }, [active, markRead, user]);
 
   return (
-    <span className="relative inline-flex items-center">
+    <span className="relative inline-flex items-center pr-4">
       {children}
       {unread && (
         <span
           aria-label="New messages"
           title="New messages"
-          className="absolute -right-4 -top-3 text-xl font-black leading-none text-destructive drop-shadow-sm"
+          className="absolute -right-2 -top-2 inline-flex h-4 w-4 animate-pulse items-center justify-center rounded-full bg-destructive text-[10px] font-black text-destructive-foreground shadow ring-2 ring-background"
         >
           ★
         </span>
