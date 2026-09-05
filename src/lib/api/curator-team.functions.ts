@@ -143,3 +143,52 @@ export const curatorTeamSetWeeklyMin = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export type CuratorTeamPointEvent = {
+  id: string;
+  user_id: string;
+  username: string | null;
+  delta: number;
+  reason: string | null;
+  created_at: string;
+};
+
+export const curatorTeamPointHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+  }))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: pl, error: plErr } = await supabase
+      .from("curator_playlists")
+      .select("id, curator_id")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (plErr) throw new Error(plErr.message);
+    if (!pl) throw new Error("Playlist not found");
+    if (pl.curator_id !== userId) throw new Error("Only the curator can view point history");
+
+    const { data: rows, error } = await supabase
+      .from("curator_team_point_adjustments")
+      .select("id, user_id, delta, reason, created_at")
+      .eq("playlist_id", data.playlistId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (error) throw new Error(error.message);
+
+    const ids = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+    let names = new Map<string, string | null>();
+    if (ids.length) {
+      const { data: profs } = await supabase.from("profiles").select("id, username").in("id", ids);
+      names = new Map((profs ?? []).map((p) => [p.id, p.username]));
+    }
+    return (rows ?? []).map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      username: names.get(r.user_id) ?? null,
+      delta: r.delta,
+      reason: r.reason,
+      created_at: r.created_at,
+    })) as CuratorTeamPointEvent[];
+  });
