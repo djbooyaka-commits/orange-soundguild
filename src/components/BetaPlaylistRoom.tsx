@@ -102,10 +102,19 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
   const [changingTracking, setChangingTracking] = useState(false);
   const [trackingMsg, setTrackingMsg] = useState<string | null>(null);
+  const [history, setHistory] = useState<BetaPointEvent[]>([]);
+  const historyFn = useServerFn(betaPlaylistPointHistory);
 
   const refresh = useCallback(async () => {
     const r = (await getFn({ data: { playlistId } })) as RoomData;
     setData(r);
+    if (r.isOwner) {
+      try {
+        setHistory((await historyFn({ data: { playlistId } })) as BetaPointEvent[]);
+      } catch {
+        setHistory([]);
+      }
+    }
     const signed = await signMany(
       r.members.map((m) => ({ bucket: "avatars" as const, path: m.avatar_url })),
     );
