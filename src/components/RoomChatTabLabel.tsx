@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { ChatScope } from "@/lib/api/room-chat.functions";
@@ -7,7 +8,7 @@ type Props = {
   scope: ChatScope;
   roomKey: string;
   active: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 export function RoomChatTabLabel({ scope, roomKey, active, children }: Props) {
@@ -17,11 +18,9 @@ export function RoomChatTabLabel({ scope, roomKey, active, children }: Props) {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    let latestMessageAt = "";
     const storageKey = `osg:room-chat-read:${user.id}:${scope}:${roomKey}`;
 
     const markRead = (createdAt: string) => {
-      latestMessageAt = createdAt;
       try {
         window.localStorage.setItem(storageKey, createdAt);
       } catch {
@@ -41,7 +40,6 @@ export function RoomChatTabLabel({ scope, roomKey, active, children }: Props) {
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data?.created_at) return;
-        latestMessageAt = data.created_at;
         let lastRead: string | null = null;
         try {
           lastRead = window.localStorage.getItem(storageKey);
@@ -61,7 +59,6 @@ export function RoomChatTabLabel({ scope, roomKey, active, children }: Props) {
           const message = payload.new as { scope?: string; user_id?: string; created_at?: string };
           if (message.scope !== scope || message.user_id === user.id) return;
           const createdAt = message.created_at ?? new Date().toISOString();
-          latestMessageAt = createdAt;
           if (active) markRead(createdAt);
           else setUnread(true);
         },
