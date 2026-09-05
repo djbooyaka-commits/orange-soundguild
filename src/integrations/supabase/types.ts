@@ -1409,6 +1409,33 @@ export type Database = {
           },
         ]
       }
+      room_chat_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          room_key: string
+          scope: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          room_key: string
+          scope: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          room_key?: string
+          scope?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       royalty_payouts: {
         Row: {
           amount_cents: number

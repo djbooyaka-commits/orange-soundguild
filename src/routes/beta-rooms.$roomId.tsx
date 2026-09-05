@@ -11,6 +11,7 @@ import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
 import { BetaPlaylistRoom } from "@/components/BetaPlaylistRoom";
 import { BetaRoomInvite } from "@/components/BetaRoomInvite";
 import { BetaRoomSubmissions } from "@/components/BetaRoomSubmissions";
+import { RoomChat } from "@/components/RoomChat";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 
@@ -154,6 +155,7 @@ function BetaRoomDetail() {
           <TabsTrigger value="playlists" className="shrink-0">Curator playlists</TabsTrigger>
           {room.isOwner && <TabsTrigger value="invite" className="shrink-0">Invite link</TabsTrigger>}
           <TabsTrigger value="submissions" className="shrink-0">Track submissions</TabsTrigger>
+          <TabsTrigger value="chat" className="shrink-0">Chat</TabsTrigger>
           {playlists.map((p) => (
             <TabsTrigger key={p.id} value={`pl-${p.id}`} className="max-w-[45vw] shrink-0 truncate">
               {p.name}
@@ -240,6 +242,10 @@ function BetaRoomDetail() {
 
         <TabsContent value="submissions">
           <BetaRoomSubmissions roomId={roomId} isOwner={room.isOwner} />
+        </TabsContent>
+
+        <TabsContent value="chat">
+          <RoomChat scope="beta" roomKey={roomId} title={`${room.name} chat`} />
         </TabsContent>
       </Tabs>
     </main>

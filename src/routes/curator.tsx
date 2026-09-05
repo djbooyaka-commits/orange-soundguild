@@ -15,6 +15,8 @@ import { acceptCuratorInviteByLink } from "@/lib/api/curator-invites.functions";
 import { canUseOsgArtists } from "@/lib/api/osg-picks.functions";
 import { listMyCuratorTeamRooms, type CuratorTeamRoom as TeamRoomType } from "@/lib/api/curator-team.functions";
 import { CuratorTeamRoom } from "@/components/CuratorTeamRoom";
+import { RoomChat } from "@/components/RoomChat";
+import { listPlaylistsForSubmission } from "@/lib/api/curator-submissions.functions";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -42,6 +44,32 @@ function CuratorPage() {
   const canUseOsgFn = useServerFn(canUseOsgArtists);
   const teamRoomsFn = useServerFn(listMyCuratorTeamRooms);
   const [teamRooms, setTeamRooms] = useState<TeamRoomType[]>([]);
+  const joinedPlaylistsFn = useServerFn(listPlaylistsForSubmission);
+  const [chatRooms, setChatRooms] = useState<Array<{ curatorId: string; username: string }>>([]);
+
+  useEffect(() => {
+    if (!user) {
+      setChatRooms([]);
+      return;
+    }
+    let cancelled = false;
+    joinedPlaylistsFn()
+      .then((rows) => {
+        if (cancelled) return;
+        const map = new Map<string, string>();
+        for (const p of (rows ?? []) as Array<{ curator_id: string; curator_username: string }>) {
+          if (!map.has(p.curator_id)) map.set(p.curator_id, p.curator_username);
+        }
+        setChatRooms(Array.from(map, ([curatorId, username]) => ({ curatorId, username })));
+      })
+      .catch(() => {
+        if (!cancelled) setChatRooms([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, joinedPlaylistsFn]);
+
 
   useEffect(() => {
     if (!user) {
@@ -146,6 +174,15 @@ function CuratorPage() {
 
   const isSuperfan = accountType === "superfan";
 
+  // Chat rooms this user belongs to: their own Curator room (Superfans) plus
+  // every Curator room they were invited to.
+  const chatRoomTabs = [
+    ...(isSuperfan && !chatRooms.some((c) => c.curatorId === user.id)
+      ? [{ curatorId: user.id, username: "your room" }]
+      : []),
+    ...chatRooms,
+  ];
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <header className="mb-8 flex items-center gap-3">
@@ -178,6 +215,11 @@ function CuratorPage() {
                 <TabsTrigger key={r.playlist_id} value={`team-${r.playlist_id}`}>
                   <span className="mr-1 text-primary">★</span>
                   {r.name}
+                </TabsTrigger>
+              ))}
+              {chatRoomTabs.map((c) => (
+                <TabsTrigger key={`chat-${c.curatorId}`} value={`chat-${c.curatorId}`}>
+                  Chat{chatRoomTabs.length > 1 ? ` · @${c.username}` : ""}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -255,6 +297,18 @@ function CuratorPage() {
             {teamRooms.map((r) => (
               <TabsContent key={r.playlist_id} value={`team-${r.playlist_id}`}>
                 <CuratorTeamRoom room={r} />
+              </TabsContent>
+            ))}
+
+            {chatRoomTabs.map((c) => (
+              <TabsContent key={`chat-${c.curatorId}`} value={`chat-${c.curatorId}`}>
+                <RoomChat
+                  scope="curator"
+                  roomKey={c.curatorId}
+                  title={
+                    c.curatorId === user.id ? "Your Stream Tracker room chat" : `@${c.username} room chat`
+                  }
+                />
               </TabsContent>
             ))}
           </Tabs>
