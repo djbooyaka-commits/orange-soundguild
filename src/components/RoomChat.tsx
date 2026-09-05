@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Send, Trash2, MessagesSquare } from "lucide-react";
 import { toast } from "sonner";
+import { signMany } from "@/lib/signMedia";
 import {
   listRoomChat,
   postRoomChat,
