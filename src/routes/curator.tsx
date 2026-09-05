@@ -299,6 +299,18 @@ function CuratorPage() {
                 <CuratorTeamRoom room={r} />
               </TabsContent>
             ))}
+
+            {chatRoomTabs.map((c) => (
+              <TabsContent key={`chat-${c.curatorId}`} value={`chat-${c.curatorId}`}>
+                <RoomChat
+                  scope="curator"
+                  roomKey={c.curatorId}
+                  title={
+                    c.curatorId === user.id ? "Your Stream Tracker room chat" : `@${c.username} room chat`
+                  }
+                />
+              </TabsContent>
+            ))}
           </Tabs>
     </main>
   );
