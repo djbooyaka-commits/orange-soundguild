@@ -16,6 +16,7 @@ export type RoomChatMessage = {
   avatar_url: string | null;
   body: string;
   created_at: string;
+  edited_at: string | null;
   is_me: boolean;
 };
 
@@ -75,7 +76,7 @@ export const listRoomChat = createServerFn({ method: "POST" })
 
     const { data: rows } = await supabaseAdmin
       .from("room_chat_messages")
-      .select("id, user_id, body, created_at")
+      .select("id, user_id, body, created_at, edited_at")
       .eq("scope", data.scope)
       .eq("room_key", data.roomKey)
       .order("created_at", { ascending: false })
@@ -100,6 +101,7 @@ export const listRoomChat = createServerFn({ method: "POST" })
       avatar_url: byId.get(m.user_id)?.avatar_url ?? null,
       body: m.body,
       created_at: m.created_at,
+      edited_at: m.edited_at ?? null,
       is_me: m.user_id === context.userId,
     })) as RoomChatMessage[];
   });
