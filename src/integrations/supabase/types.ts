@@ -1413,6 +1413,7 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          edited_at: string | null
           id: string
           room_key: string
           scope: string
@@ -1421,6 +1422,7 @@ export type Database = {
         Insert: {
           body: string
           created_at?: string
+          edited_at?: string | null
           id?: string
           room_key: string
           scope: string
@@ -1429,6 +1431,7 @@ export type Database = {
         Update: {
           body?: string
           created_at?: string
+          edited_at?: string | null
           id?: string
           room_key?: string
           scope?: string
@@ -2225,6 +2228,10 @@ export type Database = {
       }
       is_beta_room_owner: {
         Args: { _room: string; _user: string }
+        Returns: boolean
+      }
+      is_room_chat_member: {
+        Args: { _room_key: string; _scope: string; _user_id: string }
         Returns: boolean
       }
       is_royalty_eligible: { Args: { _user_id: string }; Returns: boolean }
