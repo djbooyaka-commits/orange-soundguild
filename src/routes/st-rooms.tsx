@@ -132,28 +132,30 @@ function StRoomsPage() {
                 {g.playlists.map((p) => (
                   <li
                     key={p.id}
-                    className="flex items-center gap-3 rounded-md border border-border p-3"
+                    className="flex flex-col gap-3 rounded-md border border-border p-3 sm:flex-row sm:items-center"
                   >
-                    {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt=""
-                        className="h-14 w-14 rounded object-cover"
-                      />
-                    ) : (
-                      <div className="h-14 w-14 rounded bg-muted" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {p.available_points} pts available
-                      </p>
+                    <div className="flex items-start gap-3 sm:flex-1 sm:items-center">
+                      {p.image_url ? (
+                        <img
+                          src={p.image_url}
+                          alt=""
+                          className="h-14 w-14 shrink-0 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-14 w-14 shrink-0 rounded bg-muted" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-snug break-words">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {p.available_points} pts available
+                        </p>
+                      </div>
                     </div>
                     <a
                       href={`https://open.spotify.com/playlist/${p.spotify_playlist_id}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                      className="inline-flex items-center justify-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                     >
                       <ExternalLink className="h-3 w-3" /> Open
                     </a>

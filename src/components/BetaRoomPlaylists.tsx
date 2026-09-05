@@ -171,30 +171,32 @@ export function BetaRoomPlaylists({
         {items.map((p) => (
           <li
             key={p.id}
-            className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3"
+            className="flex flex-col gap-3 rounded-md border border-border p-3 sm:flex-row sm:items-center"
           >
-            {p.imageUrl ? (
-              <img src={p.imageUrl} alt="" className="h-12 w-12 rounded object-cover"  loading="lazy" decoding="async" />
-            ) : (
-              <div className="h-12 w-12 rounded bg-muted" />
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-2 truncate text-sm font-medium">
-                {p.name}
-                {p.isTeam && (
-                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                    Team
-                  </span>
-                )}
-              </p>
-              <a
-                href={`https://open.spotify.com/playlist/${p.spotifyPlaylistId}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                {p.trackCount} tracked track{p.trackCount === 1 ? "" : "s"} · Open in Spotify ↗
-              </a>
+            <div className="flex items-start gap-3 sm:flex-1 sm:items-center">
+              {p.imageUrl ? (
+                <img src={p.imageUrl} alt="" className="h-12 w-12 shrink-0 rounded object-cover"  loading="lazy" decoding="async" />
+              ) : (
+                <div className="h-12 w-12 shrink-0 rounded bg-muted" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium leading-snug break-words">
+                  {p.name}
+                  {p.isTeam && (
+                    <span className="ml-2 inline-flex shrink-0 align-middle items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                      Team
+                    </span>
+                  )}
+                </p>
+                <a
+                  href={`https://open.spotify.com/playlist/${p.spotifyPlaylistId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {p.trackCount} tracked track{p.trackCount === 1 ? "" : "s"} · Open in Spotify ↗
+                </a>
+              </div>
             </div>
 
             {isOwner && (
