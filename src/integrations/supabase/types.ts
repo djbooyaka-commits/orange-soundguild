@@ -1415,6 +1415,7 @@ export type Database = {
           created_at: string
           edited_at: string | null
           id: string
+          image_url: string | null
           room_key: string
           scope: string
           user_id: string
@@ -1424,6 +1425,7 @@ export type Database = {
           created_at?: string
           edited_at?: string | null
           id?: string
+          image_url?: string | null
           room_key: string
           scope: string
           user_id: string
@@ -1433,6 +1435,7 @@ export type Database = {
           created_at?: string
           edited_at?: string | null
           id?: string
+          image_url?: string | null
           room_key?: string
           scope?: string
           user_id?: string
