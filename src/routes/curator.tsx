@@ -15,6 +15,8 @@ import { acceptCuratorInviteByLink } from "@/lib/api/curator-invites.functions";
 import { canUseOsgArtists } from "@/lib/api/osg-picks.functions";
 import { listMyCuratorTeamRooms, type CuratorTeamRoom as TeamRoomType } from "@/lib/api/curator-team.functions";
 import { CuratorTeamRoom } from "@/components/CuratorTeamRoom";
+import { RoomChat } from "@/components/RoomChat";
+import { listPlaylistsForSubmission } from "@/lib/api/curator-submissions.functions";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
