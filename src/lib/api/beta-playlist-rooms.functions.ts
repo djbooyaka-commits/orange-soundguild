@@ -347,3 +347,51 @@ export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+
+export type BetaPointEvent = {
+  id: string;
+  user_id: string;
+  username: string | null;
+  delta: number;
+  reason: string | null;
+  created_at: string;
+};
+
+/** Recent curator point gifts/removals on a Last.fm playlist room (owner only). */
+export const betaPlaylistPointHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId)
+      throw new Error("Only the room owner can view point history");
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("beta_point_adjustments")
+      .select("id, user_id, delta, reason, created_at")
+      .eq("playlist_id", pl.id)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+
+    const ids = Array.from(new Set((rows ?? []).map((r: any) => r.user_id)));
+    const names = new Map<string, string | null>();
+    if (ids.length) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, username")
+        .in("id", ids);
+      (profs ?? []).forEach((p: any) => names.set(p.id, p.username));
+    }
+    return (rows ?? []).map((r: any) => ({
+      id: r.id,
+      user_id: r.user_id,
+      username: names.get(r.user_id) ?? null,
+      delta: r.delta,
+      reason: r.reason,
+      created_at: r.created_at,
+    })) as BetaPointEvent[];
+  });
