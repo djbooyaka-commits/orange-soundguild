@@ -15,17 +15,25 @@ export type RoomChatMessage = {
   username: string | null;
   avatar_url: string | null;
   body: string;
+  image_url: string | null;
   created_at: string;
   edited_at: string | null;
   is_me: boolean;
 };
 
-function parseInput(data: { scope: string; roomKey: string; body?: string; sinceId?: string }) {
+function parseInput(data: {
+  scope: string;
+  roomKey: string;
+  body?: string;
+  imageUrl?: string | null;
+  sinceId?: string;
+}) {
   const scope = data?.scope === "curator" ? "curator" : "beta";
   return {
     scope: scope as ChatScope,
     roomKey: String(data?.roomKey ?? ""),
     body: typeof data?.body === "string" ? data.body : "",
+    imageUrl: typeof data?.imageUrl === "string" && data.imageUrl ? data.imageUrl.slice(0, 500) : null,
   };
 }
 
@@ -76,7 +84,7 @@ export const listRoomChat = createServerFn({ method: "POST" })
 
     const { data: rows } = await supabaseAdmin
       .from("room_chat_messages")
-      .select("id, user_id, body, created_at, edited_at")
+      .select("id, user_id, body, image_url, created_at, edited_at")
       .eq("scope", data.scope)
       .eq("room_key", data.roomKey)
       .order("created_at", { ascending: false })
@@ -94,12 +102,27 @@ export const listRoomChat = createServerFn({ method: "POST" })
       : [];
     const byId = new Map(profiles.map((p: any) => [p.id, p]));
 
+    // Sign attachments (members of the room are already verified above)
+    const mediaPaths = Array.from(
+      new Set(list.map((m: any) => m.image_url).filter((p: any) => typeof p === "string" && p)),
+    ) as string[];
+    const signedByPath = new Map<string, string>();
+    await Promise.all(
+      mediaPaths.map(async (path) => {
+        const { data: signed } = await supabaseAdmin.storage
+          .from("chat-images")
+          .createSignedUrl(path, 60 * 60 * 24);
+        if (signed?.signedUrl) signedByPath.set(path, signed.signedUrl);
+      }),
+    );
+
     return list.map((m: any) => ({
       id: m.id,
       user_id: m.user_id,
       username: byId.get(m.user_id)?.username ?? null,
       avatar_url: byId.get(m.user_id)?.avatar_url ?? null,
       body: m.body,
+      image_url: m.image_url ? signedByPath.get(m.image_url) ?? null : null,
       created_at: m.created_at,
       edited_at: m.edited_at ?? null,
       is_me: m.user_id === context.userId,
@@ -114,13 +137,17 @@ export const postRoomChat = createServerFn({ method: "POST" })
     await assertMember(supabaseAdmin, data.scope, data.roomKey, context.userId);
 
     const body = data.body.trim().slice(0, 1000);
-    if (!body) throw new Error("Message is empty");
+    if (!body && !data.imageUrl) throw new Error("Message is empty");
+    if (data.imageUrl && !data.imageUrl.startsWith(`${context.userId}/`)) {
+      throw new Error("Invalid attachment");
+    }
 
     const { error } = await supabaseAdmin.from("room_chat_messages").insert({
       scope: data.scope,
       room_key: data.roomKey,
       user_id: context.userId,
       body,
+      image_url: data.imageUrl,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
