@@ -139,7 +139,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       });
       return next;
     });
-  }, [getFn, playlistId]);
+  }, [getFn, historyFn, playlistId]);
 
   useEffect(() => {
     setLoading(true);
