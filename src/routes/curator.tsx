@@ -174,6 +174,15 @@ function CuratorPage() {
 
   const isSuperfan = accountType === "superfan";
 
+  // Chat rooms this user belongs to: their own Curator room (Superfans) plus
+  // every Curator room they were invited to.
+  const chatRoomTabs = [
+    ...(isSuperfan && !chatRooms.some((c) => c.curatorId === user.id)
+      ? [{ curatorId: user.id, username: "your room" }]
+      : []),
+    ...chatRooms,
+  ];
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <header className="mb-8 flex items-center gap-3">
