@@ -17,11 +17,13 @@ import { toast } from "sonner";
 import {
   curatorTeamAddMember,
   curatorTeamAdjustPoints,
+  curatorTeamPointHistory,
   curatorTeamRemoveMember,
   curatorTeamRoster,
   curatorTeamSetLinks,
   curatorTeamSetWeeklyMin,
   type CuratorTeamMember,
+  type CuratorTeamPointEvent,
   type CuratorTeamRoom as TeamRoom,
 } from "@/lib/api/curator-team.functions";
 import { signMany } from "@/lib/signMedia";
@@ -36,7 +38,9 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   const linksFn = useServerFn(curatorTeamSetLinks);
   const adjustFn = useServerFn(curatorTeamAdjustPoints);
   const minFn = useServerFn(curatorTeamSetWeeklyMin);
+  const historyFn = useServerFn(curatorTeamPointHistory);
 
+  const [history, setHistory] = useState<CuratorTeamPointEvent[]>([]);
   const [members, setMembers] = useState<CuratorTeamMember[]>([]);
   const [avatars, setAvatars] = useState<(string | null)[]>([]);
   const [loading, setLoading] = useState(true);
