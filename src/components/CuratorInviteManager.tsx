@@ -148,6 +148,25 @@ export function CuratorInviteManager() {
       </div>
 
       <h3 className="mt-6 text-sm font-semibold">Tracked users</h3>
+      {playlists.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 p-3 text-xs">
+          <span className="font-semibold">Give points on:</span>
+          <select
+            value={playlistId}
+            onChange={(e) => setPlaylistId(e.target.value)}
+            className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+          >
+            {playlists.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-muted-foreground">
+            Points you add here can be spent on that playlist.
+          </span>
+        </div>
+      )}
       <ul className="mt-2 space-y-2">
         {items.length === 0 && (
           <li className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
@@ -155,7 +174,7 @@ export function CuratorInviteManager() {
           </li>
         )}
         {items.map((i) => (
-          <li key={i.id} className="flex items-center gap-3 rounded-md border border-border p-3">
+          <li key={i.id} className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3">
             <img
               src={i.avatar_signed ?? defaultAvatar}
               alt=""
@@ -168,6 +187,41 @@ export function CuratorInviteManager() {
               <p className="truncate text-sm font-medium">@{i.username}</p>
               <p className="text-xs capitalize text-muted-foreground">{i.status}</p>
             </div>
+            {i.status === "accepted" && playlists.length > 0 && (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="pts"
+                  value={pointInputs[i.user_id] ?? ""}
+                  onChange={(e) =>
+                    setPointInputs((s) => ({ ...s, [i.user_id]: e.target.value }))
+                  }
+                  className="w-20 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => adjust(i.user_id, 1)}
+                  disabled={adjustingId === i.user_id}
+                  className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+                >
+                  {adjustingId === i.user_id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5" />
+                  )}
+                  Add pts
+                </button>
+                <button
+                  type="button"
+                  onClick={() => adjust(i.user_id, -1)}
+                  disabled={adjustingId === i.user_id}
+                  className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-destructive hover:text-destructive disabled:opacity-50"
+                >
+                  <Minus className="h-3.5 w-3.5" /> Remove
+                </button>
+              </div>
+            )}
             <button
               onClick={() => cancel(i.id)}
               disabled={busy}
@@ -179,6 +233,7 @@ export function CuratorInviteManager() {
           </li>
         ))}
       </ul>
+
     </div>
   );
 }
