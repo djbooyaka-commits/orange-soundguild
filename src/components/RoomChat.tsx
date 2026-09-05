@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Send, Trash2, Pencil, MessagesSquare, Loader2, ImagePlus, Video, X } from "lucide-react";
+import { Send, Trash2, Pencil, MessagesSquare, Loader2, ImagePlus, Video, X, Reply } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { signMany } from "@/lib/signMedia";
@@ -72,6 +72,7 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [replyTo, setReplyTo] = useState<RoomChatMessage | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -196,8 +197,9 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
         if (upErr) throw new Error(upErr.message);
         imageUrl = path;
       }
-      await postFn({ data: { scope, roomKey, body, imageUrl } });
+      await postFn({ data: { scope, roomKey, body, imageUrl, replyTo: replyTo?.id ?? null } });
       setText("");
+      setReplyTo(null);
       await pickFile(null);
       await load();
     } catch (err: any) {
@@ -268,6 +270,15 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
                   >
                     {mine && !isEditing && (
                       <div className="flex flex-col gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => setReplyTo(m)}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground"
+                          aria-label="Reply to message"
+                          title="Reply"
+                        >
+                          <Reply className="h-3.5 w-3.5" />
+                        </button>
                         {!m.image_url && (
                         <button
                           type="button"
@@ -341,6 +352,18 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
                               : "rounded-bl-sm bg-muted text-foreground"
                           }`}
                         >
+                          {m.reply_to && (
+                            <div
+                              className={`mb-1 rounded-md border-l-2 px-2 py-1 text-xs ${
+                                mine
+                                  ? "border-primary-foreground/60 bg-primary-foreground/10 text-primary-foreground/80"
+                                  : "border-primary bg-background/60 text-muted-foreground"
+                              }`}
+                            >
+                              <span className="font-semibold">@{m.reply_username ?? "member"}</span>
+                              <span className="ml-1 line-clamp-2 break-words">{m.reply_body ?? "Message"}</span>
+                            </div>
+                          )}
                           {m.image_url &&
                             (isVideoUrl(m.image_url) ? (
                               <video
@@ -375,11 +398,41 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
                         </div>
                       )}
                     </div>
+
+                    {!mine && !isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => setReplyTo(m)}
+                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition hover:text-foreground focus-within:opacity-100 group-hover:opacity-100"
+                        aria-label="Reply to message"
+                        title="Reply"
+                      >
+                        <Reply className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 );
               })
             )}
           </div>
+
+          {replyTo && (
+            <div className="flex items-center gap-2 border-t border-border bg-muted/40 px-3 py-2 text-xs">
+              <Reply className="h-3.5 w-3.5 text-primary" />
+              <span className="font-semibold">Replying to @{replyTo.username ?? "member"}</span>
+              <span className="flex-1 truncate text-muted-foreground">
+                {replyTo.body || (replyTo.image_url ? "Photo" : "")}
+              </span>
+              <button
+                type="button"
+                onClick={() => setReplyTo(null)}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background"
+                aria-label="Cancel reply"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          )}
 
           {pendingPreview && (
             <div className="flex items-center gap-3 border-t border-border bg-muted/40 p-3">
