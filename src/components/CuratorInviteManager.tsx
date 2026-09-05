@@ -51,8 +51,49 @@ export function CuratorInviteManager() {
 
   useEffect(() => {
     void refresh();
+    void (async () => {
+      try {
+        const rows = ((await playlistsFn()) ?? []) as Array<{
+          id: string;
+          name: string;
+          is_osg?: boolean | null;
+        }>;
+        const usable = rows.filter((p) => !p.is_osg).map((p) => ({ id: p.id, name: p.name }));
+        setPlaylists(usable);
+        setPlaylistId((cur) => cur || (usable[0]?.id ?? ""));
+      } catch {
+        /* ignore */
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const adjust = async (userId: string, sign: 1 | -1) => {
+    const n = Math.abs(Math.trunc(Number(pointInputs[userId] ?? "")));
+    if (!playlistId) {
+      toast.error("Pick a playlist first");
+      return;
+    }
+    if (!n) {
+      toast.error("Enter a number of points");
+      return;
+    }
+    setAdjustingId(userId);
+    try {
+      const res = await adjustFn({
+        data: { playlistId, userId, delta: sign * n },
+      });
+      setPointInputs((s) => ({ ...s, [userId]: "" }));
+      toast.success(
+        `${sign > 0 ? "Added" : "Removed"} ${n} pts · now ${res.balance} pts on this playlist`,
+      );
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not change points");
+    } finally {
+      setAdjustingId(null);
+    }
+  };
+
 
   const copy = async () => {
     try {
