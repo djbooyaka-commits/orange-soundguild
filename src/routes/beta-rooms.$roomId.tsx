@@ -12,6 +12,7 @@ import { BetaPlaylistRoom } from "@/components/BetaPlaylistRoom";
 import { BetaRoomInvite } from "@/components/BetaRoomInvite";
 import { BetaRoomSubmissions } from "@/components/BetaRoomSubmissions";
 import { RoomChat } from "@/components/RoomChat";
+import { RoomChatTabLabel } from "@/components/RoomChatTabLabel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 
@@ -41,6 +42,7 @@ function BetaRoomDetail() {
   const [playlists, setPlaylists] = useState<Array<{ id: string; name: string; isTeam?: boolean }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [activeTab, setActiveTab] = useState("tracking");
 
   const refresh = useCallback(async () => {
     try {
@@ -149,13 +151,17 @@ function BetaRoomDetail() {
         </div>
       </header>
 
-      <Tabs defaultValue="tracking" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 p-1">
           <TabsTrigger value="tracking" className="shrink-0">Stream Tracker</TabsTrigger>
           <TabsTrigger value="playlists" className="shrink-0">Curator playlists</TabsTrigger>
           {room.isOwner && <TabsTrigger value="invite" className="shrink-0">Invite link</TabsTrigger>}
           <TabsTrigger value="submissions" className="shrink-0">Track submissions</TabsTrigger>
-          <TabsTrigger value="chat" className="shrink-0">Chat</TabsTrigger>
+          <TabsTrigger value="chat" className="shrink-0 overflow-visible">
+            <RoomChatTabLabel scope="beta" roomKey={roomId} active={activeTab === "chat"}>
+              Chat
+            </RoomChatTabLabel>
+          </TabsTrigger>
           {playlists.map((p) => (
             <TabsTrigger key={p.id} value={`pl-${p.id}`} className="max-w-[45vw] shrink-0 truncate">
               {p.name}
