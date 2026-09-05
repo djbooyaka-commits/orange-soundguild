@@ -17,11 +17,13 @@ import { toast } from "sonner";
 import {
   curatorTeamAddMember,
   curatorTeamAdjustPoints,
+  curatorTeamPointHistory,
   curatorTeamRemoveMember,
   curatorTeamRoster,
   curatorTeamSetLinks,
   curatorTeamSetWeeklyMin,
   type CuratorTeamMember,
+  type CuratorTeamPointEvent,
   type CuratorTeamRoom as TeamRoom,
 } from "@/lib/api/curator-team.functions";
 import { signMany } from "@/lib/signMedia";
@@ -36,7 +38,9 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   const linksFn = useServerFn(curatorTeamSetLinks);
   const adjustFn = useServerFn(curatorTeamAdjustPoints);
   const minFn = useServerFn(curatorTeamSetWeeklyMin);
+  const historyFn = useServerFn(curatorTeamPointHistory);
 
+  const [history, setHistory] = useState<CuratorTeamPointEvent[]>([]);
   const [members, setMembers] = useState<CuratorTeamMember[]>([]);
   const [avatars, setAvatars] = useState<(string | null)[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +76,14 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
       return next;
     });
     setAvatars(await signMany(rows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))));
-  }, [rosterFn, room.playlist_id]);
+    if (room.is_owner) {
+      try {
+        setHistory((await historyFn({ data: { playlistId: room.playlist_id } })) as CuratorTeamPointEvent[]);
+      } catch {
+        setHistory([]);
+      }
+    }
+  }, [rosterFn, historyFn, room.playlist_id, room.is_owner]);
 
   useEffect(() => {
     setLoading(true);
@@ -441,6 +452,34 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {room.is_owner && history.length > 0 && (
+        <div className="mt-6 rounded-lg border border-border p-4">
+          <h3 className="text-sm font-semibold">Points you&apos;ve given</h3>
+          <ul className="mt-2 space-y-1.5">
+            {history.map((h) => (
+              <li
+                key={h.id}
+                className="flex items-center justify-between gap-2 text-xs text-muted-foreground"
+              >
+                <span className="min-w-0 truncate">
+                  <span className={h.delta > 0 ? "font-semibold text-primary" : "font-semibold text-destructive"}>
+                    {h.delta > 0 ? `+${h.delta}` : h.delta} pts
+                  </span>{" "}
+                  to @{h.username ?? "unknown"}
+                  {h.reason ? ` — ${h.reason}` : ""}
+                </span>
+                <span className="shrink-0">
+                  {new Date(h.created_at).toLocaleDateString("en-US", {
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
