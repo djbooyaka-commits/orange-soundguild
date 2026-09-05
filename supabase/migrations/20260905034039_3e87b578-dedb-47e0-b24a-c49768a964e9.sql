@@ -1,0 +1,2 @@
+ALTER TABLE public.room_chat_messages ADD COLUMN IF NOT EXISTS reply_to uuid REFERENCES public.room_chat_messages(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS room_chat_messages_reply_to_idx ON public.room_chat_messages (reply_to);
