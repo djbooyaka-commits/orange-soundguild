@@ -11,6 +11,7 @@ import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
 import { BetaPlaylistRoom } from "@/components/BetaPlaylistRoom";
 import { BetaRoomInvite } from "@/components/BetaRoomInvite";
 import { BetaRoomSubmissions } from "@/components/BetaRoomSubmissions";
+import { RoomChat } from "@/components/RoomChat";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 
