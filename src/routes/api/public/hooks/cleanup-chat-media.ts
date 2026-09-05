@@ -47,8 +47,8 @@ export const Route = createFileRoute("/api/public/hooks/cleanup-chat-media")({
           }
 
           const paths = (rows ?? [])
-            .map((r: any) => r.image_url as string | null | undefined)
-            .filter((p): p is string => typeof p === "string" && p.length > 0);
+            .map((r: any) => r.image_url)
+            .filter((p: string | null | undefined): p is string => typeof p === "string" && p.length > 0);
 
           if (paths.length > 0) {
             for (let i = 0; i < paths.length; i += 100) {
