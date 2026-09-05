@@ -163,9 +163,9 @@ function BetaRoomDetail() {
             </RoomChatTabLabel>
           </TabsTrigger>
           {playlists.map((p) => (
-            <TabsTrigger key={p.id} value={`pl-${p.id}`} className="max-w-[45vw] shrink-0 truncate">
-              {p.name}
-              {p.isTeam && <span className="ml-1 text-orange-400" title="Team playlist">★</span>}
+            <TabsTrigger key={p.id} value={`pl-${p.id}`} className="max-w-[60vw] shrink-0 whitespace-normal break-words text-left leading-tight">
+              <span className="line-clamp-2">{p.name}</span>
+              {p.isTeam && <span className="ml-1 shrink-0 text-orange-400" title="Team playlist">★</span>}
             </TabsTrigger>
           ))}
 

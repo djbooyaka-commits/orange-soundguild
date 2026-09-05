@@ -215,30 +215,32 @@ export function CuratorPlaylistManager() {
         {items.map((p) => (
           <li
             key={p.id}
-            className={`flex flex-wrap items-center gap-3 rounded-md border p-3 ${p.is_team ? "border-primary/60 bg-primary/5" : "border-border"}`}
+            className={`flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center ${p.is_team ? "border-primary/60 bg-primary/5" : "border-border"}`}
           >
-            {p.image_url ? (
-              <img src={p.image_url} alt="" className="h-12 w-12 rounded object-cover"  loading="lazy" decoding="async" />
-            ) : (
-              <div className="h-12 w-12 rounded bg-muted" />
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">
-                {p.name}
-                {p.is_team && (
-                  <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                    <Star className="h-3 w-3" /> Team playlist
-                  </span>
-                )}
-              </p>
-              <a
-                href={`https://open.spotify.com/playlist/${p.spotify_playlist_id}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                Open in Spotify ↗
-              </a>
+            <div className="flex items-start gap-3 sm:flex-1 sm:items-center">
+              {p.image_url ? (
+                <img src={p.image_url} alt="" className="h-12 w-12 shrink-0 rounded object-cover"  loading="lazy" decoding="async" />
+              ) : (
+                <div className="h-12 w-12 shrink-0 rounded bg-muted" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium leading-snug break-words">
+                  {p.name}
+                  {p.is_team && (
+                    <span className="ml-2 inline-flex shrink-0 align-middle items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                      <Star className="h-3 w-3" /> Team playlist
+                    </span>
+                  )}
+                </p>
+                <a
+                  href={`https://open.spotify.com/playlist/${p.spotify_playlist_id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Open in Spotify ↗
+                </a>
+              </div>
             </div>
             <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1">
               <Clock className="h-3 w-3 text-muted-foreground" />
