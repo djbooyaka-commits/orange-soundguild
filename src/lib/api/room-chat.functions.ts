@@ -124,6 +124,33 @@ export const postRoomChat = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const editRoomChatMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { messageId: string; body: string }) => ({
+    messageId: String(data?.messageId ?? ""),
+    body: String(data?.body ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const body = data.body.trim().slice(0, 1000);
+    if (!body) throw new Error("Message is empty");
+
+    const { data: msg } = await supabaseAdmin
+      .from("room_chat_messages")
+      .select("id, user_id")
+      .eq("id", data.messageId)
+      .maybeSingle();
+    if (!msg) throw new Error("Message not found");
+    if (msg.user_id !== context.userId) throw new Error("Not allowed");
+
+    const { error } = await supabaseAdmin
+      .from("room_chat_messages")
+      .update({ body, edited_at: new Date().toISOString() })
+      .eq("id", data.messageId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const deleteRoomChatMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { messageId: string }) => ({ messageId: String(data?.messageId ?? "") }))
