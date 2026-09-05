@@ -1421,7 +1421,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          body: string
+          body?: string
           created_at?: string
           edited_at?: string | null
           id?: string
