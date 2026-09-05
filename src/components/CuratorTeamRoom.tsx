@@ -26,6 +26,7 @@ import {
   type CuratorTeamPointEvent,
   type CuratorTeamRoom as TeamRoom,
 } from "@/lib/api/curator-team.functions";
+import { Button } from "@/components/ui/button";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
 
@@ -345,6 +346,54 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                   <span>{below ? `Below ${min}` : "Pass"}</span>
                 </div>
 
+                {room.is_owner && (
+                  <div className="rounded-md border border-primary/40 bg-primary/5 p-2">
+                    <label
+                      htmlFor={`give-points-${m.user_id}`}
+                      className="mb-1.5 block text-xs font-semibold text-foreground"
+                    >
+                      Give points to @{m.username ?? "user"}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id={`give-points-${m.user_id}`}
+                        type="number"
+                        min={1}
+                        inputMode="numeric"
+                        placeholder="Points"
+                        value={pointInputs[m.user_id] ?? ""}
+                        onChange={(e) =>
+                          setPointInputs((s) => ({ ...s, [m.user_id]: e.target.value }))
+                        }
+                        className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-2 text-sm"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => adjust(m.user_id, 1)}
+                        disabled={busyId === m.user_id}
+                      >
+                        {busyId === m.user_id ? (
+                          <Loader2 className="animate-spin" />
+                        ) : (
+                          <Plus />
+                        )}
+                        Give points
+                      </Button>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => adjust(m.user_id, -1)}
+                      disabled={busyId === m.user_id}
+                      className="mt-1 h-7 px-1.5 text-destructive hover:text-destructive"
+                    >
+                      <Minus /> Remove points
+                    </Button>
+                  </div>
+                )}
+
                 {m.spotify_artist_url ? (
                   <a
                     href={m.spotify_artist_url}
@@ -419,34 +468,6 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                       Save links
                     </button>
 
-                    <div className="flex items-center gap-1 pt-1">
-                      <input
-                        type="number"
-                        min={1}
-                        placeholder="pts"
-                        value={pointInputs[m.user_id] ?? ""}
-                        onChange={(e) =>
-                          setPointInputs((s) => ({ ...s, [m.user_id]: e.target.value }))
-                        }
-                        className="w-20 rounded-md border border-border bg-background px-2 py-1 text-xs"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => adjust(m.user_id, 1)}
-                        disabled={busyId === m.user_id}
-                        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Add pts
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => adjust(m.user_id, -1)}
-                        disabled={busyId === m.user_id}
-                        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-destructive hover:text-destructive disabled:opacity-50"
-                      >
-                        <Minus className="h-3.5 w-3.5" /> Remove
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>

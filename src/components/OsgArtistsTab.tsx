@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Music, Star, Plus, X, Loader2, AlertTriangle, TrendingUp, Send, Users, ExternalLink, Minus, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   listMyOsgArtistPicks,
   addOsgArtistPick,
@@ -366,7 +367,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   };
 
 
-  const doDeduct = async (artistId: string) => {
+  const adjustPoints = async (artistId: string, sign: 1 | -1) => {
     const raw = deductInputs[artistId]?.trim();
     const n = raw ? Math.abs(parseInt(raw, 10)) : NaN;
     if (!n || !isFinite(n) || n <= 0) {
@@ -375,12 +376,18 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     }
     setDeductingId(artistId);
     try {
-      await adjustFn({ data: { userId: artistId, delta: -n } });
+      await adjustFn({
+        data: {
+          userId: artistId,
+          delta: sign * n,
+          reason: sign > 0 ? "Manual Spotify stream credit" : "Curator deduction",
+        },
+      });
       setDeductInputs((s) => ({ ...s, [artistId]: "" }));
       await refresh();
-      toast.success(`Removed ${n} pts`);
+      toast.success(`${sign > 0 ? "Gave" : "Removed"} ${n} pts`);
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not remove points");
+      toast.error(err?.message ?? "Could not adjust points");
     } finally {
       setDeductingId(null);
     }
@@ -501,31 +508,50 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
           </span>
         </div>
         {a.showDeduct && (
-          <div className="flex items-center gap-2">
+          <div className="rounded-md border border-primary/40 bg-primary/5 p-2">
+            <label
+              htmlFor={`spotify-points-${a.artist_id}`}
+              className="mb-1.5 block text-xs font-semibold text-foreground"
+            >
+              Give points to @{a.username ?? "user"}
+            </label>
+            <div className="flex items-center gap-2">
             <input
+              id={`spotify-points-${a.artist_id}`}
               type="number"
               min={1}
-              placeholder="pts to remove"
+              inputMode="numeric"
+              placeholder="Points"
               value={deductInputs[a.artist_id] ?? ""}
               onChange={(e) =>
                 setDeductInputs((s) => ({ ...s, [a.artist_id]: e.target.value }))
               }
-              className="w-32 rounded-md border border-border bg-background px-2 py-1 text-xs"
+              className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-2 text-sm"
             />
-            <button
+            <Button
               type="button"
-              onClick={() => doDeduct(a.artist_id)}
+              size="sm"
+              onClick={() => adjustPoints(a.artist_id, 1)}
               disabled={deductingId === a.artist_id}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-destructive hover:text-destructive disabled:opacity-50"
-              title="Remove points"
             >
               {deductingId === a.artist_id ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <Minus className="h-3.5 w-3.5" />
+                <Plus />
               )}
-              Remove pts
-            </button>
+              Give points
+            </Button>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => adjustPoints(a.artist_id, -1)}
+              disabled={deductingId === a.artist_id}
+              className="mt-1 h-7 px-1.5 text-destructive hover:text-destructive"
+            >
+              <Minus /> Remove points
+            </Button>
           </div>
         )}
         {renderFollowLink(a.curator_id, a.artist_id, Boolean(a.showDeduct))}
