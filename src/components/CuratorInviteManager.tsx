@@ -24,10 +24,17 @@ export function CuratorInviteManager() {
   const { user } = useAuth();
   const listFn = useServerFn(listMyCuratorInvitees);
   const cancelFn = useServerFn(cancelCuratorInvite);
+  const playlistsFn = useServerFn(listMyCuratorPlaylists);
+  const adjustFn = useServerFn(curatorAdjustPlaylistPoints);
 
   const [items, setItems] = useState<Invitee[]>([]);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [playlists, setPlaylists] = useState<Array<{ id: string; name: string }>>([]);
+  const [playlistId, setPlaylistId] = useState("");
+  const [pointInputs, setPointInputs] = useState<Record<string, string>>({});
+  const [adjustingId, setAdjustingId] = useState<string | null>(null);
+
 
   const inviteUrl = useMemo(() => {
     if (!user) return "";
