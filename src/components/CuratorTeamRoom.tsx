@@ -76,7 +76,14 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
       return next;
     });
     setAvatars(await signMany(rows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))));
-  }, [rosterFn, room.playlist_id]);
+    if (room.is_owner) {
+      try {
+        setHistory((await historyFn({ data: { playlistId: room.playlist_id } })) as CuratorTeamPointEvent[]);
+      } catch {
+        setHistory([]);
+      }
+    }
+  }, [rosterFn, historyFn, room.playlist_id, room.is_owner]);
 
   useEffect(() => {
     setLoading(true);
