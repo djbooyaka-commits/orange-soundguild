@@ -698,6 +698,40 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
             );
           })}
         </div>
+
+        {data.isOwner && history.length > 0 && (
+          <div className="mt-6 rounded-lg border border-border p-4">
+            <h3 className="text-sm font-semibold">Points you&apos;ve given</h3>
+            <ul className="mt-2 space-y-1.5">
+              {history.map((h) => (
+                <li
+                  key={h.id}
+                  className="flex items-center justify-between gap-2 text-xs text-muted-foreground"
+                >
+                  <span className="min-w-0 truncate">
+                    <span
+                      className={
+                        h.delta > 0
+                          ? "font-semibold text-primary"
+                          : "font-semibold text-destructive"
+                      }
+                    >
+                      {h.delta > 0 ? `+${h.delta}` : h.delta} pts
+                    </span>{" "}
+                    to @{h.username ?? "unknown"}
+                    {h.reason ? ` — ${h.reason}` : ""}
+                  </span>
+                  <span className="shrink-0">
+                    {new Date(h.created_at).toLocaleDateString("en-US", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
