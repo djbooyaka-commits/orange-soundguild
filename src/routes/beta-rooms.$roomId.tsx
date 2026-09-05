@@ -154,6 +154,7 @@ function BetaRoomDetail() {
           <TabsTrigger value="playlists" className="shrink-0">Curator playlists</TabsTrigger>
           {room.isOwner && <TabsTrigger value="invite" className="shrink-0">Invite link</TabsTrigger>}
           <TabsTrigger value="submissions" className="shrink-0">Track submissions</TabsTrigger>
+          <TabsTrigger value="chat" className="shrink-0">Chat</TabsTrigger>
           {playlists.map((p) => (
             <TabsTrigger key={p.id} value={`pl-${p.id}`} className="max-w-[45vw] shrink-0 truncate">
               {p.name}
