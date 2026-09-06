@@ -248,7 +248,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
           album: albumName,
           track_number: trackNum,
         })
-        .select()
+        .select("id")
         .single();
       if (dbErr) throw dbErr;
 
@@ -329,7 +329,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
             album: name,
             track_number: i + 1,
           })
-          .select()
+          .select("id")
           .single();
         if (dbErr) throw dbErr;
 
