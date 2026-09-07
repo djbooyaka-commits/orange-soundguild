@@ -499,29 +499,21 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       let newCoverPath: string | null | undefined = undefined;
       if (coverFile) {
         const stamp = Date.now();
-        const safe = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safe = safeFileName(coverFile, "image", "jpg");
         const path = `${userId}/${stamp}-${safe}`;
-        const { error: upErr } = await supabase.storage
-          .from("covers")
-          .upload(path, coverFile, { contentType: coverFile.type, upsert: false });
-        if (upErr) throw upErr;
+        await uploadToStorage("covers", path, coverFile, resolveContentType(coverFile, "image"));
         newCoverPath = path;
       }
 
       let newLosslessPath: string | null | undefined = undefined;
       if (losslessFile) {
         const stamp = Date.now();
-        const safe = losslessFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safe = safeFileName(losslessFile, "audio", "wav");
         const path = `${userId}/lossless-${stamp}-${safe}`;
-        const { error: upErr } = await supabase.storage
-          .from("audio")
-          .upload(path, losslessFile, {
-            contentType: losslessFile.type || "audio/wav",
-            upsert: false,
-          });
-        if (upErr) throw upErr;
+        await uploadToStorage("audio", path, losslessFile, resolveContentType(losslessFile, "audio"));
         newLosslessPath = path;
       }
+
 
       const patch: {
         title: string;
