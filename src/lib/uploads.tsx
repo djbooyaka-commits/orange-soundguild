@@ -303,23 +303,18 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       }
       const userId = userData.user.id;
       const stamp = Date.now();
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const safeName = safeFileName(file, "audio", "mp3");
       const audioPath = `${userId}/${stamp}-${safeName}`;
 
-      const { error: audioErr } = await supabase.storage
-        .from("audio")
-        .upload(audioPath, file, { contentType: file.type || "audio/mpeg", upsert: false });
-      if (audioErr) throw audioErr;
+      await uploadToStorage("audio", audioPath, file, resolveContentType(file, "audio"));
 
       let coverPath: string | null = null;
       if (coverFile) {
-        const safeCover = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safeCover = safeFileName(coverFile, "image", "jpg");
         coverPath = `${userId}/${stamp}-${safeCover}`;
-        const { error: coverErr } = await supabase.storage
-          .from("covers")
-          .upload(coverPath, coverFile, { contentType: coverFile.type, upsert: false });
-        if (coverErr) throw coverErr;
+        await uploadToStorage("covers", coverPath, coverFile, resolveContentType(coverFile, "image"));
       }
+
 
       const albumName = album && album.trim() ? album.trim() : null;
       const trackNum = albumName ? (trackNumber ?? null) : null;
