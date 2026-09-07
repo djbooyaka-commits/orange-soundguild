@@ -112,6 +112,93 @@ function collaboratorRows(trackId: string, collaboratorIds: string[] | undefined
     .map((uid, idx) => ({ track_id: trackId, user_id: uid, position: idx }));
 }
 
+// --- Mobile-safe file helpers -------------------------------------------------
+// Phone browsers (especially Android pickers and iOS Files/Music) often hand us
+// a File with an empty `type`, a generic "application/octet-stream" type, or a
+// name that sanitizes down to nothing. Sending an empty Content-Type makes the
+// storage API reject the upload, which surfaced as "Upload failed" on mobile
+// only. Derive both the name and the MIME type defensively.
+
+const AUDIO_MIME_BY_EXT: Record<string, string> = {
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  mp4: "audio/mp4",
+  aac: "audio/aac",
+  wav: "audio/wav",
+  flac: "audio/flac",
+  ogg: "audio/ogg",
+  oga: "audio/ogg",
+  opus: "audio/opus",
+  aiff: "audio/aiff",
+  aif: "audio/aiff",
+  caf: "audio/x-caf",
+  amr: "audio/amr",
+  "3gp": "audio/3gpp",
+};
+
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
+  avif: "image/avif",
+  bmp: "image/bmp",
+};
+
+function extensionOf(name: string): string {
+  const m = /\.([a-zA-Z0-9]+)$/.exec(name || "");
+  return m ? m[1].toLowerCase() : "";
+}
+
+function usableType(type: string | undefined | null, kind: "audio" | "image"): boolean {
+  if (!type) return false;
+  const t = type.toLowerCase();
+  if (t === "application/octet-stream" || t === "binary/octet-stream") return false;
+  return t.startsWith(`${kind}/`);
+}
+
+export function safeFileName(file: File, kind: "audio" | "image", fallbackExt: string) {
+  const raw = (file.name || "").trim();
+  const cleaned = raw.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^_+/, "");
+  const base = cleaned && /[a-zA-Z0-9]/.test(cleaned) ? cleaned : `${kind}-file`;
+  return extensionOf(base) ? base : `${base}.${fallbackExt}`;
+}
+
+export function resolveContentType(file: File, kind: "audio" | "image"): string {
+  if (usableType(file.type, kind)) return file.type;
+  const table = kind === "audio" ? AUDIO_MIME_BY_EXT : IMAGE_MIME_BY_EXT;
+  const byExt = table[extensionOf(file.name || "")];
+  if (byExt) return byExt;
+  return kind === "audio" ? "audio/mpeg" : "image/jpeg";
+}
+
+function isTransient(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? "");
+  return /network|fetch|timeout|failed to fetch|load failed|connection/i.test(msg);
+}
+
+// Mobile networks drop connections mid-upload; retry transient failures once.
+async function uploadToStorage(
+  bucket: "audio" | "covers",
+  path: string,
+  file: File,
+  contentType: string,
+) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, { contentType, upsert: attempt > 0 });
+    if (!error) return;
+    if (attempt === 1 || !isTransient(error)) throw error;
+    await new Promise((r) => setTimeout(r, 1200));
+  }
+}
+
+
+
 export function UploadsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [uploads, setUploads] = useState<Track[]>([]);
