@@ -267,7 +267,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
                 <input
                   ref={singleRef}
                   type="file"
-                  accept="audio/*"
+                  accept="audio/*,.mp3,.m4a,.wav,.flac,.aac,.ogg,.aiff"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   className="hidden"
                 />
@@ -337,7 +337,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
                 <input
                   ref={albumRef}
                   type="file"
-                  accept="audio/*"
+                  accept="audio/*,.mp3,.m4a,.wav,.flac,.aac,.ogg,.aiff"
                   multiple
                   onChange={(e) => { addAlbumFiles(e.target.files); if (albumRef.current) albumRef.current.value = ""; }}
                   className="hidden"
@@ -493,7 +493,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
             <input
               ref={coverRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.jpg,.jpeg,.png,.webp,.heic"
               onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
               className="hidden"
             />
