@@ -112,6 +112,93 @@ function collaboratorRows(trackId: string, collaboratorIds: string[] | undefined
     .map((uid, idx) => ({ track_id: trackId, user_id: uid, position: idx }));
 }
 
+// --- Mobile-safe file helpers -------------------------------------------------
+// Phone browsers (especially Android pickers and iOS Files/Music) often hand us
+// a File with an empty `type`, a generic "application/octet-stream" type, or a
+// name that sanitizes down to nothing. Sending an empty Content-Type makes the
+// storage API reject the upload, which surfaced as "Upload failed" on mobile
+// only. Derive both the name and the MIME type defensively.
+
+const AUDIO_MIME_BY_EXT: Record<string, string> = {
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  mp4: "audio/mp4",
+  aac: "audio/aac",
+  wav: "audio/wav",
+  flac: "audio/flac",
+  ogg: "audio/ogg",
+  oga: "audio/ogg",
+  opus: "audio/opus",
+  aiff: "audio/aiff",
+  aif: "audio/aiff",
+  caf: "audio/x-caf",
+  amr: "audio/amr",
+  "3gp": "audio/3gpp",
+};
+
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
+  avif: "image/avif",
+  bmp: "image/bmp",
+};
+
+function extensionOf(name: string): string {
+  const m = /\.([a-zA-Z0-9]+)$/.exec(name || "");
+  return m ? m[1].toLowerCase() : "";
+}
+
+function usableType(type: string | undefined | null, kind: "audio" | "image"): boolean {
+  if (!type) return false;
+  const t = type.toLowerCase();
+  if (t === "application/octet-stream" || t === "binary/octet-stream") return false;
+  return t.startsWith(`${kind}/`);
+}
+
+export function safeFileName(file: File, kind: "audio" | "image", fallbackExt: string) {
+  const raw = (file.name || "").trim();
+  const cleaned = raw.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^_+/, "");
+  const base = cleaned && /[a-zA-Z0-9]/.test(cleaned) ? cleaned : `${kind}-file`;
+  return extensionOf(base) ? base : `${base}.${fallbackExt}`;
+}
+
+export function resolveContentType(file: File, kind: "audio" | "image"): string {
+  if (usableType(file.type, kind)) return file.type;
+  const table = kind === "audio" ? AUDIO_MIME_BY_EXT : IMAGE_MIME_BY_EXT;
+  const byExt = table[extensionOf(file.name || "")];
+  if (byExt) return byExt;
+  return kind === "audio" ? "audio/mpeg" : "image/jpeg";
+}
+
+function isTransient(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? "");
+  return /network|fetch|timeout|failed to fetch|load failed|connection/i.test(msg);
+}
+
+// Mobile networks drop connections mid-upload; retry transient failures once.
+async function uploadToStorage(
+  bucket: "audio" | "covers",
+  path: string,
+  file: File,
+  contentType: string,
+) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, { contentType, upsert: attempt > 0 });
+    if (!error) return;
+    if (attempt === 1 || !isTransient(error)) throw error;
+    await new Promise((r) => setTimeout(r, 1200));
+  }
+}
+
+
+
 export function UploadsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [uploads, setUploads] = useState<Track[]>([]);
@@ -216,23 +303,18 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       }
       const userId = userData.user.id;
       const stamp = Date.now();
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const safeName = safeFileName(file, "audio", "mp3");
       const audioPath = `${userId}/${stamp}-${safeName}`;
 
-      const { error: audioErr } = await supabase.storage
-        .from("audio")
-        .upload(audioPath, file, { contentType: file.type || "audio/mpeg", upsert: false });
-      if (audioErr) throw audioErr;
+      await uploadToStorage("audio", audioPath, file, resolveContentType(file, "audio"));
 
       let coverPath: string | null = null;
       if (coverFile) {
-        const safeCover = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safeCover = safeFileName(coverFile, "image", "jpg");
         coverPath = `${userId}/${stamp}-${safeCover}`;
-        const { error: coverErr } = await supabase.storage
-          .from("covers")
-          .upload(coverPath, coverFile, { contentType: coverFile.type, upsert: false });
-        if (coverErr) throw coverErr;
+        await uploadToStorage("covers", coverPath, coverFile, resolveContentType(coverFile, "image"));
       }
+
 
       const albumName = album && album.trim() ? album.trim() : null;
       const trackNum = albumName ? (trackNumber ?? null) : null;
@@ -295,12 +377,14 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       let sharedCoverPath: string | null = null;
       if (coverFile) {
         const stamp = Date.now();
-        const safeCover = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safeCover = safeFileName(coverFile, "image", "jpg");
         sharedCoverPath = `${userId}/${stamp}-album-${safeCover}`;
-        const { error: coverErr } = await supabase.storage
-          .from("covers")
-          .upload(sharedCoverPath, coverFile, { contentType: coverFile.type, upsert: false });
-        if (coverErr) throw coverErr;
+        await uploadToStorage(
+          "covers",
+          sharedCoverPath,
+          coverFile,
+          resolveContentType(coverFile, "image"),
+        );
       }
 
       const sharedCoverUrl = sharedCoverPath ? await signOne("covers", sharedCoverPath) : null;
@@ -310,13 +394,11 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         const t = tracks[i];
         const title = t.title.trim() || t.file.name.replace(/\.[^.]+$/, "");
         const stamp = Date.now() + i;
-        const safeName = t.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safeName = safeFileName(t.file, "audio", "mp3");
         const audioPath = `${userId}/${stamp}-${safeName}`;
 
-        const { error: audioErr } = await supabase.storage
-          .from("audio")
-          .upload(audioPath, t.file, { contentType: t.file.type || "audio/mpeg", upsert: false });
-        if (audioErr) throw audioErr;
+        await uploadToStorage("audio", audioPath, t.file, resolveContentType(t.file, "audio"));
+
 
         const { data: row, error: dbErr } = await supabase
           .from("tracks")
@@ -417,29 +499,21 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       let newCoverPath: string | null | undefined = undefined;
       if (coverFile) {
         const stamp = Date.now();
-        const safe = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safe = safeFileName(coverFile, "image", "jpg");
         const path = `${userId}/${stamp}-${safe}`;
-        const { error: upErr } = await supabase.storage
-          .from("covers")
-          .upload(path, coverFile, { contentType: coverFile.type, upsert: false });
-        if (upErr) throw upErr;
+        await uploadToStorage("covers", path, coverFile, resolveContentType(coverFile, "image"));
         newCoverPath = path;
       }
 
       let newLosslessPath: string | null | undefined = undefined;
       if (losslessFile) {
         const stamp = Date.now();
-        const safe = losslessFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safe = safeFileName(losslessFile, "audio", "wav");
         const path = `${userId}/lossless-${stamp}-${safe}`;
-        const { error: upErr } = await supabase.storage
-          .from("audio")
-          .upload(path, losslessFile, {
-            contentType: losslessFile.type || "audio/wav",
-            upsert: false,
-          });
-        if (upErr) throw upErr;
+        await uploadToStorage("audio", path, losslessFile, resolveContentType(losslessFile, "audio"));
         newLosslessPath = path;
       }
+
 
       const patch: {
         title: string;
