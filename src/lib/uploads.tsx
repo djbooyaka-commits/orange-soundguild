@@ -377,12 +377,14 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       let sharedCoverPath: string | null = null;
       if (coverFile) {
         const stamp = Date.now();
-        const safeCover = coverFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safeCover = safeFileName(coverFile, "image", "jpg");
         sharedCoverPath = `${userId}/${stamp}-album-${safeCover}`;
-        const { error: coverErr } = await supabase.storage
-          .from("covers")
-          .upload(sharedCoverPath, coverFile, { contentType: coverFile.type, upsert: false });
-        if (coverErr) throw coverErr;
+        await uploadToStorage(
+          "covers",
+          sharedCoverPath,
+          coverFile,
+          resolveContentType(coverFile, "image"),
+        );
       }
 
       const sharedCoverUrl = sharedCoverPath ? await signOne("covers", sharedCoverPath) : null;
@@ -392,13 +394,11 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         const t = tracks[i];
         const title = t.title.trim() || t.file.name.replace(/\.[^.]+$/, "");
         const stamp = Date.now() + i;
-        const safeName = t.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safeName = safeFileName(t.file, "audio", "mp3");
         const audioPath = `${userId}/${stamp}-${safeName}`;
 
-        const { error: audioErr } = await supabase.storage
-          .from("audio")
-          .upload(audioPath, t.file, { contentType: t.file.type || "audio/mpeg", upsert: false });
-        if (audioErr) throw audioErr;
+        await uploadToStorage("audio", audioPath, t.file, resolveContentType(t.file, "audio"));
+
 
         const { data: row, error: dbErr } = await supabase
           .from("tracks")
