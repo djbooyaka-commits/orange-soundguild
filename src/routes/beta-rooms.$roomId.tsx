@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBetaRoom, joinBetaRoom } from "@/lib/api/beta-rooms.functions";
 import { listBetaRoomPlaylists } from "@/lib/api/beta-curator.functions";
+import { getMyActiveBetaTrackingPlaylists } from "@/lib/api/beta-playlist-rooms.functions";
 import { LastfmConnectCard } from "@/components/LastfmConnectCard";
 import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
 import { BetaPlaylistRoom } from "@/components/BetaPlaylistRoom";
@@ -37,12 +38,23 @@ function BetaRoomDetail() {
   const getFn = useServerFn(getBetaRoom);
   const joinFn = useServerFn(joinBetaRoom);
   const playlistsFn = useServerFn(listBetaRoomPlaylists);
+  const activeTrackingFn = useServerFn(getMyActiveBetaTrackingPlaylists);
 
   const [room, setRoom] = useState<RoomData | null>(null);
   const [playlists, setPlaylists] = useState<Array<{ id: string; name: string; isTeam?: boolean }>>([]);
+  const [trackingPlaylistIds, setTrackingPlaylistIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [activeTab, setActiveTab] = useState("tracking");
+
+  const refreshTracking = useCallback(async () => {
+    try {
+      const res = await activeTrackingFn({ data: { roomId } });
+      setTrackingPlaylistIds(new Set(res.playlistIds ?? []));
+    } catch {
+      // keep last known state
+    }
+  }, [activeTrackingFn, roomId]);
 
   const refresh = useCallback(async () => {
     try {
@@ -72,7 +84,11 @@ function BetaRoomDetail() {
       return;
     }
     void refresh();
-  }, [user, refresh]);
+    void refreshTracking();
+    // Tracking can start/stop inside playlist tabs; keep the highlight fresh.
+    const interval = setInterval(() => void refreshTracking(), 20000);
+    return () => clearInterval(interval);
+  }, [user, refresh, refreshTracking]);
 
   const join = async () => {
     setBusy(true);
@@ -163,8 +179,22 @@ function BetaRoomDetail() {
             </RoomChatTabLabel>
           </TabsTrigger>
           {playlists.map((p) => (
-            <TabsTrigger key={p.id} value={`pl-${p.id}`} className="h-auto max-w-[70vw] shrink-0 items-start justify-start whitespace-normal py-1.5 text-left leading-tight">
+            <TabsTrigger
+              key={p.id}
+              value={`pl-${p.id}`}
+              className={`h-auto max-w-[70vw] shrink-0 items-start justify-start whitespace-normal py-1.5 text-left leading-tight ${
+                trackingPlaylistIds.has(p.id)
+                  ? "bg-orange-500/20 text-orange-900 ring-1 ring-orange-400 data-[state=active]:bg-orange-500/30"
+                  : ""
+              }`}
+              title={trackingPlaylistIds.has(p.id) ? "Tracking in progress — press Stop when you finish" : undefined}
+            >
               <span className="line-clamp-2">{p.name}</span>
+              {trackingPlaylistIds.has(p.id) && (
+                <span className="ml-1 shrink-0 animate-pulse text-orange-500" aria-label="Tracking active">
+                  ●
+                </span>
+              )}
               {p.isTeam && <span className="ml-1 shrink-0 text-orange-400" title="Team playlist">★</span>}
             </TabsTrigger>
           ))}
