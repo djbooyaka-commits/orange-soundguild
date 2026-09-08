@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, FlaskConical, Info } from "lucide-react";
+import { ArrowLeft, ExternalLink, FlaskConical, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBetaRoom, joinBetaRoom } from "@/lib/api/beta-rooms.functions";
@@ -41,7 +41,9 @@ function BetaRoomDetail() {
   const activeTrackingFn = useServerFn(getMyActiveBetaTrackingPlaylists);
 
   const [room, setRoom] = useState<RoomData | null>(null);
-  const [playlists, setPlaylists] = useState<Array<{ id: string; name: string; isTeam?: boolean }>>([]);
+  const [playlists, setPlaylists] = useState<
+    Array<{ id: string; name: string; spotifyPlaylistId: string; isTeam?: boolean }>
+  >([]);
   const [trackingPlaylistIds, setTrackingPlaylistIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -64,6 +66,7 @@ function BetaRoomDetail() {
         const pls = (await playlistsFn({ data: { roomId } })) as Array<{
           id: string;
           name: string;
+          spotifyPlaylistId: string;
           isTeam?: boolean;
         }>;
         setPlaylists(pls ?? []);
@@ -179,24 +182,38 @@ function BetaRoomDetail() {
             </RoomChatTabLabel>
           </TabsTrigger>
           {playlists.map((p) => (
-            <TabsTrigger
-              key={p.id}
-              value={`pl-${p.id}`}
-              className={`h-auto max-w-[70vw] shrink-0 items-start justify-start whitespace-normal py-1.5 text-left leading-tight ${
-                trackingPlaylistIds.has(p.id)
-                  ? "bg-orange-500/20 text-orange-900 ring-1 ring-orange-400 data-[state=active]:bg-orange-500/30"
-                  : ""
-              }`}
-              title={trackingPlaylistIds.has(p.id) ? "Tracking in progress — press Stop when you finish" : undefined}
-            >
-              <span className="line-clamp-2">{p.name}</span>
-              {trackingPlaylistIds.has(p.id) && (
-                <span className="ml-1 shrink-0 animate-pulse text-orange-500" aria-label="Tracking active">
-                  ●
-                </span>
+            <div key={p.id} className="relative inline-flex">
+              <TabsTrigger
+                value={`pl-${p.id}`}
+                className={`h-auto max-w-[70vw] shrink-0 items-start justify-start whitespace-normal py-1.5 pr-6 text-left leading-tight ${
+                  trackingPlaylistIds.has(p.id)
+                    ? "bg-orange-500/20 text-orange-900 ring-1 ring-orange-400 data-[state=active]:bg-orange-500/30"
+                    : ""
+                }`}
+                title={trackingPlaylistIds.has(p.id) ? "Tracking in progress — press Stop when you finish" : undefined}
+              >
+                <span className="line-clamp-2">{p.name}</span>
+                {trackingPlaylistIds.has(p.id) && (
+                  <span className="ml-1 shrink-0 animate-pulse text-orange-500" aria-label="Tracking active">
+                    ●
+                  </span>
+                )}
+                {p.isTeam && <span className="ml-1 shrink-0 text-orange-400" title="Team playlist">★</span>}
+              </TabsTrigger>
+              {p.spotifyPlaylistId && (
+                <a
+                  href={`https://open.spotify.com/playlist/${p.spotifyPlaylistId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  title="Open playlist on Spotify"
+                  aria-label="Open playlist on Spotify"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               )}
-              {p.isTeam && <span className="ml-1 shrink-0 text-orange-400" title="Team playlist">★</span>}
-            </TabsTrigger>
+            </div>
           ))}
 
         </TabsList>
