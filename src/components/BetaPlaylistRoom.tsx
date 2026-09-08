@@ -322,7 +322,18 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   </>
                 ) : null}
                 Tracking {data.playlist.trackCount} track
-                {data.playlist.trackCount === 1 ? "" : "s"}.
+                {data.playlist.trackCount === 1 ? "" : "s"}.{" "}
+                {data.playlist.spotifyPlaylistId && (
+                  <a
+                    href={`https://open.spotify.com/playlist/${data.playlist.spotifyPlaylistId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    Open playlist on Spotify
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
               </p>
             </div>
           </div>
