@@ -40,6 +40,34 @@ async function assertRoomMember(supabaseAdmin: any, room: any, userId: string) {
   return false;
 }
 
+/**
+ * Playlist IDs in a room where the current user has an open tracking session.
+ * Used to highlight those tabs so users remember which playlist to stop.
+ */
+export const getMyActiveBetaTrackingPlaylists = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { roomId: string }) => ({
+    roomId: String(data?.roomId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sessions } = await supabaseAdmin
+      .from("beta_playlist_tracking_sessions")
+      .select("playlist_id, beta_room_playlists!inner(room_id)")
+      .eq("user_id", context.userId)
+      .is("stopped_at", null);
+    return {
+      playlistIds: Array.from(
+        new Set(
+          (sessions ?? [])
+            .filter((s: any) => s?.beta_room_playlists?.room_id === data.roomId)
+            .map((s: any) => s.playlist_id as string),
+        ),
+      ),
+    };
+  });
+
+
 export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { playlistId: string }) => ({
