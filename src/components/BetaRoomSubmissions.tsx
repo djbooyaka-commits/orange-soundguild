@@ -300,7 +300,8 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
           <div>
             <h2 className="font-semibold">Submit a track</h2>
             <p className="text-sm text-muted-foreground">
-              Spend {points.cost} points to submit 1 track. Max {points.dailyLimit} every 24 hours.
+              Spend {points.cost} points to submit 1 track. Max {points.dailyLimit} every 24 hours
+              per playlist.
               Points are earned per playlist and can only be spent on the playlist you streamed.
               Submitting spends them right away. Team playlists aren&apos;t listed here — points
               can&apos;t be used on them.
@@ -314,7 +315,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
         {isOwner && (
           <div className="mt-4 flex flex-wrap items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
             <label className="text-xs text-muted-foreground" htmlFor="beta-daily-limit">
-              Tracks a member can submit every 24 hours
+              Tracks a member can submit per playlist every 24 hours
             </label>
             <input
               id="beta-daily-limit"
