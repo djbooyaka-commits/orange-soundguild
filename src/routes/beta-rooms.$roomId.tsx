@@ -171,8 +171,6 @@ function BetaRoomDetail() {
         </div>
       </header>
 
-      <AdSlotScript contentKey="ad_script_beta_room" className="mb-6" />
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 p-1">
           <TabsTrigger value="tracking" className="shrink-0">Stream Tracker</TabsTrigger>
