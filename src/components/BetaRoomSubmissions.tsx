@@ -315,7 +315,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
         {isOwner && (
           <div className="mt-4 flex flex-wrap items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
             <label className="text-xs text-muted-foreground" htmlFor="beta-daily-limit">
-              Tracks a member can submit every 24 hours
+              Tracks a member can submit per playlist every 24 hours
             </label>
             <input
               id="beta-daily-limit"
