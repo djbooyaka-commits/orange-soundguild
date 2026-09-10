@@ -950,6 +950,16 @@ const AD_SLOTS: AdSlotDef[] = [
     label: "S.T. Rooms banners",
     description: "Injected at the top and bottom of the S.T. Rooms page.",
   },
+  {
+    key: "ad_script_beta_room",
+    label: "Last.fm stream room banner",
+    description: "Injected near the top of every Last.fm (beta) stream tracker room.",
+  },
+  {
+    key: "ad_script_curator_room",
+    label: "Spotify stream tracker banner",
+    description: "Injected near the top of the Curator / Spotify stream tracker page.",
+  },
 ];
 
 function AdScriptsAdmin() {
