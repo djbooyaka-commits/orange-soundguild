@@ -302,6 +302,8 @@ function BetaRoomDetail() {
           <RoomChat scope="beta" roomKey={roomId} title={`${room.name} chat`} />
         </TabsContent>
       </Tabs>
+
+      <AdSlotScript contentKey="ad_script_beta_room" className="mt-6" />
     </main>
   );
 }
