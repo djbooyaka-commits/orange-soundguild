@@ -15,6 +15,7 @@ import { BetaRoomSubmissions } from "@/components/BetaRoomSubmissions";
 import { RoomChat } from "@/components/RoomChat";
 import { RoomChatTabLabel } from "@/components/RoomChatTabLabel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { AdSlotScript } from "@/components/AdSlotScript";
 
 
 export const Route = createFileRoute("/beta-rooms/$roomId")({
@@ -169,6 +170,8 @@ function BetaRoomDetail() {
           </p>
         </div>
       </header>
+
+      <AdSlotScript contentKey="ad_script_beta_room" className="mb-6" />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 p-1">
