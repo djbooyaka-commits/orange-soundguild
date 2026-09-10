@@ -469,17 +469,20 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
       );
     }
 
-    // Daily limit
+    // Daily limit — per playlist
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count: recent } = await supabaseAdmin
       .from("beta_submissions")
       .select("id", { count: "exact", head: true })
       .eq("room_id", data.roomId)
+      .eq("playlist_id", pl.id)
       .eq("submitter_user_id", context.userId)
       .gte("created_at", since);
     const dailyLimit = clampDailyLimit((room as any)?.daily_submission_limit);
     if ((recent ?? 0) >= dailyLimit) {
-      throw new Error(`You can submit ${dailyLimit} track${dailyLimit === 1 ? "" : "s"} every 24 hours`);
+      throw new Error(
+        `You can submit ${dailyLimit} track${dailyLimit === 1 ? "" : "s"} to "${pl.name}" every 24 hours`,
+      );
     }
 
     // Hold window — same track can't come back too soon
