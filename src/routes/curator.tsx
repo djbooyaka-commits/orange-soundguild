@@ -17,6 +17,7 @@ import { listMyCuratorTeamRooms, type CuratorTeamRoom as TeamRoomType } from "@/
 import { CuratorTeamRoom } from "@/components/CuratorTeamRoom";
 import { RoomChat } from "@/components/RoomChat";
 import { RoomChatTabLabel } from "@/components/RoomChatTabLabel";
+import { AdSlotScript } from "@/components/AdSlotScript";
 import { listPlaylistsForSubmission } from "@/lib/api/curator-submissions.functions";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -207,6 +208,8 @@ function CuratorPage() {
           Joining curator…
         </div>
       )}
+
+      <AdSlotScript contentKey="ad_script_curator_room" className="mb-6" />
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="flex flex-wrap h-auto">
