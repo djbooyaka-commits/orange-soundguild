@@ -209,8 +209,6 @@ function CuratorPage() {
         </div>
       )}
 
-      <AdSlotScript contentKey="ad_script_curator_room" className="mb-6" />
-
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="main">{isSuperfan ? "Curator" : "Stream Tracker"}</TabsTrigger>
