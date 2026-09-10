@@ -320,6 +320,8 @@ function CuratorPage() {
               </TabsContent>
             ))}
           </Tabs>
+
+          <AdSlotScript contentKey="ad_script_curator_room" className="mt-6" />
     </main>
   );
 }
