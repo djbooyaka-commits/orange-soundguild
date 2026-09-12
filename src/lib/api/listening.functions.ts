@@ -134,16 +134,16 @@ export const getSuperfanPublicProfile = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Only expose stats if the target user is a superfan
+    // Fans and Superfans share the same listener-focused public profile.
     const { data: prof } = await supabaseAdmin
       .from("profiles")
       .select("account_type")
       .eq("id", data.userId)
       .maybeSingle();
 
-    if (!prof || prof.account_type !== "superfan") {
+    if (!prof || !["fan", "superfan"].includes(prof.account_type ?? "")) {
       return {
-        isSuperfan: false as const,
+        hasListenerProfile: false as const,
         topTrack: null as TopTrack | null,
         topArtist: null as TopArtist | null,
         following: [] as FollowingUser[],
@@ -172,5 +172,5 @@ export const getSuperfanPublicProfile = createServerFn({ method: "GET" })
       }));
     }
 
-    return { isSuperfan: true as const, ...stats, following };
+    return { hasListenerProfile: true as const, ...stats, following };
   });
