@@ -14,7 +14,7 @@ import defaultAvatar from "@/assets/avatar.jpg";
 export function SuperfanPublicProfile({ userId, displayName }: { userId: string; displayName: string }) {
   const fetchProfile = useServerFn(getSuperfanPublicProfile);
   const [loading, setLoading] = useState(true);
-  const [isSuperfan, setIsSuperfan] = useState(false);
+  const [hasListenerProfile, setHasListenerProfile] = useState(false);
   const [topTrack, setTopTrack] = useState<TopTrack | null>(null);
   const [topArtist, setTopArtist] = useState<TopArtist | null>(null);
   const [following, setFollowing] = useState<FollowingUser[]>([]);
@@ -28,7 +28,7 @@ export function SuperfanPublicProfile({ userId, displayName }: { userId: string;
       try {
         const res = await fetchProfile({ data: { userId } });
         if (cancelled) return;
-        setIsSuperfan(res.isSuperfan);
+        setHasListenerProfile(res.hasListenerProfile);
         setTopTrack(res.topTrack);
         setTopArtist(res.topArtist);
         setFollowing(res.following);
@@ -53,7 +53,7 @@ export function SuperfanPublicProfile({ userId, displayName }: { userId: string;
   if (loading) {
     return <div className="mt-8 h-28 animate-pulse rounded-xl bg-muted" />;
   }
-  if (!isSuperfan) return null;
+  if (!hasListenerProfile) return null;
 
   return (
     <section className="mt-8">

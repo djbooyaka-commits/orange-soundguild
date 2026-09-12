@@ -16,7 +16,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useFollow } from "@/lib/follows";
 import { useIsAdmin, adminDeleteTrack, setUserBanned } from "@/hooks/useIsAdmin";
 import { useAccountType } from "@/hooks/useAccountType";
-import { SuperfanTopStats } from "@/components/SuperfanTopStats";
 import { SuperfanPublicProfile } from "@/components/SuperfanPublicProfile";
 import { toast } from "sonner";
 import banner from "@/assets/banner.jpg";
@@ -325,7 +324,7 @@ function ProfilePage() {
 
       {/* Uploaded tracks */}
       <main className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
-        {isMe && accountType === "superfan" && profileUserId && (
+        {isMe && (accountType === "fan" || accountType === "superfan") && profileUserId && (
           <SuperfanPublicProfile userId={profileUserId} displayName="you" />
         )}
 
