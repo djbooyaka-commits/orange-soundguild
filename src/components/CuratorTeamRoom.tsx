@@ -331,6 +331,57 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                   m.is_me ? "border-primary/60 bg-primary/5" : "border-border"
                 }`}
               >
+                {m.facebook_url && (
+                  <a
+                    href={m.facebook_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 rounded-md border border-border px-2 py-1 text-xs font-medium text-[#1877F2] hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">
+                      {m.facebook_name ?? m.facebook_url}
+                    </span>
+                  </a>
+                )}
+
+                {room.is_owner && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Facebook name"
+                      value={fbNameInputs[m.user_id] ?? ""}
+                      onChange={(e) =>
+                        setFbNameInputs((s) => ({ ...s, [m.user_id]: e.target.value }))
+                      }
+                      className="w-32 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                    />
+                    <input
+                      type="url"
+                      placeholder="https://www.facebook.com/..."
+                      value={fbUrlInputs[m.user_id] ?? ""}
+                      onChange={(e) =>
+                        setFbUrlInputs((s) => ({ ...s, [m.user_id]: e.target.value }))
+                      }
+                      className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={savingFbId === m.user_id}
+                      onClick={() => saveFacebook(m.user_id)}
+                    >
+                      {savingFbId === m.user_id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        "Save FB"
+                      )}
+                    </Button>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-3">
                   <Link
                     to="/u/$handle"
