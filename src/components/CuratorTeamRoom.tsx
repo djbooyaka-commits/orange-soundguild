@@ -70,6 +70,20 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
       });
       return next;
     });
+    setFbUrlInputs(() => {
+      const next: Record<string, string> = {};
+      rows.forEach((r) => {
+        next[r.user_id] = r.facebook_url ?? "";
+      });
+      return next;
+    });
+    setFbNameInputs(() => {
+      const next: Record<string, string> = {};
+      rows.forEach((r) => {
+        next[r.user_id] = r.facebook_name ?? "";
+      });
+      return next;
+    });
     setTrackInputs(() => {
       const next: Record<string, string[]> = {};
       rows.forEach((r) => {
