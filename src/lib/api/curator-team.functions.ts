@@ -25,6 +25,8 @@ export type CuratorTeamMember = {
   spotify_artist_url: string | null;
   spotify_artist_name: string | null;
   track_urls: string[] | null;
+  facebook_url: string | null;
+  facebook_name: string | null;
 };
 
 export const setCuratorPlaylistIsTeam = createServerFn({ method: "POST" })
