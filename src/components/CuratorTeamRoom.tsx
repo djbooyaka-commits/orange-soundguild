@@ -161,6 +161,28 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
     }
   };
 
+  const saveFacebook = async (userId: string) => {
+    setSavingFbId(userId);
+    try {
+      await fbFn({
+        data: {
+          playlistId: room.playlist_id,
+          userId,
+          url: (fbUrlInputs[userId] ?? "").trim(),
+          name: (fbNameInputs[userId] ?? "").trim(),
+        },
+      });
+      await refresh();
+      toast.success("Facebook link saved");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save Facebook link");
+    } finally {
+      setSavingFbId(null);
+    }
+  };
+
+
+
   const adjust = async (userId: string, sign: 1 | -1) => {
     const raw = (pointInputs[userId] ?? "").trim();
     const n = raw ? Math.abs(parseInt(raw, 10)) : NaN;
