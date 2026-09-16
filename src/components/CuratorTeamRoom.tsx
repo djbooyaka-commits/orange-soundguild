@@ -38,6 +38,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   const addFn = useServerFn(curatorTeamAddMember);
   const removeFn = useServerFn(curatorTeamRemoveMember);
   const linksFn = useServerFn(curatorTeamSetLinks);
+  const fbFn = useServerFn(curatorTeamSetFacebook);
   const adjustFn = useServerFn(curatorTeamAdjustPoints);
   const minFn = useServerFn(curatorTeamSetWeeklyMin);
   const historyFn = useServerFn(curatorTeamPointHistory);
