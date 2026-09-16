@@ -121,6 +121,8 @@ export type Database = {
       beta_playlist_member_links: {
         Row: {
           created_at: string
+          facebook_name: string | null
+          facebook_url: string | null
           id: string
           playlist_id: string
           spotify_artist_name: string | null
@@ -140,6 +142,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          facebook_name?: string | null
+          facebook_url?: string | null
           id?: string
           playlist_id: string
           spotify_artist_name?: string | null
@@ -159,6 +163,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          facebook_name?: string | null
+          facebook_url?: string | null
           id?: string
           playlist_id?: string
           spotify_artist_name?: string | null
@@ -734,6 +740,8 @@ export type Database = {
         Row: {
           created_at: string
           curator_id: string
+          facebook_name: string | null
+          facebook_url: string | null
           id: string
           playlist_id: string
           spotify_artist_name: string | null
@@ -745,6 +753,8 @@ export type Database = {
         Insert: {
           created_at?: string
           curator_id: string
+          facebook_name?: string | null
+          facebook_url?: string | null
           id?: string
           playlist_id: string
           spotify_artist_name?: string | null
@@ -756,6 +766,8 @@ export type Database = {
         Update: {
           created_at?: string
           curator_id?: string
+          facebook_name?: string | null
+          facebook_url?: string | null
           id?: string
           playlist_id?: string
           spotify_artist_name?: string | null
@@ -2169,6 +2181,8 @@ export type Database = {
         Returns: {
           account_type: Database["public"]["Enums"]["account_type"]
           avatar_url: string
+          facebook_name: string
+          facebook_url: string
           is_me: boolean
           last_deduction_at: string
           member_id: string
@@ -2180,6 +2194,15 @@ export type Database = {
           username: string
           weekly_min: number
         }[]
+      }
+      curator_team_set_facebook: {
+        Args: {
+          _fb_name: string
+          _fb_url: string
+          _playlist_id: string
+          _user_id: string
+        }
+        Returns: undefined
       }
       curator_team_set_links: {
         Args: {
