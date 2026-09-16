@@ -25,6 +25,7 @@ import {
   removeBetaRoomMember,
   setBetaPlaylistMemberLink,
   betaPlaylistPointHistory,
+  setBetaRoomMemberJoinedAt,
   type BetaPointEvent,
 } from "@/lib/api/beta-playlist-rooms.functions";
 import {
@@ -104,6 +105,9 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [trackingMsg, setTrackingMsg] = useState<string | null>(null);
   const [history, setHistory] = useState<BetaPointEvent[]>([]);
   const historyFn = useServerFn(betaPlaylistPointHistory);
+  const setJoinedFn = useServerFn(setBetaRoomMemberJoinedAt);
+  const [joinedInputs, setJoinedInputs] = useState<Record<string, string>>({});
+  const [savingJoinedId, setSavingJoinedId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const r = (await getFn({ data: { playlistId } })) as RoomData;
