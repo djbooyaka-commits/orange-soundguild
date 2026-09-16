@@ -453,3 +453,36 @@ export const betaPlaylistPointHistory = createServerFn({ method: "POST" })
       created_at: r.created_at,
     })) as BetaPointEvent[];
   });
+
+const FB_RE = /^https?:\/\/([a-z0-9-]+\.)*(facebook\.com|fb\.me|fb\.watch)\//i;
+
+/** Room owner sets a member's Facebook link + display name on their card. */
+export const setBetaPlaylistMemberFacebook = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; userId: string; url?: string; name?: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    userId: String(data?.userId ?? ""),
+    url: String(data?.url ?? "").trim().slice(0, 500),
+    name: String(data?.name ?? "").trim().slice(0, 200),
+  }))
+  .handler(async ({ context, data }) => {
+    if (data.url && !FB_RE.test(data.url)) throw new Error("Enter a valid Facebook link");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId)
+      throw new Error("Only the room owner can set Facebook links");
+
+    const { error } = await supabaseAdmin
+      .from("beta_playlist_member_links")
+      .upsert(
+        {
+          playlist_id: pl.id,
+          user_id: data.userId,
+          facebook_url: data.url || null,
+          facebook_name: data.name || null,
+        } as any,
+        { onConflict: "playlist_id,user_id" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
