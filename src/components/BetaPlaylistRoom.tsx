@@ -150,6 +150,20 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       });
       return next;
     });
+    setFbUrlInputs(() => {
+      const next: Record<string, string> = {};
+      r.members.forEach((m) => {
+        next[m.user_id] = m.facebook_url ?? "";
+      });
+      return next;
+    });
+    setFbNameInputs(() => {
+      const next: Record<string, string> = {};
+      r.members.forEach((m) => {
+        next[m.user_id] = m.facebook_name ?? "";
+      });
+      return next;
+    });
   }, [getFn, historyFn, playlistId]);
 
   useEffect(() => {
