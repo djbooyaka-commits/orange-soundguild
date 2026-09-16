@@ -111,6 +111,10 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const setJoinedFn = useServerFn(setBetaRoomMemberJoinedAt);
   const [joinedInputs, setJoinedInputs] = useState<Record<string, string>>({});
   const [savingJoinedId, setSavingJoinedId] = useState<string | null>(null);
+  const setFbFn = useServerFn(setBetaPlaylistMemberFacebook);
+  const [fbUrlInputs, setFbUrlInputs] = useState<Record<string, string>>({});
+  const [fbNameInputs, setFbNameInputs] = useState<Record<string, string>>({});
+  const [savingFbId, setSavingFbId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const r = (await getFn({ data: { playlistId } })) as RoomData;
