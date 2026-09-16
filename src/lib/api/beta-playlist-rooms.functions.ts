@@ -309,6 +309,34 @@ export const removeBetaRoomMember = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Room owner (curator) can correct the date a member joined the room. */
+export const setBetaRoomMemberJoinedAt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; userId: string; joinedAt: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    userId: String(data?.userId ?? ""),
+    joinedAt: String(data?.joinedAt ?? "").trim(),
+  }))
+  .handler(async ({ context, data }) => {
+    if (!data.joinedAt) throw new Error("Pick a date");
+    const when = new Date(`${data.joinedAt}T12:00:00Z`);
+    if (Number.isNaN(when.getTime())) throw new Error("That date isn't valid");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId)
+      throw new Error("Only the room owner can change joined dates");
+
+    const { error } = await supabaseAdmin
+      .from("beta_room_members")
+      .update({ created_at: when.toISOString() })
+      .eq("room_id", room.id)
+      .eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true, joinedAt: when.toISOString() };
+  });
+
+
+
 export const setBetaPlaylistMemberLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
