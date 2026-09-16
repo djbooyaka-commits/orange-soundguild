@@ -25,6 +25,7 @@ import {
   removeBetaRoomMember,
   setBetaPlaylistMemberLink,
   betaPlaylistPointHistory,
+  setBetaRoomMemberJoinedAt,
   type BetaPointEvent,
 } from "@/lib/api/beta-playlist-rooms.functions";
 import {
@@ -104,6 +105,9 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [trackingMsg, setTrackingMsg] = useState<string | null>(null);
   const [history, setHistory] = useState<BetaPointEvent[]>([]);
   const historyFn = useServerFn(betaPlaylistPointHistory);
+  const setJoinedFn = useServerFn(setBetaRoomMemberJoinedAt);
+  const [joinedInputs, setJoinedInputs] = useState<Record<string, string>>({});
+  const [savingJoinedId, setSavingJoinedId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const r = (await getFn({ data: { playlistId } })) as RoomData;
@@ -167,6 +171,27 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       setSavingMin(false);
     }
   };
+
+  const saveJoined = async (m: Member) => {
+    const value =
+      joinedInputs[m.user_id] ??
+      (m.joined_at ? new Date(m.joined_at).toISOString().slice(0, 10) : "");
+    if (!value) {
+      toast.error("Pick a date");
+      return;
+    }
+    setSavingJoinedId(m.user_id);
+    try {
+      await setJoinedFn({ data: { playlistId, userId: m.user_id, joinedAt: value } });
+      await refresh();
+      toast.success("Joined date updated");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not update the joined date");
+    } finally {
+      setSavingJoinedId(null);
+    }
+  };
+
 
   const doDeduct = async (userId: string) => {
     const raw = deductInputs[userId]?.trim();
@@ -464,16 +489,47 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                 )}
 
                 {isTeam && m.joined_at && (
-                  <span className="inline-flex w-fit items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Joined{" "}
-                    {new Date(m.joined_at)
-                      .toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
-                      .replace(/ /g, "-")}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex w-fit items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Joined{" "}
+                      {new Date(m.joined_at)
+                        .toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                        .replace(/ /g, "-")}
+                    </span>
+                    {data.isOwner && (
+                      <>
+                        <input
+                          type="date"
+                          value={
+                            joinedInputs[m.user_id] ??
+                            new Date(m.joined_at).toISOString().slice(0, 10)
+                          }
+                          onChange={(e) =>
+                            setJoinedInputs((s) => ({ ...s, [m.user_id]: e.target.value }))
+                          }
+                          className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+                          aria-label="Joined date"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          disabled={savingJoinedId === m.user_id}
+                          onClick={() => saveJoined(m)}
+                        >
+                          {savingJoinedId === m.user_id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            "Save date"
+                          )}
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 )}
 
                 <div
