@@ -172,6 +172,27 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     }
   };
 
+  const saveJoined = async (m: Member) => {
+    const value =
+      joinedInputs[m.user_id] ??
+      (m.joined_at ? new Date(m.joined_at).toISOString().slice(0, 10) : "");
+    if (!value) {
+      toast.error("Pick a date");
+      return;
+    }
+    setSavingJoinedId(m.user_id);
+    try {
+      await setJoinedFn({ data: { playlistId, userId: m.user_id, joinedAt: value } });
+      await refresh();
+      toast.success("Joined date updated");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not update the joined date");
+    } finally {
+      setSavingJoinedId(null);
+    }
+  };
+
+
   const doDeduct = async (userId: string) => {
     const raw = deductInputs[userId]?.trim();
     const n = raw ? Math.abs(parseInt(raw, 10)) : NaN;
