@@ -24,6 +24,7 @@ import {
   adjustBetaPlaylistPoints,
   removeBetaRoomMember,
   setBetaPlaylistMemberLink,
+  setBetaPlaylistMemberFacebook,
   betaPlaylistPointHistory,
   setBetaRoomMemberJoinedAt,
   type BetaPointEvent,
