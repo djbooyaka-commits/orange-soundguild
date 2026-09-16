@@ -56,6 +56,9 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   const [trackInputs, setTrackInputs] = useState<Record<string, string[]>>({});
   const [savingLinksId, setSavingLinksId] = useState<string | null>(null);
   const [pointInputs, setPointInputs] = useState<Record<string, string>>({});
+  const [fbUrlInputs, setFbUrlInputs] = useState<Record<string, string>>({});
+  const [fbNameInputs, setFbNameInputs] = useState<Record<string, string>>({});
+  const [savingFbId, setSavingFbId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const rows = (await rosterFn({ data: { playlistId: room.playlist_id } })) as CuratorTeamMember[];
