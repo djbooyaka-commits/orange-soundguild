@@ -49,6 +49,8 @@ type Member = {
   is_me: boolean;
   spotify_artist_url: string | null;
   spotify_artist_name: string | null;
+  facebook_url: string | null;
+  facebook_name: string | null;
   track_url: string | null;
   track_name: string | null;
   track2_url: string | null;
