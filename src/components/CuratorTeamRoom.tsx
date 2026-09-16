@@ -21,6 +21,7 @@ import {
   curatorTeamRemoveMember,
   curatorTeamRoster,
   curatorTeamSetLinks,
+  curatorTeamSetFacebook,
   curatorTeamSetWeeklyMin,
   type CuratorTeamMember,
   type CuratorTeamPointEvent,
