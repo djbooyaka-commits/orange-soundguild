@@ -268,6 +268,26 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     }
   };
 
+  const saveFacebook = async (userId: string) => {
+    setSavingFbId(userId);
+    try {
+      await setFbFn({
+        data: {
+          playlistId,
+          userId,
+          url: (fbUrlInputs[userId] ?? "").trim(),
+          name: (fbNameInputs[userId] ?? "").trim(),
+        },
+      });
+      await refresh();
+      toast.success("Facebook link saved");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save Facebook link");
+    } finally {
+      setSavingFbId(null);
+    }
+  };
+
   const saveLink = async (userId: string) => {
     const artist = (linkInputs[userId]?.artist ?? "").trim();
     const tracks = (linkInputs[userId]?.tracks ?? []).map((t) => t.trim());
