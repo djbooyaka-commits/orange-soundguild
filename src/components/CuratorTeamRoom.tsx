@@ -21,6 +21,7 @@ import {
   curatorTeamRemoveMember,
   curatorTeamRoster,
   curatorTeamSetLinks,
+  curatorTeamSetFacebook,
   curatorTeamSetWeeklyMin,
   type CuratorTeamMember,
   type CuratorTeamPointEvent,
@@ -37,6 +38,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   const addFn = useServerFn(curatorTeamAddMember);
   const removeFn = useServerFn(curatorTeamRemoveMember);
   const linksFn = useServerFn(curatorTeamSetLinks);
+  const fbFn = useServerFn(curatorTeamSetFacebook);
   const adjustFn = useServerFn(curatorTeamAdjustPoints);
   const minFn = useServerFn(curatorTeamSetWeeklyMin);
   const historyFn = useServerFn(curatorTeamPointHistory);
@@ -54,6 +56,9 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   const [trackInputs, setTrackInputs] = useState<Record<string, string[]>>({});
   const [savingLinksId, setSavingLinksId] = useState<string | null>(null);
   const [pointInputs, setPointInputs] = useState<Record<string, string>>({});
+  const [fbUrlInputs, setFbUrlInputs] = useState<Record<string, string>>({});
+  const [fbNameInputs, setFbNameInputs] = useState<Record<string, string>>({});
+  const [savingFbId, setSavingFbId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const rows = (await rosterFn({ data: { playlistId: room.playlist_id } })) as CuratorTeamMember[];
@@ -62,6 +67,20 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
       const next: Record<string, string> = {};
       rows.forEach((r) => {
         next[r.user_id] = r.spotify_artist_url ?? "";
+      });
+      return next;
+    });
+    setFbUrlInputs(() => {
+      const next: Record<string, string> = {};
+      rows.forEach((r) => {
+        next[r.user_id] = r.facebook_url ?? "";
+      });
+      return next;
+    });
+    setFbNameInputs(() => {
+      const next: Record<string, string> = {};
+      rows.forEach((r) => {
+        next[r.user_id] = r.facebook_name ?? "";
       });
       return next;
     });
@@ -141,6 +160,28 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
       setSavingLinksId(null);
     }
   };
+
+  const saveFacebook = async (userId: string) => {
+    setSavingFbId(userId);
+    try {
+      await fbFn({
+        data: {
+          playlistId: room.playlist_id,
+          userId,
+          url: (fbUrlInputs[userId] ?? "").trim(),
+          name: (fbNameInputs[userId] ?? "").trim(),
+        },
+      });
+      await refresh();
+      toast.success("Facebook link saved");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save Facebook link");
+    } finally {
+      setSavingFbId(null);
+    }
+  };
+
+
 
   const adjust = async (userId: string, sign: 1 | -1) => {
     const raw = (pointInputs[userId] ?? "").trim();
@@ -290,6 +331,57 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                   m.is_me ? "border-primary/60 bg-primary/5" : "border-border"
                 }`}
               >
+                {m.facebook_url && (
+                  <a
+                    href={m.facebook_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 rounded-md border border-border px-2 py-1 text-xs font-medium text-[#1877F2] hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">
+                      {m.facebook_name ?? m.facebook_url}
+                    </span>
+                  </a>
+                )}
+
+                {room.is_owner && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Facebook name"
+                      value={fbNameInputs[m.user_id] ?? ""}
+                      onChange={(e) =>
+                        setFbNameInputs((s) => ({ ...s, [m.user_id]: e.target.value }))
+                      }
+                      className="w-32 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                    />
+                    <input
+                      type="url"
+                      placeholder="https://www.facebook.com/..."
+                      value={fbUrlInputs[m.user_id] ?? ""}
+                      onChange={(e) =>
+                        setFbUrlInputs((s) => ({ ...s, [m.user_id]: e.target.value }))
+                      }
+                      className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={savingFbId === m.user_id}
+                      onClick={() => saveFacebook(m.user_id)}
+                    >
+                      {savingFbId === m.user_id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        "Save FB"
+                      )}
+                    </Button>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-3">
                   <Link
                     to="/u/$handle"

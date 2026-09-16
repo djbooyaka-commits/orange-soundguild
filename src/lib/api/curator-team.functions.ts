@@ -25,6 +25,8 @@ export type CuratorTeamMember = {
   spotify_artist_url: string | null;
   spotify_artist_name: string | null;
   track_urls: string[] | null;
+  facebook_url: string | null;
+  facebook_name: string | null;
 };
 
 export const setCuratorPlaylistIsTeam = createServerFn({ method: "POST" })
@@ -191,4 +193,24 @@ export const curatorTeamPointHistory = createServerFn({ method: "POST" })
       reason: r.reason,
       created_at: r.created_at,
     })) as CuratorTeamPointEvent[];
+  });
+
+/** Curator sets a team member's Facebook link + display name on their card. */
+export const curatorTeamSetFacebook = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; userId: string; url?: string; name?: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    userId: String(data?.userId ?? ""),
+    url: String(data?.url ?? "").trim().slice(0, 500),
+    name: String(data?.name ?? "").trim().slice(0, 200),
+  }))
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase as any).rpc("curator_team_set_facebook", {
+      _playlist_id: data.playlistId,
+      _user_id: data.userId,
+      _fb_url: data.url,
+      _fb_name: data.name,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
