@@ -327,10 +327,19 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
             return (
               <div
                 key={m.member_id}
-                className={`flex flex-col gap-2 rounded-lg border p-3 ${
+                className={`relative flex flex-col gap-2 rounded-lg border p-3 ${
                   m.is_me ? "border-primary/60 bg-primary/5" : "border-border"
                 }`}
               >
+                {below && (
+                  <span
+                    className="absolute right-2 top-2 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm"
+                    title="No curator pass this week"
+                    aria-label="No curator pass this week"
+                  >
+                    <Star className="h-7 w-7 fill-current" />
+                  </span>
+                )}
                 {m.facebook_url && (
                   <a
                     href={m.facebook_url}
@@ -382,7 +391,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                   </div>
                 )}
 
-                <div className="flex items-center gap-3">
+                <div className={`flex items-center gap-3 ${below ? "pr-11" : ""}`}>
                   <Link
                     to="/u/$handle"
                     params={{ handle: m.username ?? m.user_id }}
