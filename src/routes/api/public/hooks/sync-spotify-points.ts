@@ -27,16 +27,35 @@ export const Route = createFileRoute("/api/public/hooks/sync-spotify-points")({
 
         const { data: connections, error } = await supabaseAdmin
           .from("spotify_connections")
-          .select("user_id")
+          .select("user_id, last_polled_at")
           .limit(1000);
         if (error) {
           return Response.json({ error: error.message }, { status: 500 });
         }
 
+        // Cost control: poll every hour only for listeners with an open tracking
+        // session (they are streaming right now). Everyone else is polled at most
+        // once every 3 hours, which still stays well inside Spotify's
+        // recent-play window.
+        const { data: openSessions } = await (supabaseAdmin as any)
+          .from("beta_playlist_tracking_sessions")
+          .select("user_id")
+          .is("stopped_at", null)
+          .limit(2000);
+        const activeUserIds = new Set<string>(
+          ((openSessions ?? []) as Array<{ user_id: string }>).map((s) => s.user_id),
+        );
+        const IDLE_INTERVAL_MS = 3 * 60 * 60 * 1000;
+        const due = (connections ?? []).filter((c: any) => {
+          if (activeUserIds.has(c.user_id)) return true;
+          if (!c.last_polled_at) return true;
+          return Date.now() - new Date(c.last_polled_at).getTime() >= IDLE_INTERVAL_MS;
+        });
+
         let usersSynced = 0;
         let pointsAdded = 0;
         let failed = 0;
-        for (const connection of connections ?? []) {
+        for (const connection of due) {
           try {
             const result = await pollSpotifyRecentForUser(connection.user_id, supabaseAdmin);
             if (result.connected) usersSynced += 1;

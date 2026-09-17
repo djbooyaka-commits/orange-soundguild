@@ -111,8 +111,13 @@ export function RoomChat({ scope, roomKey, title = "Room chat" }: Props) {
   useEffect(() => {
     setLoading(true);
     void load();
-    // Safety-net refresh in case a realtime event is missed.
-    const id = window.setInterval(() => void load(), 30000);
+    // Safety-net refresh in case a realtime event is missed. Realtime already
+    // delivers new messages instantly, so this runs rarely and only while the
+    // tab is visible.
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      void load();
+    }, 120000);
     return () => window.clearInterval(id);
   }, [load]);
 

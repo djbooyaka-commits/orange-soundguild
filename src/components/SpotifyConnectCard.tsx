@@ -102,7 +102,7 @@ export function SpotifyConnectCard() {
               }
             })();
           },
-          10 * 60 * 1000,
+          20 * 60 * 1000,
         );
       }
     })();
