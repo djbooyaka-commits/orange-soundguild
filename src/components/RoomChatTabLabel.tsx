@@ -61,11 +61,15 @@ export function RoomChatTabLabel({ scope, roomKey, active, children }: Props) {
     }
   }, [latestFn, markRead, readStamp, roomKey, scope, user]);
 
-  // Poll + realtime so the marker shows up even if a realtime event is missed.
+  // Realtime is the primary signal; this slow poll is only a safety net, and it
+  // pauses while the tab is hidden to keep background usage low.
   useEffect(() => {
     if (!user) return;
     void check();
-    const id = window.setInterval(() => void check(), 20000);
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      void check();
+    }, 120000);
     return () => window.clearInterval(id);
   }, [check, user]);
 

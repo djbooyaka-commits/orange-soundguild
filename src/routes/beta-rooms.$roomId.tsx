@@ -89,8 +89,12 @@ function BetaRoomDetail() {
     }
     void refresh();
     void refreshTracking();
-    // Tracking can start/stop inside playlist tabs; keep the highlight fresh.
-    const interval = setInterval(() => void refreshTracking(), 20000);
+    // Tracking can start/stop inside playlist tabs; keep the highlight fresh
+    // without polling in a hidden tab.
+    const interval = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      void refreshTracking();
+    }, 60000);
     return () => clearInterval(interval);
   }, [user, refresh, refreshTracking]);
 
