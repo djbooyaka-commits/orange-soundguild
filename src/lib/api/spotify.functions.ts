@@ -273,7 +273,10 @@ export async function pollSpotifyRecentForUser(userId: string, supabaseAdmin: an
       const ctx = item.context;
       if (!ctx || ctx.type !== "playlist") { skippedNotCurated++; continue; }
       const uri: string = ctx.uri || "";
-      const m = uri.match(/^spotify:playlist:([A-Za-z0-9]+)$/);
+      // Spotify may append query params (e.g. "?sessionId=...&mode=enhanced")
+      // to the playlist URI, so match the id and ignore anything after it.
+      const m = uri.match(/^spotify:playlist:([A-Za-z0-9]+)/);
+
       if (!m) { skippedNotCurated++; continue; }
       const match = byId.get(m[1]);
       if (!match) { skippedNotCurated++; continue; }

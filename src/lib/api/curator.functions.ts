@@ -15,7 +15,7 @@ type SpotifyPlaylistListItem = SpotifyPlaylistMeta & {
 
 function extractPlaylistId(input: string): string | null {
   const trimmed = input.trim();
-  const uriMatch = trimmed.match(/^spotify:playlist:([A-Za-z0-9]+)$/);
+  const uriMatch = trimmed.match(/^spotify:playlist:([A-Za-z0-9]+)/);
   if (uriMatch) return uriMatch[1];
   const urlMatch = trimmed.match(/playlist\/([A-Za-z0-9]+)/);
   if (urlMatch) return urlMatch[1];
