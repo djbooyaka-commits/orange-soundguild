@@ -484,7 +484,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   m.is_me ? "border-primary/60 bg-primary/5" : "border-border"
                 }`}
               >
-                {isTeam && below && (
+                {below && (
                   <span
                     className="absolute right-2 top-2 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm"
                     title="No curator pass this week"
@@ -546,7 +546,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                 <Link
                   to="/u/$handle"
                   params={{ handle: m.username ?? m.user_id }}
-                  className={`flex min-w-0 items-center gap-3 ${isTeam && below ? "pr-11" : ""}`}
+                  className={`flex min-w-0 items-center gap-3 ${below ? "pr-11" : ""}`}
                 >
                   <img
                     src={avatars[m.user_id] ?? defaultAvatar}
