@@ -1315,6 +1315,7 @@ export type Database = {
           bio: string | null
           created_at: string
           credit_balance_cents: number
+          facebook_name: string | null
           facebook_url: string | null
           id: string
           instagram_url: string | null
@@ -1339,6 +1340,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           credit_balance_cents?: number
+          facebook_name?: string | null
           facebook_url?: string | null
           id: string
           instagram_url?: string | null
@@ -1363,6 +1365,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           credit_balance_cents?: number
+          facebook_name?: string | null
           facebook_url?: string | null
           id?: string
           instagram_url?: string | null
@@ -2500,6 +2503,10 @@ export type Database = {
       }
       set_curator_playlist_is_team: {
         Args: { _is_team: boolean; _playlist_id: string }
+        Returns: undefined
+      }
+      set_member_facebook: {
+        Args: { _fb_name: string; _fb_url: string; _user_id: string }
         Returns: undefined
       }
       submit_curator_track: {
