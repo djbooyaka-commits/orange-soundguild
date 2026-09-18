@@ -486,11 +486,11 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               >
                 {below && (
                   <span
-                    className="absolute right-2 top-2 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm"
+                    className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
                     title="No curator pass this week"
                     aria-label="No curator pass this week"
                   >
-                    <Star className="h-7 w-7 fill-current" />
+                    <Star className="h-4 w-4 fill-current" />
                   </span>
                 )}
                 {m.facebook_url && (
@@ -546,7 +546,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                 <Link
                   to="/u/$handle"
                   params={{ handle: m.username ?? m.user_id }}
-                  className={`flex min-w-0 items-center gap-3 ${below ? "pr-11" : ""}`}
+                  className={`flex min-w-0 items-center gap-3 ${below ? "pr-8" : ""}`}
                 >
                   <img
                     src={avatars[m.user_id] ?? defaultAvatar}
