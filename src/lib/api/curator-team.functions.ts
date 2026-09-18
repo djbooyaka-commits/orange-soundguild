@@ -205,8 +205,8 @@ export const curatorTeamSetFacebook = createServerFn({ method: "POST" })
     name: String(data?.name ?? "").trim().slice(0, 200),
   }))
   .handler(async ({ data, context }) => {
-    const { error } = await (context.supabase as any).rpc("curator_team_set_facebook", {
-      _playlist_id: data.playlistId,
+    // Saved once on the member's profile so it appears in every playlist tab/room.
+    const { error } = await (context.supabase as any).rpc("set_member_facebook", {
       _user_id: data.userId,
       _fb_url: data.url,
       _fb_name: data.name,
