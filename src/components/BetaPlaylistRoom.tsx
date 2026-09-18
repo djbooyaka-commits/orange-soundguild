@@ -484,7 +484,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   m.is_me ? "border-primary/60 bg-primary/5" : "border-border"
                 }`}
               >
-                {isTeam && below && (
+                {below && (
                   <span
                     className="absolute right-2 top-2 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm"
                     title="No curator pass this week"
