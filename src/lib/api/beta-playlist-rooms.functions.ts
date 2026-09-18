@@ -166,7 +166,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     const { data: profiles } = userIds.length
       ? await supabaseAdmin
           .from("profiles")
-          .select("id, username, avatar_url, account_type")
+          .select("id, username, avatar_url, account_type, facebook_url, facebook_name")
           .in("id", userIds)
       : { data: [] as any[] };
     const profileById = new Map((profiles ?? []).map((p: any) => [p.id, p]));
@@ -203,8 +203,10 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         is_me: uid === context.userId,
         spotify_artist_url: (l?.spotify_artist_url as string | null) ?? null,
         spotify_artist_name: (l?.spotify_artist_name as string | null) ?? null,
-        facebook_url: (l?.facebook_url as string | null) ?? null,
-        facebook_name: (l?.facebook_name as string | null) ?? null,
+        facebook_url:
+          ((p as any)?.facebook_url as string | null) ?? (l?.facebook_url as string | null) ?? null,
+        facebook_name:
+          ((p as any)?.facebook_name as string | null) ?? (l?.facebook_name as string | null) ?? null,
         track_url: (l?.track_url as string | null) ?? null,
         track_name: (l?.track_name as string | null) ?? null,
         track2_url: (l?.track2_url as string | null) ?? null,
@@ -472,17 +474,14 @@ export const setBetaPlaylistMemberFacebook = createServerFn({ method: "POST" })
     if (room.owner_id !== context.userId)
       throw new Error("Only the room owner can set Facebook links");
 
+    // Stored once on the member's profile so it shows on every playlist tab/room.
     const { error } = await supabaseAdmin
-      .from("beta_playlist_member_links")
-      .upsert(
-        {
-          playlist_id: pl.id,
-          user_id: data.userId,
-          facebook_url: data.url || null,
-          facebook_name: data.name || null,
-        } as any,
-        { onConflict: "playlist_id,user_id" },
-      );
+      .from("profiles")
+      .update({
+        facebook_url: data.url || null,
+        facebook_name: data.name || null,
+      } as any)
+      .eq("id", data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
