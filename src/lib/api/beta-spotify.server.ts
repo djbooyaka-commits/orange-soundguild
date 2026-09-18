@@ -107,7 +107,7 @@ export function parseSpotifyTrackId(input: string): string | null {
 
 export function parseSpotifyPlaylistId(input: string): string | null {
   const raw = input.trim();
-  const uri = raw.match(/^spotify:playlist:([A-Za-z0-9]+)$/);
+  const uri = raw.match(/^spotify:playlist:([A-Za-z0-9]+)/);
   if (uri) return uri[1];
   const url = raw.match(/open\.spotify\.com\/(?:[a-z-]+\/)?playlist\/([A-Za-z0-9]+)/);
   if (url) return url[1];
