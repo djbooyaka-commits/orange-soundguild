@@ -451,20 +451,11 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
           a.is_me ? "border-primary/60 bg-primary/5" : "border-border"
         }`}
       >
-        {below && (
-          <span
-            className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
-            title="No curator pass this week"
-            aria-label="No curator pass this week"
-          >
-            <Star className="h-4 w-4 fill-current" />
-          </span>
-        )}
         <div className="flex items-center gap-3">
           <Link
             to="/u/$handle"
             params={{ handle: a.username ?? a.artist_id }}
-            className={`flex min-w-0 flex-1 items-center gap-3 ${below ? "pr-8" : ""}`}
+            className="flex min-w-0 flex-1 items-center gap-3"
           >
             <img
               src={a.avatar ?? defaultAvatar}
@@ -510,7 +501,13 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
               </span>
             )}
             {below ? (
-              <span className="font-semibold">Below minimum</span>
+              <span className="inline-flex items-center gap-1 font-semibold">
+                Below minimum
+                <Star
+                  className="h-3.5 w-3.5 fill-current"
+                  aria-label="No curator pass this week"
+                />
+              </span>
             ) : (
               <span className="font-semibold">Pass</span>
             )}
