@@ -331,15 +331,6 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                   m.is_me ? "border-primary/60 bg-primary/5" : "border-border"
                 }`}
               >
-                {below && (
-                  <span
-                    className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
-                    title="No curator pass this week"
-                    aria-label="No curator pass this week"
-                  >
-                    <Star className="h-4 w-4 fill-current" />
-                  </span>
-                )}
                 {m.facebook_url && (
                   <a
                     href={m.facebook_url}
@@ -391,7 +382,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                   </div>
                 )}
 
-                <div className={`flex items-center gap-3 ${below ? "pr-8" : ""}`}>
+                <div className="flex items-center gap-3">
                   <Link
                     to="/u/$handle"
                     params={{ handle: m.username ?? m.user_id }}
@@ -444,7 +435,19 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                     )}
                     {m.points} pts
                   </span>
-                  <span>{below ? `Below ${min}` : "Pass"}</span>
+                  <span className="inline-flex items-center gap-1">
+                    {below ? (
+                      <>
+                        Below {min}
+                        <Star
+                          className="h-3.5 w-3.5 fill-current"
+                          aria-label="No curator pass this week"
+                        />
+                      </>
+                    ) : (
+                      "Pass"
+                    )}
+                  </span>
                 </div>
 
                 {room.is_owner && (
