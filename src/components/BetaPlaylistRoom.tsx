@@ -546,7 +546,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                 <Link
                   to="/u/$handle"
                   params={{ handle: m.username ?? m.user_id }}
-                  className={`flex min-w-0 items-center gap-3 ${isTeam && below ? "pr-11" : ""}`}
+                  className={`flex min-w-0 items-center gap-3 ${below ? "pr-11" : ""}`}
                 >
                   <img
                     src={avatars[m.user_id] ?? defaultAvatar}
