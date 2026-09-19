@@ -55,11 +55,24 @@ export const curatorTeamRoster = createServerFn({ method: "POST" })
     playlistId: String(data?.playlistId ?? ""),
   }))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase.rpc("curator_team_roster", {
-      _playlist_id: data.playlistId,
-    });
+    const [{ data: rows, error }, { data: playlist, error: playlistError }] = await Promise.all([
+      context.supabase.rpc("curator_team_roster", {
+        _playlist_id: data.playlistId,
+      }),
+      context.supabase
+        .from("curator_playlists")
+        .select("curator_id")
+        .eq("id", data.playlistId)
+        .maybeSingle(),
+    ]);
     if (error) throw new Error(error.message);
-    return (rows ?? []) as CuratorTeamMember[];
+    if (playlistError) throw new Error(playlistError.message);
+    const isCurator = playlist?.curator_id === context.userId;
+    return (rows ?? []).map((row) => ({
+      ...row,
+      facebook_url: isCurator ? row.facebook_url : null,
+      facebook_name: isCurator ? row.facebook_name : null,
+    })) as CuratorTeamMember[];
   });
 
 export const curatorTeamAddMember = createServerFn({ method: "POST" })

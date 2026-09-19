@@ -484,7 +484,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   m.is_me ? "border-primary/60 bg-primary/5" : "border-border"
                 }`}
               >
-                {m.facebook_url && (
+                {data.isOwner && m.facebook_url && (
                   <a
                     href={m.facebook_url}
                     target="_blank"
