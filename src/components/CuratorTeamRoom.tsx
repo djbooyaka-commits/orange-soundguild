@@ -331,7 +331,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                   m.is_me ? "border-primary/60 bg-primary/5" : "border-border"
                 }`}
               >
-                {m.facebook_url && (
+                {room.is_owner && m.facebook_url && (
                   <a
                     href={m.facebook_url}
                     target="_blank"

@@ -203,10 +203,12 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         is_me: uid === context.userId,
         spotify_artist_url: (l?.spotify_artist_url as string | null) ?? null,
         spotify_artist_name: (l?.spotify_artist_name as string | null) ?? null,
-        facebook_url:
-          ((p as any)?.facebook_url as string | null) ?? (l?.facebook_url as string | null) ?? null,
-        facebook_name:
-          ((p as any)?.facebook_name as string | null) ?? (l?.facebook_name as string | null) ?? null,
+        facebook_url: isOwner
+          ? ((p as any)?.facebook_url as string | null) ?? (l?.facebook_url as string | null) ?? null
+          : null,
+        facebook_name: isOwner
+          ? ((p as any)?.facebook_name as string | null) ?? (l?.facebook_name as string | null) ?? null
+          : null,
         track_url: (l?.track_url as string | null) ?? null,
         track_name: (l?.track_name as string | null) ?? null,
         track2_url: (l?.track2_url as string | null) ?? null,
