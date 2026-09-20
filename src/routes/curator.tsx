@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles, Star } from "lucide-react";
+import { ExternalLink, Sparkles, Star } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { SpotifyConnectCard } from "@/components/SpotifyConnectCard";
@@ -35,6 +35,16 @@ export const Route = createFileRoute("/curator")({
   component: CuratorPage,
 });
 
+type JoinedPlaylist = {
+  id: string;
+  curator_id: string;
+  curator_username: string;
+  spotify_playlist_id: string;
+  name: string;
+  image_url: string | null;
+  available_points: number;
+};
+
 function CuratorPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { user, loading: authLoading } = useAuth();
@@ -47,10 +57,12 @@ function CuratorPage() {
   const teamRoomsFn = useServerFn(listMyCuratorTeamRooms);
   const [teamRooms, setTeamRooms] = useState<TeamRoomType[]>([]);
   const joinedPlaylistsFn = useServerFn(listPlaylistsForSubmission);
+  const [joinedPlaylists, setJoinedPlaylists] = useState<JoinedPlaylist[]>([]);
   const [chatRooms, setChatRooms] = useState<Array<{ curatorId: string; username: string }>>([]);
 
   useEffect(() => {
     if (!user) {
+      setJoinedPlaylists([]);
       setChatRooms([]);
       return;
     }
@@ -58,14 +70,19 @@ function CuratorPage() {
     joinedPlaylistsFn()
       .then((rows) => {
         if (cancelled) return;
+        const playlists = (rows ?? []) as JoinedPlaylist[];
+        setJoinedPlaylists(playlists);
         const map = new Map<string, string>();
-        for (const p of (rows ?? []) as Array<{ curator_id: string; curator_username: string }>) {
+        for (const p of playlists) {
           if (!map.has(p.curator_id)) map.set(p.curator_id, p.curator_username);
         }
         setChatRooms(Array.from(map, ([curatorId, username]) => ({ curatorId, username })));
       })
       .catch(() => {
-        if (!cancelled) setChatRooms([]);
+        if (!cancelled) {
+          setJoinedPlaylists([]);
+          setChatRooms([]);
+        }
       });
     return () => {
       cancelled = true;
@@ -212,6 +229,7 @@ function CuratorPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="main">{isSuperfan ? "Curator" : "Stream Tracker"}</TabsTrigger>
+              <TabsTrigger value="curator-playlists">Curator playlists</TabsTrigger>
               <TabsTrigger value="submit-track">Submit a track</TabsTrigger>
               {canUseOsg && <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>}
               {teamRooms.map((r) => (
@@ -293,6 +311,49 @@ function CuratorPage() {
 
             <TabsContent value="submit-track">
               <SubmitTrackCard />
+            </TabsContent>
+
+            <TabsContent value="curator-playlists">
+              {joinedPlaylists.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+                  You haven&apos;t joined any Curator playlists yet. Open a Curator invite link to get started.
+                </div>
+              ) : (
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {joinedPlaylists.map((playlist) => (
+                    <li
+                      key={playlist.id}
+                      className="flex min-w-0 items-center gap-3 rounded-lg border border-border bg-card p-3"
+                    >
+                      {playlist.image_url ? (
+                        <img
+                          src={playlist.image_url}
+                          alt=""
+                          className="h-16 w-16 shrink-0 rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 shrink-0 rounded-md bg-muted" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{playlist.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          @{playlist.curator_username} · {playlist.available_points} pts
+                        </p>
+                      </div>
+                      <a
+                        href={`https://open.spotify.com/playlist/${playlist.spotify_playlist_id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`Open ${playlist.name} on Spotify`}
+                        title="Open on Spotify"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-primary hover:bg-muted"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </TabsContent>
 
             {canUseOsg && (
