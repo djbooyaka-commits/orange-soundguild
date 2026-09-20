@@ -212,6 +212,7 @@ function CuratorPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="main">{isSuperfan ? "Curator" : "Stream Tracker"}</TabsTrigger>
+              <TabsTrigger value="submit-track">Submit a track</TabsTrigger>
               {canUseOsg && <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>}
               {teamRooms.map((r) => (
                 <TabsTrigger key={r.playlist_id} value={`team-${r.playlist_id}`}>
@@ -252,18 +253,12 @@ function CuratorPage() {
 
                   <TabsContent value="submissions" className="space-y-6">
                     <CuratorSubmissionsQueue />
-                    <div id="submit-track" className="scroll-mt-24">
-                      <SubmitTrackCard />
-                    </div>
                   </TabsContent>
                 </Tabs>
               ) : (
                 <>
                   <SpotifyConnectCard />
                   <CuratorInvitesInbox />
-                  <div id="submit-track" className="scroll-mt-24">
-                    <SubmitTrackCard />
-                  </div>
                   <section className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center">
                     <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <Star className="h-5 w-5" />
@@ -294,6 +289,10 @@ function CuratorPage() {
                   <li>OSG Artist points stay on their balance until their Curator removes them.</li>
                 </ul>
               </section>
+            </TabsContent>
+
+            <TabsContent value="submit-track">
+              <SubmitTrackCard />
             </TabsContent>
 
             {canUseOsg && (
