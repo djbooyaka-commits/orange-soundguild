@@ -1,1 +1,2 @@
 - [x] Curator playlists tab: show joined playlists with direct Spotify links.
+- [x] Last.fm track submissions: show the destination playlist name to members.

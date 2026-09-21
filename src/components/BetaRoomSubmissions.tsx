@@ -390,7 +390,8 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                   {s.spotify_track_name ?? s.spotify_track_url}
                 </a>
                 <p className="text-xs text-muted-foreground">
-                  {s.cost_points} pts · sent {new Date(s.created_at).toLocaleDateString()}
+                  Added to: {s.playlist_name ?? "Playlist"} · {s.cost_points} pts · sent{" "}
+                  {new Date(s.created_at).toLocaleDateString()}
                   {s.reviewed_at
                     ? `${s.status === "approved" ? " · added " : " · reviewed "}${new Date(s.reviewed_at).toLocaleDateString()}`
                     : ""}

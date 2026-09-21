@@ -564,7 +564,17 @@ export const listMyBetaSubmissions = createServerFn({ method: "POST" })
       .eq("submitter_user_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(50);
-    return (rows ?? []) as any[];
+
+    const playlistIds = Array.from(new Set((rows ?? []).map((row: any) => row.playlist_id)));
+    const { data: playlists } = playlistIds.length
+      ? await supabaseAdmin.from("beta_room_playlists").select("id, name").in("id", playlistIds)
+      : { data: [] as any[] };
+    const playlistNames = new Map((playlists ?? []).map((playlist: any) => [playlist.id, playlist.name]));
+
+    return (rows ?? []).map((row: any) => ({
+      ...row,
+      playlist_name: playlistNames.get(row.playlist_id) ?? null,
+    }));
   });
 
 export const listBetaSubmissionsForOwner = createServerFn({ method: "POST" })
