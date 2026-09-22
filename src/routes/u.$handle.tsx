@@ -206,11 +206,11 @@ function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [isMe, user, handle]);
+  }, [isMe, user, handle, decodedHandle]);
 
   const displayName = isMe
     ? profile?.username?.trim() || CURRENT_USER.name
-    : profile?.username?.trim() || decodeURIComponent(handle).replace(/-/g, " ");
+    : profile?.username?.trim() || decodedHandle.replace(/-/g, " ");
   const effectiveAccountType = isMe ? accountType : profile?.account_type;
   const roleLabel =
     effectiveAccountType === "superfan"
