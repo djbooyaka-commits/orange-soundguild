@@ -97,15 +97,45 @@ function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [myUsername, setMyUsername] = useState<string | null>(null);
   const navigate = useNavigate();
-  const isMe = handle === CURRENT_USER.handle || (!!user && profileUserId === user.id);
+
+  const decodedHandle = useMemo(() => safeDecode(handle), [handle]);
+
+  // Who am I? Resolved from my own account, never from the previously viewed page.
+  useEffect(() => {
+    if (!user) {
+      setMyUsername(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("profiles").select("username").eq("id", user.id).maybeSingle();
+      if (!cancelled) setMyUsername(data?.username ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const isMe =
+    !!user &&
+    (handle === CURRENT_USER.handle ||
+      (!!myUsername && myUsername.trim().toLowerCase() === decodedHandle.trim().toLowerCase()));
+
+  // Reset per-profile state whenever the URL changes so stale data can't leak across profiles
+  useEffect(() => {
+    setProfile(null);
+    setProfileUserId(null);
+    setAvatarUrl(defaultAvatar);
+  }, [handle]);
 
   // "/u/me" is only a local alias — redirect to the real shareable /u/<username> URL
   useEffect(() => {
-    if (isMe && profile?.username && profile.username !== handle) {
-      navigate({ to: "/u/$handle", params: { handle: profile.username }, replace: true });
+    if (handle === CURRENT_USER.handle && myUsername && myUsername.trim()) {
+      navigate({ to: "/u/$handle", params: { handle: myUsername.trim() }, replace: true });
     }
-  }, [isMe, profile?.username, handle, navigate]);
+  }, [handle, myUsername, navigate]);
 
   // Load profile (own or viewed user) from database
   useEffect(() => {
