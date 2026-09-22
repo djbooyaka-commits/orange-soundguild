@@ -134,14 +134,15 @@ export const getSuperfanPublicProfile = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Fans and Superfans share the same listener-focused public profile.
+    // Every account type can show its public listening highlights. The fuller
+    // listener layout is still chosen by the profile page for Fans/Superfans.
     const { data: prof } = await supabaseAdmin
       .from("profiles")
       .select("account_type")
       .eq("id", data.userId)
       .maybeSingle();
 
-    if (!prof || !["fan", "superfan"].includes(prof.account_type ?? "")) {
+    if (!prof) {
       return {
         hasListenerProfile: false as const,
         topTrack: null as TopTrack | null,

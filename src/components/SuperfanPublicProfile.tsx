@@ -11,7 +11,15 @@ import {
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
 
-export function SuperfanPublicProfile({ userId, displayName }: { userId: string; displayName: string }) {
+export function SuperfanPublicProfile({
+  userId,
+  displayName,
+  sidebar = false,
+}: {
+  userId: string;
+  displayName: string;
+  sidebar?: boolean;
+}) {
   const fetchProfile = useServerFn(getSuperfanPublicProfile);
   const [loading, setLoading] = useState(true);
   const [hasListenerProfile, setHasListenerProfile] = useState(false);
@@ -51,18 +59,18 @@ export function SuperfanPublicProfile({ userId, displayName }: { userId: string;
   }, [fetchProfile, userId]);
 
   if (loading) {
-    return <div className="mt-8 h-28 animate-pulse rounded-xl bg-muted" />;
+    return <div className={`${sidebar ? "" : "mt-8"} h-28 animate-pulse rounded-xl bg-muted`} />;
   }
   if (!hasListenerProfile) return null;
 
   return (
-    <section className="mt-8">
+    <section className={sidebar ? "" : "mt-8"}>
       <h2 className="mb-4 text-lg font-bold tracking-tight">
         What {displayName} is into
       </h2>
 
       {topTrack || topArtist ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className={`grid grid-cols-1 gap-4 ${sidebar ? "" : "sm:grid-cols-2"}`}>
           {topTrack && (
             <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
               <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted">
@@ -140,31 +148,35 @@ export function SuperfanPublicProfile({ userId, displayName }: { userId: string;
         </div>
       )}
 
-      <h3 className="mt-8 mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
-        <Users className="h-4 w-4 text-primary" /> Following ({following.length})
-      </h3>
-      {following.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Not following anyone yet.</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {following.map((f, i) => (
-            <Link
-              key={f.user_id}
-              to="/u/$handle"
-              params={{ handle: f.username ?? f.user_id }}
-              className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-3 text-center transition hover:border-primary/50"
-            >
-              <img
-                src={followingAvatars[i] ?? defaultAvatar}
-                alt=""
-                className="h-14 w-14 rounded-full object-cover"
-              />
-              <span className="truncate text-xs font-semibold">
-                @{f.username ?? "user"}
-              </span>
-            </Link>
-          ))}
-        </div>
+      {!sidebar && (
+        <>
+          <h3 className="mt-8 mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
+            <Users className="h-4 w-4 text-primary" /> Following ({following.length})
+          </h3>
+          {following.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Not following anyone yet.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              {following.map((f, i) => (
+                <Link
+                  key={f.user_id}
+                  to="/u/$handle"
+                  params={{ handle: f.username ?? f.user_id }}
+                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-3 text-center transition hover:border-primary/50"
+                >
+                  <img
+                    src={followingAvatars[i] ?? defaultAvatar}
+                    alt=""
+                    className="h-14 w-14 rounded-full object-cover"
+                  />
+                  <span className="truncate text-xs font-semibold">
+                    @{f.username ?? "user"}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </section>
   );

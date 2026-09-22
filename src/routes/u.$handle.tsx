@@ -378,12 +378,15 @@ function ProfilePage() {
               </>
             )}
 
-            {!isMe && profileUserId && (
+            {!isMe && profileUserId && (effectiveAccountType === "fan" || effectiveAccountType === "superfan") && (
               <SuperfanPublicProfile userId={profileUserId} displayName={displayName} />
             )}
           </div>
 
           <aside className="min-w-0 space-y-6 lg:sticky lg:top-24 lg:self-start">
+            {profileUserId && (effectiveAccountType === "artist" || effectiveAccountType === "pioneer") && (
+              <SuperfanPublicProfile userId={profileUserId} displayName={isMe ? "you" : displayName} sidebar />
+            )}
             <FollowersBox userId={profileUserId} />
             <div>
               <h2 className="mb-4 text-lg font-bold tracking-tight">Playlists</h2>
