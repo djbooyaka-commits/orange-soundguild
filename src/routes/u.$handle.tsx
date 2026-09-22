@@ -27,7 +27,7 @@ import { FriendButton } from "@/components/FriendButton";
 
 export const Route = createFileRoute("/u/$handle")({
   head: ({ params }) => {
-    const handle = decodeURIComponent(params.handle);
+    const handle = safeDecode(params.handle);
     const url = `https://orange-soundguild.lovable.app/u/${params.handle}`;
     return {
       meta: [
@@ -84,6 +84,14 @@ async function resolveAvatar(value: string | null | undefined): Promise<string |
   return data?.signedUrl ?? null;
 }
 
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 
 function ProfilePage() {
   const { handle } = Route.useParams();
@@ -97,15 +105,45 @@ function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string>(defaultAvatar);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [myUsername, setMyUsername] = useState<string | null>(null);
   const navigate = useNavigate();
-  const isMe = handle === CURRENT_USER.handle || (!!user && profileUserId === user.id);
+
+  const decodedHandle = useMemo(() => safeDecode(handle), [handle]);
+
+  // Who am I? Resolved from my own account, never from the previously viewed page.
+  useEffect(() => {
+    if (!user) {
+      setMyUsername(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("profiles").select("username").eq("id", user.id).maybeSingle();
+      if (!cancelled) setMyUsername(data?.username ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const isMe =
+    !!user &&
+    (handle === CURRENT_USER.handle ||
+      (!!myUsername && myUsername.trim().toLowerCase() === decodedHandle.trim().toLowerCase()));
+
+  // Reset per-profile state whenever the URL changes so stale data can't leak across profiles
+  useEffect(() => {
+    setProfile(null);
+    setProfileUserId(null);
+    setAvatarUrl(defaultAvatar);
+  }, [handle]);
 
   // "/u/me" is only a local alias — redirect to the real shareable /u/<username> URL
   useEffect(() => {
-    if (isMe && profile?.username && profile.username !== handle) {
-      navigate({ to: "/u/$handle", params: { handle: profile.username }, replace: true });
+    if (handle === CURRENT_USER.handle && myUsername && myUsername.trim()) {
+      navigate({ to: "/u/$handle", params: { handle: myUsername.trim() }, replace: true });
     }
-  }, [isMe, profile?.username, handle, navigate]);
+  }, [handle, myUsername, navigate]);
 
   // Load profile (own or viewed user) from database
   useEffect(() => {
@@ -126,11 +164,18 @@ function ProfilePage() {
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
       } else {
-        const res = await supabase
-          .from("profiles")
-          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, facebook_url, spotify_url")
-          .eq("username", decodeURIComponent(handle))
-          .maybeSingle();
+        if (handle === CURRENT_USER.handle) return; // alias, waiting on redirect
+        const cols =
+          "id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, facebook_url, spotify_url";
+        const name = decodedHandle.trim();
+        let res = await supabase.from("profiles").select(cols).eq("username", name).maybeSingle();
+        if (!res.data) {
+          // Fall back to a case-insensitive match, and to dashes used in place of spaces
+          res = await supabase.from("profiles").select(cols).ilike("username", name).maybeSingle();
+        }
+        if (!res.data && name.includes("-")) {
+          res = await supabase.from("profiles").select(cols).ilike("username", name.replace(/-/g, " ")).maybeSingle();
+        }
         data = res.data ? { ...res.data, is_banned: null } : null;
       }
       if (cancelled) return;
@@ -161,11 +206,11 @@ function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [isMe, user, handle]);
+  }, [isMe, user, handle, decodedHandle]);
 
   const displayName = isMe
     ? profile?.username?.trim() || CURRENT_USER.name
-    : profile?.username?.trim() || decodeURIComponent(handle).replace(/-/g, " ");
+    : profile?.username?.trim() || decodedHandle.replace(/-/g, " ");
   const effectiveAccountType = isMe ? accountType : profile?.account_type;
   const roleLabel =
     effectiveAccountType === "superfan"
@@ -298,7 +343,7 @@ function ProfilePage() {
                   )}
                 </>
               )}
-              <ShareProfileButton handle={profile?.username?.trim() || (isMe ? "" : decodeURIComponent(handle))} />
+              <ShareProfileButton handle={profile?.username?.trim() || (isMe ? "" : decodedHandle)} />
               {isMe && profile?.is_banned && (
                 <span className="inline-flex h-10 items-center gap-2 rounded-full bg-destructive/10 px-3 text-xs font-semibold text-destructive">
                   Your account is banned
