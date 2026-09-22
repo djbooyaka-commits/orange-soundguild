@@ -27,7 +27,7 @@ import { FriendButton } from "@/components/FriendButton";
 
 export const Route = createFileRoute("/u/$handle")({
   head: ({ params }) => {
-    const handle = decodeURIComponent(params.handle);
+    const handle = safeDecode(params.handle);
     const url = `https://orange-soundguild.lovable.app/u/${params.handle}`;
     return {
       meta: [
@@ -343,7 +343,7 @@ function ProfilePage() {
                   )}
                 </>
               )}
-              <ShareProfileButton handle={profile?.username?.trim() || (isMe ? "" : decodeURIComponent(handle))} />
+              <ShareProfileButton handle={profile?.username?.trim() || (isMe ? "" : decodedHandle)} />
               {isMe && profile?.is_banned && (
                 <span className="inline-flex h-10 items-center gap-2 rounded-full bg-destructive/10 px-3 text-xs font-semibold text-destructive">
                   Your account is banned
