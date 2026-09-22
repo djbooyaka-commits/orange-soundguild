@@ -164,11 +164,18 @@ function ProfilePage() {
           .maybeSingle();
         data = res.data ? { ...res.data, is_banned: null } : null;
       } else {
-        const res = await supabase
-          .from("profiles")
-          .select("id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, facebook_url, spotify_url")
-          .eq("username", decodeURIComponent(handle))
-          .maybeSingle();
+        if (handle === CURRENT_USER.handle) return; // alias, waiting on redirect
+        const cols =
+          "id, username, bio, avatar_url, account_type, website_url, twitter_url, instagram_url, tiktok_url, youtube_url, facebook_url, spotify_url";
+        const name = decodedHandle.trim();
+        let res = await supabase.from("profiles").select(cols).eq("username", name).maybeSingle();
+        if (!res.data) {
+          // Fall back to a case-insensitive match, and to dashes used in place of spaces
+          res = await supabase.from("profiles").select(cols).ilike("username", name).maybeSingle();
+        }
+        if (!res.data && name.includes("-")) {
+          res = await supabase.from("profiles").select(cols).ilike("username", name.replace(/-/g, " ")).maybeSingle();
+        }
         data = res.data ? { ...res.data, is_banned: null } : null;
       }
       if (cancelled) return;
