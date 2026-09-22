@@ -84,6 +84,14 @@ async function resolveAvatar(value: string | null | undefined): Promise<string |
   return data?.signedUrl ?? null;
 }
 
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 
 function ProfilePage() {
   const { handle } = Route.useParams();
