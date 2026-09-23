@@ -229,6 +229,7 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
     );
     let added = 0;
     let matched = 0;
+    const rows: any[] = [];
     for (const item of eligibleItems) {
       const matchedTrack = (watch ?? []).find((track: any) =>
         matchTrack(
@@ -240,7 +241,7 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
       );
       if (!matchedTrack) continue;
       matched++;
-      const { error: insertError } = await supabaseAdmin.from("beta_stream_points").insert({
+      rows.push({
         room_id: playlist.room_id,
         user_id: context.userId,
         playlist_id: playlist.id,
@@ -249,8 +250,15 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
         played_at: item.playedAt,
         source: "lastfm_session",
       });
-      if (!insertError) added++;
     }
+    // Insert in chunks so a long session (hundreds of scrobbles) doesn't time out.
+    for (let i = 0; i < rows.length; i += 200) {
+      const chunk = rows.slice(i, i + 200);
+      const { error: insertError } = await supabaseAdmin.from("beta_stream_points").insert(chunk);
+      if (!insertError) added += chunk.length;
+      else console.error("Last.fm stream point insert failed", insertError);
+    }
+
 
     const stoppedAtIso = stoppedAt.toISOString();
     const { error: stopError } = await supabaseAdmin
