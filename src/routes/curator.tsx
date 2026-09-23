@@ -173,6 +173,13 @@ function CuratorPage() {
       });
   }, [user, authLoading, navigate]);
 
+  // No session (expired or bookmarked link) — send them to sign in instead of hanging
+  useEffect(() => {
+    if (!authLoading && !user && pathname === "/curator") {
+      navigate({ to: "/auth", replace: true });
+    }
+  }, [authLoading, user, pathname, navigate]);
+
   if (pathname !== "/curator") {
     return <Outlet />;
   }
