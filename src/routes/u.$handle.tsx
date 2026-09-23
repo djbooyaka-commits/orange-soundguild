@@ -96,7 +96,7 @@ function safeDecode(value: string): string {
 function ProfilePage() {
   const { handle } = Route.useParams();
   const { uploads, removeUpload } = useUploads();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isAdmin = useIsAdmin();
   const { isArtist, accountType } = useAccountType();
 
@@ -144,6 +144,13 @@ function ProfilePage() {
       navigate({ to: "/u/$handle", params: { handle: myUsername.trim() }, replace: true });
     }
   }, [handle, myUsername, navigate]);
+
+  // Signed-out visitors hitting the "/u/me" alias have no profile to show — send them to sign in
+  useEffect(() => {
+    if (handle === CURRENT_USER.handle && !authLoading && !user) {
+      navigate({ to: "/auth", replace: true });
+    }
+  }, [handle, authLoading, user, navigate]);
 
   // Load profile (own or viewed user) from database
   useEffect(() => {

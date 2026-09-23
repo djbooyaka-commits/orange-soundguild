@@ -104,13 +104,15 @@ export function Navbar() {
           <Link to="/posts" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
             Posts
           </Link>
-          <Link
-            to="/u/$handle"
-            params={{ handle: CURRENT_USER.handle }}
-            className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted"
-          >
-            Profile
-          </Link>
+          {user && (
+            <Link
+              to="/u/$handle"
+              params={{ handle: CURRENT_USER.handle }}
+              className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted"
+            >
+              Profile
+            </Link>
+          )}
           <Link to="/library" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
           {user && (
             <Link to="/messages" className="relative inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
@@ -287,7 +289,9 @@ export function Navbar() {
         <Link to="/superfans" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Superfans</Link>
         <Link to="/discover" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Discover</Link>
         <Link to="/posts" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Posts</Link>
-        <Link to="/u/$handle" params={{ handle: CURRENT_USER.handle }} className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Profile</Link>
+        {user && (
+          <Link to="/u/$handle" params={{ handle: CURRENT_USER.handle }} className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Profile</Link>
+        )}
         <Link to="/library" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
         {user && (
           <Link to="/messages" className="relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
