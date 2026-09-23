@@ -102,62 +102,85 @@ function mapLastfmApiError(code: number): string {
   }
 }
 
-/** Fetches a user's recent scrobbles from Last.fm, optionally after a UNIX timestamp. */
+/**
+ * Fetches a user's recent scrobbles from Last.fm, optionally after a UNIX timestamp.
+ * Last.fm caps each response at 200 scrobbles, so long listening sessions need
+ * every page walked — otherwise plays beyond the first 200 are silently dropped.
+ */
 export async function fetchLastfmRecentTracks(
   username: string,
   apiKey: string,
   fromTimestamp?: number,
+  maxPages = 25,
 ): Promise<{ items: LastfmScrobble[]; error: string | null }> {
-  const url = new URL("https://ws.audioscrobbler.com/2.0/");
-  url.searchParams.set("method", "user.getRecentTracks");
-  url.searchParams.set("user", username);
-  url.searchParams.set("api_key", apiKey);
-  url.searchParams.set("format", "json");
-  url.searchParams.set("limit", "200");
-  if (fromTimestamp) {
-    url.searchParams.set("from", String(fromTimestamp));
+  const all: LastfmScrobble[] = [];
+  const seen = new Set<string>();
+
+  for (let page = 1; page <= maxPages; page++) {
+    const url = new URL("https://ws.audioscrobbler.com/2.0/");
+    url.searchParams.set("method", "user.getRecentTracks");
+    url.searchParams.set("user", username);
+    url.searchParams.set("api_key", apiKey);
+    url.searchParams.set("format", "json");
+    url.searchParams.set("limit", "200");
+    url.searchParams.set("page", String(page));
+    if (fromTimestamp) {
+      url.searchParams.set("from", String(fromTimestamp));
+    }
+
+    let res: Response;
+    try {
+      res = await fetch(url.toString());
+    } catch (e) {
+      console.error("Last.fm request failed", e);
+      return { items: all, error: all.length ? null : "lastfm_unavailable" };
+    }
+
+    let body: any = null;
+    try {
+      body = await res.json();
+    } catch {
+      body = null;
+    }
+
+    if (body?.error) {
+      const err = mapLastfmApiError(Number(body.error));
+      return { items: all, error: all.length ? null : err };
+    }
+    if (!res.ok) {
+      console.error(`Last.fm recent tracks failed [${res.status}]`);
+      let err = `lastfm_${res.status}`;
+      if (res.status === 403) err = "lastfm_key_rejected";
+      else if (res.status === 404) err = "lastfm_user_not_found";
+      else if (res.status === 429) err = "lastfm_rate_limited";
+      else if (res.status >= 500) err = "lastfm_unavailable";
+      return { items: all, error: all.length ? null : err };
+    }
+
+    // Last.fm returns a single object (not an array) when there is exactly one scrobble.
+    const rawTracks = body?.recenttracks?.track;
+    const tracks: any[] = Array.isArray(rawTracks) ? rawTracks : rawTracks ? [rawTracks] : [];
+    // Filter out "now playing" tracks (no date) and map to our shape
+    for (const t of tracks) {
+      if (!t?.date?.uts || t["@attr"]?.nowplaying) continue;
+      const uts = parseInt(t.date.uts, 10);
+      const name = (t.name ?? "") as string;
+      const artist = (t.artist?.["#text"] ?? "") as string;
+      const dedupeKey = `${uts}|${name}|${artist}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      all.push({
+        name,
+        artist,
+        playedAt: new Date(uts * 1000).toISOString(),
+        uts,
+      });
+    }
+
+    const totalPages = Number(body?.recenttracks?.["@attr"]?.totalPages ?? 1) || 1;
+    if (page >= totalPages) break;
   }
 
-  let res: Response;
-  try {
-    res = await fetch(url.toString());
-  } catch (e) {
-    console.error("Last.fm request failed", e);
-    return { items: [], error: "lastfm_unavailable" };
-  }
-
-  let body: any = null;
-  try {
-    body = await res.json();
-  } catch {
-    body = null;
-  }
-
-  if (body?.error) {
-    return { items: [], error: mapLastfmApiError(Number(body.error)) };
-  }
-  if (!res.ok) {
-    console.error(`Last.fm recent tracks failed [${res.status}]`);
-    if (res.status === 403) return { items: [], error: "lastfm_key_rejected" };
-    if (res.status === 404) return { items: [], error: "lastfm_user_not_found" };
-    if (res.status === 429) return { items: [], error: "lastfm_rate_limited" };
-    if (res.status >= 500) return { items: [], error: "lastfm_unavailable" };
-    return { items: [], error: `lastfm_${res.status}` };
-  }
-
-
-  // Last.fm returns a single object (not an array) when there is exactly one scrobble.
-  const rawTracks = body?.recenttracks?.track;
-  const tracks: any[] = Array.isArray(rawTracks) ? rawTracks : rawTracks ? [rawTracks] : [];
-  // Filter out "now playing" tracks (no date) and map to our shape
-  const items: LastfmScrobble[] = tracks
-    .filter((t) => t.date?.uts && !t["@attr"]?.nowplaying)
-    .map((t) => ({
-      name: (t.name ?? "") as string,
-      artist: ((t.artist?.["#text"] ?? "") as string),
-      playedAt: new Date(parseInt(t.date.uts, 10) * 1000).toISOString(),
-      uts: parseInt(t.date.uts, 10),
-    }));
-
-  return { items, error: null };
+  return { items: all, error: null };
 }
+
