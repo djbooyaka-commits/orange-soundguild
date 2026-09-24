@@ -18,6 +18,7 @@ import {
 } from "@/lib/api/osg-picks.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
+import { OsgDailyStreams } from "@/components/OsgDailyStreams";
 
 const DEFAULT_WEEKLY_MIN = 600;
 
@@ -98,6 +99,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
   const setLinkFn = useServerFn(curatorSetOsgArtistFollowLink);
   const setTracksFn = useServerFn(curatorSetOsgTrackLinks);
+  const [roomTab, setRoomTab] = useState<Record<string, "members" | "7day">>({});
   const [trackInputs, setTrackInputs] = useState<Record<string, string[]>>({});
   const [savingTracksId, setSavingTracksId] = useState<string | null>(null);
 
@@ -714,6 +716,26 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
               </Link>
             </div>
 
+            <div className="mt-4 flex gap-2 border-b border-border">
+              {(["members", "7day"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setRoomTab((prev) => ({ ...prev, [cid]: t }))}
+                  className={`px-3 py-2 text-sm font-medium ${
+                    (roomTab[cid] ?? "members") === t
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t === "members" ? "Members" : "7-day streams"}
+                </button>
+              ))}
+            </div>
+
+            {(roomTab[cid] ?? "members") === "7day" ? (
+              <OsgDailyStreams curatorId={cid} />
+            ) : (
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {sortByPass(rows).map((r) =>
                 renderMemberCard({
@@ -730,6 +752,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                 }),
               )}
             </div>
+            )}
 
           </div>
         );

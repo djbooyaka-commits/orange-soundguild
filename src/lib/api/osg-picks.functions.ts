@@ -270,3 +270,77 @@ export const curatorSetOsgTrackLinks = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { id: id as string, urls };
   });
+
+export type OsgDailyStreams = {
+  user_id: string;
+  username: string | null;
+  days: { date: string; count: number }[];
+  total: number;
+};
+
+/** Per-member daily stream counts (last 7 days) on a curator's OSG playlists. */
+export const listOsgDailyStreams = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { curatorId: string }) => ({
+    curatorId: z.string().uuid().parse(data?.curatorId),
+  }))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: picks, error: pErr } = await supabaseAdmin
+      .from("osg_artist_picks")
+      .select("artist_id")
+      .eq("user_id", data.curatorId);
+    if (pErr) throw new Error(pErr.message);
+    const memberIds = (picks ?? []).map((p: any) => p.artist_id as string);
+    if (userId !== data.curatorId && !memberIds.includes(userId)) {
+      throw new Error("Only room members can view stream counts");
+    }
+    if (!memberIds.length) return [] as OsgDailyStreams[];
+
+    const { data: pls } = await supabaseAdmin
+      .from("curator_playlists")
+      .select("id")
+      .eq("curator_id", data.curatorId)
+      .eq("is_osg", true);
+    const plIds = (pls ?? []).map((p: any) => p.id as string);
+    if (!plIds.length) return [] as OsgDailyStreams[];
+
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: rows, error } = await supabaseAdmin
+      .from("stream_points")
+      .select("user_id, played_at")
+      .in("curator_playlist_id", plIds)
+      .in("user_id", memberIds)
+      .gte("played_at", since)
+      .limit(10000);
+    if (error) throw new Error(error.message);
+
+    const { data: profs } = await supabaseAdmin
+      .from("profiles")
+      .select("id, username")
+      .in("id", memberIds);
+    const names = new Map((profs ?? []).map((p: any) => [p.id, p.username]));
+
+    const byUser = new Map<string, Map<string, number>>();
+    (rows ?? []).forEach((r: any) => {
+      const day = String(r.played_at).slice(0, 10);
+      if (!byUser.has(r.user_id)) byUser.set(r.user_id, new Map());
+      const m = byUser.get(r.user_id)!;
+      m.set(day, (m.get(day) ?? 0) + 1);
+    });
+
+    return Array.from(byUser.entries())
+      .map(([uid, days]) => {
+        const list = Array.from(days.entries())
+          .map(([date, count]) => ({ date, count }))
+          .sort((a, b) => (a.date < b.date ? 1 : -1));
+        return {
+          user_id: uid,
+          username: names.get(uid) ?? null,
+          days: list,
+          total: list.reduce((s, d) => s + d.count, 0),
+        };
+      })
+      .sort((a, b) => b.total - a.total) as OsgDailyStreams[];
+  });
