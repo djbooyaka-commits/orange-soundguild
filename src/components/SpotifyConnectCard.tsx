@@ -74,47 +74,33 @@ export function SpotifyConnectCard() {
     const storedClientId = window.localStorage.getItem("spotifyAppClientIdDraft");
     if (storedClientId) setClientId(storedClientId);
 
-    let timer: ReturnType<typeof setInterval> | undefined;
-
-    void (async () => {
-      const s = await refresh();
-      if (s?.connected) {
-        try {
-          const r = await pollFn();
-          if (r.error || (r.added && r.added > 0)) {
-            setMsg(spotifyPollMessage(r));
-            await refresh();
-          }
-        } catch {
-          // ignore
-        }
-        // Spotify only exposes a limited recent-play window. Keep syncing while
-        // this page is open, including when it is in a background tab, so an
-        // overnight listening session cannot outrun that window.
-        timer = setInterval(
-          () => {
-            void (async () => {
-              try {
-                const r = await pollFn();
-                if (r.added && r.added > 0) await refresh();
-              } catch {
-                // ignore
-              }
-            })();
-          },
-          20 * 60 * 1000,
-        );
-      }
-    })();
+    void refresh();
     const params = new URLSearchParams(window.location.search);
     const flag = params.get("spotify");
     if (flag === "connected") setMsg("Spotify connected!");
     else if (flag && flag !== "connected") setMsg(`Spotify error: ${flag}`);
-    return () => {
-      if (timer) clearInterval(timer);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const autoActive = !!status?.autoSyncUntil && new Date(status.autoSyncUntil).getTime() > Date.now();
+
+  // Auto-update only while this member is actively streaming a Curator playlist.
+  useEffect(() => {
+    if (!status?.connected || !autoActive) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      void (async () => {
+        try {
+          await pollFn({ data: {} });
+          await refresh();
+        } catch {
+          // ignore
+        }
+      })();
+    }, 20 * 60 * 1000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.connected, autoActive]);
 
 
   const toggleAppSetup = () => {
@@ -140,7 +126,7 @@ export function SpotifyConnectCard() {
     setBusy(true);
     setMsg(null);
     try {
-      const r = await pollFn();
+      const r = await pollFn({ data: { manual: true } });
       setMsg(spotifyPollMessage(r));
       if (!r.error) setSyncedAt(Date.now());
       await refresh();
@@ -244,9 +230,13 @@ export function SpotifyConnectCard() {
             )}
             {busy ? "Syncing…" : syncedAt && Date.now() - syncedAt < 2500 ? "Synced" : "Sync now"}
           </Button>
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
-            <CheckCircle2 className="h-4 w-4" /> Auto update on
-          </span>
+          {autoActive ? (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
+              <CheckCircle2 className="h-4 w-4" /> Auto update on
+            </span>
+          ) : (
+            <span className="text-xs font-medium text-muted-foreground">Auto update off — press Sync now</span>
+          )}
           <button
             onClick={disconnect}
             disabled={busy}
@@ -267,6 +257,16 @@ export function SpotifyConnectCard() {
       )}
 
       {msg && <p className="mt-3 text-xs text-muted-foreground">{msg}</p>}
+
+      <div className="mt-4 rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm">
+        <p className="font-semibold text-foreground">How stream tracking works</p>
+        <ol className="mt-2 ml-4 list-decimal space-y-1 text-muted-foreground">
+          <li><b className="text-foreground">Press Sync now before you start streaming</b> a Curator playlist. This turns auto update on for your account.</li>
+          <li>Play the Curator playlist from the playlist page on Spotify (not Liked Songs, search or radio).</li>
+          <li>While you keep streaming the Curator playlist, your points update automatically every hour.</li>
+          <li>If no Curator playlist plays are found for 2 hours, auto update turns off. Press Sync now again next time you stream.</li>
+        </ol>
+      </div>
 
       {/* Advanced: bring-your-own Spotify app */}
       <div className="mt-5 border-t border-border pt-4">
