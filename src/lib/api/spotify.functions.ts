@@ -51,9 +51,9 @@ export const getMySpotifyStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await supabaseAdmin
+    const { data } = await (supabaseAdmin as any)
       .from("spotify_connections")
-      .select("spotify_user_id, last_polled_at, created_at")
+      .select("spotify_user_id, last_polled_at, created_at, auto_sync_until")
       .eq("user_id", context.userId)
       .maybeSingle();
 
@@ -66,8 +66,9 @@ export const getMySpotifyStatus = createServerFn({ method: "GET" })
     const { data: pts } = await context.supabase.rpc("get_my_stream_points");
     return {
       connected: !!data,
-      spotifyUserId: data?.spotify_user_id ?? null,
-      lastPolledAt: data?.last_polled_at ?? null,
+      spotifyUserId: (data?.spotify_user_id as string | null) ?? null,
+      lastPolledAt: (data?.last_polled_at as string | null) ?? null,
+      autoSyncUntil: (data?.auto_sync_until as string | null) ?? null,
       points: (pts as number | null) ?? 0,
       hasCustomApp: !!appRow,
       customClientId: appRow?.client_id ?? null,
@@ -306,11 +307,12 @@ export async function pollSpotifyRecentForUser(userId: string, supabaseAdmin: an
 
     // Only advance the cursor to the newest play we actually saw. Advancing to
     // "now" on an empty response would skip plays Spotify reports late.
-    if (maxEvaluatedAt != null) {
-      await supabaseAdmin
-        .from("spotify_connections")
-        .update({ last_polled_at: new Date(maxEvaluatedAt).toISOString() })
-        .eq("user_id", userId);
+    const updates: Record<string, string> = {};
+    if (maxEvaluatedAt != null) updates.last_polled_at = new Date(maxEvaluatedAt).toISOString();
+    // Streaming a Curator playlist keeps auto-sync alive for 2 more hours.
+    if (added > 0) updates.auto_sync_until = new Date(Date.now() + AUTO_SYNC_WINDOW_MS).toISOString();
+    if (Object.keys(updates).length) {
+      await supabaseAdmin.from("spotify_connections").update(updates).eq("user_id", userId);
     }
 
     return {
@@ -321,9 +323,18 @@ export async function pollSpotifyRecentForUser(userId: string, supabaseAdmin: an
     };
 }
 
+export const AUTO_SYNC_WINDOW_MS = 2 * 60 * 60 * 1000;
+
 export const pollSpotifyRecent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: { manual?: boolean } | undefined) => ({ manual: !!d?.manual }))
+  .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.manual) {
+      await (supabaseAdmin as any)
+        .from("spotify_connections")
+        .update({ auto_sync_until: new Date(Date.now() + AUTO_SYNC_WINDOW_MS).toISOString() })
+        .eq("user_id", context.userId);
+    }
     return pollSpotifyRecentForUser(context.userId, supabaseAdmin);
   });

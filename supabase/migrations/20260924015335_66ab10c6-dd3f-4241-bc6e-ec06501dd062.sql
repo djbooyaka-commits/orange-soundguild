@@ -1,0 +1,1 @@
+ALTER TABLE public.spotify_connections ADD COLUMN IF NOT EXISTS auto_sync_until timestamptz;
