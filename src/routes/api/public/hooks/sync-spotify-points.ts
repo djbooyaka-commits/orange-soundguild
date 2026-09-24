@@ -33,10 +33,9 @@ export const Route = createFileRoute("/api/public/hooks/sync-spotify-points")({
           return Response.json({ error: error.message }, { status: 500 });
         }
 
-        // Cost control: poll every hour only for listeners with an open tracking
-        // session (they are streaming right now). Everyone else is polled at most
-        // once every 3 hours, which still stays well inside Spotify's
-        // recent-play window.
+        // Spotify only returns the last 50 plays, so anyone who streamed in the
+        // last 2 days must be polled every hour or plays beyond 50 are lost.
+        // Truly idle listeners are polled every 3 hours.
         const { data: openSessions } = await (supabaseAdmin as any)
           .from("beta_playlist_tracking_sessions")
           .select("user_id")
@@ -45,6 +44,15 @@ export const Route = createFileRoute("/api/public/hooks/sync-spotify-points")({
         const activeUserIds = new Set<string>(
           ((openSessions ?? []) as Array<{ user_id: string }>).map((s) => s.user_id),
         );
+        const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const { data: recentStreamers } = await (supabaseAdmin as any)
+          .from("stream_points")
+          .select("user_id")
+          .gte("played_at", since)
+          .limit(20000);
+        for (const r of (recentStreamers ?? []) as Array<{ user_id: string }>) {
+          activeUserIds.add(r.user_id);
+        }
         const IDLE_INTERVAL_MS = 3 * 60 * 60 * 1000;
         const due = (connections ?? []).filter((c: any) => {
           if (activeUserIds.has(c.user_id)) return true;
