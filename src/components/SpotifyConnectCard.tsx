@@ -45,6 +45,7 @@ export function SpotifyConnectCard() {
     connected: boolean;
     points: number;
     lastPolledAt: string | null;
+    autoSyncUntil: string | null;
     spotifyUserId: string | null;
     hasCustomApp: boolean;
     customClientId: string | null;
