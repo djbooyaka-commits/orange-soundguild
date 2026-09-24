@@ -643,7 +643,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
             );
           })}
         </div>
-      )}
+      ))}
 
       {room.is_owner && history.length > 0 && (
         <div className="mt-6 rounded-lg border border-border p-4">
