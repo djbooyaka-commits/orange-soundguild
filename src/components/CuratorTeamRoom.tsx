@@ -301,7 +301,62 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
         )}
       </section>
 
-      {room.is_owner && (
+      <div className="flex gap-2 border-b border-border">
+        {(["members", "7day"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`px-3 py-2 text-sm font-medium ${
+              tab === t
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t === "members" ? "Members" : "7-day streams"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "7day" && (
+        <div className="space-y-3">
+          {daily.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+              No streams counted in the last 7 days yet.
+            </div>
+          ) : (
+            daily.map((d) => (
+              <div key={d.user_id} className="rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-medium">@{d.username ?? "user"}</p>
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                    {d.total} pts this week
+                  </span>
+                </div>
+                <ul className="mt-2 space-y-1">
+                  {d.days.map((day) => (
+                    <li
+                      key={day.date}
+                      className="flex items-center justify-between text-xs text-muted-foreground"
+                    >
+                      <span>
+                        {new Date(`${day.date}T00:00:00`).toLocaleDateString("en-US", {
+                          weekday: "long",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                      <span className="font-semibold text-foreground">{day.count} pts</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {tab === "members" && room.is_owner && (
         <form onSubmit={add} className="flex flex-col gap-2 sm:flex-row">
           <input
             value={username}
@@ -320,7 +375,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
         </form>
       )}
 
-      {loading ? (
+      {tab === "members" && (loading ? (
         <p className="text-sm text-muted-foreground">Loading room…</p>
       ) : sorted.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
