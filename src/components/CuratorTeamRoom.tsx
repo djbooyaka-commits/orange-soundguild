@@ -101,6 +101,11 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
       return next;
     });
     setAvatars(await signMany(rows.map((r) => ({ bucket: "avatars" as const, path: r.avatar_url }))));
+    try {
+      setDaily((await dailyFn({ data: { playlistId: room.playlist_id } })) as CuratorTeamDailyStreams[]);
+    } catch {
+      setDaily([]);
+    }
     if (room.is_owner) {
       try {
         setHistory((await historyFn({ data: { playlistId: room.playlist_id } })) as CuratorTeamPointEvent[]);
@@ -108,7 +113,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
         setHistory([]);
       }
     }
-  }, [rosterFn, historyFn, room.playlist_id, room.is_owner]);
+  }, [rosterFn, historyFn, dailyFn, room.playlist_id, room.is_owner]);
 
   useEffect(() => {
     setLoading(true);
