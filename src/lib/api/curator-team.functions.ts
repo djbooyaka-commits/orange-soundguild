@@ -208,6 +208,84 @@ export const curatorTeamPointHistory = createServerFn({ method: "POST" })
     })) as CuratorTeamPointEvent[];
   });
 
+export type CuratorTeamDailyStreams = {
+  user_id: string;
+  username: string | null;
+  days: { date: string; count: number }[];
+  total: number;
+};
+
+/** Per-member daily stream counts for the last 7 days on this playlist. */
+export const curatorTeamDailyStreams = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+  }))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: pl, error: plErr } = await supabase
+      .from("curator_playlists")
+      .select("id, curator_id")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (plErr) throw new Error(plErr.message);
+    if (!pl) throw new Error("Playlist not found");
+
+    const isCurator = pl.curator_id === userId;
+    if (!isCurator) {
+      const { data: membership } = await supabase
+        .from("curator_team_members")
+        .select("id")
+        .eq("playlist_id", data.playlistId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!membership) throw new Error("Only room members can view stream counts");
+    }
+
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("stream_points")
+      .select("user_id, played_at")
+      .eq("curator_playlist_id", data.playlistId)
+      .gte("played_at", since)
+      .order("played_at", { ascending: false })
+      .limit(5000);
+    if (error) throw new Error(error.message);
+
+    const ids = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+    let names = new Map<string, string | null>();
+    if (ids.length) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, username")
+        .in("id", ids);
+      names = new Map((profs ?? []).map((p) => [p.id, p.username]));
+    }
+
+    const byUser = new Map<string, Map<string, number>>();
+    (rows ?? []).forEach((r) => {
+      const day = r.played_at.slice(0, 10);
+      if (!byUser.has(r.user_id)) byUser.set(r.user_id, new Map());
+      const m = byUser.get(r.user_id)!;
+      m.set(day, (m.get(day) ?? 0) + 1);
+    });
+
+    return Array.from(byUser.entries())
+      .map(([uid, days]) => {
+        const list = Array.from(days.entries())
+          .map(([date, count]) => ({ date, count }))
+          .sort((a, b) => (a.date < b.date ? 1 : -1));
+        return {
+          user_id: uid,
+          username: names.get(uid) ?? null,
+          days: list,
+          total: list.reduce((s, d) => s + d.count, 0),
+        };
+      })
+      .sort((a, b) => b.total - a.total) as CuratorTeamDailyStreams[];
+  });
+
 /** Curator sets a team member's Facebook link + display name on their card. */
 export const curatorTeamSetFacebook = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
