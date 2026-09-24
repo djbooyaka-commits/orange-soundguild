@@ -1582,6 +1582,7 @@ export type Database = {
       spotify_connections: {
         Row: {
           access_token: string
+          auto_sync_until: string | null
           created_at: string
           expires_at: string
           last_polled_at: string | null
@@ -1593,6 +1594,7 @@ export type Database = {
         }
         Insert: {
           access_token: string
+          auto_sync_until?: string | null
           created_at?: string
           expires_at: string
           last_polled_at?: string | null
@@ -1604,6 +1606,7 @@ export type Database = {
         }
         Update: {
           access_token?: string
+          auto_sync_until?: string | null
           created_at?: string
           expires_at?: string
           last_polled_at?: string | null
