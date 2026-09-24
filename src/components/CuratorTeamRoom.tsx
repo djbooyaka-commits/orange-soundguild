@@ -23,6 +23,8 @@ import {
   curatorTeamSetLinks,
   curatorTeamSetFacebook,
   curatorTeamSetWeeklyMin,
+  curatorTeamDailyStreams,
+  type CuratorTeamDailyStreams,
   type CuratorTeamMember,
   type CuratorTeamPointEvent,
   type CuratorTeamRoom as TeamRoom,
@@ -42,7 +44,10 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   const adjustFn = useServerFn(curatorTeamAdjustPoints);
   const minFn = useServerFn(curatorTeamSetWeeklyMin);
   const historyFn = useServerFn(curatorTeamPointHistory);
+  const dailyFn = useServerFn(curatorTeamDailyStreams);
 
+  const [tab, setTab] = useState<"members" | "7day">("members");
+  const [daily, setDaily] = useState<CuratorTeamDailyStreams[]>([]);
   const [history, setHistory] = useState<CuratorTeamPointEvent[]>([]);
   const [members, setMembers] = useState<CuratorTeamMember[]>([]);
   const [avatars, setAvatars] = useState<(string | null)[]>([]);
