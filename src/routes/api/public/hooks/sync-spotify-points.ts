@@ -25,40 +25,17 @@ export const Route = createFileRoute("/api/public/hooks/sync-spotify-points")({
           return new Response("Unauthorized", { status: 401 });
         }
 
-        const { data: connections, error } = await supabaseAdmin
+        // Only sync members who pressed "Sync now" and are still streaming a
+        // Curator playlist (auto_sync_until is extended on every counted play).
+        const { data: connections, error } = await (supabaseAdmin as any)
           .from("spotify_connections")
-          .select("user_id, last_polled_at")
+          .select("user_id")
+          .gt("auto_sync_until", new Date().toISOString())
           .limit(1000);
         if (error) {
           return Response.json({ error: error.message }, { status: 500 });
         }
-
-        // Spotify only returns the last 50 plays, so anyone who streamed in the
-        // last 2 days must be polled every hour or plays beyond 50 are lost.
-        // Truly idle listeners are polled every 3 hours.
-        const { data: openSessions } = await (supabaseAdmin as any)
-          .from("beta_playlist_tracking_sessions")
-          .select("user_id")
-          .is("stopped_at", null)
-          .limit(2000);
-        const activeUserIds = new Set<string>(
-          ((openSessions ?? []) as Array<{ user_id: string }>).map((s) => s.user_id),
-        );
-        const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-        const { data: recentStreamers } = await (supabaseAdmin as any)
-          .from("stream_points")
-          .select("user_id")
-          .gte("played_at", since)
-          .limit(20000);
-        for (const r of (recentStreamers ?? []) as Array<{ user_id: string }>) {
-          activeUserIds.add(r.user_id);
-        }
-        const IDLE_INTERVAL_MS = 3 * 60 * 60 * 1000;
-        const due = (connections ?? []).filter((c: any) => {
-          if (activeUserIds.has(c.user_id)) return true;
-          if (!c.last_polled_at) return true;
-          return Date.now() - new Date(c.last_polled_at).getTime() >= IDLE_INTERVAL_MS;
-        });
+        const due = (connections ?? []) as Array<{ user_id: string }>;
 
         let usersSynced = 0;
         let pointsAdded = 0;
