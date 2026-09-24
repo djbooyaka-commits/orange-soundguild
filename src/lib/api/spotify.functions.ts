@@ -176,6 +176,13 @@ export async function pollSpotifyRecentForUser(userId: string, supabaseAdmin: an
     try {
       accessToken = await refreshIfNeeded(conn as any, supabaseAdmin);
     } catch (e) {
+      const msg = String((e as Error)?.message ?? e);
+      if (msg.includes("invalid_grant")) {
+        // Authorization revoked: drop the dead link so the card asks the user to reconnect
+        // and background polling stops retrying it forever.
+        await supabaseAdmin.from("spotify_connections").delete().eq("user_id", userId);
+        return { added: 0, connected: false, error: "spotify_reconnect_required" };
+      }
       console.error("Spotify refresh error", e);
       return { added: 0, connected: false, error: "refresh_failed" };
     }

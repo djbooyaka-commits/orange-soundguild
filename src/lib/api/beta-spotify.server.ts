@@ -323,6 +323,16 @@ export async function fetchBetaPlaylistTracks(
       );
     }
     if (!res.ok) {
+      // Spotify blocks the API list for playlists the token's user doesn't own
+      // (dev-mode restriction). Fall back to the public playlist page.
+      if (page === 0 && (res.status === 403 || res.status === 401 || res.status === 404)) {
+        try {
+          const pub = await fetchBetaPublicPlaylistTracks(playlistId);
+          if (pub.length) return { items: pub, error: null };
+        } catch (e) {
+          console.error(`Beta public playlist fallback failed for ${playlistId}`, e);
+        }
+      }
       console.error(`Beta playlist items failed [${res.status}] for ${playlistId}`);
       return { items: out, error: `spotify_${res.status}` };
     }

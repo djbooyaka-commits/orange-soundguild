@@ -254,9 +254,20 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
     // Insert in chunks so a long session (hundreds of scrobbles) doesn't time out.
     for (let i = 0; i < rows.length; i += 200) {
       const chunk = rows.slice(i, i + 200);
-      const { error: insertError } = await supabaseAdmin.from("beta_stream_points").insert(chunk);
-      if (!insertError) added += chunk.length;
-      else console.error("Last.fm stream point insert failed", insertError);
+      // Skip plays already recorded (e.g. from an earlier Stop attempt) instead of
+      // failing the whole chunk.
+      const { data: inserted, error: insertError } = await supabaseAdmin
+        .from("beta_stream_points")
+        .upsert(chunk, {
+          onConflict: "room_id,user_id,spotify_track_id,played_at",
+          ignoreDuplicates: true,
+        })
+        .select("id");
+      if (insertError) {
+        console.error("Last.fm stream point insert failed", insertError);
+        throw new Error("Could not save your plays. Your session is still running — press Stop again.");
+      }
+      added += inserted?.length ?? 0;
     }
 
 
