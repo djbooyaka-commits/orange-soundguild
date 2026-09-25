@@ -307,14 +307,21 @@ export const listOsgDailyStreams = createServerFn({ method: "POST" })
     if (!plIds.length) return [] as OsgDailyStreams[];
 
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: rows, error } = await supabaseAdmin
-      .from("stream_points")
-      .select("user_id, played_at")
-      .in("curator_playlist_id", plIds)
-      .in("user_id", memberIds)
-      .gte("played_at", since)
-      .limit(10000);
-    if (error) throw new Error(error.message);
+    // The database returns at most 1000 rows per request, so page through all of them.
+    const rows: any[] = [];
+    for (let from = 0; from < 100000; from += 1000) {
+      const { data: page, error } = await supabaseAdmin
+        .from("stream_points")
+        .select("user_id, played_at")
+        .in("curator_playlist_id", plIds)
+        .in("user_id", memberIds)
+        .gte("played_at", since)
+        .order("id", { ascending: true })
+        .range(from, from + 999);
+      if (error) throw new Error(error.message);
+      rows.push(...(page ?? []));
+      if (!page || page.length < 1000) break;
+    }
 
     const { data: profs } = await supabaseAdmin
       .from("profiles")
