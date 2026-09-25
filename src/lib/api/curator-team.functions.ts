@@ -244,14 +244,19 @@ export const curatorTeamDailyStreams = createServerFn({ method: "POST" })
 
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
-      .from("stream_points")
-      .select("user_id, played_at")
-      .eq("curator_playlist_id", data.playlistId)
-      .gte("played_at", since)
-      .order("played_at", { ascending: false })
-      .limit(5000);
-    if (error) throw new Error(error.message);
+    const rows: { user_id: string; played_at: string }[] = [];
+    for (let from = 0; from < 100000; from += 1000) {
+      const { data: page, error } = await supabaseAdmin
+        .from("stream_points")
+        .select("user_id, played_at")
+        .eq("curator_playlist_id", data.playlistId)
+        .gte("played_at", since)
+        .order("id", { ascending: true })
+        .range(from, from + 999);
+      if (error) throw new Error(error.message);
+      rows.push(...(page ?? []));
+      if (!page || page.length < 1000) break;
+    }
 
     const ids = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
     let names = new Map<string, string | null>();
