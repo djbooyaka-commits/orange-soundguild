@@ -9,6 +9,7 @@ import {
   disconnectSpotify,
   setMySpotifyApp,
   deleteMySpotifyApp,
+  AUTO_SYNC_WINDOW_MS,
 } from "@/lib/api/spotify.functions";
 
 function spotifyPollMessage(result: { added?: number; error?: string | null; scanned?: number; skippedNotCurated?: number; retryAfter?: number | null }) {
@@ -49,6 +50,9 @@ export function SpotifyConnectCard() {
     spotifyUserId: string | null;
     hasCustomApp: boolean;
     customClientId: string | null;
+    hourly: { hour: number; count: number }[];
+    lastPlayAt: string | null;
+    todayTotal: number;
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -102,6 +106,18 @@ export function SpotifyConnectCard() {
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status?.connected, autoActive]);
+
+  // Lightweight status-only refresh (no Spotify API call) so the hourly feed
+  // and auto-update countdown update live while the card is open.
+  useEffect(() => {
+    if (!status?.connected) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      void refresh();
+    }, 60 * 1000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.connected]);
 
 
   const toggleAppSetup = () => {
@@ -258,6 +274,69 @@ export function SpotifyConnectCard() {
       )}
 
       {msg && <p className="mt-3 text-xs text-muted-foreground">{msg}</p>}
+
+      {status?.connected && (
+        <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-foreground">Live activity</p>
+            <span
+              className={`inline-flex items-center gap-1 text-xs font-medium ${
+                autoActive ? "text-success" : "text-muted-foreground"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${autoActive ? "animate-pulse bg-success" : "bg-muted-foreground"}`}
+              />
+              {autoActive ? "Auto update on" : "Auto update off"}
+            </span>
+          </div>
+
+          {autoActive && status.autoSyncUntil && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Started {new Date(new Date(status.autoSyncUntil).getTime() - AUTO_SYNC_WINDOW_MS).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              {" · "}stops at {new Date(status.autoSyncUntil).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+            </p>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <span className="text-xs text-muted-foreground">
+              Today: <span className="font-semibold text-foreground">{status.todayTotal}</span> pts
+            </span>
+            {status.lastPlayAt && (
+              <span className="text-xs text-muted-foreground">
+                Last play {new Date(status.lastPlayAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              </span>
+            )}
+            {status.lastPolledAt && (
+              <span className="text-xs text-muted-foreground">
+                Last sync {new Date(status.lastPolledAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
+
+          {status.hourly.length > 0 ? (
+            <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
+              {status.hourly
+                .slice()
+                .reverse()
+                .map((h) => (
+                  <li key={h.hour} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {new Date(2000, 0, 1, h.hour).toLocaleTimeString([], { hour: "numeric" })}
+                    </span>
+                    <span className="font-semibold text-foreground">{h.count} pts</span>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-xs text-muted-foreground">
+              No streams counted yet today. Press Sync now, then play a Curator playlist.
+            </p>
+          )}
+        </div>
+      )}
+
+
 
       <div className="mt-4 rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm">
         <p className="font-semibold text-foreground">How stream tracking works</p>
