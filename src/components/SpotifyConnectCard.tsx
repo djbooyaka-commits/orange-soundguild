@@ -106,6 +106,18 @@ export function SpotifyConnectCard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status?.connected, autoActive]);
 
+  // Lightweight status-only refresh (no Spotify API call) so the hourly feed
+  // and auto-update countdown update live while the card is open.
+  useEffect(() => {
+    if (!status?.connected) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      void refresh();
+    }, 60 * 1000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.connected]);
+
 
   const toggleAppSetup = () => {
     setShowApp((current) => {
