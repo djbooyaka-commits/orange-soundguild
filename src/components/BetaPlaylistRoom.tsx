@@ -572,7 +572,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   </a>
                 )}
 
-                {isTeam && m.joined_at && (
+                {m.joined_at && (
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex w-fit items-center rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Joined{" "}
