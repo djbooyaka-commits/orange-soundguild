@@ -198,6 +198,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         avatar_url: (p?.avatar_url as string | null) ?? null,
         account_type: (p?.account_type as string) ?? "fan",
         points,
+        streamed_points: earned.get(uid) ?? 0,
         weekly_min: min,
         last_deduction_at: lastAdjust.get(uid) ?? null,
         is_me: uid === context.userId,
