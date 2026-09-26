@@ -157,9 +157,11 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     for (const a of adjustments ?? []) {
       const uid = a.user_id as string;
       adjusted.set(uid, (adjusted.get(uid) ?? 0) + (a.delta ?? 0));
-      const prev = lastAdjust.get(uid);
-      if (!prev || new Date(a.created_at as string) > new Date(prev)) {
-        lastAdjust.set(uid, a.created_at as string);
+      if ((a.delta ?? 0) < 0) {
+        const prev = lastAdjust.get(uid);
+        if (!prev || new Date(a.created_at as string) > new Date(prev)) {
+          lastAdjust.set(uid, a.created_at as string);
+        }
       }
     }
 
@@ -282,16 +284,52 @@ export const adjustBetaPlaylistPoints = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!member) throw new Error("That user is not a member of this room");
 
+    let appliedDelta = data.delta;
+    if (data.delta < 0) {
+      const cutoff = new Date(Date.now() - POINT_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      const [{ data: earnedRows }, { data: submissions }, { data: adjustments }] =
+        await Promise.all([
+          supabaseAdmin.rpc("beta_playlist_earned_points", { p_playlist_id: pl.id }),
+          supabaseAdmin
+            .from("beta_submissions")
+            .select("cost_points")
+            .eq("playlist_id", pl.id)
+            .eq("submitter_user_id", data.userId)
+            .gte("created_at", cutoff),
+          supabaseAdmin
+            .from("beta_point_adjustments")
+            .select("delta")
+            .eq("playlist_id", pl.id)
+            .eq("user_id", data.userId)
+            .gte("created_at", cutoff),
+        ]);
+      const earned = ((earnedRows ?? []) as any[]).find(
+        (row) => row.user_id === data.userId,
+      );
+      const earnedPoints = Number(earned?.points) || 0;
+      const spentPoints = (submissions ?? []).reduce(
+        (sum: number, row: any) => sum + (Number(row.cost_points) || 0),
+        0,
+      );
+      const adjustedPoints = (adjustments ?? []).reduce(
+        (sum: number, row: any) => sum + (Number(row.delta) || 0),
+        0,
+      );
+      const availablePoints = Math.max(0, earnedPoints - spentPoints + adjustedPoints);
+      appliedDelta = -Math.min(Math.abs(data.delta), availablePoints);
+      if (appliedDelta === 0) throw new Error("This member has no points to remove");
+    }
+
     const { error } = await supabaseAdmin.from("beta_point_adjustments").insert({
       room_id: room.id,
       playlist_id: pl.id,
       user_id: data.userId,
       curator_id: context.userId,
-      delta: data.delta,
+      delta: appliedDelta,
       reason: data.reason || null,
     });
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true, appliedDelta };
   });
 
 export const removeBetaRoomMember = createServerFn({ method: "POST" })

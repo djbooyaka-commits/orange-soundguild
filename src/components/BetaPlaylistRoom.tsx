@@ -243,10 +243,15 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     }
     setDeductingId(userId);
     try {
-      await adjustFn({ data: { playlistId, userId, delta: -n } });
+      const result = await adjustFn({ data: { playlistId, userId, delta: -n } });
+      const removed = Math.abs(result.appliedDelta);
       setDeductInputs((s) => ({ ...s, [userId]: "" }));
       await refresh();
-      toast.success(`Removed ${n} pts`);
+      toast.success(
+        removed < n
+          ? `Pass given — removed the available ${removed} pts; no ${n - removed}-pt debt`
+          : `Removed ${removed} pts`,
+      );
     } catch (err: any) {
       toast.error(err?.message ?? "Could not remove points");
     } finally {
@@ -339,8 +344,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   }
   if (!data) return null;
 
-  // A pass lasts the full week (7 days) — once the curator removes a member's
-  // points, they don't owe last week's missing points.
+  // A pass lasts the full week (7 days). Point removal is clamped server-side
+  // to the available balance so a pass never creates a hidden shortfall debt.
   const isRecentlyDeducted = (m: Member) =>
     !!m.last_deduction_at &&
     Date.now() - new Date(m.last_deduction_at).getTime() < 7 * 24 * 60 * 60 * 1000;
