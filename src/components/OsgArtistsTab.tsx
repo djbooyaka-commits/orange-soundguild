@@ -620,6 +620,26 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             </button>
           </form>
 
+          <div className="mt-4 flex gap-2 border-b border-border">
+            {(["members", "7day"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setRoomTab((prev) => ({ ...prev, [`own:${myUserId}`]: t }))}
+                className={`px-3 py-2 text-sm font-medium ${
+                  (roomTab[`own:${myUserId}`] ?? "members") === t
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t === "members" ? "Members" : "7-day streams"}
+              </button>
+            ))}
+          </div>
+
+          {(roomTab[`own:${myUserId}`] ?? "members") === "7day" ? (
+            <OsgDailyStreams curatorId={myUserId} />
+          ) : (
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {sortByPass(picks.map((a, i) => ({ ...a, avatar: avatars[i] ?? null }))).map((a) =>
               renderMemberCard(
@@ -651,6 +671,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
               ),
             )}
           </div>
+          )}
         </div>
 
       )}
