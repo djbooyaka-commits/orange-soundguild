@@ -185,8 +185,7 @@ export function SubmitTrackCard() {
           <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <div>
-              Cost: <b>50 pts</b>, or <b>45 pts</b> if you follow every artist on the playlist on
-              Spotify. Max {dailyLimit} submission{dailyLimit === 1 ? "" : "s"} to this playlist every 24 hours (
+              Cost: <b>50 pts</b>. Max {dailyLimit} submission{dailyLimit === 1 ? "" : "s"} to this playlist every 24 hours (
               {recentCount}/{dailyLimit} used).
               {selected && (
                 <>
