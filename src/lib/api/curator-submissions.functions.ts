@@ -535,30 +535,13 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!pl) throw new Error("Playlist not found");
 
-    // Get user's Spotify access token (for follow check)
-    const { data: conn } = await supabaseAdmin
-      .from("spotify_connections")
-      .select("access_token, refresh_token, expires_at, scope")
-      .eq("user_id", context.userId)
-      .maybeSingle();
-
     // App-level token for public metadata
     const appToken = await getAppToken();
     const trackMeta = await fetchTrackMeta(trackId, appToken);
     if (!trackMeta) throw new Error("Track not found on Spotify");
 
-    // Follow check — requires user token with user-follow-read
-    let followedAll = false;
-    if (conn && (conn.scope ?? "").includes("user-follow-read")) {
-      try {
-        const artistIds = await fetchPlaylistArtistIds(pl.spotify_playlist_id, appToken);
-        if (artistIds.length > 0) {
-          followedAll = await userFollowsAll(conn.access_token, artistIds);
-        }
-      } catch (e) {
-        console.error("Follow check failed", e);
-      }
-    }
+    // Follow bonus removed — flat 50 pts for everyone
+    const followedAll = false;
 
     const trackUrl = `https://open.spotify.com/track/${trackId}`;
     const { data: submissionId, error } = await context.supabase.rpc("submit_curator_track", {
@@ -570,7 +553,7 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
 
-    const cost = followedAll ? 45 : 50;
+    const cost = 50;
 
     // Fetch playlist name for the receipt
     const { data: plMeta } = await supabaseAdmin
