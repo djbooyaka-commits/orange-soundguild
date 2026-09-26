@@ -413,7 +413,23 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                   {s.curator_note ? ` · ${s.curator_note}` : ""}
                 </p>
               </div>
-              <span className="shrink-0 text-xs capitalize text-muted-foreground">{s.status}</span>
+              <div className="flex shrink-0 items-center gap-2">
+                {s.status === "pending" && (
+                  <button
+                    onClick={() => cancelSubmission(s.id)}
+                    disabled={busyId === s.id}
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
+                  >
+                    {busyId === s.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <X className="h-3 w-3" />
+                    )}
+                    Cancel
+                  </button>
+                )}
+                <span className="text-xs capitalize text-muted-foreground">{s.status}</span>
+              </div>
             </li>
           ))}
         </ul>
