@@ -152,6 +152,19 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
     }
   };
 
+  const cancelSubmission = async (id: string) => {
+    setBusyId(id);
+    try {
+      const r: any = await cancelFn({ data: { submissionId: id } });
+      toast.success(`Submission cancelled — ${r.refunded} pts given back`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not cancel submission");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const selectedPoints = points.byPlaylist[playlistId] ?? 0;
   const pending = queue.filter((q) => q.status === "pending");
   const reviewed = queue.filter((q) => q.status !== "pending");
