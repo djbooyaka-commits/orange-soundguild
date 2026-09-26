@@ -347,8 +347,9 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   };
 
   const isTeam = data.playlist.isTeam;
-  const passRank = (m: Member) =>
-    !isTeam || isRecentlyDeducted(m) || m.streamed_points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
+  // Pass is granted only by the curator removing the member's points —
+  // streamed or manually added points never flip someone to Pass.
+  const passRank = (m: Member) => (!isTeam || isRecentlyDeducted(m) ? 0 : 1);
   const members = [...data.members].sort(
     (a, b) => passRank(a) - passRank(b) || b.points - a.points,
   );
@@ -468,7 +469,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           {members.map((m) => {
             const min = m.weekly_min || DEFAULT_WEEKLY_MIN;
             const recentlyDeducted = isRecentlyDeducted(m);
-            const below = !recentlyDeducted && m.streamed_points < min;
+            const below = !recentlyDeducted;
             const typeLabel =
               m.account_type === "pioneer"
                 ? "Pioneer"
