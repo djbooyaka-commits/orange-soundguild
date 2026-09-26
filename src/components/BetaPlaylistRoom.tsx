@@ -946,6 +946,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
             );
           })}
         </div>
+        )}
 
         {data.isOwner && history.length > 0 && (
           <div className="mt-6 rounded-lg border border-border p-4">
