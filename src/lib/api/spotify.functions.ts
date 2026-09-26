@@ -64,6 +64,32 @@ export const getMySpotifyStatus = createServerFn({ method: "GET" })
       .maybeSingle();
 
     const { data: pts } = await context.supabase.rpc("get_my_stream_points");
+
+    // Today's points grouped by hour, plus the most recent play, so members can
+    // see the app working in real time without needing to press Sync now.
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const { data: todayRows } = await (supabaseAdmin as any)
+      .from("stream_points")
+      .select("played_at")
+      .eq("user_id", context.userId)
+      .gte("played_at", startOfDay.toISOString())
+      .order("played_at", { ascending: false });
+    const hourly: { hour: number; count: number }[] = [];
+    const byHour = new Map<number, number>();
+    let lastPlayAt: string | null = null;
+    for (const r of todayRows ?? []) {
+      const pa = r.played_at as string;
+      if (!lastPlayAt) lastPlayAt = pa;
+      const h = new Date(pa).getHours();
+      byHour.set(h, (byHour.get(h) ?? 0) + 1);
+    }
+    for (let h = 0; h < 24; h++) {
+      const count = byHour.get(h) ?? 0;
+      if (count > 0) hourly.push({ hour: h, count });
+    }
+    hourly.sort((a, b) => a.hour - b.hour);
+
     return {
       connected: !!data,
       spotifyUserId: (data?.spotify_user_id as string | null) ?? null,
@@ -72,6 +98,9 @@ export const getMySpotifyStatus = createServerFn({ method: "GET" })
       points: (pts as number | null) ?? 0,
       hasCustomApp: !!appRow,
       customClientId: appRow?.client_id ?? null,
+      hourly,
+      lastPlayAt,
+      todayTotal: (todayRows ?? []).length,
     };
   });
 
