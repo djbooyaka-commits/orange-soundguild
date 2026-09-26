@@ -45,6 +45,7 @@ type Member = {
   avatar_url: string | null;
   account_type: string;
   points: number;
+  streamed_points: number;
   weekly_min: number;
   last_deduction_at: string | null;
   is_me: boolean;
@@ -347,7 +348,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
 
   const isTeam = data.playlist.isTeam;
   const passRank = (m: Member) =>
-    !isTeam || isRecentlyDeducted(m) || m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
+    !isTeam || isRecentlyDeducted(m) || m.streamed_points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
   const members = [...data.members].sort(
     (a, b) => passRank(a) - passRank(b) || b.points - a.points,
   );
@@ -467,7 +468,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           {members.map((m) => {
             const min = m.weekly_min || DEFAULT_WEEKLY_MIN;
             const recentlyDeducted = isRecentlyDeducted(m);
-            const below = !recentlyDeducted && m.points < min;
+            const below = !recentlyDeducted && m.streamed_points < min;
             const typeLabel =
               m.account_type === "pioneer"
                 ? "Pioneer"
