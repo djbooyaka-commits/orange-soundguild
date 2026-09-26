@@ -488,3 +488,55 @@ export const setBetaPlaylistMemberFacebook = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export type BetaTrackingSession = {
+  user_id: string;
+  username: string | null;
+  sessions: { started_at: string; stopped_at: string | null }[];
+};
+
+/** Per-member start/stop tracking times for the last 7 days on this playlist. */
+export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    await assertRoomMember(supabaseAdmin, room, context.userId);
+
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: rows, error } = await supabaseAdmin
+      .from("beta_playlist_tracking_sessions")
+      .select("user_id, started_at, stopped_at")
+      .eq("playlist_id", pl.id)
+      .gte("started_at", since)
+      .order("started_at", { ascending: false })
+      .limit(2000);
+    if (error) throw new Error(error.message);
+
+    const ids = Array.from(new Set((rows ?? []).map((r: any) => r.user_id as string)));
+    let names = new Map<string, string | null>();
+    if (ids.length) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, username")
+        .in("id", ids);
+      names = new Map((profs ?? []).map((p: any) => [p.id as string, p.username as string | null]));
+    }
+
+    const byUser = new Map<string, { started_at: string; stopped_at: string | null }[]>();
+    (rows ?? []).forEach((r: any) => {
+      if (!byUser.has(r.user_id)) byUser.set(r.user_id, []);
+      byUser.get(r.user_id)!.push({ started_at: r.started_at, stopped_at: r.stopped_at });
+    });
+
+    return Array.from(byUser.entries())
+      .map(([uid, sessions]) => ({
+        user_id: uid,
+        username: names.get(uid) ?? null,
+        sessions,
+      }))
+      .sort((a, b) => b.sessions.length - a.sessions.length) as BetaTrackingSession[];
+  });

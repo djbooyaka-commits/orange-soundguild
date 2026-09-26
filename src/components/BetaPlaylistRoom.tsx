@@ -26,8 +26,10 @@ import {
   setBetaPlaylistMemberLink,
   setBetaPlaylistMemberFacebook,
   betaPlaylistPointHistory,
+  betaPlaylistTrackingSessions,
   setBetaRoomMemberJoinedAt,
   type BetaPointEvent,
+  type BetaTrackingSession,
 } from "@/lib/api/beta-playlist-rooms.functions";
 import {
   startLastfmPlaylistTracking,
@@ -116,6 +118,23 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [fbUrlInputs, setFbUrlInputs] = useState<Record<string, string>>({});
   const [fbNameInputs, setFbNameInputs] = useState<Record<string, string>>({});
   const [savingFbId, setSavingFbId] = useState<string | null>(null);
+  const [tab, setTab] = useState<"members" | "times">("members");
+  const [sessions, setSessions] = useState<BetaTrackingSession[] | null>(null);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const sessionsFn = useServerFn(betaPlaylistTrackingSessions);
+
+  const openTimesTab = async () => {
+    setTab("times");
+    if (sessions !== null) return;
+    setLoadingSessions(true);
+    try {
+      setSessions((await sessionsFn({ data: { playlistId } })) as BetaTrackingSession[]);
+    } catch {
+      setSessions([]);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
 
   const refresh = useCallback(async () => {
     const r = (await getFn({ data: { playlistId } })) as RoomData;
@@ -460,6 +479,71 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           </p>
         </div>
 
+        <div className="mt-4 flex gap-2 border-b border-border">
+          <button
+            type="button"
+            onClick={() => setTab("members")}
+            className={`px-3 py-1.5 text-sm font-medium ${
+              tab === "members"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Members
+          </button>
+          <button
+            type="button"
+            onClick={openTimesTab}
+            className={`px-3 py-1.5 text-sm font-medium ${
+              tab === "times"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Tracking times
+          </button>
+        </div>
+
+        {tab === "times" && (
+          <div className="mt-4 space-y-3">
+            {loadingSessions && (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading tracking times…
+              </p>
+            )}
+            {!loadingSessions && (sessions ?? []).length === 0 && (
+              <p className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                No tracking sessions in the last 7 days.
+              </p>
+            )}
+            {(sessions ?? []).map((u) => (
+              <div key={u.user_id} className="rounded-xl border border-border bg-card p-4">
+                <p className="text-sm font-semibold">@{u.username ?? "unknown"}</p>
+                <ul className="mt-2 space-y-1">
+                  {u.sessions.map((s, i) => {
+                    const start = new Date(s.started_at);
+                    const stop = s.stopped_at ? new Date(s.stopped_at) : null;
+                    const day = start.toLocaleDateString(undefined, {
+                      weekday: "long",
+                      month: "short",
+                      day: "numeric",
+                    });
+                    const fmt = (d: Date) =>
+                      d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+                    return (
+                      <li key={i} className="text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">{day}</span> — started{" "}
+                        {fmt(start)}, {stop ? `stopped ${fmt(stop)}` : "still tracking now"}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === "members" && (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {members.length === 0 && (
             <p className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground sm:col-span-2">
@@ -862,6 +946,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
             );
           })}
         </div>
+        )}
 
         {data.isOwner && history.length > 0 && (
           <div className="mt-6 rounded-lg border border-border p-4">

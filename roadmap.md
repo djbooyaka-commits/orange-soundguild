@@ -5,3 +5,4 @@
 - [x] Spotify stream tracker: live hourly points feed + auto-update start/stop times on the card.
 
 - [x] Investigate @Haseena 0/180 pts — 601 streamed minus 510 curator removals = correct
+- [x] Last.fm team rooms: Tracking times tab showing 7 days of start/stop times per member.
