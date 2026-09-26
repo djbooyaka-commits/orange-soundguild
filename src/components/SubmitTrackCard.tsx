@@ -80,7 +80,7 @@ export function SubmitTrackCard() {
     try {
       const res = await submitFn({ data: { playlistId, trackUrl } });
       toast.success(
-        `Submitted — ${res.cost} points spent${res.followedAll ? " (follow bonus applied)" : ""}`,
+        `Submitted — ${res.cost} points spent`,
       );
       setReceipt({
         playlistName: res.playlistName,
@@ -131,7 +131,7 @@ export function SubmitTrackCard() {
                 <dd className="text-foreground">{receipt.playlistName}</dd>
                 <dt>Charged</dt>
                 <dd className="text-foreground">
-                  {receipt.cost} pts{receipt.followedAll ? " (follow bonus)" : ""}
+                  {receipt.cost} pts
                 </dd>
                 <dt>Balance on this playlist</dt>
                 <dd className="text-foreground font-semibold">{receipt.newBalance} pts</dd>
@@ -232,7 +232,6 @@ export function SubmitTrackCard() {
                   </a>
                   <p className="text-xs text-muted-foreground">
                     {s.playlist_name} · {s.cost_points} pts
-                    {s.followed_all_artists ? " · follow bonus" : ""}
                   </p>
                   {s.curator_note && (
                     <p className="mt-1 text-xs italic text-muted-foreground">"{s.curator_note}"</p>
