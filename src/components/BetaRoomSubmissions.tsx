@@ -11,6 +11,7 @@ import {
   setBetaRoomDailyLimit,
   getBetaRoomPoints,
   addBetaSubmissionToSpotify,
+  cancelBetaSubmission,
 } from "@/lib/api/beta-curator.functions";
 
 type Playlist = { id: string; name: string; holdDays: number; isTeam?: boolean };
@@ -37,6 +38,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const submitFn = useServerFn(submitBetaTrack);
   const setLimitFn = useServerFn(setBetaRoomDailyLimit);
   const addToSpotifyFn = useServerFn(addBetaSubmissionToSpotify);
+  const cancelFn = useServerFn(cancelBetaSubmission);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [points, setPoints] = useState<{
