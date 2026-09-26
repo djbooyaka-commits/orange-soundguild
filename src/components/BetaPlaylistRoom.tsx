@@ -339,9 +339,11 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   }
   if (!data) return null;
 
+  // A pass lasts the full week (7 days) — once the curator removes a member's
+  // points, they don't owe last week's missing points.
   const isRecentlyDeducted = (m: Member) =>
     !!m.last_deduction_at &&
-    Date.now() - new Date(m.last_deduction_at).getTime() < 3 * 24 * 60 * 60 * 1000;
+    Date.now() - new Date(m.last_deduction_at).getTime() < 7 * 24 * 60 * 60 * 1000;
   const toggleTracking = async () => {
     setChangingTracking(true);
     setTrackingMsg(null);
