@@ -26,8 +26,10 @@ import {
   setBetaPlaylistMemberLink,
   setBetaPlaylistMemberFacebook,
   betaPlaylistPointHistory,
+  betaPlaylistTrackingSessions,
   setBetaRoomMemberJoinedAt,
   type BetaPointEvent,
+  type BetaTrackingSession,
 } from "@/lib/api/beta-playlist-rooms.functions";
 import {
   startLastfmPlaylistTracking,
@@ -116,6 +118,23 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [fbUrlInputs, setFbUrlInputs] = useState<Record<string, string>>({});
   const [fbNameInputs, setFbNameInputs] = useState<Record<string, string>>({});
   const [savingFbId, setSavingFbId] = useState<string | null>(null);
+  const [tab, setTab] = useState<"members" | "times">("members");
+  const [sessions, setSessions] = useState<BetaTrackingSession[] | null>(null);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const sessionsFn = useServerFn(betaPlaylistTrackingSessions);
+
+  const openTimesTab = async () => {
+    setTab("times");
+    if (sessions !== null) return;
+    setLoadingSessions(true);
+    try {
+      setSessions((await sessionsFn({ data: { playlistId } })) as BetaTrackingSession[]);
+    } catch {
+      setSessions([]);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
 
   const refresh = useCallback(async () => {
     const r = (await getFn({ data: { playlistId } })) as RoomData;
