@@ -80,7 +80,7 @@ export function SubmitTrackCard() {
     try {
       const res = await submitFn({ data: { playlistId, trackUrl } });
       toast.success(
-        `Submitted — ${res.cost} points spent${res.followedAll ? " (follow bonus applied)" : ""}`,
+        `Submitted — ${res.cost} points spent`,
       );
       setReceipt({
         playlistName: res.playlistName,
@@ -131,7 +131,7 @@ export function SubmitTrackCard() {
                 <dd className="text-foreground">{receipt.playlistName}</dd>
                 <dt>Charged</dt>
                 <dd className="text-foreground">
-                  {receipt.cost} pts{receipt.followedAll ? " (follow bonus)" : ""}
+                  {receipt.cost} pts
                 </dd>
                 <dt>Balance on this playlist</dt>
                 <dd className="text-foreground font-semibold">{receipt.newBalance} pts</dd>
@@ -185,8 +185,7 @@ export function SubmitTrackCard() {
           <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <div>
-              Cost: <b>50 pts</b>, or <b>45 pts</b> if you follow every artist on the playlist on
-              Spotify. Max {dailyLimit} submission{dailyLimit === 1 ? "" : "s"} to this playlist every 24 hours (
+              Cost: <b>50 pts</b>. Max {dailyLimit} submission{dailyLimit === 1 ? "" : "s"} to this playlist every 24 hours (
               {recentCount}/{dailyLimit} used).
               {selected && (
                 <>
@@ -233,7 +232,6 @@ export function SubmitTrackCard() {
                   </a>
                   <p className="text-xs text-muted-foreground">
                     {s.playlist_name} · {s.cost_points} pts
-                    {s.followed_all_artists ? " · follow bonus" : ""}
                   </p>
                   {s.curator_note && (
                     <p className="mt-1 text-xs italic text-muted-foreground">"{s.curator_note}"</p>
