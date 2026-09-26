@@ -49,6 +49,9 @@ export function SpotifyConnectCard() {
     spotifyUserId: string | null;
     hasCustomApp: boolean;
     customClientId: string | null;
+    hourly: { hour: number; count: number }[];
+    lastPlayAt: string | null;
+    todayTotal: number;
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
