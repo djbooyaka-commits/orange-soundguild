@@ -577,6 +577,28 @@ export const listMyBetaSubmissions = createServerFn({ method: "POST" })
     }));
   });
 
+export const cancelBetaSubmission = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { submissionId: string }) => ({
+    submissionId: String(data?.submissionId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Only the submitter can cancel, and only while still pending.
+    // Deleting the row refunds the points (available = earned - spent).
+    const { data: row, error } = await supabaseAdmin
+      .from("beta_submissions")
+      .delete()
+      .eq("id", data.submissionId)
+      .eq("submitter_user_id", context.userId)
+      .eq("status", "pending")
+      .select("id, cost_points")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Submission not found or already reviewed");
+    return { refunded: row.cost_points as number };
+  });
+
 export const listBetaSubmissionsForOwner = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { roomId: string }) => ({ roomId: String(data?.roomId ?? "") }))
