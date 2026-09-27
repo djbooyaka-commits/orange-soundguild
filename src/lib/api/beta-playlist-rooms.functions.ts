@@ -543,13 +543,17 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
     await assertRoomMember(supabaseAdmin, room, context.userId);
+    // Members only see their own sessions; the room owner (curator) sees everyone.
+    const isOwner = room.owner_id === context.userId;
 
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: rows, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("beta_playlist_tracking_sessions")
       .select("user_id, started_at, stopped_at")
       .eq("playlist_id", pl.id)
-      .gte("started_at", since)
+      .gte("started_at", since);
+    if (!isOwner) query = query.eq("user_id", context.userId);
+    const { data: rows, error } = await query
       .order("started_at", { ascending: false })
       .limit(2000);
     if (error) throw new Error(error.message);
