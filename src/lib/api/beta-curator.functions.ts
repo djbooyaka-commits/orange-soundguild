@@ -675,6 +675,7 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
 
     let spotifyNote: string | null = null;
     let addedToSpotify = false;
+    let spotifyError: string | null = null;
     if (data.approve) {
       try {
         const { getBetaAccessToken, betaAddTrackToPlaylist, betaPlaylistContainsTrack } =
@@ -697,19 +698,20 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
               pl.spotify_playlist_id as string,
               sub.spotify_track_id as string,
             );
-            spotifyNote = res.ok
-              ? "Added to your Spotify playlist."
-              : "Approved, but Spotify rejected the add — add it manually.";
             addedToSpotify = res.ok;
+            spotifyError = res.ok ? null : describeSpotifyAddError((res as any).error);
+            spotifyNote = res.ok ? "Added to your Spotify playlist." : `Approved. ${spotifyError}`;
           } else {
             spotifyNote = "Already on the playlist.";
             addedToSpotify = true;
           }
         } else {
           spotifyNote = "Approved. Connect Spotify to add tracks automatically.";
+          spotifyError = "Spotify is not connected, so the track was not added automatically.";
         }
       } catch {
-        spotifyNote = "Approved, but adding to Spotify failed — add it manually.";
+        spotifyError = "Adding to Spotify failed unexpectedly. Add the track by hand.";
+        spotifyNote = `Approved. ${spotifyError}`;
       }
     }
 
@@ -720,8 +722,10 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
         curator_note: data.note || null,
         reviewed_at: new Date().toISOString(),
         added_to_spotify: addedToSpotify,
+        spotify_error: addedToSpotify ? null : spotifyError,
       })
       .eq("id", sub.id);
+    if (error) throw new Error(error.message);
     if (error) throw new Error(error.message);
 
     if (data.approve) {
