@@ -41,6 +41,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const setLimitFn = useServerFn(setBetaRoomDailyLimit);
   const addToSpotifyFn = useServerFn(addBetaSubmissionToSpotify);
   const cancelFn = useServerFn(cancelBetaSubmission);
+  const markAddedFn = useServerFn(markBetaSubmissionAdded);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [points, setPoints] = useState<{
@@ -154,6 +155,19 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
     }
   };
 
+  const markAdded = async (id: string) => {
+    setBusyId(id);
+    try {
+      await markAddedFn({ data: { submissionId: id } });
+      toast.success("Marked as added to your playlist");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not mark as added");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const cancelSubmission = async (id: string) => {
     setBusyId(id);
     try {
@@ -169,7 +183,10 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
 
   const selectedPoints = points.byPlaylist[playlistId] ?? 0;
   const pending = queue.filter((q) => q.status === "pending");
-  const reviewed = queue.filter((q) => q.status !== "pending");
+  const notAdded = queue.filter((q) => q.status === "approved" && !q.added_to_spotify);
+  const reviewed = queue.filter(
+    (q) => q.status === "rejected" || (q.status === "approved" && q.added_to_spotify),
+  );
 
   return (
     <div className="space-y-6">
