@@ -84,7 +84,8 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     const cutoff = new Date(Date.now() - POINT_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
     const [
-      { data: members },
+      { data: roomMembers },
+      { data: removals },
       { data: tracks },
       { data: subs },
       { data: adjustments },
