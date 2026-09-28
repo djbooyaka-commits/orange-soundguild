@@ -45,6 +45,9 @@ function BetaRoomDetail() {
   const joinFn = useServerFn(joinBetaRoom);
   const playlistsFn = useServerFn(listBetaRoomPlaylists);
   const activeTrackingFn = useServerFn(getMyActiveBetaTrackingPlaylists);
+  const linksFn = useServerFn(listBetaRoomLinks);
+  const addLinkFn = useServerFn(addBetaRoomLink);
+  const deleteLinkFn = useServerFn(deleteBetaRoomLink);
 
   const [room, setRoom] = useState<RoomData | null>(null);
   const [playlists, setPlaylists] = useState<
@@ -54,6 +57,12 @@ function BetaRoomDetail() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [activeTab, setActiveTab] = useState("tracking");
+  const [roomLinks, setRoomLinks] = useState<
+    Array<{ id: string; name: string; url: string }>
+  >([]);
+  const [linkName, setLinkName] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [savingLink, setSavingLink] = useState(false);
 
   const refreshTracking = useCallback(async () => {
     try {
