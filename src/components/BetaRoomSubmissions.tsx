@@ -184,10 +184,16 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
 
   const selectedPoints = points.byPlaylist[playlistId] ?? 0;
   const pending = queue.filter((q) => q.status === "pending");
-  const notAdded = queue.filter((q) => q.status === "approved" && !q.added_to_spotify);
-  const reviewed = queue.filter(
-    (q) => q.status === "rejected" || (q.status === "approved" && q.added_to_spotify),
-  );
+  // Newest decision first, so a track you just approved is always at the top.
+  const byReviewedDesc = (a: Submission, b: Submission) =>
+    new Date(b.reviewed_at ?? b.created_at).getTime() -
+    new Date(a.reviewed_at ?? a.created_at).getTime();
+  const notAdded = queue
+    .filter((q) => q.status === "approved" && !q.added_to_spotify)
+    .sort(byReviewedDesc);
+  const reviewed = queue
+    .filter((q) => q.status === "rejected" || (q.status === "approved" && q.added_to_spotify))
+    .sort(byReviewedDesc);
 
   return (
     <div className="space-y-6">
