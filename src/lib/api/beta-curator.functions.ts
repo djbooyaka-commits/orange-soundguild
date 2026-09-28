@@ -815,7 +815,7 @@ export const markBetaSubmissionAdded = createServerFn({ method: "POST" })
     if (sub.status !== "approved") throw new Error("Only approved submissions can be marked added");
     const { error } = await supabaseAdmin
       .from("beta_submissions")
-      .update({ added_to_spotify: true })
+      .update({ added_to_spotify: true, spotify_error: null })
       .eq("id", sub.id);
     if (error) throw new Error(error.message);
     return { ok: true };
