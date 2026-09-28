@@ -340,7 +340,7 @@ export const removeBetaRoomMember = createServerFn({ method: "POST" })
   }))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
     if (room.owner_id !== context.userId)
       throw new Error("Only the room owner can remove members");
     if (data.userId === room.owner_id) throw new Error("You can't remove the room owner");
