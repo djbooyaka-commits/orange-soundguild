@@ -779,7 +779,7 @@ export const addBetaSubmissionToSpotify = createServerFn({ method: "POST" })
     if (already) {
       await supabaseAdmin
         .from("beta_submissions")
-        .update({ added_to_spotify: true })
+        .update({ added_to_spotify: true, spotify_error: null })
         .eq("id", sub.id);
       return { spotifyNote: "Already on the playlist." };
     }
@@ -788,17 +788,13 @@ export const addBetaSubmissionToSpotify = createServerFn({ method: "POST" })
       pl.spotify_playlist_id as string,
       sub.spotify_track_id as string,
     );
-    if (res.ok) {
-      await supabaseAdmin
-        .from("beta_submissions")
-        .update({ added_to_spotify: true })
-        .eq("id", sub.id);
-    }
-    return {
-      spotifyNote: res.ok
-        ? "Added to your Spotify playlist."
-        : "Spotify rejected the add — add it manually.",
-    };
+    const failNote = res.ok ? null : describeSpotifyAddError((res as any).error);
+    await supabaseAdmin
+      .from("beta_submissions")
+      .update({ added_to_spotify: res.ok, spotify_error: failNote })
+      .eq("id", sub.id);
+    if (!res.ok) throw new Error(failNote ?? "Spotify rejected the add");
+    return { spotifyNote: "Added to your Spotify playlist." };
   });
 
 /** Marks an approved beta submission as added when the curator added it by hand in Spotify. */
