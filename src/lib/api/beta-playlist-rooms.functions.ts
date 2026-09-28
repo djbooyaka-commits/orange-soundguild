@@ -345,11 +345,13 @@ export const removeBetaRoomMember = createServerFn({ method: "POST" })
       throw new Error("Only the room owner can remove members");
     if (data.userId === room.owner_id) throw new Error("You can't remove the room owner");
 
+    // Playlist-scoped removal: the member stays in the room's other playlists.
     const { error } = await supabaseAdmin
-      .from("beta_room_members")
-      .delete()
-      .eq("room_id", room.id)
-      .eq("user_id", data.userId);
+      .from("beta_playlist_member_removals")
+      .upsert(
+        { playlist_id: pl.id, user_id: data.userId, removed_by: context.userId },
+        { onConflict: "playlist_id,user_id" },
+      );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
