@@ -485,6 +485,7 @@ export type Database = {
           description: string | null
           id: string
           invite_code: string
+          links_tab_name: string | null
           name: string
           owner_id: string
           updated_at: string
@@ -495,6 +496,7 @@ export type Database = {
           description?: string | null
           id?: string
           invite_code?: string
+          links_tab_name?: string | null
           name: string
           owner_id: string
           updated_at?: string
@@ -505,6 +507,7 @@ export type Database = {
           description?: string | null
           id?: string
           invite_code?: string
+          links_tab_name?: string | null
           name?: string
           owner_id?: string
           updated_at?: string

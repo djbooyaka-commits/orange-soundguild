@@ -11,6 +11,7 @@ import {
   listBetaRoomLinks,
   addBetaRoomLink,
   deleteBetaRoomLink,
+  setBetaRoomLinksTabName,
 } from "@/lib/api/beta-playlist-rooms.functions";
 import { LastfmConnectCard } from "@/components/LastfmConnectCard";
 import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
@@ -21,6 +22,7 @@ import { RoomChat } from "@/components/RoomChat";
 import { RoomChatTabLabel } from "@/components/RoomChatTabLabel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AdSlotScript } from "@/components/AdSlotScript";
+import { Button } from "@/components/ui/button";
 
 
 export const Route = createFileRoute("/beta-rooms/$roomId")({
@@ -31,6 +33,8 @@ export const Route = createFileRoute("/beta-rooms/$roomId")({
       { name: "robots", content: "noindex" },
       { property: "og:title", content: "Last.fm Stream Room — Orange Sound Guild" },
       { property: "og:description", content: "Invite-only Last.fm stream tracker room." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: BetaRoomDetail,
@@ -48,6 +52,7 @@ function BetaRoomDetail() {
   const linksFn = useServerFn(listBetaRoomLinks);
   const addLinkFn = useServerFn(addBetaRoomLink);
   const deleteLinkFn = useServerFn(deleteBetaRoomLink);
+  const setLinksNameFn = useServerFn(setBetaRoomLinksTabName);
 
   const [room, setRoom] = useState<RoomData | null>(null);
   const [playlists, setPlaylists] = useState<
@@ -60,6 +65,9 @@ function BetaRoomDetail() {
   const [roomLinks, setRoomLinks] = useState<
     Array<{ id: string; name: string; url: string }>
   >([]);
+  const [linksTabName, setLinksTabName] = useState<string | null>(null);
+  const [tabNameInput, setTabNameInput] = useState("");
+  const [savingTabName, setSavingTabName] = useState(false);
   const [linkName, setLinkName] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [savingLink, setSavingLink] = useState(false);
@@ -89,12 +97,10 @@ function BetaRoomDetail() {
         setPlaylists([]);
       }
       try {
-        const links = (await linksFn({ data: { roomId } })) as Array<{
-          id: string;
-          name: string;
-          url: string;
-        }>;
-        setRoomLinks(links ?? []);
+        const result = await linksFn({ data: { roomId } });
+        setRoomLinks(result.links ?? []);
+        setLinksTabName(result.tabName);
+        setTabNameInput(result.tabName ?? "");
       } catch {
         setRoomLinks([]);
       }
@@ -111,7 +117,7 @@ function BetaRoomDetail() {
       await addLinkFn({ data: { roomId, name: linkName, url: linkUrl } });
       setLinkName("");
       setLinkUrl("");
-      toast.success("Link tab added");
+      toast.success("Link added");
       await refresh();
     } catch (e: any) {
       toast.error(e?.message ?? "Could not add link");
@@ -123,11 +129,23 @@ function BetaRoomDetail() {
   const removeLink = async (linkId: string) => {
     try {
       await deleteLinkFn({ data: { linkId } });
-      toast.success("Link tab removed");
-      if (activeTab === `link-${linkId}`) setActiveTab("tracking");
+      toast.success("Link removed");
       await refresh();
     } catch (e: any) {
       toast.error(e?.message ?? "Could not remove link");
+    }
+  };
+
+  const saveTabName = async () => {
+    setSavingTabName(true);
+    try {
+      await setLinksNameFn({ data: { roomId, name: tabNameInput } });
+      toast.success("Tab name saved");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not save tab name");
+    } finally {
+      setSavingTabName(false);
     }
   };
 
@@ -270,16 +288,10 @@ function BetaRoomDetail() {
               )}
             </div>
           ))}
-          {roomLinks.map((l) => (
-            <TabsTrigger key={l.id} value={`link-${l.id}`} className="shrink-0">
+          {(room.isOwner || linksTabName || roomLinks.length > 0) && (
+            <TabsTrigger value="links" className="shrink-0">
               <Link2 className="mr-1 h-3 w-3" />
-              {l.name}
-            </TabsTrigger>
-          ))}
-          {room.isOwner && (
-            <TabsTrigger value="add-link" className="shrink-0">
-              <Plus className="mr-1 h-3 w-3" />
-              Add link
+              {linksTabName ?? "Links"}
             </TabsTrigger>
           )}
 
@@ -368,76 +380,55 @@ function BetaRoomDetail() {
           <RoomChat scope="beta" roomKey={roomId} title={`${room.name} chat`} />
         </TabsContent>
 
-        {roomLinks.map((l) => (
-          <TabsContent key={l.id} value={`link-${l.id}`}>
-            <section className="rounded-xl border border-border bg-card p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Link2 className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="font-semibold">{l.name}</h2>
-                    <p className="truncate text-xs text-muted-foreground">{l.url}</p>
+        {(room.isOwner || linksTabName || roomLinks.length > 0) && (
+          <TabsContent value="links" className="space-y-5">
+            {room.isOwner && (
+              <div className="space-y-4 border-b border-border pb-5">
+                <div>
+                  <label htmlFor="links-tab-name" className="mb-2 block text-sm font-medium">Tab name</label>
+                  <div className="flex flex-wrap gap-2">
+                    <input id="links-tab-name" value={tabNameInput} onChange={(e) => setTabNameInput(e.target.value)}
+                      placeholder="Name this tab" maxLength={60}
+                      className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                    <Button onClick={saveTabName} disabled={savingTabName || !tabNameInput.trim() || tabNameInput.trim() === linksTabName}>
+                      Save name
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={l.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-                  >
-                    <ExternalLink className="h-4 w-4" /> Open link
-                  </a>
-                  {room.isOwner && (
-                    <button
-                      onClick={() => removeLink(l.id)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-destructive hover:bg-muted"
-                      title="Remove this link tab"
-                      aria-label="Remove this link tab"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+                <div>
+                  <h2 className="mb-2 text-sm font-semibold">Add a link</h2>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <input value={linkName} onChange={(e) => setLinkName(e.target.value)} placeholder="Link name" maxLength={60}
+                      aria-label="Link name" className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                    <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://…" maxLength={500}
+                      aria-label="Link URL" className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <Button className="mt-3" onClick={addLink} disabled={savingLink || !linkName.trim() || !linkUrl.trim()}>
+                    <Plus className="h-4 w-4" /> {savingLink ? "Adding…" : "Add link"}
+                  </Button>
                 </div>
               </div>
-            </section>
-          </TabsContent>
-        ))}
-
-        {room.isOwner && (
-          <TabsContent value="add-link">
-            <section className="rounded-xl border border-border bg-card p-5">
-              <h2 className="font-semibold">Add a link tab</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Give the tab a name and paste the link. Everyone in the room will see it as a new
-                tab.
-              </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <input
-                  value={linkName}
-                  onChange={(e) => setLinkName(e.target.value)}
-                  placeholder="Tab name (e.g. Discord)"
-                  maxLength={60}
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-                />
-                <input
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  placeholder="https://…"
-                  maxLength={500}
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              <button
-                onClick={addLink}
-                disabled={savingLink || !linkName.trim() || !linkUrl.trim()}
-                className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
-                {savingLink ? "Adding…" : "Add link tab"}
-              </button>
-            </section>
+            )}
+            {roomLinks.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No links yet.</p>
+            ) : (
+              <ul className="divide-y divide-border border-y border-border">
+                {roomLinks.map((l) => (
+                  <li key={l.id} className="flex min-w-0 items-center justify-between gap-3 py-3">
+                    <a href={l.url} target="_blank" rel="noreferrer" className="flex min-w-0 items-center gap-2 text-primary hover:underline">
+                      <Link2 className="h-4 w-4 shrink-0" />
+                      <span className="min-w-0 break-words font-medium">{l.name}</span>
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                    </a>
+                    {room.isOwner && (
+                      <Button size="icon" variant="ghost" onClick={() => removeLink(l.id)} title={`Remove ${l.name}`} aria-label={`Remove ${l.name}`}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </TabsContent>
         )}
       </Tabs>
