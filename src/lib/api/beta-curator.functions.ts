@@ -611,7 +611,7 @@ export const listBetaSubmissionsForOwner = createServerFn({ method: "POST" })
     const { data: rows } = await supabaseAdmin
       .from("beta_submissions")
       .select(
-        "id, playlist_id, submitter_user_id, spotify_track_id, spotify_track_url, spotify_track_name, cost_points, status, curator_note, created_at, reviewed_at",
+        "id, playlist_id, submitter_user_id, spotify_track_id, spotify_track_url, spotify_track_name, cost_points, status, curator_note, created_at, reviewed_at, added_to_spotify",
       )
       .eq("room_id", data.roomId)
       .gte("created_at", cutoff)
@@ -656,6 +656,7 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
     if (sub.status !== "pending") throw new Error("That submission was already reviewed");
 
     let spotifyNote: string | null = null;
+    let addedToSpotify = false;
     if (data.approve) {
       try {
         const { getBetaAccessToken, betaAddTrackToPlaylist, betaPlaylistContainsTrack } =
