@@ -103,7 +103,33 @@ function BetaRoomDetail() {
     } finally {
       setLoading(false);
     }
-  }, [getFn, playlistsFn, roomId]);
+  }, [getFn, playlistsFn, linksFn, roomId]);
+
+  const addLink = async () => {
+    setSavingLink(true);
+    try {
+      await addLinkFn({ data: { roomId, name: linkName, url: linkUrl } });
+      setLinkName("");
+      setLinkUrl("");
+      toast.success("Link tab added");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not add link");
+    } finally {
+      setSavingLink(false);
+    }
+  };
+
+  const removeLink = async (linkId: string) => {
+    try {
+      await deleteLinkFn({ data: { linkId } });
+      toast.success("Link tab removed");
+      if (activeTab === `link-${linkId}`) setActiveTab("tracking");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not remove link");
+    }
+  };
 
 
   useEffect(() => {
