@@ -310,6 +310,44 @@ export type Database = {
           },
         ]
       }
+      beta_room_links: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+          room_id: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          room_id: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          room_id?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_room_links_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "beta_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_room_members: {
         Row: {
           created_at: string
