@@ -611,7 +611,7 @@ export const listBetaSubmissionsForOwner = createServerFn({ method: "POST" })
     const { data: rows } = await supabaseAdmin
       .from("beta_submissions")
       .select(
-        "id, playlist_id, submitter_user_id, spotify_track_id, spotify_track_url, spotify_track_name, cost_points, status, curator_note, created_at, reviewed_at",
+        "id, playlist_id, submitter_user_id, spotify_track_id, spotify_track_url, spotify_track_name, cost_points, status, curator_note, created_at, reviewed_at, added_to_spotify",
       )
       .eq("room_id", data.roomId)
       .gte("created_at", cutoff)
@@ -656,6 +656,7 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
     if (sub.status !== "pending") throw new Error("That submission was already reviewed");
 
     let spotifyNote: string | null = null;
+    let addedToSpotify = false;
     if (data.approve) {
       try {
         const { getBetaAccessToken, betaAddTrackToPlaylist, betaPlaylistContainsTrack } =
@@ -681,8 +682,10 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
             spotifyNote = res.ok
               ? "Added to your Spotify playlist."
               : "Approved, but Spotify rejected the add — add it manually.";
+            addedToSpotify = res.ok;
           } else {
             spotifyNote = "Already on the playlist.";
+            addedToSpotify = true;
           }
         } else {
           spotifyNote = "Approved. Connect Spotify to add tracks automatically.";
@@ -698,6 +701,7 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
         status: data.approve ? "approved" : "rejected",
         curator_note: data.note || null,
         reviewed_at: new Date().toISOString(),
+        added_to_spotify: addedToSpotify,
       })
       .eq("id", sub.id);
     if (error) throw new Error(error.message);
@@ -750,15 +754,51 @@ export const addBetaSubmissionToSpotify = createServerFn({ method: "POST" })
       pl.spotify_playlist_id as string,
       sub.spotify_track_id as string,
     );
-    if (already) return { spotifyNote: "Already on the playlist." };
+    if (already) {
+      await supabaseAdmin
+        .from("beta_submissions")
+        .update({ added_to_spotify: true })
+        .eq("id", sub.id);
+      return { spotifyNote: "Already on the playlist." };
+    }
     const res = await betaAddTrackToPlaylist(
       token,
       pl.spotify_playlist_id as string,
       sub.spotify_track_id as string,
     );
+    if (res.ok) {
+      await supabaseAdmin
+        .from("beta_submissions")
+        .update({ added_to_spotify: true })
+        .eq("id", sub.id);
+    }
     return {
       spotifyNote: res.ok
         ? "Added to your Spotify playlist."
         : "Spotify rejected the add — add it manually.",
     };
+  });
+
+/** Marks an approved beta submission as added when the curator added it by hand in Spotify. */
+export const markBetaSubmissionAdded = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { submissionId: string }) => ({
+    submissionId: String(data?.submissionId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sub } = await supabaseAdmin
+      .from("beta_submissions")
+      .select("id, room_id, status")
+      .eq("id", data.submissionId)
+      .maybeSingle();
+    if (!sub) throw new Error("Submission not found");
+    await assertOwner(supabaseAdmin, sub.room_id as string, context.userId);
+    if (sub.status !== "approved") throw new Error("Only approved submissions can be marked added");
+    const { error } = await supabaseAdmin
+      .from("beta_submissions")
+      .update({ added_to_spotify: true })
+      .eq("id", sub.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
