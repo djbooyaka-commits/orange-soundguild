@@ -367,6 +367,79 @@ function BetaRoomDetail() {
         <TabsContent value="chat">
           <RoomChat scope="beta" roomKey={roomId} title={`${room.name} chat`} />
         </TabsContent>
+
+        {roomLinks.map((l) => (
+          <TabsContent key={l.id} value={`link-${l.id}`}>
+            <section className="rounded-xl border border-border bg-card p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Link2 className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="font-semibold">{l.name}</h2>
+                    <p className="truncate text-xs text-muted-foreground">{l.url}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={l.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Open link
+                  </a>
+                  {room.isOwner && (
+                    <button
+                      onClick={() => removeLink(l.id)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-destructive hover:bg-muted"
+                      title="Remove this link tab"
+                      aria-label="Remove this link tab"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </section>
+          </TabsContent>
+        ))}
+
+        {room.isOwner && (
+          <TabsContent value="add-link">
+            <section className="rounded-xl border border-border bg-card p-5">
+              <h2 className="font-semibold">Add a link tab</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Give the tab a name and paste the link. Everyone in the room will see it as a new
+                tab.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <input
+                  value={linkName}
+                  onChange={(e) => setLinkName(e.target.value)}
+                  placeholder="Tab name (e.g. Discord)"
+                  maxLength={60}
+                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                />
+                <input
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://…"
+                  maxLength={500}
+                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <button
+                onClick={addLink}
+                disabled={savingLink || !linkName.trim() || !linkUrl.trim()}
+                className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {savingLink ? "Adding…" : "Add link tab"}
+              </button>
+            </section>
+          </TabsContent>
+        )}
       </Tabs>
 
       <AdSlotScript contentKey="ad_script_beta_room" className="mt-6" />
