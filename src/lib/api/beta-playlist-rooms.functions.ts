@@ -95,6 +95,10 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
       await Promise.all([
         supabaseAdmin.from("beta_room_members").select("user_id, created_at").eq("room_id", room.id),
         supabaseAdmin
+          .from("beta_playlist_member_removals")
+          .select("user_id")
+          .eq("playlist_id", pl.id),
+        supabaseAdmin
           .from("beta_room_tracks")
           .select("spotify_track_id")
           .eq("playlist_id", pl.id),
