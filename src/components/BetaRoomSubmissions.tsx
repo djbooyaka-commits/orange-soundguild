@@ -212,6 +212,67 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
             </div>
           </div>
 
+          {notAdded.length > 0 && (
+            <div className="mt-4 rounded-md border border-amber-500/50 bg-amber-500/5 p-3">
+              <h3 className="text-sm font-semibold text-amber-500">
+                Needs adding to your playlist ({notAdded.length})
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Newest approval first. Press Add to Spotify to try again, or Added it myself once the
+                track is on your playlist.
+              </p>
+              <ul className="mt-2 space-y-2 text-xs">
+                {notAdded.map((s) => (
+                  <li
+                    key={s.id}
+                    className="flex flex-col gap-2 rounded-md border border-amber-500/40 bg-background p-2 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={s.spotify_track_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate font-medium hover:underline"
+                      >
+                        {s.spotify_track_name ?? s.spotify_track_url}
+                      </a>
+                      <p className="truncate text-muted-foreground">
+                        From @{s.submitter_username ?? "unknown"} → {s.playlist_name ?? "playlist"}
+                        {s.reviewed_at
+                          ? ` · approved ${new Date(s.reviewed_at).toLocaleString()}`
+                          : ""}
+                      </p>
+                      {s.spotify_error ? (
+                        <p className="mt-1 text-amber-600">{s.spotify_error}</p>
+                      ) : null}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        onClick={() => addApprovedToSpotify(s.id)}
+                        disabled={busyId === s.id}
+                        className="inline-flex items-center gap-1 rounded-md bg-emerald-500/90 px-2 py-1 font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                      >
+                        {busyId === s.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Check className="h-3 w-3" />
+                        )}
+                        Add to Spotify
+                      </button>
+                      <button
+                        onClick={() => markAdded(s.id)}
+                        disabled={busyId === s.id}
+                        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
+                      >
+                        Added it myself
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {pending.length === 0 ? (
             <div className="mt-4 rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
               No pending submissions.
@@ -271,60 +332,6 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                 </li>
               ))}
             </ul>
-          )}
-
-          {notAdded.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-amber-500">
-                Approved — not on your playlist yet ({notAdded.length})
-              </h3>
-              <ul className="mt-2 space-y-2 text-xs">
-                {notAdded.map((s) => (
-                  <li
-                    key={s.id}
-                    className="flex items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/5 p-2"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <a
-                        href={s.spotify_track_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="truncate hover:underline"
-                      >
-                        {s.spotify_track_name ?? s.spotify_track_url}
-                      </a>
-                      <p className="truncate text-muted-foreground">
-                        From @{s.submitter_username ?? "unknown"} → {s.playlist_name ?? "playlist"}
-                        {s.reviewed_at
-                          ? ` · approved ${new Date(s.reviewed_at).toLocaleDateString()}`
-                          : ""}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        onClick={() => addApprovedToSpotify(s.id)}
-                        disabled={busyId === s.id}
-                        className="inline-flex items-center gap-1 rounded-md bg-emerald-500/90 px-2 py-1 font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
-                      >
-                        {busyId === s.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Check className="h-3 w-3" />
-                        )}
-                        Add to Spotify
-                      </button>
-                      <button
-                        onClick={() => markAdded(s.id)}
-                        disabled={busyId === s.id}
-                        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
-                      >
-                        Added it myself
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
           )}
 
           {reviewed.length > 0 && (
