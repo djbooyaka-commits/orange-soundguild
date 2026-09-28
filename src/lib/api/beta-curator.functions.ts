@@ -637,6 +637,24 @@ export const listBetaSubmissionsForOwner = createServerFn({ method: "POST" })
     }));
   });
 
+/** Turns a raw Spotify failure code into a short sentence the curator can act on. */
+function describeSpotifyAddError(error?: string | null): string {
+  switch (error) {
+    case "spotify_429":
+      return "Spotify was busy (too many requests). Press Add to Spotify again in a minute.";
+    case "spotify_403":
+      return "Spotify refused: the connected account cannot edit this playlist.";
+    case "spotify_401":
+      return "Your Spotify link expired. Reconnect Spotify, then press Add to Spotify.";
+    case "spotify_404":
+      return "Spotify could not find that playlist or track.";
+    default:
+      return error
+        ? `Spotify rejected the add (${error}). Add the track by hand.`
+        : "Spotify rejected the add. Add the track by hand.";
+  }
+}
+
 export const reviewBetaSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { submissionId: string; approve: boolean; note?: string }) => ({
