@@ -593,16 +593,21 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
       .sort((a, b) => b.sessions.length - a.sessions.length) as BetaTrackingSession[];
   });
 
-/**
- * Curator-managed link tabs for a Last.fm stream room.
- * The room owner names each tab and pastes a URL; members see the tabs.
- */
+/** Curator-managed links shown together in one named room tab. */
 export const listBetaRoomLinks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { roomId: string }) => ({
     roomId: String(data?.roomId ?? ""),
   }))
   .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: room } = await supabaseAdmin
+      .from("beta_rooms")
+      .select("id, owner_id, links_tab_name")
+      .eq("id", data.roomId)
+      .maybeSingle();
+    if (!room) throw new Error("Room not found");
+    await assertRoomMember(supabaseAdmin, room, context.userId);
     const { data: rows, error } = await context.supabase
       .from("beta_room_links")
       .select("id, name, url, position, created_at")
@@ -610,7 +615,25 @@ export const listBetaRoomLinks = createServerFn({ method: "POST" })
       .order("position", { ascending: true })
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return { tabName: room.links_tab_name, links: rows ?? [] };
+  });
+
+export const setBetaRoomLinksTabName = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { roomId: string; name: string }) => ({
+    roomId: String(data?.roomId ?? ""),
+    name: String(data?.name ?? "").trim(),
+  }))
+  .handler(async ({ context, data }) => {
+    if (!data.name || data.name.length > 60) throw new Error("Tab name must be 1–60 characters");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: room } = await supabaseAdmin.from("beta_rooms")
+      .select("owner_id").eq("id", data.roomId).maybeSingle();
+    if (!room || room.owner_id !== context.userId) throw new Error("Only the curator can rename this tab");
+    const { error } = await supabaseAdmin.from("beta_rooms")
+      .update({ links_tab_name: data.name }).eq("id", data.roomId).eq("owner_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const addBetaRoomLink = createServerFn({ method: "POST" })
@@ -621,7 +644,7 @@ export const addBetaRoomLink = createServerFn({ method: "POST" })
     url: String(data?.url ?? "").trim().slice(0, 500),
   }))
   .handler(async ({ context, data }) => {
-    if (!data.name) throw new Error("Give the tab a name");
+    if (!data.name) throw new Error("Give the link a name");
     let url = data.url;
     if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
     try {

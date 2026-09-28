@@ -7,3 +7,4 @@
 - [x] Investigate @Haseena 0/180 pts — 601 streamed minus 510 curator removals = correct
 - [x] Last.fm team rooms: Tracking times tab showing 7 days of start/stop times per member.
 - [x] Last.fm passes: waive the weekly shortfall by preventing point removals from creating debt.
+- [x] Last.fm room links: one curator-named tab containing all links for members.
