@@ -592,3 +592,60 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
       }))
       .sort((a, b) => b.sessions.length - a.sessions.length) as BetaTrackingSession[];
   });
+
+/**
+ * Curator-managed link tabs for a Last.fm stream room.
+ * The room owner names each tab and pastes a URL; members see the tabs.
+ */
+export const listBetaRoomLinks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { roomId: string }) => ({
+    roomId: String(data?.roomId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { data: rows, error } = await context.supabase
+      .from("beta_room_links")
+      .select("id, name, url, position, created_at")
+      .eq("room_id", data.roomId)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const addBetaRoomLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { roomId: string; name: string; url: string }) => ({
+    roomId: String(data?.roomId ?? ""),
+    name: String(data?.name ?? "").trim().slice(0, 60),
+    url: String(data?.url ?? "").trim().slice(0, 500),
+  }))
+  .handler(async ({ context, data }) => {
+    if (!data.name) throw new Error("Give the tab a name");
+    let url = data.url;
+    if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+    try {
+      new URL(url);
+    } catch {
+      throw new Error("That link doesn't look valid");
+    }
+    const { error } = await context.supabase
+      .from("beta_room_links")
+      .insert({ room_id: data.roomId, name: data.name, url });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteBetaRoomLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { linkId: string }) => ({
+    linkId: String(data?.linkId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { error } = await context.supabase
+      .from("beta_room_links")
+      .delete()
+      .eq("id", data.linkId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

@@ -1,12 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, ExternalLink, FlaskConical, Info } from "lucide-react";
+import { ArrowLeft, ExternalLink, FlaskConical, Info, Link2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBetaRoom, joinBetaRoom } from "@/lib/api/beta-rooms.functions";
 import { listBetaRoomPlaylists } from "@/lib/api/beta-curator.functions";
-import { getMyActiveBetaTrackingPlaylists } from "@/lib/api/beta-playlist-rooms.functions";
+import {
+  getMyActiveBetaTrackingPlaylists,
+  listBetaRoomLinks,
+  addBetaRoomLink,
+  deleteBetaRoomLink,
+} from "@/lib/api/beta-playlist-rooms.functions";
 import { LastfmConnectCard } from "@/components/LastfmConnectCard";
 import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
 import { BetaPlaylistRoom } from "@/components/BetaPlaylistRoom";
@@ -40,6 +45,9 @@ function BetaRoomDetail() {
   const joinFn = useServerFn(joinBetaRoom);
   const playlistsFn = useServerFn(listBetaRoomPlaylists);
   const activeTrackingFn = useServerFn(getMyActiveBetaTrackingPlaylists);
+  const linksFn = useServerFn(listBetaRoomLinks);
+  const addLinkFn = useServerFn(addBetaRoomLink);
+  const deleteLinkFn = useServerFn(deleteBetaRoomLink);
 
   const [room, setRoom] = useState<RoomData | null>(null);
   const [playlists, setPlaylists] = useState<
@@ -49,6 +57,12 @@ function BetaRoomDetail() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [activeTab, setActiveTab] = useState("tracking");
+  const [roomLinks, setRoomLinks] = useState<
+    Array<{ id: string; name: string; url: string }>
+  >([]);
+  const [linkName, setLinkName] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [savingLink, setSavingLink] = useState(false);
 
   const refreshTracking = useCallback(async () => {
     try {
@@ -74,12 +88,48 @@ function BetaRoomDetail() {
       } catch {
         setPlaylists([]);
       }
+      try {
+        const links = (await linksFn({ data: { roomId } })) as Array<{
+          id: string;
+          name: string;
+          url: string;
+        }>;
+        setRoomLinks(links ?? []);
+      } catch {
+        setRoomLinks([]);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Could not load room");
     } finally {
       setLoading(false);
     }
-  }, [getFn, playlistsFn, roomId]);
+  }, [getFn, playlistsFn, linksFn, roomId]);
+
+  const addLink = async () => {
+    setSavingLink(true);
+    try {
+      await addLinkFn({ data: { roomId, name: linkName, url: linkUrl } });
+      setLinkName("");
+      setLinkUrl("");
+      toast.success("Link tab added");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not add link");
+    } finally {
+      setSavingLink(false);
+    }
+  };
+
+  const removeLink = async (linkId: string) => {
+    try {
+      await deleteLinkFn({ data: { linkId } });
+      toast.success("Link tab removed");
+      if (activeTab === `link-${linkId}`) setActiveTab("tracking");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not remove link");
+    }
+  };
 
 
   useEffect(() => {
@@ -220,6 +270,18 @@ function BetaRoomDetail() {
               )}
             </div>
           ))}
+          {roomLinks.map((l) => (
+            <TabsTrigger key={l.id} value={`link-${l.id}`} className="shrink-0">
+              <Link2 className="mr-1 h-3 w-3" />
+              {l.name}
+            </TabsTrigger>
+          ))}
+          {room.isOwner && (
+            <TabsTrigger value="add-link" className="shrink-0">
+              <Plus className="mr-1 h-3 w-3" />
+              Add link
+            </TabsTrigger>
+          )}
 
         </TabsList>
 
@@ -305,6 +367,79 @@ function BetaRoomDetail() {
         <TabsContent value="chat">
           <RoomChat scope="beta" roomKey={roomId} title={`${room.name} chat`} />
         </TabsContent>
+
+        {roomLinks.map((l) => (
+          <TabsContent key={l.id} value={`link-${l.id}`}>
+            <section className="rounded-xl border border-border bg-card p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Link2 className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="font-semibold">{l.name}</h2>
+                    <p className="truncate text-xs text-muted-foreground">{l.url}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={l.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Open link
+                  </a>
+                  {room.isOwner && (
+                    <button
+                      onClick={() => removeLink(l.id)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-destructive hover:bg-muted"
+                      title="Remove this link tab"
+                      aria-label="Remove this link tab"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </section>
+          </TabsContent>
+        ))}
+
+        {room.isOwner && (
+          <TabsContent value="add-link">
+            <section className="rounded-xl border border-border bg-card p-5">
+              <h2 className="font-semibold">Add a link tab</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Give the tab a name and paste the link. Everyone in the room will see it as a new
+                tab.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <input
+                  value={linkName}
+                  onChange={(e) => setLinkName(e.target.value)}
+                  placeholder="Tab name (e.g. Discord)"
+                  maxLength={60}
+                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                />
+                <input
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://…"
+                  maxLength={500}
+                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <button
+                onClick={addLink}
+                disabled={savingLink || !linkName.trim() || !linkUrl.trim()}
+                className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {savingLink ? "Adding…" : "Add link tab"}
+              </button>
+            </section>
+          </TabsContent>
+        )}
       </Tabs>
 
       <AdSlotScript contentKey="ad_script_beta_room" className="mt-6" />
