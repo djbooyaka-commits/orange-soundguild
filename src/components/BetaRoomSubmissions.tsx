@@ -29,6 +29,7 @@ type Submission = {
   created_at: string;
   reviewed_at?: string | null;
   added_to_spotify?: boolean;
+  spotify_error?: string | null;
 };
 
 export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwner: boolean }) {
