@@ -12,6 +12,7 @@ import {
   getBetaRoomPoints,
   addBetaSubmissionToSpotify,
   cancelBetaSubmission,
+  markBetaSubmissionAdded,
 } from "@/lib/api/beta-curator.functions";
 
 type Playlist = { id: string; name: string; holdDays: number; isTeam?: boolean };
@@ -27,6 +28,7 @@ type Submission = {
   curator_note: string | null;
   created_at: string;
   reviewed_at?: string | null;
+  added_to_spotify?: boolean;
 };
 
 export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwner: boolean }) {
