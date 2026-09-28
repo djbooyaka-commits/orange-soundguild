@@ -88,6 +88,16 @@ function BetaRoomDetail() {
       } catch {
         setPlaylists([]);
       }
+      try {
+        const links = (await linksFn({ data: { roomId } })) as Array<{
+          id: string;
+          name: string;
+          url: string;
+        }>;
+        setRoomLinks(links ?? []);
+      } catch {
+        setRoomLinks([]);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Could not load room");
     } finally {
