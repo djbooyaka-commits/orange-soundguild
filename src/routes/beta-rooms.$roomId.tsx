@@ -1,12 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, ExternalLink, FlaskConical, Info } from "lucide-react";
+import { ArrowLeft, ExternalLink, FlaskConical, Info, Link2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBetaRoom, joinBetaRoom } from "@/lib/api/beta-rooms.functions";
 import { listBetaRoomPlaylists } from "@/lib/api/beta-curator.functions";
-import { getMyActiveBetaTrackingPlaylists } from "@/lib/api/beta-playlist-rooms.functions";
+import {
+  getMyActiveBetaTrackingPlaylists,
+  listBetaRoomLinks,
+  addBetaRoomLink,
+  deleteBetaRoomLink,
+} from "@/lib/api/beta-playlist-rooms.functions";
 import { LastfmConnectCard } from "@/components/LastfmConnectCard";
 import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
 import { BetaPlaylistRoom } from "@/components/BetaPlaylistRoom";
