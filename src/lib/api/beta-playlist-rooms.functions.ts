@@ -84,7 +84,8 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     const cutoff = new Date(Date.now() - POINT_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
     const [
-      { data: members },
+      { data: roomMembers },
+      { data: removals },
       { data: tracks },
       { data: subs },
       { data: adjustments },
@@ -93,6 +94,10 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     ] =
       await Promise.all([
         supabaseAdmin.from("beta_room_members").select("user_id, created_at").eq("room_id", room.id),
+        supabaseAdmin
+          .from("beta_playlist_member_removals")
+          .select("user_id")
+          .eq("playlist_id", pl.id),
         supabaseAdmin
           .from("beta_room_tracks")
           .select("spotify_track_id")
@@ -122,9 +127,12 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
           .maybeSingle(),
       ]);
 
-    const userIds = Array.from(new Set((members ?? []).map((m: any) => m.user_id as string)));
+    // Members removed from this playlist stay in the room's other playlists.
+    const removedIds = new Set((removals ?? []).map((r: any) => r.user_id as string));
+    const members = (roomMembers ?? []).filter((m: any) => !removedIds.has(m.user_id));
+    const userIds = Array.from(new Set(members.map((m: any) => m.user_id as string)));
     const joinedByUser = new Map<string, string>(
-      (members ?? []).map((m: any) => [m.user_id as string, m.created_at as string]),
+      members.map((m: any) => [m.user_id as string, m.created_at as string]),
     );
     const trackIds = Array.from(
       new Set((tracks ?? []).map((t: any) => t.spotify_track_id as string)),
@@ -340,16 +348,18 @@ export const removeBetaRoomMember = createServerFn({ method: "POST" })
   }))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
     if (room.owner_id !== context.userId)
       throw new Error("Only the room owner can remove members");
     if (data.userId === room.owner_id) throw new Error("You can't remove the room owner");
 
+    // Playlist-scoped removal: the member stays in the room's other playlists.
     const { error } = await supabaseAdmin
-      .from("beta_room_members")
-      .delete()
-      .eq("room_id", room.id)
-      .eq("user_id", data.userId);
+      .from("beta_playlist_member_removals")
+      .upsert(
+        { playlist_id: pl.id, user_id: data.userId, removed_by: context.userId },
+        { onConflict: "playlist_id,user_id" },
+      );
     if (error) throw new Error(error.message);
     return { ok: true };
   });

@@ -280,7 +280,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   };
 
   const doRemoveMember = async (userId: string, username: string | null) => {
-    if (!window.confirm(`Remove @${username ?? "this user"} from the room?`)) return;
+    if (!window.confirm(`Remove @${username ?? "this user"} from this playlist? They stay in the room's other playlists.`)) return;
     setRemovingId(userId);
     try {
       await removeMemberFn({ data: { playlistId, userId } });
