@@ -127,9 +127,12 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
           .maybeSingle(),
       ]);
 
-    const userIds = Array.from(new Set((members ?? []).map((m: any) => m.user_id as string)));
+    // Members removed from this playlist stay in the room's other playlists.
+    const removedIds = new Set((removals ?? []).map((r: any) => r.user_id as string));
+    const members = (roomMembers ?? []).filter((m: any) => !removedIds.has(m.user_id));
+    const userIds = Array.from(new Set(members.map((m: any) => m.user_id as string)));
     const joinedByUser = new Map<string, string>(
-      (members ?? []).map((m: any) => [m.user_id as string, m.created_at as string]),
+      members.map((m: any) => [m.user_id as string, m.created_at as string]),
     );
     const trackIds = Array.from(
       new Set((tracks ?? []).map((t: any) => t.spotify_track_id as string)),
