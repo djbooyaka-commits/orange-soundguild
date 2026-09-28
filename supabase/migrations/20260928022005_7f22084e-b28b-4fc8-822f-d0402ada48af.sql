@@ -1,0 +1,1 @@
+ALTER TABLE public.beta_submissions ADD COLUMN IF NOT EXISTS added_to_spotify boolean NOT NULL DEFAULT false;

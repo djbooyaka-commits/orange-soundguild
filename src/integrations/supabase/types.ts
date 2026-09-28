@@ -564,6 +564,7 @@ export type Database = {
       }
       beta_submissions: {
         Row: {
+          added_to_spotify: boolean
           cost_points: number
           created_at: string
           curator_note: string | null
@@ -579,6 +580,7 @@ export type Database = {
           submitter_user_id: string
         }
         Insert: {
+          added_to_spotify?: boolean
           cost_points?: number
           created_at?: string
           curator_note?: string | null
@@ -594,6 +596,7 @@ export type Database = {
           submitter_user_id: string
         }
         Update: {
+          added_to_spotify?: boolean
           cost_points?: number
           created_at?: string
           curator_note?: string | null
