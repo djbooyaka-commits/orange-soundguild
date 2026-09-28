@@ -192,6 +192,38 @@ export type Database = {
           },
         ]
       }
+      beta_playlist_member_removals: {
+        Row: {
+          created_at: string
+          id: string
+          playlist_id: string
+          removed_by: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          playlist_id: string
+          removed_by: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          playlist_id?: string
+          removed_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_playlist_member_removals_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "beta_room_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_playlist_tracking_sessions: {
         Row: {
           created_at: string
