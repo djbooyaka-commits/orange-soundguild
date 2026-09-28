@@ -611,7 +611,7 @@ export const listBetaSubmissionsForOwner = createServerFn({ method: "POST" })
     const { data: rows } = await supabaseAdmin
       .from("beta_submissions")
       .select(
-        "id, playlist_id, submitter_user_id, spotify_track_id, spotify_track_url, spotify_track_name, cost_points, status, curator_note, created_at, reviewed_at, added_to_spotify",
+        "id, playlist_id, submitter_user_id, spotify_track_id, spotify_track_url, spotify_track_name, cost_points, status, curator_note, created_at, reviewed_at, added_to_spotify, spotify_error",
       )
       .eq("room_id", data.roomId)
       .gte("created_at", cutoff)
