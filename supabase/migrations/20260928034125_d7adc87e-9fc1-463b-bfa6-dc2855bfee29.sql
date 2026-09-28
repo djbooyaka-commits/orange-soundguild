@@ -1,0 +1,3 @@
+ALTER TABLE public.beta_rooms ADD COLUMN links_tab_name text;
+UPDATE public.beta_rooms AS room SET links_tab_name = (SELECT l.name FROM public.beta_room_links AS l WHERE l.room_id = room.id ORDER BY l.position ASC, l.created_at ASC LIMIT 1) WHERE EXISTS (SELECT 1 FROM public.beta_room_links AS l WHERE l.room_id = room.id);
+ALTER TABLE public.beta_rooms ADD CONSTRAINT beta_rooms_links_tab_name_length CHECK (links_tab_name IS NULL OR (length(trim(links_tab_name)) BETWEEN 1 AND 60));
