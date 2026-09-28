@@ -270,6 +270,18 @@ function BetaRoomDetail() {
               )}
             </div>
           ))}
+          {roomLinks.map((l) => (
+            <TabsTrigger key={l.id} value={`link-${l.id}`} className="shrink-0">
+              <Link2 className="mr-1 h-3 w-3" />
+              {l.name}
+            </TabsTrigger>
+          ))}
+          {room.isOwner && (
+            <TabsTrigger value="add-link" className="shrink-0">
+              <Plus className="mr-1 h-3 w-3" />
+              Add link
+            </TabsTrigger>
+          )}
 
         </TabsList>
 
