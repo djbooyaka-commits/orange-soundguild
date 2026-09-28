@@ -1,0 +1,1 @@
+ALTER TABLE public.beta_submissions ADD COLUMN IF NOT EXISTS spotify_error text;

@@ -573,6 +573,7 @@ export type Database = {
           playlist_id: string
           reviewed_at: string | null
           room_id: string
+          spotify_error: string | null
           spotify_track_id: string
           spotify_track_name: string | null
           spotify_track_url: string
@@ -589,6 +590,7 @@ export type Database = {
           playlist_id: string
           reviewed_at?: string | null
           room_id: string
+          spotify_error?: string | null
           spotify_track_id: string
           spotify_track_name?: string | null
           spotify_track_url: string
@@ -605,6 +607,7 @@ export type Database = {
           playlist_id?: string
           reviewed_at?: string | null
           room_id?: string
+          spotify_error?: string | null
           spotify_track_id?: string
           spotify_track_name?: string | null
           spotify_track_url?: string
