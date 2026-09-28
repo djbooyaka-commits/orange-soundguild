@@ -726,7 +726,6 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
       })
       .eq("id", sub.id);
     if (error) throw new Error(error.message);
-    if (error) throw new Error(error.message);
 
     if (data.approve) {
       // Track stays on the watch list so streams keep counting
