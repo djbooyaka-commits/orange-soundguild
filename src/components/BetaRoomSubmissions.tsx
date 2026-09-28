@@ -350,20 +350,6 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      {s.status === "approved" && (
-                        <button
-                          onClick={() => addApprovedToSpotify(s.id)}
-                          disabled={busyId === s.id}
-                          className="inline-flex items-center gap-1 rounded-md bg-emerald-500/90 px-2 py-1 font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
-                        >
-                          {busyId === s.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Check className="h-3 w-3" />
-                          )}
-                          Add to Spotify
-                        </button>
-                      )}
                       <span
                         className={`rounded-full px-2 py-0.5 font-medium ${
                           s.status === "approved"
