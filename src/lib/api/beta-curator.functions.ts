@@ -682,8 +682,10 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
             spotifyNote = res.ok
               ? "Added to your Spotify playlist."
               : "Approved, but Spotify rejected the add — add it manually.";
+            addedToSpotify = res.ok;
           } else {
             spotifyNote = "Already on the playlist.";
+            addedToSpotify = true;
           }
         } else {
           spotifyNote = "Approved. Connect Spotify to add tracks automatically.";
@@ -699,6 +701,7 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
         status: data.approve ? "approved" : "rejected",
         curator_note: data.note || null,
         reviewed_at: new Date().toISOString(),
+        added_to_spotify: addedToSpotify,
       })
       .eq("id", sub.id);
     if (error) throw new Error(error.message);
