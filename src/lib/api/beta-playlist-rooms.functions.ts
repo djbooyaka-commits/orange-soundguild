@@ -540,7 +540,7 @@ export const setBetaPlaylistMemberFacebook = createServerFn({ method: "POST" })
 export type BetaTrackingSession = {
   user_id: string;
   username: string | null;
-  sessions: { started_at: string; stopped_at: string | null }[];
+  sessions: { started_at: string; stopped_at: string | null; points: number }[];
 };
 
 /** Per-member start/stop tracking times for the last 7 days on this playlist. */
