@@ -540,7 +540,7 @@ export const setBetaPlaylistMemberFacebook = createServerFn({ method: "POST" })
 export type BetaTrackingSession = {
   user_id: string;
   username: string | null;
-  sessions: { started_at: string; stopped_at: string | null }[];
+  sessions: { started_at: string; stopped_at: string | null; points: number }[];
 };
 
 /** Per-member start/stop tracking times for the last 7 days on this playlist. */
@@ -578,10 +578,36 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
       names = new Map((profs ?? []).map((p: any) => [p.id as string, p.username as string | null]));
     }
 
-    const byUser = new Map<string, { started_at: string; stopped_at: string | null }[]>();
+    // Points earned per session: plays on this playlist between start and stop.
+    let pointsQuery = supabaseAdmin
+      .from("beta_stream_points")
+      .select("user_id, played_at")
+      .eq("playlist_id", pl.id)
+      .gte("played_at", since);
+    if (!isOwner) pointsQuery = pointsQuery.eq("user_id", context.userId);
+    const { data: pointRows } = await pointsQuery.limit(20000);
+    const pointsByUser = new Map<string, number[]>();
+    (pointRows ?? []).forEach((r: any) => {
+      if (!pointsByUser.has(r.user_id)) pointsByUser.set(r.user_id, []);
+      pointsByUser.get(r.user_id)!.push(new Date(r.played_at).getTime());
+    });
+
+    const now = Date.now();
+    const byUser = new Map<
+      string,
+      { started_at: string; stopped_at: string | null; points: number }[]
+    >();
     (rows ?? []).forEach((r: any) => {
       if (!byUser.has(r.user_id)) byUser.set(r.user_id, []);
-      byUser.get(r.user_id)!.push({ started_at: r.started_at, stopped_at: r.stopped_at });
+      const startMs = new Date(r.started_at).getTime();
+      const stopMs = r.stopped_at ? new Date(r.stopped_at).getTime() : now;
+      const plays = pointsByUser.get(r.user_id) ?? [];
+      const points = plays.filter((t) => t >= startMs && t <= stopMs).length;
+      byUser.get(r.user_id)!.push({
+        started_at: r.started_at,
+        stopped_at: r.stopped_at,
+        points,
+      });
     });
 
     return Array.from(byUser.entries())

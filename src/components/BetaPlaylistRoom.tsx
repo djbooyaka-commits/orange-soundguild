@@ -540,7 +540,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     return (
                       <li key={i} className="text-xs text-muted-foreground">
                         <span className="font-medium text-foreground">{day}</span> — started{" "}
-                        {fmt(start)}, {stop ? `stopped ${fmt(stop)}` : "still tracking now"}
+                        {fmt(start)}, {stop ? `stopped ${fmt(stop)}` : "still tracking now"} ·{" "}
+                        <span className="font-medium text-foreground">{s.points} pts</span>
                       </li>
                     );
                   })}
