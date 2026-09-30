@@ -53,7 +53,7 @@ export const getMySpotifyStatus = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await (supabaseAdmin as any)
       .from("spotify_connections")
-      .select("spotify_user_id, last_polled_at, created_at, auto_sync_until")
+      .select("spotify_user_id, last_polled_at, created_at, auto_sync_until, access_token")
       .eq("user_id", context.userId)
       .maybeSingle();
 
