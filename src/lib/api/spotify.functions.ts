@@ -90,8 +90,25 @@ export const getMySpotifyStatus = createServerFn({ method: "GET" })
     }
     hourly.sort((a, b) => a.hour - b.hour);
 
+    // New users who connected but never synced: check once whether Spotify's
+    // dev-mode user cap blocks them, so the card can warn them to set up their
+    // own app instead of silently failing later.
+    let blocked = false;
+    if (data && !appRow && !data.last_polled_at && data.access_token) {
+      try {
+        const probe = await fetch(
+          "https://api.spotify.com/v1/me/player/recently-played?limit=1",
+          { headers: { Authorization: `Bearer ${data.access_token}` } },
+        );
+        blocked = probe.status === 403;
+      } catch {
+        blocked = false;
+      }
+    }
+
     return {
       connected: !!data,
+      blocked,
       spotifyUserId: (data?.spotify_user_id as string | null) ?? null,
       lastPolledAt: (data?.last_polled_at as string | null) ?? null,
       autoSyncUntil: (data?.auto_sync_until as string | null) ?? null,
