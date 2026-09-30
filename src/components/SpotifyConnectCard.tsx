@@ -339,6 +339,28 @@ export function SpotifyConnectCard() {
 
 
 
+      {status?.connected && status.blocked && (
+        <div className="mt-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm">
+          <p className="font-semibold text-foreground">Spotify is blocking tracking for your account</p>
+          <p className="mt-1 text-muted-foreground">
+            Your Spotify account isn't on the site's app allowed-user list yet, so your streams can't be counted.
+            To start earning points now, set up your own free Spotify app below — it takes about 2 minutes and
+            skips the cap completely.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setShowApp(true);
+              window.localStorage.setItem("spotifyAppSetupOpen", "open");
+            }}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            Set up my Spotify app
+          </button>
+        </div>
+      )}
+
       <div className="mt-4 rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm">
         <p className="font-semibold text-foreground">How stream tracking works</p>
         <ol className="mt-2 ml-4 list-decimal space-y-1 text-muted-foreground">
