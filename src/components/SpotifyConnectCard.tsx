@@ -44,6 +44,7 @@ export function SpotifyConnectCard() {
 
   const [status, setStatus] = useState<{
     connected: boolean;
+    blocked?: boolean;
     points: number;
     lastPolledAt: string | null;
     autoSyncUntil: string | null;
