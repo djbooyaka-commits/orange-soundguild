@@ -26,7 +26,7 @@ export const Route = createFileRoute("/playlist-submit")({
     ],
   }),
   component: PlaylistSubmitPage,
-  errorComponent: ({ error }) => <div role="alert" className="p-6">{error.message}</div>,
+  errorComponent: ({ error }) => <div role="alert" className="p-6">{(error as Error).message}</div>,
   notFoundComponent: () => <div className="p-6">Not found.</div>,
 });
 

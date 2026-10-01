@@ -15,7 +15,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/search")({
   validateSearch: zodValidator(searchSchema),
   component: SearchPage,
-  errorComponent: ({ error }) => <div role="alert" className="p-6">{error.message}</div>,
+  errorComponent: ({ error }) => <div role="alert" className="p-6">{(error as Error).message}</div>,
   notFoundComponent: () => <div className="p-6">Not found.</div>,
   head: () => ({
     meta: [

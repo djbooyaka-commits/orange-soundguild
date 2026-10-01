@@ -15,7 +15,7 @@ const POINT_TTL_DAYS = 30;
 async function loadPlaylist(supabaseAdmin: any, playlistId: string) {
   const { data: pl } = await supabaseAdmin
     .from("beta_room_playlists")
-    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team")
+    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team, min_period_days")
     .eq("id", playlistId)
     .maybeSingle();
   if (!pl) throw new Error("Playlist not found");
@@ -134,6 +134,16 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     const joinedByUser = new Map<string, string>(
       members.map((m: any) => [m.user_id as string, m.created_at as string]),
     );
+    let removedList: { user_id: string; username: string | null }[] = [];
+    if (isOwner && removedIds.size) {
+      const ids = Array.from(removedIds).filter((id) =>
+        (roomMembers ?? []).some((m: any) => m.user_id === id),
+      );
+      if (ids.length) {
+        const { data: rp } = await supabaseAdmin.from("profiles").select("id, username").in("id", ids);
+        removedList = (rp ?? []).map((p: any) => ({ user_id: p.id, username: p.username }));
+      }
+    }
     const trackIds = Array.from(
       new Set((tracks ?? []).map((t: any) => t.spotify_track_id as string)),
     );
@@ -245,7 +255,9 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         weeklyMin: min,
         trackCount: trackIds.length,
         isTeam: (pl.is_team as boolean | null) ?? false,
+        periodDays: ((pl as any).min_period_days as number | null) ?? 7,
       },
+      removedMembers: isOwner ? removedList : [],
       trackingStartedAt: (activeTracking?.started_at as string | null) ?? null,
       isOwner,
       members: members_,
@@ -360,6 +372,43 @@ export const removeBetaRoomMember = createServerFn({ method: "POST" })
         { playlist_id: pl.id, user_id: data.userId, removed_by: context.userId },
         { onConflict: "playlist_id,user_id" },
       );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const readdBetaRoomMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; userId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    userId: String(data?.userId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId) throw new Error("Only the room owner can do that");
+    const { error } = await supabaseAdmin
+      .from("beta_playlist_member_removals")
+      .delete()
+      .eq("playlist_id", pl.id)
+      .eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const setBetaPlaylistPeriod = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; days: number }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    days: Number(data?.days) === 30 ? 30 : 7,
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId) throw new Error("Only the room owner can do that");
+    const { error } = await (supabaseAdmin as any)
+      .from("beta_room_playlists")
+      .update({ min_period_days: data.days })
+      .eq("id", pl.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

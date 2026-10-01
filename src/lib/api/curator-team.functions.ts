@@ -27,6 +27,7 @@ export type CuratorTeamMember = {
   track_urls: string[] | null;
   facebook_url: string | null;
   facebook_name: string | null;
+  period_days: number;
 };
 
 export const setCuratorPlaylistIsTeam = createServerFn({ method: "POST" })
@@ -61,7 +62,7 @@ export const curatorTeamRoster = createServerFn({ method: "POST" })
       }),
       context.supabase
         .from("curator_playlists")
-        .select("curator_id")
+        .select("curator_id, min_period_days")
         .eq("id", data.playlistId)
         .maybeSingle(),
     ]);
@@ -72,6 +73,7 @@ export const curatorTeamRoster = createServerFn({ method: "POST" })
       ...row,
       facebook_url: isCurator ? row.facebook_url : null,
       facebook_name: isCurator ? row.facebook_name : null,
+      period_days: ((playlist as any)?.min_period_days as number | null) ?? 7,
     })) as CuratorTeamMember[];
   });
 
@@ -306,6 +308,21 @@ export const curatorTeamSetFacebook = createServerFn({ method: "POST" })
       _user_id: data.userId,
       _fb_url: data.url,
       _fb_name: data.name,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const curatorTeamSetPeriod = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; days: number }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    days: Number(data?.days) === 30 ? 30 : 7,
+  }))
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase as any).rpc("curator_team_set_min_period", {
+      _playlist_id: data.playlistId,
+      _days: data.days,
     });
     if (error) throw new Error(error.message);
     return { ok: true };

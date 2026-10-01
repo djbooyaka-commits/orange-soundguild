@@ -29,7 +29,7 @@ export const Route = createFileRoute("/artist-welcome")({
     links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/artist-welcome" }],
   }),
   component: ArtistWelcomePage,
-  errorComponent: ({ error }) => <div role="alert" className="p-6">{error.message}</div>,
+  errorComponent: ({ error }) => <div role="alert" className="p-6">{(error as Error).message}</div>,
   notFoundComponent: () => <div className="p-6">Not found.</div>,
 });
 

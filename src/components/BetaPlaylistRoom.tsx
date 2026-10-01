@@ -23,6 +23,8 @@ import {
   setBetaPlaylistWeeklyMin,
   adjustBetaPlaylistPoints,
   removeBetaRoomMember,
+  readdBetaRoomMember,
+  setBetaPlaylistPeriod,
   setBetaPlaylistMemberLink,
   setBetaPlaylistMemberFacebook,
   betaPlaylistPointHistory,
@@ -40,6 +42,7 @@ import defaultAvatar from "@/assets/avatar.jpg";
 import { Button } from "@/components/ui/button";
 
 const DEFAULT_WEEKLY_MIN = 600;
+import { NoPassStars } from "@/components/NoPassStars";
 
 type Member = {
   user_id: string;
@@ -78,7 +81,9 @@ type RoomData = {
     weeklyMin: number;
     trackCount: number;
     isTeam: boolean;
+    periodDays: number;
   };
+  removedMembers: { user_id: string; username: string | null }[];
   isOwner: boolean;
   trackingStartedAt: string | null;
   members: Member[];
@@ -89,6 +94,9 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const setMinFn = useServerFn(setBetaPlaylistWeeklyMin);
   const adjustFn = useServerFn(adjustBetaPlaylistPoints);
   const removeMemberFn = useServerFn(removeBetaRoomMember);
+  const readdFn = useServerFn(readdBetaRoomMember);
+  const setPeriodFn = useServerFn(setBetaPlaylistPeriod);
+  const [readdingId, setReaddingId] = useState<string | null>(null);
   const setLinkFn = useServerFn(setBetaPlaylistMemberLink);
   const startTrackingFn = useServerFn(startLastfmPlaylistTracking);
   const stopTrackingFn = useServerFn(stopLastfmPlaylistTracking);
@@ -279,6 +287,43 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     }
   };
 
+  const doRemoveAll = async (userId: string, username: string | null, pts: number) => {
+    if (!window.confirm(`Remove all ${pts} pts from @${username ?? "this user"} and give them a pass?`)) return;
+    setDeductingId(userId);
+    try {
+      const result = await adjustFn({ data: { playlistId, userId, delta: -pts, reason: "Pass — all points removed" } });
+      await refresh();
+      toast.success(`Pass given — removed ${Math.abs(result.appliedDelta)} pts`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not remove points");
+    } finally {
+      setDeductingId(null);
+    }
+  };
+
+  const doReadd = async (userId: string) => {
+    setReaddingId(userId);
+    try {
+      await readdFn({ data: { playlistId, userId } });
+      await refresh();
+      toast.success("Member added back");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not add member back");
+    } finally {
+      setReaddingId(null);
+    }
+  };
+
+  const changePeriod = async (days: number) => {
+    try {
+      await setPeriodFn({ data: { playlistId, days } });
+      await refresh();
+      toast.success(`Minimum now counts over ${days} days`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not change period");
+    }
+  };
+
   const doRemoveMember = async (userId: string, username: string | null) => {
     if (!window.confirm(`Remove @${username ?? "this user"} from this playlist? They stay in the room's other playlists.`)) return;
     setRemovingId(userId);
@@ -348,7 +393,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   // to the available balance so a pass never creates a hidden shortfall debt.
   const isRecentlyDeducted = (m: Member) =>
     !!m.last_deduction_at &&
-    Date.now() - new Date(m.last_deduction_at).getTime() < 7 * 24 * 60 * 60 * 1000;
+    Date.now() - new Date(m.last_deduction_at).getTime() <
+      (data.playlist.periodDays || 7) * 24 * 60 * 60 * 1000;
   const toggleTracking = async () => {
     setChangingTracking(true);
     setTrackingMsg(null);
@@ -448,6 +494,17 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               {data.trackingStartedAt ? "Stop tracking" : "Start tracking"}
             </Button>
           </div>
+          {data.isOwner && isTeam && (
+            <select
+              value={data.playlist.periodDays}
+              onChange={(e) => changePeriod(Number(e.target.value))}
+              className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+              aria-label="Minimum period"
+            >
+              <option value={7}>Minimum per 7 days</option>
+              <option value={30}>Minimum per 30 days</option>
+            </select>
+          )}
           {data.isOwner && isTeam && (
             <form onSubmit={saveMin} className="flex items-center gap-2">
               <Settings className="h-4 w-4 text-muted-foreground" />
@@ -551,7 +608,27 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           </div>
         )}
 
-        {tab === "members" && (
+        {tab === "members" && (<>
+        {data.isOwner && data.removedMembers.length > 0 && (
+          <div className="mt-4 rounded-md border border-dashed border-border p-3">
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">Removed from this playlist</p>
+            <div className="flex flex-wrap gap-2">
+              {data.removedMembers.map((r) => (
+                <span key={r.user_id} className="inline-flex items-center gap-2 rounded-md border border-border px-2 py-1 text-xs">
+                  @{r.username ?? "user"}
+                  <button
+                    type="button"
+                    onClick={() => doReadd(r.user_id)}
+                    disabled={readdingId === r.user_id}
+                    className="font-semibold text-primary hover:underline disabled:opacity-50"
+                  >
+                    {readdingId === r.user_id ? "Adding…" : "Add back"}
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {members.length === 0 && (
             <p className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground sm:col-span-2">
@@ -745,9 +822,10 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                         {below ? (
                           <>
                             Below minimum
-                            <Star
-                              className="h-3.5 w-3.5 fill-current"
-                              aria-label="No curator pass this week"
+                            <NoPassStars
+                              lastDeductionAt={m.last_deduction_at}
+                              joinedAt={m.joined_at}
+                              periodDays={data.playlist.periodDays}
                             />
                           </>
                         ) : (
@@ -812,6 +890,17 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                       )}
                       Remove pts
                     </button>
+                    {isTeam && !recentlyDeducted && m.points >= min && m.points > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => doRemoveAll(m.user_id, m.username, m.points)}
+                        disabled={deductingId === m.user_id}
+                        className="inline-flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                        title="Remove all points and give a pass"
+                      >
+                        REMOVE ALL PTS
+                      </button>
+                    )}
                     {!m.is_me && (
                       <button
                         type="button"
@@ -954,7 +1043,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
             );
           })}
         </div>
-        )}
+        </>)}
 
         {data.isOwner && history.length > 0 && (
           <div className="mt-6 rounded-lg border border-border p-4">
