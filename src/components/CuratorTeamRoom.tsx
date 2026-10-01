@@ -14,8 +14,10 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { NoPassStars } from "@/components/NoPassStars";
 import {
   curatorTeamAddMember,
+  curatorTeamSetPeriod,
   curatorTeamAdjustPoints,
   curatorTeamPointHistory,
   curatorTeamRemoveMember,
@@ -139,10 +141,55 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
     }
   };
 
-  const removeMember = async (memberId: string) => {
+  const [removed, setRemoved] = useState<string[]>([]);
+  const periodFn = useServerFn(curatorTeamSetPeriod);
+  const periodDays = members[0]?.period_days ?? 7;
+
+  const changePeriod = async (days: number) => {
+    try {
+      await periodFn({ data: { playlistId: room.playlist_id, days } });
+      await refresh();
+      toast.success(`Minimum now counts over ${days} days`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not change period");
+    }
+  };
+
+  const readd = async (name: string) => {
+    setBusyId(name);
+    try {
+      await addFn({ data: { playlistId: room.playlist_id, username: name } });
+      setRemoved((r) => r.filter((x) => x !== name));
+      await refresh();
+      toast.success(`Added @${name} back`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not add member back");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const removeAll = async (userId: string, name: string | null, pts: number) => {
+    if (!window.confirm(`Remove all ${pts} pts from @${name ?? "this user"} and give them a pass?`)) return;
+    setBusyId(userId);
+    try {
+      await adjustFn({
+        data: { playlistId: room.playlist_id, userId, delta: -pts, reason: "Pass — all points removed" },
+      });
+      await refresh();
+      toast.success(`Pass given — removed ${pts} pts`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not remove points");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const removeMember = async (memberId: string, name?: string | null) => {
     setBusyId(memberId);
     try {
       await removeFn({ data: { memberId } });
+      if (name) setRemoved((r) => (r.includes(name) ? r : [...r, name]));
       await refresh();
     } catch (err: any) {
       toast.error(err?.message ?? "Could not remove member");
@@ -241,7 +288,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
 
   const isRecentlyDeducted = (m: CuratorTeamMember) =>
     !!m.last_deduction_at &&
-    Date.now() - new Date(m.last_deduction_at).getTime() < 3 * 24 * 60 * 60 * 1000;
+    Date.now() - new Date(m.last_deduction_at).getTime() < periodDays * 24 * 60 * 60 * 1000;
   const passRank = (m: CuratorTeamMember) =>
     isRecentlyDeducted(m) || m.points >= (m.weekly_min || 0) ? 0 : 1;
   const sorted = [...members].sort((a, b) => passRank(a) - passRank(b) || b.points - a.points);
@@ -275,10 +322,34 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
           </div>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Everyone in this room needs at least {room.team_weekly_min} points per week from this
+          Everyone in this room needs at least {room.team_weekly_min} points per {periodDays === 30 ? "30 days" : "week"} from this
           playlist for their tracks to stay on it.
         </p>
 
+        {room.is_owner && (
+          <select
+            value={periodDays}
+            onChange={(e) => changePeriod(Number(e.target.value))}
+            className="mt-3 rounded-md border border-border bg-background px-2 py-1 text-xs"
+            aria-label="Minimum period"
+          >
+            <option value={7}>Minimum per 7 days</option>
+            <option value={30}>Minimum per 30 days</option>
+          </select>
+        )}
+        {room.is_owner && removed.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Removed:</span>
+            {removed.map((n) => (
+              <span key={n} className="inline-flex items-center gap-2 rounded-md border border-border px-2 py-1">
+                @{n}
+                <button type="button" onClick={() => readd(n)} disabled={busyId === n} className="font-semibold text-primary hover:underline">
+                  Add back
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
         {room.is_owner && (
           <form onSubmit={saveMin} className="mt-3 flex flex-wrap items-center gap-2">
             <Settings className="h-4 w-4 text-muted-foreground" />
@@ -477,7 +548,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                   {room.is_owner && (
                     <button
                       type="button"
-                      onClick={() => removeMember(m.member_id)}
+                      onClick={() => removeMember(m.member_id, m.username)}
                       disabled={busyId === m.member_id}
                       className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-50"
                       aria-label="Remove member"
@@ -504,9 +575,10 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                     {below ? (
                       <>
                         Below {min}
-                        <Star
-                          className="h-3.5 w-3.5 fill-current"
-                          aria-label="No curator pass this week"
+                        <NoPassStars
+                          lastDeductionAt={m.last_deduction_at}
+                          joinedAt={(m as any).created_at ?? null}
+                          periodDays={periodDays}
                         />
                       </>
                     ) : (
@@ -560,6 +632,18 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                     >
                       <Minus /> Remove points
                     </Button>
+                    {!recentlyDeducted && m.points >= min && m.points > 0 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => removeAll(m.user_id, m.username, m.points)}
+                        disabled={busyId === m.user_id}
+                        className="mt-1 ml-2 h-7"
+                      >
+                        REMOVE ALL PTS
+                      </Button>
+                    )}
                   </div>
                 )}
 
