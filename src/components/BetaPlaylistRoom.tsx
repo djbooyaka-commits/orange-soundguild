@@ -608,7 +608,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           </div>
         )}
 
-        {tab === "members" && (
+        {tab === "members" && (<>
         {data.isOwner && data.removedMembers.length > 0 && (
           <div className="mt-4 rounded-md border border-dashed border-border p-3">
             <p className="mb-2 text-xs font-semibold text-muted-foreground">Removed from this playlist</p>
@@ -1043,7 +1043,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
             );
           })}
         </div>
-        )}
+        </>)}
 
         {data.isOwner && history.length > 0 && (
           <div className="mt-6 rounded-lg border border-border p-4">
