@@ -19,6 +19,7 @@ import {
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
 import { OsgDailyStreams } from "@/components/OsgDailyStreams";
+import { NoPassStars } from "@/components/NoPassStars";
 
 const DEFAULT_WEEKLY_MIN = 600;
 
@@ -395,6 +396,42 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     }
   };
 
+  const removeAllPts = async (artistId: string, name: string | null, pts: number) => {
+    if (!window.confirm(`Remove all ${pts} pts from @${name ?? "this user"} and give them a pass?`)) return;
+    setDeductingId(artistId);
+    try {
+      await adjustFn({ data: { userId: artistId, delta: -pts, reason: "Pass — all points removed" } });
+      await refresh();
+      toast.success(`Pass given — removed ${pts} pts`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not remove points");
+    } finally {
+      setDeductingId(null);
+    }
+  };
+
+  const isPassed = (d?: string | null) =>
+    !!d && Date.now() - new Date(d).getTime() < 7 * 24 * 60 * 60 * 1000;
+  const eligiblePicks = picks.filter(
+    (a: any) => !isPassed(a.last_deduction_at) && a.weekly_points >= (a.weekly_min || DEFAULT_WEEKLY_MIN) && a.weekly_points > 0,
+  );
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const bulkPass = async () => {
+    if (!eligiblePicks.length) return;
+    if (!window.confirm(`Remove all points and give a pass to ${eligiblePicks.length} member(s)?`)) return;
+    setBulkBusy(true);
+    let ok = 0;
+    for (const a of eligiblePicks as any[]) {
+      try {
+        await adjustFn({ data: { userId: a.artist_id, delta: -a.weekly_points, reason: "Pass — all points removed" } });
+        ok++;
+      } catch {}
+    }
+    await refresh();
+    setBulkBusy(false);
+    toast.success(`Pass given to ${ok} member(s)`);
+  };
+
   const saveMin = async (e: React.FormEvent) => {
     e.preventDefault();
     const n = parseInt(minInput, 10);
@@ -428,13 +465,14 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
       last_deduction_at?: string | null;
       avatar?: string | null;
       showDeduct?: boolean;
+      joined_at?: string | null;
     },
     trailing?: React.ReactNode,
   ) => {
     const min = a.weekly_min || DEFAULT_WEEKLY_MIN;
     const recentlyDeducted =
       !!a.last_deduction_at &&
-      Date.now() - new Date(a.last_deduction_at).getTime() < 3 * 24 * 60 * 60 * 1000;
+      Date.now() - new Date(a.last_deduction_at).getTime() < 7 * 24 * 60 * 60 * 1000;
     // A green star (points removed by the curator in the last 3 days) counts as a pass
     const below = !recentlyDeducted && a.weekly_points < min;
     const typeLabel =
@@ -505,10 +543,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             {below ? (
               <span className="inline-flex items-center gap-1 font-semibold">
                 Below minimum
-                <Star
-                  className="h-3.5 w-3.5 fill-current"
-                  aria-label="No curator pass this week"
-                />
+                <NoPassStars lastDeductionAt={a.last_deduction_at ?? null} joinedAt={a.joined_at ?? null} />
               </span>
             ) : (
               <span className="font-semibold">Pass</span>
@@ -560,6 +595,18 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             >
               <Minus /> Remove points
             </Button>
+            {!recentlyDeducted && a.weekly_points >= min && a.weekly_points > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                onClick={() => removeAllPts(a.artist_id, a.username, a.weekly_points)}
+                disabled={deductingId === a.artist_id}
+                className="mt-1 ml-2 h-7"
+              >
+                REMOVE ALL PTS
+              </Button>
+            )}
           </div>
         )}
         {renderFollowLink(a.curator_id, a.artist_id, Boolean(a.showDeduct))}
@@ -599,6 +646,15 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                 className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary disabled:opacity-50"
               >
                 {savingMin ? "Saving…" : "Set min"}
+              </button>
+              <button
+                type="button"
+                onClick={bulkPass}
+                disabled={bulkBusy || eligiblePicks.length === 0}
+                className="rounded-md bg-destructive px-2 py-1 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                title="Remove all points from every member who reached the minimum and give them a pass"
+              >
+                {bulkBusy ? "Working…" : `REMOVE ALL PTS (${eligiblePicks.length})`}
               </button>
             </form>
           </div>
@@ -654,6 +710,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                   last_deduction_at: a.last_deduction_at ?? null,
                   avatar: a.avatar,
                   showDeduct: true,
+                  joined_at: (a as any).created_at ?? null,
                 },
                 <button
                   onClick={() => remove(a.id)}
