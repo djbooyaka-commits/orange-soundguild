@@ -389,6 +389,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_team: boolean
+          min_period_days: number
           name: string
           room_id: string
           spotify_playlist_id: string
@@ -401,6 +402,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_team?: boolean
+          min_period_days?: number
           name: string
           room_id: string
           spotify_playlist_id: string
@@ -413,6 +415,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_team?: boolean
+          min_period_days?: number
           name?: string
           room_id?: string
           spotify_playlist_id?: string
@@ -726,6 +729,7 @@ export type Database = {
           image_url: string | null
           is_osg: boolean
           is_team: boolean
+          min_period_days: number
           name: string
           spotify_playlist_id: string
           team_weekly_min: number
@@ -739,6 +743,7 @@ export type Database = {
           image_url?: string | null
           is_osg?: boolean
           is_team?: boolean
+          min_period_days?: number
           name: string
           spotify_playlist_id: string
           team_weekly_min?: number
@@ -752,6 +757,7 @@ export type Database = {
           image_url?: string | null
           is_osg?: boolean
           is_team?: boolean
+          min_period_days?: number
           name?: string
           spotify_playlist_id?: string
           team_weekly_min?: number
@@ -2297,6 +2303,10 @@ export type Database = {
           _urls: string[]
           _user_id: string
         }
+        Returns: undefined
+      }
+      curator_team_set_min_period: {
+        Args: { _days: number; _playlist_id: string }
         Returns: undefined
       }
       curator_team_set_weekly_min: {
