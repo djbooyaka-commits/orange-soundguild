@@ -24,6 +24,7 @@ import {
   adjustBetaPlaylistPoints,
   removeBetaRoomMember,
   readdBetaRoomMember,
+  addBetaPlaylistMemberByUsername,
   setBetaPlaylistPeriod,
   setBetaPlaylistMemberLink,
   setBetaPlaylistMemberFacebook,
@@ -314,6 +315,41 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     }
   };
 
+  const addByNameFn = useServerFn(addBetaPlaylistMemberByUsername);
+  const [addName, setAddName] = useState("");
+  const [addingName, setAddingName] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const addByName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addName.trim()) return;
+    setAddingName(true);
+    try {
+      const r = await addByNameFn({ data: { playlistId, username: addName.trim() } });
+      setAddName("");
+      await refresh();
+      toast.success(`Added @${r.username ?? addName}`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not add member");
+    } finally {
+      setAddingName(false);
+    }
+  };
+  const bulkPass = async (eligibleForPass: any[]) => {
+    if (!eligibleForPass.length) return;
+    if (!window.confirm(`Remove all points and give a pass to ${eligibleForPass.length} member(s)?`)) return;
+    setBulkBusy(true);
+    let ok = 0;
+    for (const m of eligibleForPass as any[]) {
+      try {
+        await adjustFn({ data: { playlistId, userId: m.user_id, delta: -m.points, reason: "Pass — all points removed" } });
+        ok++;
+      } catch {}
+    }
+    await refresh();
+    setBulkBusy(false);
+    toast.success(`Pass given to ${ok} member(s)`);
+  };
+
   const changePeriod = async (days: number) => {
     try {
       await setPeriodFn({ data: { playlistId, days } });
@@ -422,6 +458,10 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   // Pass is granted only by the curator removing the member's points —
   // streamed or manually added points never flip someone to Pass.
   const passRank = (m: Member) => (!isTeam || isRecentlyDeducted(m) ? 0 : 1);
+  const eligibleForPass = (data?.members ?? []).filter(
+    (m: any) =>
+      !isRecentlyDeducted(m) && m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) && m.points > 0,
+  );
   const members = [...data.members].sort(
     (a, b) => passRank(a) - passRank(b) || b.points - a.points,
   );
@@ -523,6 +563,15 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               >
                 {savingMin ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Set minimum"}
               </button>
+              <button
+                type="button"
+                onClick={() => bulkPass(eligibleForPass)}
+                disabled={bulkBusy || eligibleForPass.length === 0}
+                className="rounded-md bg-destructive px-2 py-1 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                title="Remove all points from every member who reached the minimum and give them a pass"
+              >
+                {bulkBusy ? "Working…" : `REMOVE ALL PTS (${eligibleForPass.length})`}
+              </button>
             </form>
           )}
         </div>
@@ -609,6 +658,24 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
         )}
 
         {tab === "members" && (<>
+        {data.isOwner && (
+          <form onSubmit={addByName} className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input
+              value={addName}
+              onChange={(e) => setAddName(e.target.value)}
+              placeholder="tracked user's username"
+              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={addingName || !addName.trim()}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {addingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Add
+            </button>
+          </form>
+        )}
         {data.isOwner && data.removedMembers.length > 0 && (
           <div className="mt-4 rounded-md border border-dashed border-border p-3">
             <p className="mb-2 text-xs font-semibold text-muted-foreground">Removed from this playlist</p>

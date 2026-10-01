@@ -395,6 +395,44 @@ export const readdBetaRoomMember = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const addBetaPlaylistMemberByUsername = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; username: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    username: String(data?.username ?? "").trim().replace(/^@/, "").slice(0, 100),
+  }))
+  .handler(async ({ context, data }) => {
+    if (!data.username) throw new Error("Enter a username");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId) throw new Error("Only the room owner can do that");
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("id, username")
+      .ilike("username", data.username)
+      .limit(1)
+      .maybeSingle();
+    if (!prof) throw new Error(`No user named @${data.username}`);
+    const { data: existing } = await supabaseAdmin
+      .from("beta_room_members")
+      .select("id")
+      .eq("room_id", room.id)
+      .eq("user_id", prof.id)
+      .maybeSingle();
+    if (!existing) {
+      const { error } = await supabaseAdmin
+        .from("beta_room_members")
+        .insert({ room_id: room.id, user_id: prof.id });
+      if (error) throw new Error(error.message);
+    }
+    await supabaseAdmin
+      .from("beta_playlist_member_removals")
+      .delete()
+      .eq("playlist_id", pl.id)
+      .eq("user_id", prof.id);
+    return { ok: true, username: prof.username as string | null };
+  });
+
 export const setBetaPlaylistPeriod = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { playlistId: string; days: number }) => ({

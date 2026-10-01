@@ -169,6 +169,25 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
     }
   };
 
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const bulkPass = async (list: CuratorTeamMember[]) => {
+    if (!list.length) return;
+    if (!window.confirm(`Remove all points and give a pass to ${list.length} member(s)?`)) return;
+    setBulkBusy(true);
+    let ok = 0;
+    for (const m of list) {
+      try {
+        await adjustFn({
+          data: { playlistId: room.playlist_id, userId: m.user_id, delta: -m.points, reason: "Pass — all points removed" },
+        });
+        ok++;
+      } catch {}
+    }
+    await refresh();
+    setBulkBusy(false);
+    toast.success(`Pass given to ${ok} member(s)`);
+  };
+
   const removeAll = async (userId: string, name: string | null, pts: number) => {
     if (!window.confirm(`Remove all ${pts} pts from @${name ?? "this user"} and give them a pass?`)) return;
     setBusyId(userId);
@@ -291,6 +310,9 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
     Date.now() - new Date(m.last_deduction_at).getTime() < periodDays * 24 * 60 * 60 * 1000;
   const passRank = (m: CuratorTeamMember) =>
     isRecentlyDeducted(m) || m.points >= (m.weekly_min || 0) ? 0 : 1;
+  const eligibleForPass = members.filter(
+    (m) => !isRecentlyDeducted(m) && m.points >= (m.weekly_min || 0) && m.points > 0,
+  );
   const sorted = [...members].sort((a, b) => passRank(a) - passRank(b) || b.points - a.points);
   const avatarByUser = new Map<string, string | null>();
   members.forEach((m, i) => avatarByUser.set(m.user_id, avatars[i] ?? null));
@@ -367,6 +389,15 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
               className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-muted disabled:opacity-50"
             >
               {savingMin ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => bulkPass(eligibleForPass)}
+              disabled={bulkBusy || eligibleForPass.length === 0}
+              className="rounded-md bg-destructive px-2 py-1 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+              title="Remove all points from every member who reached the minimum and give them a pass"
+            >
+              {bulkBusy ? "Working…" : `REMOVE ALL PTS (${eligibleForPass.length})`}
             </button>
           </form>
         )}
