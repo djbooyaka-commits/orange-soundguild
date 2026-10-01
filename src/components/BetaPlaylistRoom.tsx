@@ -334,11 +334,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       setAddingName(false);
     }
   };
-  const eligibleForPass = (data?.members ?? []).filter(
-    (m: any) =>
-      !isRecentlyDeducted(m) && m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) && m.points > 0,
-  );
-  const bulkPass = async () => {
+  const bulkPass = async (eligibleForPass: any[]) => {
     if (!eligibleForPass.length) return;
     if (!window.confirm(`Remove all points and give a pass to ${eligibleForPass.length} member(s)?`)) return;
     setBulkBusy(true);
@@ -462,6 +458,10 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   // Pass is granted only by the curator removing the member's points —
   // streamed or manually added points never flip someone to Pass.
   const passRank = (m: Member) => (!isTeam || isRecentlyDeducted(m) ? 0 : 1);
+  const eligibleForPass = (data?.members ?? []).filter(
+    (m: any) =>
+      !isRecentlyDeducted(m) && m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) && m.points > 0,
+  );
   const members = [...data.members].sort(
     (a, b) => passRank(a) - passRank(b) || b.points - a.points,
   );
@@ -565,7 +565,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               </button>
               <button
                 type="button"
-                onClick={bulkPass}
+                onClick={() => bulkPass(eligibleForPass)}
                 disabled={bulkBusy || eligibleForPass.length === 0}
                 className="rounded-md bg-destructive px-2 py-1 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                 title="Remove all points from every member who reached the minimum and give them a pass"
