@@ -289,10 +289,10 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   };
 
   const doRemoveAll = async (userId: string, username: string | null, pts: number) => {
-    if (!window.confirm(`Remove all ${pts} pts from @${username ?? "this user"} and give them a pass?`)) return;
+    if (!window.confirm(`Remove ${pts} pts (the minimum) from @${username ?? "this user"} and give them a pass?`)) return;
     setDeductingId(userId);
     try {
-      const result = await adjustFn({ data: { playlistId, userId, delta: -pts, reason: "Pass — all points removed" } });
+      const result = await adjustFn({ data: { playlistId, userId, delta: -pts, reason: "Pass — minimum points removed" } });
       await refresh();
       toast.success(`Pass given — removed ${Math.abs(result.appliedDelta)} pts`);
     } catch (err: any) {
@@ -336,12 +336,12 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   };
   const bulkPass = async (eligibleForPass: any[]) => {
     if (!eligibleForPass.length) return;
-    if (!window.confirm(`Remove all points and give a pass to ${eligibleForPass.length} member(s)?`)) return;
+    if (!window.confirm(`Remove the minimum pts and give a pass to ${eligibleForPass.length} member(s)?`)) return;
     setBulkBusy(true);
     let ok = 0;
     for (const m of eligibleForPass as any[]) {
       try {
-        await adjustFn({ data: { playlistId, userId: m.user_id, delta: -m.points, reason: "Pass — all points removed" } });
+        await adjustFn({ data: { playlistId, userId: m.user_id, delta: -(m.weekly_min || DEFAULT_WEEKLY_MIN), reason: "Pass — minimum points removed" } });
         ok++;
       } catch {}
     }
@@ -457,7 +457,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const isTeam = data.playlist.isTeam;
   // Pass is granted only by the curator removing the member's points —
   // streamed or manually added points never flip someone to Pass.
-  const passRank = (m: Member) => (!isTeam || isRecentlyDeducted(m) ? 0 : 1);
+  const passRank = (m: Member) => (!isTeam || isRecentlyDeducted(m) ? 0 : 1); // pass on top, red stars bottom
   const eligibleForPass = (data?.members ?? []).filter(
     (m: any) =>
       !isRecentlyDeducted(m) && m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) && m.points > 0,
@@ -570,7 +570,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                 className="rounded-md bg-destructive px-2 py-1 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                 title="Remove all points from every member who reached the minimum and give them a pass"
               >
-                {bulkBusy ? "Working…" : `REMOVE ALL PTS (${eligibleForPass.length})`}
+                {bulkBusy ? "Working…" : `REMOVE MIN PTS (${eligibleForPass.length})`}
               </button>
             </form>
           )}
@@ -960,12 +960,12 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     {isTeam && !recentlyDeducted && m.points >= min && m.points > 0 && (
                       <button
                         type="button"
-                        onClick={() => doRemoveAll(m.user_id, m.username, m.points)}
+                        onClick={() => doRemoveAll(m.user_id, m.username, m.weekly_min || DEFAULT_WEEKLY_MIN)}
                         disabled={deductingId === m.user_id}
                         className="inline-flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                         title="Remove all points and give a pass"
                       >
-                        REMOVE ALL PTS
+                        REMOVE MIN PTS
                       </button>
                     )}
                     {!m.is_me && (
