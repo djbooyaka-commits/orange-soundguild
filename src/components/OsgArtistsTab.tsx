@@ -178,9 +178,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   // Passing members (at/above minimum, or green star = pts removed in last 3 days) sort to the top
   const isRecentlyDeducted = (p: { last_deduction_at?: string | null }) =>
     !!p.last_deduction_at &&
-    Date.now() - new Date(p.last_deduction_at).getTime() < 3 * 24 * 60 * 60 * 1000;
+    Date.now() - new Date(p.last_deduction_at).getTime() < 7 * 24 * 60 * 60 * 1000;
   const passRank = (p: { weekly_points: number; weekly_min: number; last_deduction_at?: string | null }) =>
-    isRecentlyDeducted(p) || p.weekly_points >= (p.weekly_min || DEFAULT_WEEKLY_MIN) ? 0 : 1;
+    isRecentlyDeducted(p) ? 0 : 1;
   const sortByPass = <T extends { weekly_points: number; weekly_min: number; last_deduction_at?: string | null }>(
     rows: T[],
   ) => [...rows].sort((a, b) => passRank(a) - passRank(b) || b.weekly_points - a.weekly_points);
@@ -397,10 +397,10 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   };
 
   const removeAllPts = async (artistId: string, name: string | null, pts: number) => {
-    if (!window.confirm(`Remove all ${pts} pts from @${name ?? "this user"} and give them a pass?`)) return;
+    if (!window.confirm(`Remove ${pts} pts (the minimum) from @${name ?? "this user"} and give them a pass?`)) return;
     setDeductingId(artistId);
     try {
-      await adjustFn({ data: { userId: artistId, delta: -pts, reason: "Pass — all points removed" } });
+      await adjustFn({ data: { userId: artistId, delta: -pts, reason: "Pass — minimum points removed" } });
       await refresh();
       toast.success(`Pass given — removed ${pts} pts`);
     } catch (err: any) {
@@ -418,12 +418,12 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const [bulkBusy, setBulkBusy] = useState(false);
   const bulkPass = async () => {
     if (!eligiblePicks.length) return;
-    if (!window.confirm(`Remove all points and give a pass to ${eligiblePicks.length} member(s)?`)) return;
+    if (!window.confirm(`Remove the minimum pts and give a pass to ${eligiblePicks.length} member(s)?`)) return;
     setBulkBusy(true);
     let ok = 0;
     for (const a of eligiblePicks as any[]) {
       try {
-        await adjustFn({ data: { userId: a.artist_id, delta: -a.weekly_points, reason: "Pass — all points removed" } });
+        await adjustFn({ data: { userId: a.artist_id, delta: -(a.weekly_min || DEFAULT_WEEKLY_MIN), reason: "Pass — minimum points removed" } });
         ok++;
       } catch {}
     }
@@ -600,11 +600,11 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                 type="button"
                 size="sm"
                 variant="destructive"
-                onClick={() => removeAllPts(a.artist_id, a.username, a.weekly_points)}
+                onClick={() => removeAllPts(a.artist_id, a.username, a.weekly_min || DEFAULT_WEEKLY_MIN)}
                 disabled={deductingId === a.artist_id}
                 className="mt-1 ml-2 h-7"
               >
-                REMOVE ALL PTS
+                REMOVE MIN PTS
               </Button>
             )}
           </div>
@@ -654,7 +654,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                 className="rounded-md bg-destructive px-2 py-1 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                 title="Remove all points from every member who reached the minimum and give them a pass"
               >
-                {bulkBusy ? "Working…" : `REMOVE ALL PTS (${eligiblePicks.length})`}
+                {bulkBusy ? "Working…" : `REMOVE MIN PTS (${eligiblePicks.length})`}
               </button>
             </form>
           </div>

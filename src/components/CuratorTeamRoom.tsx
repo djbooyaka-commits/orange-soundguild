@@ -172,13 +172,13 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   const [bulkBusy, setBulkBusy] = useState(false);
   const bulkPass = async (list: CuratorTeamMember[]) => {
     if (!list.length) return;
-    if (!window.confirm(`Remove all points and give a pass to ${list.length} member(s)?`)) return;
+    if (!window.confirm(`Remove the minimum pts and give a pass to ${list.length} member(s)?`)) return;
     setBulkBusy(true);
     let ok = 0;
     for (const m of list) {
       try {
         await adjustFn({
-          data: { playlistId: room.playlist_id, userId: m.user_id, delta: -m.points, reason: "Pass — all points removed" },
+          data: { playlistId: room.playlist_id, userId: m.user_id, delta: -(m.weekly_min || 0), reason: "Pass — minimum points removed" },
         });
         ok++;
       } catch {}
@@ -189,11 +189,11 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   };
 
   const removeAll = async (userId: string, name: string | null, pts: number) => {
-    if (!window.confirm(`Remove all ${pts} pts from @${name ?? "this user"} and give them a pass?`)) return;
+    if (!window.confirm(`Remove ${pts} pts (the minimum) from @${name ?? "this user"} and give them a pass?`)) return;
     setBusyId(userId);
     try {
       await adjustFn({
-        data: { playlistId: room.playlist_id, userId, delta: -pts, reason: "Pass — all points removed" },
+        data: { playlistId: room.playlist_id, userId, delta: -pts, reason: "Pass — minimum points removed" },
       });
       await refresh();
       toast.success(`Pass given — removed ${pts} pts`);
@@ -309,7 +309,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
     !!m.last_deduction_at &&
     Date.now() - new Date(m.last_deduction_at).getTime() < periodDays * 24 * 60 * 60 * 1000;
   const passRank = (m: CuratorTeamMember) =>
-    isRecentlyDeducted(m) || m.points >= (m.weekly_min || 0) ? 0 : 1;
+    isRecentlyDeducted(m) ? 0 : 1;
   const eligibleForPass = members.filter(
     (m) => !isRecentlyDeducted(m) && m.points >= (m.weekly_min || 0) && m.points > 0,
   );
@@ -397,7 +397,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
               className="rounded-md bg-destructive px-2 py-1 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
               title="Remove all points from every member who reached the minimum and give them a pass"
             >
-              {bulkBusy ? "Working…" : `REMOVE ALL PTS (${eligibleForPass.length})`}
+              {bulkBusy ? "Working…" : `REMOVE MIN PTS (${eligibleForPass.length})`}
             </button>
           </form>
         )}
@@ -668,11 +668,11 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                         type="button"
                         size="sm"
                         variant="destructive"
-                        onClick={() => removeAll(m.user_id, m.username, m.points)}
+                        onClick={() => removeAll(m.user_id, m.username, m.weekly_min || 0)}
                         disabled={busyId === m.user_id}
                         className="mt-1 ml-2 h-7"
                       >
-                        REMOVE ALL PTS
+                        REMOVE MIN PTS
                       </Button>
                     )}
                   </div>
