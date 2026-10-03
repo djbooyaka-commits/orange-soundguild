@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Inbox, Check, X, Loader2 } from "lucide-react";
+import { Inbox, Check, X, Loader2, AlertTriangle } from "lucide-react";
 import {
   addCuratorSubmissionToSpotify,
   listCuratorSubmissionsForMe,
+  markCuratorSubmissionAdded,
   reviewCuratorSubmission,
 } from "@/lib/api/curator-submissions.functions";
 import { toast } from "sonner";
@@ -20,12 +21,26 @@ type Row = {
   curator_note: string | null;
   created_at: string;
   reviewed_at?: string | null;
+  added_to_spotify?: boolean;
+  spotify_error?: string | null;
 };
+
+function describeError(err?: string | null): string {
+  if (!err) return "Spotify did not add this track. Add it again or add it by hand.";
+  if (err.includes("not_connected") || err.includes("reconnect") || err.includes("unauthorized"))
+    return "Your Spotify link expired or is missing. Reconnect Spotify, then press Add to Spotify.";
+  if (err.includes("rate_limited")) return "Spotify was busy. Press Add to Spotify again in a minute.";
+  if (err.includes("owned_by") || err.includes("forbidden") || err.includes("not_accessible"))
+    return "Spotify refused: the connected account cannot edit this playlist.";
+  if (err.includes("not_found")) return "Spotify could not find that playlist or track.";
+  return `Spotify rejected the add (${err}). Add the track by hand.`;
+}
 
 export function CuratorSubmissionsQueue() {
   const listFn = useServerFn(listCuratorSubmissionsForMe);
   const reviewFn = useServerFn(reviewCuratorSubmission);
   const addToSpotifyFn = useServerFn(addCuratorSubmissionToSpotify);
+  const markAddedFn = useServerFn(markCuratorSubmissionAdded);
   const [rows, setRows] = useState<Row[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -106,10 +121,32 @@ export function CuratorSubmissionsQueue() {
     }
   };
 
+  const markAdded = async (id: string) => {
+    setBusyId(id);
+    try {
+      await markAddedFn({ data: { id } });
+      toast.success("Marked as added");
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const cutoff = Date.now() - 15 * 24 * 60 * 60 * 1000;
   const recent = rows.filter((r) => new Date(r.created_at).getTime() >= cutoff);
   const pending = recent.filter((r) => r.status === "pending");
-  const past = recent.filter((r) => r.status !== "pending");
+  const notAdded = rows
+    .filter((r) => r.status === "approved" && !r.added_to_spotify)
+    .sort(
+      (a, b) =>
+        new Date(b.reviewed_at ?? b.created_at).getTime() -
+        new Date(a.reviewed_at ?? a.created_at).getTime(),
+    );
+  const past = recent.filter(
+    (r) => r.status === "rejected" || (r.status === "approved" && r.added_to_spotify),
+  );
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
