@@ -493,16 +493,25 @@ export const reviewCuratorSubmission = createServerFn({ method: "POST" })
     let autoAdd: SpotifyAutoAddResult = { attempted: false, added: false };
 
     if (data.approve) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       try {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         autoAdd = await addSubmissionTrackToSpotify(data.id, context.userId, supabaseAdmin);
       } catch (e: any) {
         autoAdd.error = e?.message ?? "auto_add_failed";
       }
+      await recordSpotifyAddResult(supabaseAdmin, data.id, autoAdd);
     }
 
     return { ok: true, autoAdd };
   });
+
+async function recordSpotifyAddResult(supabaseAdmin: any, id: string, autoAdd: SpotifyAutoAddResult) {
+  const ok = !!(autoAdd.added || autoAdd.alreadyOnPlaylist);
+  await supabaseAdmin
+    .from("curator_submissions")
+    .update({ added_to_spotify: ok, spotify_error: ok ? null : (autoAdd.error ?? "spotify_add_failed") })
+    .eq("id", id);
+}
 
 export const addCuratorSubmissionToSpotify = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -511,7 +520,29 @@ export const addCuratorSubmissionToSpotify = createServerFn({ method: "POST" })
     if (!data.id) throw new Error("Submission is required");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const autoAdd = await addSubmissionTrackToSpotify(data.id, context.userId, supabaseAdmin);
+    await recordSpotifyAddResult(supabaseAdmin, data.id, autoAdd);
     return { ok: !autoAdd.error || autoAdd.added || autoAdd.alreadyOnPlaylist, autoAdd };
+  });
+
+/** Curator added the approved track by hand in Spotify. */
+export const markCuratorSubmissionAdded = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => ({ id: String(d?.id ?? "") }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sub } = await supabaseAdmin
+      .from("curator_submissions")
+      .select("id, curator_id, status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!sub || sub.curator_id !== context.userId) throw new Error("Submission not found");
+    if (sub.status !== "approved") throw new Error("Only approved submissions can be marked added");
+    const { error } = await supabaseAdmin
+      .from("curator_submissions")
+      .update({ added_to_spotify: true, spotify_error: null })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const submitCuratorTrack = createServerFn({ method: "POST" })
