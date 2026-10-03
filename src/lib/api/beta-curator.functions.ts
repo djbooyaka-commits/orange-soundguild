@@ -69,20 +69,9 @@ async function pointsByPlaylist(supabaseAdmin: any, roomId: string, userId: stri
     return { playlistId: r.playlist_id, earned, spent, available: earned - spent };
   });
 
-  // If a playlist was over-charged (spend recorded against it while the points
-  // actually came from the room-wide pool), pull the overdraft from playlists
-  // that still have surplus instead of freezing that playlist's future points.
-  let overdraft = rows.reduce((n, r) => n + (r.available < 0 ? -r.available : 0), 0);
+  // Each playlist is fully separate: a deficit on one playlist never drains
+  // points earned on another. Negative balances simply show as 0.
   for (const r of rows) if (r.available < 0) r.available = 0;
-  if (overdraft > 0) {
-    for (const r of rows) {
-      if (overdraft <= 0) break;
-      if (r.available <= 0) continue;
-      const take = Math.min(r.available, overdraft);
-      r.available -= take;
-      overdraft -= take;
-    }
-  }
   return rows;
 }
 
