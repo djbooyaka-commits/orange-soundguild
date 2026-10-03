@@ -224,12 +224,15 @@ function BetaRoomDetail() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 pb-40">
-      <Link
-        to="/beta-rooms"
-        className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-3 w-3" /> All Last.fm rooms
-      </Link>
+      <nav className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+        <Link to="/" className="inline-flex items-center gap-1 hover:text-foreground">
+          <ArrowLeft className="h-3 w-3" /> Orange Sound Guild
+        </Link>
+        <span>/</span>
+        <Link to="/beta-rooms" className="hover:text-foreground">
+          All Last.fm rooms
+        </Link>
+      </nav>
 
       <header className="mb-6 flex items-center gap-3">
         <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">

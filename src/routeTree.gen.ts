@@ -9,134 +9,44 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AdsRouteImport } from './routes/ads'
-import { Route as ArtistWelcomeRouteImport } from './routes/artist-welcome'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as CuratorRouteImport } from './routes/curator'
-import { Route as DiscoverRouteImport } from './routes/discover'
-import { Route as LibraryRouteImport } from './routes/library'
-import { Route as MessagesRouteImport } from './routes/messages'
-import { Route as PlaylistSubmitRouteImport } from './routes/playlist-submit'
-import { Route as PostsRouteImport } from './routes/posts'
-import { Route as ReferralsRouteImport } from './routes/referrals'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as RoyaltiesRouteImport } from './routes/royalties'
-import { Route as SearchRouteImport } from './routes/search'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as StRoomsRouteImport } from './routes/st-rooms'
-import { Route as SuperfansRouteImport } from './routes/superfans'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as Top100RouteImport } from './routes/top100'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
+import { Route as Top100RouteImport } from './routes/top100'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SuperfansRouteImport } from './routes/superfans'
+import { Route as StRoomsRouteImport } from './routes/st-rooms'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as RoyaltiesRouteImport } from './routes/royalties'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ReferralsRouteImport } from './routes/referrals'
+import { Route as PostsRouteImport } from './routes/posts'
+import { Route as PlaylistSubmitRouteImport } from './routes/playlist-submit'
+import { Route as MessagesRouteImport } from './routes/messages'
+import { Route as LibraryRouteImport } from './routes/library'
+import { Route as DiscoverRouteImport } from './routes/discover'
+import { Route as CuratorRouteImport } from './routes/curator'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ArtistWelcomeRouteImport } from './routes/artist-welcome'
+import { Route as AdsRouteImport } from './routes/ads'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as BetaRoomsIndexRouteImport } from './routes/beta-rooms.index'
-import { Route as BetaRoomsRoomIdRouteImport } from './routes/beta-rooms.$roomId'
-import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submit'
-import { Route as GuidePromotionRouteImport } from './routes/guide.promotion'
-import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
+import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
+import { Route as GuidePromotionRouteImport } from './routes/guide.promotion'
+import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submit'
+import { Route as BetaRoomsRoomIdRouteImport } from './routes/beta-rooms.$roomId'
 import { Route as AlbumHandleAlbumRouteImport } from './routes/album.$handle.$album'
-import { Route as ApiPublicHooksCleanupChatLinksRouteImport } from './routes/api/public/hooks/cleanup-chat-links'
-import { Route as ApiPublicHooksCleanupChatMediaRouteImport } from './routes/api/public/hooks/cleanup-chat-media'
-import { Route as ApiPublicHooksSyncPlaylistTracksRouteImport } from './routes/api/public/hooks/sync-playlist-tracks'
-import { Route as ApiPublicHooksSyncSpotifyPointsRouteImport } from './routes/api/public/hooks/sync-spotify-points'
 import { Route as ApiPublicSpotifyCallbackRouteImport } from './routes/api/public/spotify/callback'
+import { Route as ApiPublicHooksSyncSpotifyPointsRouteImport } from './routes/api/public/hooks/sync-spotify-points'
+import { Route as ApiPublicHooksSyncPlaylistTracksRouteImport } from './routes/api/public/hooks/sync-playlist-tracks'
+import { Route as ApiPublicHooksCleanupChatMediaRouteImport } from './routes/api/public/hooks/cleanup-chat-media'
+import { Route as ApiPublicHooksCleanupChatLinksRouteImport } from './routes/api/public/hooks/cleanup-chat-links'
 import { Route as ApiPublicOgTrackTrackIdRouteImport } from './routes/api/public/og/track.$trackId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdsRoute = AdsRouteImport.update({
-  id: '/ads',
-  path: '/ads',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArtistWelcomeRoute = ArtistWelcomeRouteImport.update({
-  id: '/artist-welcome',
-  path: '/artist-welcome',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CuratorRoute = CuratorRouteImport.update({
-  id: '/curator',
-  path: '/curator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiscoverRoute = DiscoverRouteImport.update({
-  id: '/discover',
-  path: '/discover',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LibraryRoute = LibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MessagesRoute = MessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlaylistSubmitRoute = PlaylistSubmitRouteImport.update({
-  id: '/playlist-submit',
-  path: '/playlist-submit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PostsRoute = PostsRouteImport.update({
-  id: '/posts',
-  path: '/posts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReferralsRoute = ReferralsRouteImport.update({
-  id: '/referrals',
-  path: '/referrals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RoyaltiesRoute = RoyaltiesRouteImport.update({
-  id: '/royalties',
-  path: '/royalties',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StRoomsRoute = StRoomsRouteImport.update({
-  id: '/st-rooms',
-  path: '/st-rooms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SuperfansRoute = SuperfansRouteImport.update({
-  id: '/superfans',
-  path: '/superfans',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
+const UpgradeRoute = UpgradeRouteImport.update({
+  id: '/upgrade',
+  path: '/upgrade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Top100Route = Top100RouteImport.update({
@@ -144,9 +54,99 @@ const Top100Route = Top100RouteImport.update({
   path: '/top100',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UpgradeRoute = UpgradeRouteImport.update({
-  id: '/upgrade',
-  path: '/upgrade',
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuperfansRoute = SuperfansRouteImport.update({
+  id: '/superfans',
+  path: '/superfans',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StRoomsRoute = StRoomsRouteImport.update({
+  id: '/st-rooms',
+  path: '/st-rooms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoyaltiesRoute = RoyaltiesRouteImport.update({
+  id: '/royalties',
+  path: '/royalties',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferralsRoute = ReferralsRouteImport.update({
+  id: '/referrals',
+  path: '/referrals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostsRoute = PostsRouteImport.update({
+  id: '/posts',
+  path: '/posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlaylistSubmitRoute = PlaylistSubmitRouteImport.update({
+  id: '/playlist-submit',
+  path: '/playlist-submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscoverRoute = DiscoverRouteImport.update({
+  id: '/discover',
+  path: '/discover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CuratorRoute = CuratorRouteImport.update({
+  id: '/curator',
+  path: '/curator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtistWelcomeRoute = ArtistWelcomeRouteImport.update({
+  id: '/artist-welcome',
+  path: '/artist-welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdsRoute = AdsRouteImport.update({
+  id: '/ads',
+  path: '/ads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BetaRoomsIndexRoute = BetaRoomsIndexRouteImport.update({
@@ -154,19 +154,9 @@ const BetaRoomsIndexRoute = BetaRoomsIndexRouteImport.update({
   path: '/beta-rooms/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BetaRoomsRoomIdRoute = BetaRoomsRoomIdRouteImport.update({
-  id: '/beta-rooms/$roomId',
-  path: '/beta-rooms/$roomId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CuratorOsgSubmitRoute = CuratorOsgSubmitRouteImport.update({
-  id: '/osg-submit',
-  path: '/osg-submit',
-  getParentRoute: () => CuratorRoute,
-} as any)
-const GuidePromotionRoute = GuidePromotionRouteImport.update({
-  id: '/guide/promotion',
-  path: '/guide/promotion',
+const UHandleRoute = UHandleRouteImport.update({
+  id: '/u/$handle',
+  path: '/u/$handle',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TTrackIdRoute = TTrackIdRouteImport.update({
@@ -174,9 +164,19 @@ const TTrackIdRoute = TTrackIdRouteImport.update({
   path: '/t/$trackId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UHandleRoute = UHandleRouteImport.update({
-  id: '/u/$handle',
-  path: '/u/$handle',
+const GuidePromotionRoute = GuidePromotionRouteImport.update({
+  id: '/guide/promotion',
+  path: '/guide/promotion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CuratorOsgSubmitRoute = CuratorOsgSubmitRouteImport.update({
+  id: '/osg-submit',
+  path: '/osg-submit',
+  getParentRoute: () => CuratorRoute,
+} as any)
+const BetaRoomsRoomIdRoute = BetaRoomsRoomIdRouteImport.update({
+  id: '/beta-rooms/$roomId',
+  path: '/beta-rooms/$roomId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlbumHandleAlbumRoute = AlbumHandleAlbumRouteImport.update({
@@ -184,22 +184,10 @@ const AlbumHandleAlbumRoute = AlbumHandleAlbumRouteImport.update({
   path: '/album/$handle/$album',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicHooksCleanupChatLinksRoute =
-  ApiPublicHooksCleanupChatLinksRouteImport.update({
-    id: '/api/public/hooks/cleanup-chat-links',
-    path: '/api/public/hooks/cleanup-chat-links',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksCleanupChatMediaRoute =
-  ApiPublicHooksCleanupChatMediaRouteImport.update({
-    id: '/api/public/hooks/cleanup-chat-media',
-    path: '/api/public/hooks/cleanup-chat-media',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksSyncPlaylistTracksRoute =
-  ApiPublicHooksSyncPlaylistTracksRouteImport.update({
-    id: '/api/public/hooks/sync-playlist-tracks',
-    path: '/api/public/hooks/sync-playlist-tracks',
+const ApiPublicSpotifyCallbackRoute =
+  ApiPublicSpotifyCallbackRouteImport.update({
+    id: '/api/public/spotify/callback',
+    path: '/api/public/spotify/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksSyncSpotifyPointsRoute =
@@ -208,10 +196,22 @@ const ApiPublicHooksSyncSpotifyPointsRoute =
     path: '/api/public/hooks/sync-spotify-points',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicSpotifyCallbackRoute =
-  ApiPublicSpotifyCallbackRouteImport.update({
-    id: '/api/public/spotify/callback',
-    path: '/api/public/spotify/callback',
+const ApiPublicHooksSyncPlaylistTracksRoute =
+  ApiPublicHooksSyncPlaylistTracksRouteImport.update({
+    id: '/api/public/hooks/sync-playlist-tracks',
+    path: '/api/public/hooks/sync-playlist-tracks',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksCleanupChatMediaRoute =
+  ApiPublicHooksCleanupChatMediaRouteImport.update({
+    id: '/api/public/hooks/cleanup-chat-media',
+    path: '/api/public/hooks/cleanup-chat-media',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksCleanupChatLinksRoute =
+  ApiPublicHooksCleanupChatLinksRouteImport.update({
+    id: '/api/public/hooks/cleanup-chat-links',
+    path: '/api/public/hooks/cleanup-chat-links',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicOgTrackTrackIdRoute = ApiPublicOgTrackTrackIdRouteImport.update({
@@ -478,137 +478,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ads': {
-      id: '/ads'
-      path: '/ads'
-      fullPath: '/ads'
-      preLoaderRoute: typeof AdsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/artist-welcome': {
-      id: '/artist-welcome'
-      path: '/artist-welcome'
-      fullPath: '/artist-welcome'
-      preLoaderRoute: typeof ArtistWelcomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/curator': {
-      id: '/curator'
-      path: '/curator'
-      fullPath: '/curator'
-      preLoaderRoute: typeof CuratorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/discover': {
-      id: '/discover'
-      path: '/discover'
-      fullPath: '/discover'
-      preLoaderRoute: typeof DiscoverRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/library': {
-      id: '/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof LibraryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/messages': {
-      id: '/messages'
-      path: '/messages'
-      fullPath: '/messages'
-      preLoaderRoute: typeof MessagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/playlist-submit': {
-      id: '/playlist-submit'
-      path: '/playlist-submit'
-      fullPath: '/playlist-submit'
-      preLoaderRoute: typeof PlaylistSubmitRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/posts': {
-      id: '/posts'
-      path: '/posts'
-      fullPath: '/posts'
-      preLoaderRoute: typeof PostsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/referrals': {
-      id: '/referrals'
-      path: '/referrals'
-      fullPath: '/referrals'
-      preLoaderRoute: typeof ReferralsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/royalties': {
-      id: '/royalties'
-      path: '/royalties'
-      fullPath: '/royalties'
-      preLoaderRoute: typeof RoyaltiesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/st-rooms': {
-      id: '/st-rooms'
-      path: '/st-rooms'
-      fullPath: '/st-rooms'
-      preLoaderRoute: typeof StRoomsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/superfans': {
-      id: '/superfans'
-      path: '/superfans'
-      fullPath: '/superfans'
-      preLoaderRoute: typeof SuperfansRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
+    '/upgrade': {
+      id: '/upgrade'
+      path: '/upgrade'
+      fullPath: '/upgrade'
+      preLoaderRoute: typeof UpgradeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/top100': {
@@ -618,11 +492,137 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Top100RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/upgrade': {
-      id: '/upgrade'
-      path: '/upgrade'
-      fullPath: '/upgrade'
-      preLoaderRoute: typeof UpgradeRouteImport
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/superfans': {
+      id: '/superfans'
+      path: '/superfans'
+      fullPath: '/superfans'
+      preLoaderRoute: typeof SuperfansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/st-rooms': {
+      id: '/st-rooms'
+      path: '/st-rooms'
+      fullPath: '/st-rooms'
+      preLoaderRoute: typeof StRoomsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/royalties': {
+      id: '/royalties'
+      path: '/royalties'
+      fullPath: '/royalties'
+      preLoaderRoute: typeof RoyaltiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/referrals': {
+      id: '/referrals'
+      path: '/referrals'
+      fullPath: '/referrals'
+      preLoaderRoute: typeof ReferralsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/posts': {
+      id: '/posts'
+      path: '/posts'
+      fullPath: '/posts'
+      preLoaderRoute: typeof PostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/playlist-submit': {
+      id: '/playlist-submit'
+      path: '/playlist-submit'
+      fullPath: '/playlist-submit'
+      preLoaderRoute: typeof PlaylistSubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discover': {
+      id: '/discover'
+      path: '/discover'
+      fullPath: '/discover'
+      preLoaderRoute: typeof DiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/curator': {
+      id: '/curator'
+      path: '/curator'
+      fullPath: '/curator'
+      preLoaderRoute: typeof CuratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artist-welcome': {
+      id: '/artist-welcome'
+      path: '/artist-welcome'
+      fullPath: '/artist-welcome'
+      preLoaderRoute: typeof ArtistWelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ads': {
+      id: '/ads'
+      path: '/ads'
+      fullPath: '/ads'
+      preLoaderRoute: typeof AdsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/beta-rooms/': {
@@ -632,25 +632,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BetaRoomsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/beta-rooms/$roomId': {
-      id: '/beta-rooms/$roomId'
-      path: '/beta-rooms/$roomId'
-      fullPath: '/beta-rooms/$roomId'
-      preLoaderRoute: typeof BetaRoomsRoomIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/curator/osg-submit': {
-      id: '/curator/osg-submit'
-      path: '/osg-submit'
-      fullPath: '/curator/osg-submit'
-      preLoaderRoute: typeof CuratorOsgSubmitRouteImport
-      parentRoute: typeof CuratorRoute
-    }
-    '/guide/promotion': {
-      id: '/guide/promotion'
-      path: '/guide/promotion'
-      fullPath: '/guide/promotion'
-      preLoaderRoute: typeof GuidePromotionRouteImport
+    '/u/$handle': {
+      id: '/u/$handle'
+      path: '/u/$handle'
+      fullPath: '/u/$handle'
+      preLoaderRoute: typeof UHandleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/t/$trackId': {
@@ -660,11 +646,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TTrackIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/u/$handle': {
-      id: '/u/$handle'
-      path: '/u/$handle'
-      fullPath: '/u/$handle'
-      preLoaderRoute: typeof UHandleRouteImport
+    '/guide/promotion': {
+      id: '/guide/promotion'
+      path: '/guide/promotion'
+      fullPath: '/guide/promotion'
+      preLoaderRoute: typeof GuidePromotionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/curator/osg-submit': {
+      id: '/curator/osg-submit'
+      path: '/osg-submit'
+      fullPath: '/curator/osg-submit'
+      preLoaderRoute: typeof CuratorOsgSubmitRouteImport
+      parentRoute: typeof CuratorRoute
+    }
+    '/beta-rooms/$roomId': {
+      id: '/beta-rooms/$roomId'
+      path: '/beta-rooms/$roomId'
+      fullPath: '/beta-rooms/$roomId'
+      preLoaderRoute: typeof BetaRoomsRoomIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/album/$handle/$album': {
@@ -674,25 +674,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlbumHandleAlbumRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/cleanup-chat-links': {
-      id: '/api/public/hooks/cleanup-chat-links'
-      path: '/api/public/hooks/cleanup-chat-links'
-      fullPath: '/api/public/hooks/cleanup-chat-links'
-      preLoaderRoute: typeof ApiPublicHooksCleanupChatLinksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/cleanup-chat-media': {
-      id: '/api/public/hooks/cleanup-chat-media'
-      path: '/api/public/hooks/cleanup-chat-media'
-      fullPath: '/api/public/hooks/cleanup-chat-media'
-      preLoaderRoute: typeof ApiPublicHooksCleanupChatMediaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/sync-playlist-tracks': {
-      id: '/api/public/hooks/sync-playlist-tracks'
-      path: '/api/public/hooks/sync-playlist-tracks'
-      fullPath: '/api/public/hooks/sync-playlist-tracks'
-      preLoaderRoute: typeof ApiPublicHooksSyncPlaylistTracksRouteImport
+    '/api/public/spotify/callback': {
+      id: '/api/public/spotify/callback'
+      path: '/api/public/spotify/callback'
+      fullPath: '/api/public/spotify/callback'
+      preLoaderRoute: typeof ApiPublicSpotifyCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/sync-spotify-points': {
@@ -702,11 +688,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSyncSpotifyPointsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/spotify/callback': {
-      id: '/api/public/spotify/callback'
-      path: '/api/public/spotify/callback'
-      fullPath: '/api/public/spotify/callback'
-      preLoaderRoute: typeof ApiPublicSpotifyCallbackRouteImport
+    '/api/public/hooks/sync-playlist-tracks': {
+      id: '/api/public/hooks/sync-playlist-tracks'
+      path: '/api/public/hooks/sync-playlist-tracks'
+      fullPath: '/api/public/hooks/sync-playlist-tracks'
+      preLoaderRoute: typeof ApiPublicHooksSyncPlaylistTracksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/cleanup-chat-media': {
+      id: '/api/public/hooks/cleanup-chat-media'
+      path: '/api/public/hooks/cleanup-chat-media'
+      fullPath: '/api/public/hooks/cleanup-chat-media'
+      preLoaderRoute: typeof ApiPublicHooksCleanupChatMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/cleanup-chat-links': {
+      id: '/api/public/hooks/cleanup-chat-links'
+      path: '/api/public/hooks/cleanup-chat-links'
+      fullPath: '/api/public/hooks/cleanup-chat-links'
+      preLoaderRoute: typeof ApiPublicHooksCleanupChatLinksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/og/track/$trackId': {
