@@ -188,6 +188,12 @@ function BetaRoomsPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 pb-40">
+      <Link
+        to="/"
+        className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+      >
+        ← Back to Orange Sound Guild
+      </Link>
       <header className="mb-6 flex items-center gap-3">
         <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
           <FlaskConical className="h-5 w-5" />
