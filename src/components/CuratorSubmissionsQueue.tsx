@@ -223,6 +223,51 @@ export function CuratorSubmissionsQueue() {
         </ul>
       )}
 
+      {notAdded.length > 0 && (
+        <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+          <p className="flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="h-4 w-4" />
+            Needs adding to your playlist ({notAdded.length})
+          </p>
+          <ul className="mt-2 space-y-2">
+            {notAdded.map((s) => (
+              <li key={s.id} className="rounded-md border border-border bg-card p-2 text-xs">
+                <a
+                  href={s.spotify_track_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block truncate text-sm font-medium hover:underline"
+                >
+                  {s.spotify_track_name ?? s.spotify_track_url}
+                </a>
+                <p className="truncate text-muted-foreground">
+                  From @{s.submitter_username} → {s.playlist_name}
+                  {s.reviewed_at ? ` · approved ${new Date(s.reviewed_at).toLocaleString()}` : ""}
+                </p>
+                <p className="mt-1 text-amber-600 dark:text-amber-400">{describeError(s.spotify_error)}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => addApprovedToSpotify(s.id)}
+                    disabled={busyId === s.id}
+                    className="inline-flex items-center gap-1 rounded-md bg-emerald-500/90 px-2 py-1 font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                  >
+                    {busyId === s.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                    Add to Spotify
+                  </button>
+                  <button
+                    onClick={() => markAdded(s.id)}
+                    disabled={busyId === s.id}
+                    className="rounded-md border border-border px-2 py-1 font-semibold hover:bg-muted disabled:opacity-50"
+                  >
+                    Added it myself
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {past.length > 0 && (
         <details className="mt-4 text-sm">
           <summary className="cursor-pointer text-muted-foreground">
@@ -251,20 +296,6 @@ export function CuratorSubmissionsQueue() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {s.status === "approved" && (
-                    <button
-                      onClick={() => addApprovedToSpotify(s.id)}
-                      disabled={busyId === s.id}
-                      className="inline-flex items-center gap-1 rounded-md bg-emerald-500/90 px-2 py-1 font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
-                    >
-                      {busyId === s.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Check className="h-3 w-3" />
-                      )}
-                      Add to Spotify
-                    </button>
-                  )}
                   <span
                     className={`rounded-full px-2 py-0.5 font-medium ${
                       s.status === "approved"
