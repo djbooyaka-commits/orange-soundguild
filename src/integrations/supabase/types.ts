@@ -767,6 +767,7 @@ export type Database = {
       }
       curator_submissions: {
         Row: {
+          added_to_spotify: boolean
           cost_points: number
           created_at: string
           curator_id: string
@@ -775,6 +776,7 @@ export type Database = {
           followed_all_artists: boolean
           id: string
           reviewed_at: string | null
+          spotify_error: string | null
           spotify_track_id: string
           spotify_track_name: string | null
           spotify_track_url: string
@@ -782,6 +784,7 @@ export type Database = {
           submitter_user_id: string
         }
         Insert: {
+          added_to_spotify?: boolean
           cost_points: number
           created_at?: string
           curator_id: string
@@ -790,6 +793,7 @@ export type Database = {
           followed_all_artists?: boolean
           id?: string
           reviewed_at?: string | null
+          spotify_error?: string | null
           spotify_track_id: string
           spotify_track_name?: string | null
           spotify_track_url: string
@@ -797,6 +801,7 @@ export type Database = {
           submitter_user_id: string
         }
         Update: {
+          added_to_spotify?: boolean
           cost_points?: number
           created_at?: string
           curator_id?: string
@@ -805,6 +810,7 @@ export type Database = {
           followed_all_artists?: boolean
           id?: string
           reviewed_at?: string | null
+          spotify_error?: string | null
           spotify_track_id?: string
           spotify_track_name?: string | null
           spotify_track_url?: string
@@ -2390,6 +2396,7 @@ export type Database = {
       list_curator_submissions_for_me: {
         Args: never
         Returns: {
+          added_to_spotify: boolean
           cost_points: number
           created_at: string
           curator_note: string
@@ -2398,6 +2405,7 @@ export type Database = {
           id: string
           playlist_name: string
           reviewed_at: string
+          spotify_error: string
           spotify_track_id: string
           spotify_track_name: string
           spotify_track_url: string
