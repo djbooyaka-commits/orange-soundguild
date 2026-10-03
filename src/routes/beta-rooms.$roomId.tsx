@@ -308,15 +308,10 @@ function BetaRoomDetail() {
 
 
         <TabsContent value="tracking" className="space-y-6">
-          <section className="rounded-xl border border-border bg-card p-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
-                Your points: <span className="font-semibold">{room.myPoints}</span>
-              </div>
-            </div>
-            <div className="mt-4 flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
-              <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-              <p className="text-sm font-medium leading-relaxed text-foreground">
+          <section className="rounded-xl border-2 border-primary/40 bg-primary/10 p-6 md:p-8">
+            <div className="flex items-start gap-4">
+              <Info className="mt-1 h-8 w-8 shrink-0 text-primary" />
+              <p className="text-lg font-medium leading-relaxed text-foreground md:text-2xl">
                 Open a playlist room and press <strong>Start tracking</strong> before listening.
                 Press <strong>Stop</strong> when you finish; only plays during that session can
                 earn points for the selected playlist.
