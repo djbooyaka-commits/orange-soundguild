@@ -785,3 +785,50 @@ export const deleteBetaRoomLink = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// Give a sorry/compensation bonus to every member of every Last.fm room the
+// caller owns (admins: every room), on each playlist in that room.
+export const grantBetaPointsToAllUsers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { points: number; reason?: string }) => ({
+    points: Math.round(Number(data?.points) || 0),
+    reason: String(data?.reason ?? "").slice(0, 300),
+  }))
+  .handler(async ({ context, data }) => {
+    if (data.points < 1 || data.points > 10000) throw new Error("Enter between 1 and 10000 points");
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let roomsQ = supabaseAdmin.from("beta_rooms").select("id, owner_id");
+    if (!isAdmin) roomsQ = roomsQ.eq("owner_id", context.userId);
+    const { data: rooms } = await roomsQ;
+    const roomIds = (rooms ?? []).map((r: any) => r.id);
+    if (roomIds.length === 0) throw new Error("You don't own any Last.fm rooms");
+    const ownerByRoom = new Map((rooms ?? []).map((r: any) => [r.id, r.owner_id]));
+    const [{ data: members }, { data: playlists }] = await Promise.all([
+      supabaseAdmin.from("beta_room_members").select("room_id, user_id").in("room_id", roomIds),
+      supabaseAdmin.from("beta_room_playlists").select("id, room_id").in("room_id", roomIds),
+    ]);
+    const rows: any[] = [];
+    const users = new Set<string>();
+    for (const m of (members ?? []) as any[]) {
+      for (const p of ((playlists ?? []) as any[]).filter((p) => p.room_id === m.room_id)) {
+        users.add(m.user_id);
+        rows.push({
+          room_id: m.room_id,
+          playlist_id: p.id,
+          user_id: m.user_id,
+          curator_id: ownerByRoom.get(m.room_id),
+          delta: data.points,
+          reason: data.reason || "Tracking compensation",
+        });
+      }
+    }
+    for (let i = 0; i < rows.length; i += 500) {
+      const { error } = await supabaseAdmin.from("beta_point_adjustments").insert(rows.slice(i, i + 500));
+      if (error) throw new Error(error.message);
+    }
+    return { users: users.size, grants: rows.length };
+  });
