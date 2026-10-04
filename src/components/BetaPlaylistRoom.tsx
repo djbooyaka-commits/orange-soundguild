@@ -698,7 +698,12 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                 No tracking sessions in the last 7 days.
               </p>
             )}
-            {(sessions ?? []).map((u) => (
+            {!loadingSessions && searchQ && filteredSessions.length === 0 && (sessions ?? []).length > 0 && (
+              <p className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                No members matching “{memberSearch.trim()}”.
+              </p>
+            )}
+            {filteredSessions.map((u) => (
               <div key={u.user_id} className="rounded-xl border border-border bg-card p-4">
                 <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                   @{u.username ?? "unknown"}
