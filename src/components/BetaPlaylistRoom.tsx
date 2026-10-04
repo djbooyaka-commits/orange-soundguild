@@ -833,7 +833,12 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               No members yet — share the room invite link.
             </p>
           )}
-          {members.map((m) => {
+          {searchQ && filteredMembers.length === 0 && members.length > 0 && (
+            <p className="col-span-full rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+              No members matching “{memberSearch.trim()}”.
+            </p>
+          )}
+          {filteredMembers.map((m) => {
             const min = m.weekly_min || DEFAULT_WEEKLY_MIN;
             const recentlyDeducted = isRecentlyDeducted(m);
             const below = !recentlyDeducted;
