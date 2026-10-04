@@ -287,3 +287,99 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
       warning: fetchError ? lastfmErrorMessage(fetchError) : null,
     };
   });
+
+/**
+ * Re-checks Last.fm for a finished session window and adds any plays that
+ * Last.fm had not yet processed when Stop was pressed. Duplicates are skipped.
+ * Members can rescan their own sessions; the room owner can rescan anyone's.
+ */
+export const rescanLastfmSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { sessionId: string }) => ({
+    sessionId: String(data?.sessionId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { fetchLastfmRecentTracks, matchTrack, getLastfmApiKey, lastfmErrorMessage } =
+      await import("./lastfm.server");
+
+    const { data: session } = await supabaseAdmin
+      .from("beta_playlist_tracking_sessions")
+      .select("id, playlist_id, user_id, started_at, stopped_at")
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    if (!session) throw new Error("Session not found");
+    if (!session.stopped_at) throw new Error("This session is still running — press Stop first.");
+
+    const { data: playlist } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("id, room_id")
+      .eq("id", session.playlist_id)
+      .maybeSingle();
+    if (!playlist) throw new Error("Playlist not found");
+    if (session.user_id !== context.userId) {
+      const { data: room } = await supabaseAdmin
+        .from("beta_rooms")
+        .select("owner_id")
+        .eq("id", playlist.room_id)
+        .maybeSingle();
+      if (!room || room.owner_id !== context.userId) throw new Error("Not allowed");
+    }
+
+    const [{ data: connection }, { data: watch }] = await Promise.all([
+      supabaseAdmin
+        .from("lastfm_connections")
+        .select("lastfm_username")
+        .eq("user_id", session.user_id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("beta_room_tracks")
+        .select("spotify_track_id, track_name, artist_name")
+        .eq("playlist_id", playlist.id),
+    ]);
+    if (!connection) throw new Error("This member has no Last.fm account connected");
+
+    const { key: apiKey, error: keyError } = getLastfmApiKey();
+    if (!apiKey) throw new Error(lastfmErrorMessage(keyError ?? "lastfm_key_missing"));
+
+    const startMs = new Date(session.started_at).getTime();
+    const stopMs = new Date(session.stopped_at).getTime();
+    const result = await fetchLastfmRecentTracks(
+      connection.lastfm_username,
+      apiKey,
+      Math.floor(startMs / 1000),
+    );
+    if (result.error) throw new Error(lastfmErrorMessage(result.error));
+
+    const rows: any[] = [];
+    for (const item of result.items ?? []) {
+      const t = item.uts * 1000;
+      if (t < startMs || t > stopMs) continue;
+      const m = (watch ?? []).find((track: any) =>
+        matchTrack(item.name, item.artist, track.track_name ?? "", track.artist_name ?? ""),
+      );
+      if (!m) continue;
+      rows.push({
+        room_id: playlist.room_id,
+        user_id: session.user_id,
+        playlist_id: playlist.id,
+        spotify_track_id: m.spotify_track_id,
+        spotify_track_name: item.name,
+        played_at: item.playedAt,
+        source: "lastfm_rescan",
+      });
+    }
+    let added = 0;
+    for (let i = 0; i < rows.length; i += 200) {
+      const { data: inserted, error } = await supabaseAdmin
+        .from("beta_stream_points")
+        .upsert(rows.slice(i, i + 200), {
+          onConflict: "room_id,user_id,spotify_track_id,played_at",
+          ignoreDuplicates: true,
+        })
+        .select("id");
+      if (error) throw new Error("Could not save the plays. Please try again.");
+      added += inserted?.length ?? 0;
+    }
+    return { added, matched: rows.length };
+  });
