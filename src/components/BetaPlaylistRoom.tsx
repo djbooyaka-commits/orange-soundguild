@@ -302,6 +302,11 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       await adjustFn({ data: { playlistId, userId, delta: n, reason: "Manual Last.fm check" } });
       setAwardInputs((s) => ({ ...s, [userId]: "" }));
       await refresh();
+      if (tab === "times") {
+        try {
+          setSessions((await sessionsFn({ data: { playlistId } })) as BetaTrackingSession[]);
+        } catch {}
+      }
       toast.success(`Added ${n} pts`);
     } catch (err: any) {
       toast.error(err?.message ?? "Could not add points");
@@ -668,6 +673,28 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     <span className="text-xs font-normal text-muted-foreground">No Last.fm connected</span>
                   )}
                 </p>
+                {data.isOwner && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      inputMode="numeric"
+                      placeholder="Pts"
+                      value={awardInputs[u.user_id] ?? ""}
+                      onChange={(e) => setAwardInputs((s) => ({ ...s, [u.user_id]: e.target.value }))}
+                      className="w-24 rounded-md border border-input bg-background px-2 py-1 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => doAward(u.user_id)}
+                      disabled={awardingId === u.user_id}
+                      className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {awardingId === u.user_id && <Loader2 className="h-3 w-3 animate-spin" />}
+                      + Add pts
+                    </button>
+                  </div>
+                )}
                 <ul className="mt-2 space-y-1">
                   {u.sessions.map((s, i) => {
                     const start = new Date(s.started_at);
