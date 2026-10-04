@@ -10,6 +10,7 @@ import {
   Music,
   Plus,
   Play,
+  Search,
   Settings,
   Square,
   Star,
@@ -129,6 +130,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [fbNameInputs, setFbNameInputs] = useState<Record<string, string>>({});
   const [savingFbId, setSavingFbId] = useState<string | null>(null);
   const [tab, setTab] = useState<"members" | "times">("members");
+  const [memberSearch, setMemberSearch] = useState("");
   const [sessions, setSessions] = useState<BetaTrackingSession[] | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const sessionsFn = useServerFn(betaPlaylistTrackingSessions);
@@ -492,6 +494,19 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const members = [...data.members].sort(
     (a, b) => passRank(a) - passRank(b) || b.points - a.points,
   );
+  const searchQ = memberSearch.trim().toLowerCase();
+  const memberMatches = (m: Member) =>
+    !searchQ ||
+    (m.username ?? "").toLowerCase().includes(searchQ) ||
+    (m.lastfm_username ?? "").toLowerCase().includes(searchQ) ||
+    (m.facebook_name ?? "").toLowerCase().includes(searchQ);
+  const filteredMembers = members.filter(memberMatches);
+  const filteredSessions = (sessions ?? []).filter(
+    (u) =>
+      !searchQ ||
+      (u.username ?? "").toLowerCase().includes(searchQ) ||
+      (u.lastfm_username ?? "").toLowerCase().includes(searchQ),
+  );
 
   return (
     <div className="space-y-6">
@@ -644,6 +659,33 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           </button>
         </div>
 
+        <div className="relative mt-4">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={memberSearch}
+            onChange={(e) => setMemberSearch(e.target.value)}
+            placeholder="Search by username, Last.fm, or Facebook name…"
+            aria-label="Search members"
+            className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-9 text-sm"
+          />
+          {memberSearch && (
+            <button
+              type="button"
+              onClick={() => setMemberSearch("")}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        {searchQ && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Showing {tab === "members" ? `${filteredMembers.length} of ${members.length}` : `${filteredSessions.length} of ${(sessions ?? []).length}`} members
+          </p>
+        )}
+
         {tab === "times" && (
           <div className="mt-4 space-y-3">
             {loadingSessions && (
@@ -656,7 +698,12 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                 No tracking sessions in the last 7 days.
               </p>
             )}
-            {(sessions ?? []).map((u) => (
+            {!loadingSessions && searchQ && filteredSessions.length === 0 && (sessions ?? []).length > 0 && (
+              <p className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                No members matching “{memberSearch.trim()}”.
+              </p>
+            )}
+            {filteredSessions.map((u) => (
               <div key={u.user_id} className="rounded-xl border border-border bg-card p-4">
                 <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                   @{u.username ?? "unknown"}
@@ -786,7 +833,12 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               No members yet — share the room invite link.
             </p>
           )}
-          {members.map((m) => {
+          {searchQ && filteredMembers.length === 0 && members.length > 0 && (
+            <p className="col-span-full rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+              No members matching “{memberSearch.trim()}”.
+            </p>
+          )}
+          {filteredMembers.map((m) => {
             const min = m.weekly_min || DEFAULT_WEEKLY_MIN;
             const recentlyDeducted = isRecentlyDeducted(m);
             const below = !recentlyDeducted;
