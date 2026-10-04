@@ -494,6 +494,19 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const members = [...data.members].sort(
     (a, b) => passRank(a) - passRank(b) || b.points - a.points,
   );
+  const searchQ = memberSearch.trim().toLowerCase();
+  const memberMatches = (m: Member) =>
+    !searchQ ||
+    (m.username ?? "").toLowerCase().includes(searchQ) ||
+    (m.lastfm_username ?? "").toLowerCase().includes(searchQ) ||
+    (m.facebook_name ?? "").toLowerCase().includes(searchQ);
+  const filteredMembers = members.filter(memberMatches);
+  const filteredSessions = (sessions ?? []).filter(
+    (u) =>
+      !searchQ ||
+      (u.username ?? "").toLowerCase().includes(searchQ) ||
+      (u.lastfm_username ?? "").toLowerCase().includes(searchQ),
+  );
 
   return (
     <div className="space-y-6">
