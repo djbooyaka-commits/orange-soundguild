@@ -659,6 +659,33 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           </button>
         </div>
 
+        <div className="relative mt-4">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={memberSearch}
+            onChange={(e) => setMemberSearch(e.target.value)}
+            placeholder="Search by username, Last.fm, or Facebook name…"
+            aria-label="Search members"
+            className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-9 text-sm"
+          />
+          {memberSearch && (
+            <button
+              type="button"
+              onClick={() => setMemberSearch("")}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        {searchQ && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Showing {tab === "members" ? `${filteredMembers.length} of ${members.length}` : `${filteredSessions.length} of ${(sessions ?? []).length}`} members
+          </p>
+        )}
+
         {tab === "times" && (
           <div className="mt-4 space-y-3">
             {loadingSessions && (
