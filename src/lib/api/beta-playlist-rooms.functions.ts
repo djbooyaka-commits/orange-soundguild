@@ -627,7 +627,7 @@ export const setBetaPlaylistMemberFacebook = createServerFn({ method: "POST" })
 export type BetaTrackingSession = {
   user_id: string;
   username: string | null;
-  sessions: { started_at: string; stopped_at: string | null; points: number }[];
+  sessions: { id: string; started_at: string; stopped_at: string | null; points: number }[];
 };
 
 /** Per-member start/stop tracking times for the last 7 days on this playlist. */
@@ -646,7 +646,7 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     let query = supabaseAdmin
       .from("beta_playlist_tracking_sessions")
-      .select("user_id, started_at, stopped_at")
+      .select("id, user_id, started_at, stopped_at")
       .eq("playlist_id", pl.id)
       .gte("started_at", since);
     if (!isOwner) query = query.eq("user_id", context.userId);
@@ -682,7 +682,7 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
     const now = Date.now();
     const byUser = new Map<
       string,
-      { started_at: string; stopped_at: string | null; points: number }[]
+      { id: string; started_at: string; stopped_at: string | null; points: number }[]
     >();
     (rows ?? []).forEach((r: any) => {
       if (!byUser.has(r.user_id)) byUser.set(r.user_id, []);
@@ -691,7 +691,7 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
       const plays = pointsByUser.get(r.user_id) ?? [];
       const points = plays.filter((t) => t >= startMs && t <= stopMs).length;
       byUser.get(r.user_id)!.push({
-        started_at: r.started_at,
+        id: r.id, started_at: r.started_at,
         stopped_at: r.stopped_at,
         points,
       });

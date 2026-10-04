@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -37,6 +37,7 @@ import {
 import {
   startLastfmPlaylistTracking,
   stopLastfmPlaylistTracking,
+  rescanLastfmSession,
 } from "@/lib/api/lastfm.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
@@ -131,6 +132,26 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [sessions, setSessions] = useState<BetaTrackingSession[] | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const sessionsFn = useServerFn(betaPlaylistTrackingSessions);
+  const rescanFn = useServerFn(rescanLastfmSession);
+  const refreshRef = useRef<null | (() => Promise<void> | void)>(null);
+  const [rescanningId, setRescanningId] = useState<string | null>(null);
+  const doRescan = async (sessionId: string) => {
+    setRescanningId(sessionId);
+    try {
+      const r = (await rescanFn({ data: { sessionId } })) as { added: number };
+      toast.success(
+        r.added > 0
+          ? `Rescan complete: added ${r.added} missing play${r.added === 1 ? "" : "s"}`
+          : "All plays already up to date",
+      );
+      setSessions((await sessionsFn({ data: { playlistId } })) as BetaTrackingSession[]);
+      void refreshRef.current?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Rescan failed");
+    } finally {
+      setRescanningId(null);
+    }
+  };
 
   const openTimesTab = async () => {
     setTab("times");
@@ -194,6 +215,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       return next;
     });
   }, [getFn, historyFn, playlistId]);
+  refreshRef.current = refresh;
 
   useEffect(() => {
     setLoading(true);
@@ -648,6 +670,17 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                         <span className="font-medium text-foreground">{day}</span> — started{" "}
                         {fmt(start)}, {stop ? `stopped ${fmt(stop)}` : "still tracking now"} ·{" "}
                         <span className="font-medium text-foreground">{s.points} pts</span>
+                        {stop && (
+                          <button
+                            type="button"
+                            onClick={() => doRescan(s.id)}
+                            disabled={rescanningId === s.id}
+                            className="ml-2 inline-flex items-center gap-1 rounded-md border border-primary/50 px-2 py-0.5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-50"
+                          >
+                            {rescanningId === s.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                            {rescanningId === s.id ? "Rescanning…" : "Rescan"}
+                          </button>
+                        )}
                       </li>
                     );
                   })}
