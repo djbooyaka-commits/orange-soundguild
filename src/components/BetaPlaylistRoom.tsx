@@ -10,6 +10,7 @@ import {
   Music,
   Plus,
   Play,
+  Search,
   Settings,
   Square,
   Star,
@@ -129,6 +130,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [fbNameInputs, setFbNameInputs] = useState<Record<string, string>>({});
   const [savingFbId, setSavingFbId] = useState<string | null>(null);
   const [tab, setTab] = useState<"members" | "times">("members");
+  const [memberSearch, setMemberSearch] = useState("");
   const [sessions, setSessions] = useState<BetaTrackingSession[] | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const sessionsFn = useServerFn(betaPlaylistTrackingSessions);
