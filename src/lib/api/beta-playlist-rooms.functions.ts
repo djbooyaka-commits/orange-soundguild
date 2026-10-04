@@ -682,7 +682,7 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
     const now = Date.now();
     const byUser = new Map<
       string,
-      { started_at: string; stopped_at: string | null; points: number }[]
+      { id: string; started_at: string; stopped_at: string | null; points: number }[]
     >();
     (rows ?? []).forEach((r: any) => {
       if (!byUser.has(r.user_id)) byUser.set(r.user_id, []);
