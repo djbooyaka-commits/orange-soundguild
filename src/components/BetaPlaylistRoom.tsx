@@ -133,6 +133,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [loadingSessions, setLoadingSessions] = useState(false);
   const sessionsFn = useServerFn(betaPlaylistTrackingSessions);
   const rescanFn = useServerFn(rescanLastfmSession);
+  const refreshRef = useRef<null | (() => Promise<void> | void)>(null);
   const [rescanningId, setRescanningId] = useState<string | null>(null);
   const doRescan = async (sessionId: string) => {
     setRescanningId(sessionId);
@@ -144,7 +145,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           : "All plays already up to date",
       );
       setSessions((await sessionsFn({ data: { playlistId } })) as BetaTrackingSession[]);
-      load?.();
+      void refreshRef.current?.();
     } catch (e: any) {
       toast.error(e?.message ?? "Rescan failed");
     } finally {
@@ -214,6 +215,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       return next;
     });
   }, [getFn, historyFn, playlistId]);
+  refreshRef.current = refresh;
 
   useEffect(() => {
     setLoading(true);
