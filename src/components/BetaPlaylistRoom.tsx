@@ -653,7 +653,21 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
             )}
             {(sessions ?? []).map((u) => (
               <div key={u.user_id} className="rounded-xl border border-border bg-card p-4">
-                <p className="text-sm font-semibold">@{u.username ?? "unknown"}</p>
+                <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                  @{u.username ?? "unknown"}
+                  {u.lastfm_username ? (
+                    <a
+                      href={`https://www.last.fm/user/${encodeURIComponent(u.lastfm_username)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      Last.fm: {u.lastfm_username} <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : (
+                    <span className="text-xs font-normal text-muted-foreground">No Last.fm connected</span>
+                  )}
+                </p>
                 <ul className="mt-2 space-y-1">
                   {u.sessions.map((s, i) => {
                     const start = new Date(s.started_at);
@@ -665,21 +679,31 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     });
                     const fmt = (d: Date) =>
                       d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+                    const fromSec = Math.floor(start.getTime() / 1000);
+                    const toSec = Math.floor((stop ?? new Date()).getTime() / 1000);
                     return (
                       <li key={i} className="text-xs text-muted-foreground">
                         <span className="font-medium text-foreground">{day}</span> — started{" "}
                         {fmt(start)}, {stop ? `stopped ${fmt(stop)}` : "still tracking now"} ·{" "}
                         <span className="font-medium text-foreground">{s.points} pts</span>
-                        {stop && (
-                          <button
-                            type="button"
-                            onClick={() => doRescan(s.id)}
-                            disabled={rescanningId === s.id}
-                            className="ml-2 inline-flex items-center gap-1 rounded-md border border-primary/50 px-2 py-0.5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-50"
+                        <button
+                          type="button"
+                          onClick={() => doRescan(s.id)}
+                          disabled={rescanningId === s.id}
+                          className="ml-2 inline-flex items-center gap-1 rounded-md border border-primary/50 px-2 py-0.5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-50"
+                        >
+                          {rescanningId === s.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {rescanningId === s.id ? "Rescanning…" : "Rescan"}
+                        </button>
+                        {u.lastfm_username && (
+                          <a
+                            href={`https://www.last.fm/user/${encodeURIComponent(u.lastfm_username)}/library?from=${fromSec}&to=${toSec}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                           >
-                            {rescanningId === s.id && <Loader2 className="h-3 w-3 animate-spin" />}
-                            {rescanningId === s.id ? "Rescanning…" : "Rescan"}
-                          </button>
+                            View scrobbles <ExternalLink className="h-3 w-3" />
+                          </a>
                         )}
                       </li>
                     );

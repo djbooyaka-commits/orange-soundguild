@@ -627,6 +627,7 @@ export const setBetaPlaylistMemberFacebook = createServerFn({ method: "POST" })
 export type BetaTrackingSession = {
   user_id: string;
   username: string | null;
+  lastfm_username: string | null;
   sessions: { id: string; started_at: string; stopped_at: string | null; points: number }[];
 };
 
@@ -657,12 +658,16 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
 
     const ids = Array.from(new Set((rows ?? []).map((r: any) => r.user_id as string)));
     let names = new Map<string, string | null>();
+    let lastfmNames = new Map<string, string | null>();
     if (ids.length) {
-      const { data: profs } = await supabaseAdmin
-        .from("profiles")
-        .select("id, username")
-        .in("id", ids);
+      const [{ data: profs }, { data: lfm }] = await Promise.all([
+        supabaseAdmin.from("profiles").select("id, username").in("id", ids),
+        supabaseAdmin.from("lastfm_connections").select("user_id, lastfm_username").in("user_id", ids),
+      ]);
       names = new Map((profs ?? []).map((p: any) => [p.id as string, p.username as string | null]));
+      lastfmNames = new Map(
+        (lfm ?? []).map((l: any) => [l.user_id as string, l.lastfm_username as string | null]),
+      );
     }
 
     // Points earned per session: plays on this playlist between start and stop.
@@ -701,6 +706,7 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
       .map(([uid, sessions]) => ({
         user_id: uid,
         username: names.get(uid) ?? null,
+        lastfm_username: lastfmNames.get(uid) ?? null,
         sessions,
       }))
       .sort((a, b) => b.sessions.length - a.sessions.length) as BetaTrackingSession[];

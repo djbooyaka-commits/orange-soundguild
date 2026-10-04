@@ -309,7 +309,6 @@ export const rescanLastfmSession = createServerFn({ method: "POST" })
       .eq("id", data.sessionId)
       .maybeSingle();
     if (!session) throw new Error("Session not found");
-    if (!session.stopped_at) throw new Error("This session is still running — press Stop first.");
 
     const { data: playlist } = await supabaseAdmin
       .from("beta_room_playlists")
@@ -343,7 +342,7 @@ export const rescanLastfmSession = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error(lastfmErrorMessage(keyError ?? "lastfm_key_missing"));
 
     const startMs = new Date(session.started_at).getTime();
-    const stopMs = new Date(session.stopped_at).getTime();
+    const stopMs = session.stopped_at ? new Date(session.stopped_at).getTime() : Date.now();
     const result = await fetchLastfmRecentTracks(
       connection.lastfm_username,
       apiKey,
