@@ -14,6 +14,7 @@ import {
   leaveBetaRoom,
 } from "@/lib/api/beta-rooms.functions";
 import { joinBetaRoomByCode } from "@/lib/api/beta-curator.functions";
+import { grantBetaPointsToAllUsers } from "@/lib/api/beta-playlist-rooms.functions";
 
 
 export const Route = createFileRoute("/beta-rooms/")({
@@ -216,6 +217,8 @@ function BetaRoomsPage() {
         </ul>
       </section>
 
+      {(isAdmin || rooms.some((r) => r.isOwner)) && <GiveAllPoints />}
+
       {canCreateRoom && (
       <section className="mb-8 rounded-xl border border-border bg-card p-5">
         <h2 className="font-semibold">Create a test room</h2>
@@ -305,5 +308,45 @@ function BetaRoomsPage() {
         </ul>
       )}
     </main>
+  );
+}
+
+function GiveAllPoints() {
+  const grantFn = useServerFn(grantBetaPointsToAllUsers);
+  const [points, setPoints] = useState("25");
+  const [reason, setReason] = useState("Sorry — tracking compensation");
+  const [busy, setBusy] = useState(false);
+  const give = async () => {
+    const n = Math.round(Number(points));
+    if (!n || n < 1) return toast.error("Enter a number of points");
+    if (!window.confirm(`Give +${n} points to every member of your Last.fm rooms?`)) return;
+    setBusy(true);
+    try {
+      const r = await grantFn({ data: { points: n, reason } });
+      toast.success(`Granted +${n} points to ${r.users} members`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not give points");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="mb-6 rounded-xl border border-border bg-card p-5">
+      <h2 className="font-semibold">Give points to all users</h2>
+      <p className="text-xs text-muted-foreground">
+        Say sorry when tracking misses plays. Every member gets the points on each playlist in your rooms.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <input type="number" min={1} value={points} onChange={(e) => setPoints(e.target.value)}
+          className="w-24 rounded-md border border-border bg-background px-3 py-2 text-sm" />
+        <input value={reason} onChange={(e) => setReason(e.target.value)}
+          className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" />
+        <button onClick={give} disabled={busy}
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+          Give to all
+        </button>
+      </div>
+    </section>
   );
 }
