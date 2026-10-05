@@ -81,7 +81,10 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
 
     // Unused points expire after 30 days, so spends and curator removals older
     // than the window no longer count against the current balance.
-    const cutoff = new Date(Date.now() - POINT_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    // Team playlists never expire points — the curator removes them on their own schedule.
+    const cutoff = (pl as any).is_team
+      ? new Date(0).toISOString()
+      : new Date(Date.now() - POINT_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
     const [
       { data: roomMembers },
@@ -306,7 +309,10 @@ export const adjustBetaPlaylistPoints = createServerFn({ method: "POST" })
 
     let appliedDelta = data.delta;
     if (data.delta < 0) {
-      const cutoff = new Date(Date.now() - POINT_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      // Team playlists never expire points — the curator removes them on their own schedule.
+      const cutoff = (pl as any).is_team
+        ? new Date(0).toISOString()
+        : new Date(Date.now() - POINT_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
       const [{ data: earnedRows }, { data: submissions }, { data: adjustments }] =
         await Promise.all([
           supabaseAdmin.rpc("beta_playlist_earned_points", { p_playlist_id: pl.id }),
