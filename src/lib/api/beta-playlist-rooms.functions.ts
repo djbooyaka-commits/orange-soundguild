@@ -677,7 +677,17 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
       .eq("playlist_id", pl.id)
       .gte("played_at", since);
     if (!isOwner) pointsQuery = pointsQuery.eq("user_id", context.userId);
-    const { data: pointRows } = await pointsQuery.limit(20000);
+    // Page through results: the database caps each response at 1000 rows,
+    // which previously cut off plays and showed 0 pts on busy playlists.
+    const pointRows: any[] = [];
+    for (let from = 0; from < 50000; from += 1000) {
+      const { data, error } = await pointsQuery
+        .order("played_at", { ascending: true })
+        .range(from, from + 999);
+      if (error || !data || data.length === 0) break;
+      pointRows.push(...data);
+      if (data.length < 1000) break;
+    }
     const pointsByUser = new Map<string, number[]>();
     (pointRows ?? []).forEach((r: any) => {
       if (!pointsByUser.has(r.user_id)) pointsByUser.set(r.user_id, []);

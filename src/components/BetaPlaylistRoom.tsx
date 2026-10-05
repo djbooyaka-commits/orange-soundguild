@@ -137,10 +137,12 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const rescanFn = useServerFn(rescanLastfmSession);
   const refreshRef = useRef<null | (() => Promise<void> | void)>(null);
   const [rescanningId, setRescanningId] = useState<string | null>(null);
+  const [rescanResults, setRescanResults] = useState<Record<string, number>>({});
   const doRescan = async (sessionId: string) => {
     setRescanningId(sessionId);
     try {
       const r = (await rescanFn({ data: { sessionId } })) as { added: number };
+      setRescanResults((prev) => ({ ...prev, [sessionId]: r.added }));
       toast.success(
         r.added > 0
           ? `Rescan complete: added ${r.added} missing play${r.added === 1 ? "" : "s"}`
@@ -760,6 +762,17 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                         <span className="font-medium text-foreground">{day}</span> — started{" "}
                         {fmt(start)}, {stop ? `stopped ${fmt(stop)}` : "still tracking now"} ·{" "}
                         <span className="font-medium text-foreground">{s.points} pts</span>
+                        {rescanResults[s.id] !== undefined && (
+                          <span
+                            className={
+                              rescanResults[s.id] > 0
+                                ? "ml-2 rounded-md bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground"
+                                : "ml-2 rounded-md border border-border px-2 py-0.5 text-xs font-semibold text-muted-foreground"
+                            }
+                          >
+                            {rescanResults[s.id] > 0 ? `+${rescanResults[s.id]} pts found` : "✓ Up to date"}
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => doRescan(s.id)}
