@@ -19,6 +19,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import {
   getBetaPlaylistRoom,
   setBetaPlaylistWeeklyMin,
@@ -94,6 +95,7 @@ type RoomData = {
 
 export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const getFn = useServerFn(getBetaPlaylistRoom);
+  const myId = useAuth().user?.id;
   const setMinFn = useServerFn(setBetaPlaylistWeeklyMin);
   const adjustFn = useServerFn(adjustBetaPlaylistPoints);
   const removeMemberFn = useServerFn(removeBetaRoomMember);
@@ -493,8 +495,10 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     (m: any) =>
       !isRecentlyDeducted(m) && m.points >= (m.weekly_min || DEFAULT_WEEKLY_MIN) && m.points > 0,
   );
+  const meRank = (id: string | undefined) => (myId && id === myId ? 0 : 1);
   const members = [...data.members].sort(
-    (a, b) => passRank(a) - passRank(b) || b.points - a.points,
+    (a, b) =>
+      meRank(a.user_id) - meRank(b.user_id) || passRank(a) - passRank(b) || b.points - a.points,
   );
   const searchQ = memberSearch.trim().toLowerCase();
   const memberMatches = (m: Member) =>
@@ -503,12 +507,14 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     (m.lastfm_username ?? "").toLowerCase().includes(searchQ) ||
     (m.facebook_name ?? "").toLowerCase().includes(searchQ);
   const filteredMembers = members.filter(memberMatches);
-  const filteredSessions = (sessions ?? []).filter(
-    (u) =>
-      !searchQ ||
-      (u.username ?? "").toLowerCase().includes(searchQ) ||
-      (u.lastfm_username ?? "").toLowerCase().includes(searchQ),
-  );
+  const filteredSessions = (sessions ?? [])
+    .filter(
+      (u) =>
+        !searchQ ||
+        (u.username ?? "").toLowerCase().includes(searchQ) ||
+        (u.lastfm_username ?? "").toLowerCase().includes(searchQ),
+    )
+    .sort((a: any, b: any) => meRank(a.user_id) - meRank(b.user_id));
 
   return (
     <div className="space-y-6">
