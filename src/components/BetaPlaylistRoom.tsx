@@ -131,7 +131,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [fbUrlInputs, setFbUrlInputs] = useState<Record<string, string>>({});
   const [fbNameInputs, setFbNameInputs] = useState<Record<string, string>>({});
   const [savingFbId, setSavingFbId] = useState<string | null>(null);
-  const [tab, setTab] = useState<"members" | "times">("members");
+  const [tab, setTab] = useState<"members" | "times" | "removed">("members");
   const [memberSearch, setMemberSearch] = useState("");
   const [sessions, setSessions] = useState<BetaTrackingSession[] | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
@@ -675,7 +675,40 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           >
             Tracking times
           </button>
+          {data.isOwner && data.removedMembers.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setTab("removed")}
+              className={`px-3 py-1.5 text-sm font-medium ${
+                tab === "removed"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Removed ({data.removedMembers.length})
+            </button>
+          )}
         </div>
+
+        {tab === "removed" && data.isOwner && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {data.removedMembers
+              .filter((r) => !searchQ || (r.username ?? "").toLowerCase().includes(searchQ))
+              .map((r) => (
+                <span key={r.user_id} className="inline-flex items-center gap-2 rounded-md border border-border px-2 py-1 text-xs">
+                  @{r.username ?? "user"}
+                  <button
+                    type="button"
+                    onClick={() => doReadd(r.user_id)}
+                    disabled={readdingId === r.user_id}
+                    className="font-semibold text-primary hover:underline disabled:opacity-50"
+                  >
+                    {readdingId === r.user_id ? "Adding…" : "Add back"}
+                  </button>
+                </span>
+              ))}
+          </div>
+        )}
 
         <div className="relative mt-4">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -835,26 +868,6 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               Add
             </button>
           </form>
-        )}
-        {data.isOwner && data.removedMembers.length > 0 && (
-          <div className="mt-4 rounded-md border border-dashed border-border p-3">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">Removed from this playlist</p>
-            <div className="flex flex-wrap gap-2">
-              {data.removedMembers.map((r) => (
-                <span key={r.user_id} className="inline-flex items-center gap-2 rounded-md border border-border px-2 py-1 text-xs">
-                  @{r.username ?? "user"}
-                  <button
-                    type="button"
-                    onClick={() => doReadd(r.user_id)}
-                    disabled={readdingId === r.user_id}
-                    className="font-semibold text-primary hover:underline disabled:opacity-50"
-                  >
-                    {readdingId === r.user_id ? "Adding…" : "Add back"}
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
         )}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {members.length === 0 && (
