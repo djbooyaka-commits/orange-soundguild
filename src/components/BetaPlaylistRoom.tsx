@@ -1052,6 +1052,12 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     )}
                     {isTeam ? `${m.points} / ${min} total pts` : `${m.points} total pts`}
                   </span>
+                  {!isTeam && (
+                    <span className="text-muted-foreground">
+                      Used to submit: <strong className="text-foreground">{(m as any).submission_points ?? 0} pts</strong>{" "}
+                      ({(m as any).submission_count ?? 0} track{(m as any).submission_count === 1 ? "" : "s"})
+                    </span>
+                  )}
                   {isTeam && (
                     <span className="inline-flex items-center gap-2">
                       {recentlyDeducted && (
