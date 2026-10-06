@@ -169,7 +169,7 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!session) throw new Error("Tracking is not running for this playlist");
 
-    const [{ data: playlist }, { data: connection }, { data: watch }] = await Promise.all([
+    const [{ data: playlist }, { data: connection }] = await Promise.all([
       supabaseAdmin
         .from("beta_room_playlists")
         .select("id, room_id")
@@ -180,12 +180,9 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
         .select("lastfm_username")
         .eq("user_id", context.userId)
         .maybeSingle(),
-      supabaseAdmin
-        .from("beta_room_tracks")
-        .select("spotify_track_id, track_name, artist_name")
-        .eq("playlist_id", data.playlistId),
     ]);
     if (!playlist) throw new Error("Playlist not found");
+    const watch = await loadRoomWatchTracks(supabaseAdmin, playlist.room_id, playlist.id);
     if (!connection) throw new Error("Connect your Last.fm account first");
 
     const { key: apiKey, error: keyError } = getLastfmApiKey();
@@ -325,17 +322,12 @@ export const rescanLastfmSession = createServerFn({ method: "POST" })
       if (!room || room.owner_id !== context.userId) throw new Error("Not allowed");
     }
 
-    const [{ data: connection }, { data: watch }] = await Promise.all([
-      supabaseAdmin
-        .from("lastfm_connections")
-        .select("lastfm_username")
-        .eq("user_id", session.user_id)
-        .maybeSingle(),
-      supabaseAdmin
-        .from("beta_room_tracks")
-        .select("spotify_track_id, track_name, artist_name")
-        .eq("playlist_id", playlist.id),
-    ]);
+    const { data: connection } = await supabaseAdmin
+      .from("lastfm_connections")
+      .select("lastfm_username")
+      .eq("user_id", session.user_id)
+      .maybeSingle();
+    const watch = await loadRoomWatchTracks(supabaseAdmin, playlist.room_id, playlist.id);
     if (!connection) throw new Error("This member has no Last.fm account connected");
 
     const { key: apiKey, error: keyError } = getLastfmApiKey();
@@ -382,3 +374,25 @@ export const rescanLastfmSession = createServerFn({ method: "POST" })
     }
     return { added, matched: rows.length };
   });
+
+/**
+ * Every track in the room (all playlists), with the tracked playlist's own
+ * tracks first. OSG plays from any room playlist count toward the session.
+ */
+async function loadRoomWatchTracks(admin: any, roomId: string, playlistId: string) {
+  const all: any[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await admin
+      .from("beta_room_tracks")
+      .select("spotify_track_id, track_name, artist_name, playlist_id")
+      .eq("room_id", roomId)
+      .range(from, from + 999);
+    if (error) throw new Error(error.message);
+    all.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  return [
+    ...all.filter((t) => t.playlist_id === playlistId),
+    ...all.filter((t) => t.playlist_id !== playlistId),
+  ];
+}
