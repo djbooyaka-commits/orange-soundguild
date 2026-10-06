@@ -642,6 +642,16 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           </p>
         </div>
 
+        {isTeam && (
+          <div className="mt-3 flex items-start gap-3 rounded-lg border border-primary/40 bg-primary/10 p-4">
+            <Users className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <p className="text-sm font-semibold leading-relaxed text-foreground">
+              If you want to be part of this team, DM the Curator on Facebook or in the site chat to
+              be added to this room.
+            </p>
+          </div>
+        )}
+
         <div className="mt-4 flex gap-2 border-b border-border">
           <button
             type="button"
