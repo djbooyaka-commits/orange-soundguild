@@ -168,9 +168,11 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
 
 
     const spent = new Map<string, number>();
+    const subCount = new Map<string, number>();
     for (const s of subs ?? []) {
       const uid = s.submitter_user_id as string;
       spent.set(uid, (spent.get(uid) ?? 0) + (s.cost_points ?? 0));
+      subCount.set(uid, (subCount.get(uid) ?? 0) + 1);
     }
 
     const adjusted = new Map<string, number>();
@@ -222,6 +224,8 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         account_type: (p?.account_type as string) ?? "fan",
         points,
         streamed_points: earned.get(uid) ?? 0,
+        submission_points: spent.get(uid) ?? 0,
+        submission_count: subCount.get(uid) ?? 0,
         weekly_min: min,
         last_deduction_at: lastAdjust.get(uid) ?? null,
         is_me: uid === context.userId,
