@@ -181,9 +181,14 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     Date.now() - new Date(p.last_deduction_at).getTime() < 7 * 24 * 60 * 60 * 1000;
   const passRank = (p: { weekly_points: number; weekly_min: number; last_deduction_at?: string | null }) =>
     isRecentlyDeducted(p) ? 0 : 1;
+  // The signed-in user's own card always comes first.
+  const meRank = (r: any) => (r.is_me || (myUserId && r.artist_id === myUserId) ? 0 : 1);
   const sortByPass = <T extends { weekly_points: number; weekly_min: number; last_deduction_at?: string | null }>(
     rows: T[],
-  ) => [...rows].sort((a, b) => passRank(a) - passRank(b) || b.weekly_points - a.weekly_points);
+  ) =>
+    [...rows].sort(
+      (a, b) => meRank(a) - meRank(b) || passRank(a) - passRank(b) || b.weekly_points - a.weekly_points,
+    );
 
   // Group rosters by curator
   const rostersByCurator = rosters.reduce<Record<string, RosterRow[]>>((acc, r) => {

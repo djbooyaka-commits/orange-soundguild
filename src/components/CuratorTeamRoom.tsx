@@ -313,7 +313,10 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   const eligibleForPass = members.filter(
     (m) => !isRecentlyDeducted(m) && m.points >= (m.weekly_min || 0) && m.points > 0,
   );
-  const sorted = [...members].sort((a, b) => passRank(a) - passRank(b) || b.points - a.points);
+  const meRank = (m: CuratorTeamMember) => (m.is_me ? 0 : 1);
+  const sorted = [...members].sort(
+    (a, b) => meRank(a) - meRank(b) || passRank(a) - passRank(b) || b.points - a.points,
+  );
   const avatarByUser = new Map<string, string | null>();
   members.forEach((m, i) => avatarByUser.set(m.user_id, avatars[i] ?? null));
 
