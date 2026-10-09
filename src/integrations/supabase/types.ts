@@ -386,6 +386,7 @@ export type Database = {
       beta_room_playlists: {
         Row: {
           created_at: string
+          curator_notice: string | null
           id: string
           image_url: string | null
           is_team: boolean
@@ -399,6 +400,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          curator_notice?: string | null
           id?: string
           image_url?: string | null
           is_team?: boolean
@@ -412,6 +414,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          curator_notice?: string | null
           id?: string
           image_url?: string | null
           is_team?: boolean

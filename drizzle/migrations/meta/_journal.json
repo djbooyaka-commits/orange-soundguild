@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791514626358,
+      "tag": "0000_playlist_curator_notice",
+      "breakpoints": true
+    }
+  ]
+}
