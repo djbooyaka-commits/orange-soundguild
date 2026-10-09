@@ -566,6 +566,29 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!pl) throw new Error("Playlist not found");
 
+    // Reject tracks that are already waiting for review or already on the playlist
+    const { data: pendingDup } = await supabaseAdmin
+      .from("curator_submissions")
+      .select("id")
+      .eq("curator_playlist_id", pl.id)
+      .eq("spotify_track_id", trackId)
+      .eq("status", "pending")
+      .limit(1);
+    if ((pendingDup ?? []).length > 0) {
+      throw new Error("That track has already been submitted and is waiting for review");
+    }
+    let liveIds: Set<string> | null = null;
+    try {
+      const { fetchBetaPublicPlaylistTracks } = await import("./beta-spotify.server");
+      const live = await fetchBetaPublicPlaylistTracks(pl.spotify_playlist_id as string);
+      liveIds = new Set(live.map((t) => t.id));
+    } catch {
+      /* fall back to submission history below */
+    }
+    if (liveIds?.has(trackId)) {
+      throw new Error("That track is already on this playlist — pick a different track");
+    }
+
     // App-level token for public metadata
     const appToken = await getAppToken();
     const trackMeta = await fetchTrackMeta(trackId, appToken);

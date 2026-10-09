@@ -474,6 +474,29 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
       );
     }
 
+    // Reject tracks that are already on the playlist or already waiting for review
+    const [{ data: onPlaylist }, { data: pendingDup }] = await Promise.all([
+      supabaseAdmin
+        .from("beta_room_tracks")
+        .select("id")
+        .eq("playlist_id", pl.id)
+        .eq("spotify_track_id", trackId)
+        .limit(1),
+      supabaseAdmin
+        .from("beta_submissions")
+        .select("id")
+        .eq("playlist_id", pl.id)
+        .eq("spotify_track_id", trackId)
+        .eq("status", "pending")
+        .limit(1),
+    ]);
+    if ((onPlaylist ?? []).length > 0) {
+      throw new Error(`That track is already on "${pl.name}" — pick a different track`);
+    }
+    if ((pendingDup ?? []).length > 0) {
+      throw new Error("That track has already been submitted and is waiting for review");
+    }
+
     // Hold window — same track can't come back too soon
     const holdDays = (pl.track_hold_days as number) ?? 30;
     if (holdDays > 0) {
