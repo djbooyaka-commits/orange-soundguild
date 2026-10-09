@@ -15,7 +15,7 @@ const POINT_TTL_DAYS = 30;
 async function loadPlaylist(supabaseAdmin: any, playlistId: string) {
   const { data: pl } = await supabaseAdmin
     .from("beta_room_playlists")
-    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team, min_period_days")
+    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team, min_period_days, curator_notice")
     .eq("id", playlistId)
     .maybeSingle();
   if (!pl) throw new Error("Playlist not found");
@@ -263,12 +263,31 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         trackCount: trackIds.length,
         isTeam: (pl.is_team as boolean | null) ?? false,
         periodDays: ((pl as any).min_period_days as number | null) ?? 7,
+        curatorNotice: ((pl as any).curator_notice as string | null) ?? null,
       },
       removedMembers: isOwner ? removedList : [],
       trackingStartedAt: (activeTracking?.started_at as string | null) ?? null,
       isOwner,
       members: members_,
     };
+  });
+
+export const setBetaPlaylistNotice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; notice: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    notice: String(data?.notice ?? "").trim().slice(0, 2000),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId) throw new Error("Only the room owner can do that");
+    const { error } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .update({ curator_notice: data.notice || null })
+      .eq("id", pl.id);
+    if (error) throw new Error(error.message);
+    return { ok: true, notice: data.notice || null };
   });
 
 export const setBetaPlaylistWeeklyMin = createServerFn({ method: "POST" })
