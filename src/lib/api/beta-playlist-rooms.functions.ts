@@ -15,7 +15,7 @@ const POINT_TTL_DAYS = 30;
 async function loadPlaylist(supabaseAdmin: any, playlistId: string) {
   const { data: pl } = await supabaseAdmin
     .from("beta_room_playlists")
-    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team, min_period_days")
+    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team, min_period_days, curator_notice")
     .eq("id", playlistId)
     .maybeSingle();
   if (!pl) throw new Error("Playlist not found");

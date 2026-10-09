@@ -47,6 +47,7 @@ import { Button } from "@/components/ui/button";
 
 const DEFAULT_WEEKLY_MIN = 600;
 import { NoPassStars } from "@/components/NoPassStars";
+import { PlaylistCuratorNotice } from "@/components/PlaylistCuratorNotice";
 
 type Member = {
   user_id: string;
@@ -654,6 +655,12 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
             </p>
           </div>
         )}
+
+        <PlaylistCuratorNotice
+          playlistId={playlistId}
+          notice={(data.playlist as any).curatorNotice ?? null}
+          isOwner={data.isOwner}
+        />
 
         <div className="mt-4 flex gap-2 border-b border-border">
           <button
