@@ -48,6 +48,7 @@ import { Button } from "@/components/ui/button";
 const DEFAULT_WEEKLY_MIN = 600;
 import { NoPassStars } from "@/components/NoPassStars";
 import { PlaylistCuratorNotice } from "@/components/PlaylistCuratorNotice";
+import { PointTimelineButton } from "@/components/PointTimelineButton";
 
 type Member = {
   user_id: string;
@@ -1067,6 +1068,14 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                       Used to submit: <strong className="text-foreground">{(m as any).submission_points ?? 0} pts</strong>{" "}
                       ({(m as any).submission_count ?? 0} track{(m as any).submission_count === 1 ? "" : "s"})
                     </span>
+                  )}
+                  {(data.isOwner || m.user_id === myId) && (
+                    <PointTimelineButton
+                      playlistId={playlistId}
+                      userId={m.user_id}
+                      username={m.username ?? "member"}
+                      currentPoints={m.points}
+                    />
                   )}
                   {isTeam && (
                     <span className="inline-flex items-center gap-2">
