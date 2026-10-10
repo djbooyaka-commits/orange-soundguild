@@ -877,3 +877,61 @@ export const grantBetaPointsToAllUsers = createServerFn({ method: "POST" })
     }
     return { users: users.size, grants: rows.length };
   });
+
+/** Chronological points ledger for one member on one playlist (owner or the member themself). */
+export const getBetaMemberPointTimeline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; userId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    userId: String(data?.userId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId && data.userId !== context.userId) {
+      const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" } as any);
+      if (!isAdmin) throw new Error("Only the curator or the member can view this timeline");
+    }
+    const plays: { played_at: string }[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data: rows, error } = await supabaseAdmin
+        .from("beta_stream_points")
+        .select("played_at")
+        .eq("playlist_id", pl.id)
+        .eq("user_id", data.userId)
+        .order("played_at", { ascending: true })
+        .range(from, from + 999);
+      if (error) throw new Error(error.message);
+      plays.push(...(rows ?? []));
+      if (!rows || rows.length < 1000) break;
+    }
+    const [{ data: subs }, { data: adjs }] = await Promise.all([
+      supabaseAdmin
+        .from("beta_submissions")
+        .select("created_at, cost_points, spotify_track_name, status")
+        .eq("playlist_id", pl.id)
+        .eq("submitter_user_id", data.userId),
+      supabaseAdmin
+        .from("beta_point_adjustments")
+        .select("created_at, delta, reason")
+        .eq("playlist_id", pl.id)
+        .eq("user_id", data.userId),
+    ]);
+    type Ev = { at: string; kind: "stream" | "submission" | "adjustment"; points: number; label: string };
+    const events: Ev[] = [];
+    // Group streams by UTC day
+    const byDay = new Map<string, { at: string; n: number }>();
+    for (const p of plays) {
+      const d = p.played_at.slice(0, 10);
+      const e = byDay.get(d);
+      if (e) e.n++;
+      else byDay.set(d, { at: p.played_at, n: 1 });
+    }
+    for (const [, v] of byDay) events.push({ at: v.at, kind: "stream", points: v.n, label: `Streamed ${v.n} play${v.n === 1 ? "" : "s"}` });
+    for (const s of subs ?? []) events.push({ at: s.created_at, kind: "submission", points: -(s.cost_points ?? 0), label: `Submitted "${s.spotify_track_name ?? "track"}" (${s.status})` });
+    for (const a of adjs ?? []) events.push({ at: a.created_at, kind: "adjustment", points: a.delta, label: a.reason || (a.delta >= 0 ? "Curator added points" : "Curator removed points") });
+    events.sort((a, b) => a.at.localeCompare(b.at));
+    let bal = 0;
+    const out = events.map((e) => ({ ...e, balance: (bal += e.points) }));
+    return { events: out.reverse(), lifetimeBalance: bal };
+  });
