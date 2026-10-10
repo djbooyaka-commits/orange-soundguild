@@ -8,6 +8,13 @@
       "when": 1791514626358,
       "tag": "0000_playlist_curator_notice",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791603685301,
+      "tag": "0001_points_expire_only_when_inactive",
+      "breakpoints": true
     }
   ]
 }

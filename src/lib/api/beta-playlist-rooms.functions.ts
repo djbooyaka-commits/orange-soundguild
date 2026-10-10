@@ -84,7 +84,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     // Team playlists never expire points — the curator removes them on their own schedule.
     const cutoff = (pl as any).is_team
       ? new Date(0).toISOString()
-      : new Date(Date.now() - POINT_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      : new Date(0).toISOString(); // inactivity expiry handled in beta_playlist_earned_points
 
     const [
       { data: roomMembers },
@@ -335,7 +335,7 @@ export const adjustBetaPlaylistPoints = createServerFn({ method: "POST" })
       // Team playlists never expire points — the curator removes them on their own schedule.
       const cutoff = (pl as any).is_team
         ? new Date(0).toISOString()
-        : new Date(Date.now() - POINT_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+        : new Date(0).toISOString(); // inactivity expiry handled in beta_playlist_earned_points
       const [{ data: earnedRows }, { data: submissions }, { data: adjustments }] =
         await Promise.all([
           supabaseAdmin.rpc("beta_playlist_earned_points", { p_playlist_id: pl.id }),
