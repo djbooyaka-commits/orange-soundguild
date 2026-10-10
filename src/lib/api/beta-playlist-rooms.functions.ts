@@ -214,7 +214,9 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
       const p = profileById.get(uid);
       const points = Math.max(
         0,
-        (earned.get(uid) ?? 0) - (spent.get(uid) ?? 0) + (adjusted.get(uid) ?? 0),
+        // Expired (inactive) streams also retire the submissions they paid for,
+        // so old spends never swallow new curator gifts.
+        (earned.get(uid) ?? 0) - (earned.has(uid) ? (spent.get(uid) ?? 0) : 0) + (adjusted.get(uid) ?? 0),
       );
       const l = linkByUser.get(uid);
       return {
