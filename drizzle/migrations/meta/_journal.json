@@ -15,6 +15,13 @@
       "when": 1791603685301,
       "tag": "0001_points_expire_only_when_inactive",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791605448193,
+      "tag": "0002_curator_points_count_as_activity",
+      "breakpoints": true
     }
   ]
 }
