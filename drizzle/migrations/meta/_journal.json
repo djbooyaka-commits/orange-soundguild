@@ -22,6 +22,13 @@
       "when": 1791605448193,
       "tag": "0002_curator_points_count_as_activity",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791684791254,
+      "tag": "0003_allow_claim_referral_through_trigger",
+      "breakpoints": true
     }
   ]
 }
