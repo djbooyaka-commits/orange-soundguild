@@ -391,8 +391,6 @@ async function loadRoomWatchTracks(admin: any, roomId: string, playlistId: strin
     all.push(...(data ?? []));
     if (!data || data.length < 1000) break;
   }
-  return [
-    ...all.filter((t) => t.playlist_id === playlistId),
-    ...all.filter((t) => t.playlist_id !== playlistId),
-  ];
+  // Strict: only tracks on the playlist being tracked earn points for it.
+  return all.filter((t) => t.playlist_id === playlistId);
 }
