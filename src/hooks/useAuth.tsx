@@ -32,16 +32,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             window.localStorage.getItem("ref_code") ??
             window.sessionStorage.getItem("ref_code");
           if (code) {
-            claimReferral({ data: { code } })
-              .catch(() => {})
-              .finally(() => {
-                try {
-                  window.localStorage.removeItem("ref_code");
-                  window.sessionStorage.removeItem("ref_code");
-                } catch {
-                  /* ignore */
-                }
-              });
+            // Defer so the session is fully stored before the call; only clear
+            // the saved code once the claim went through, so failures retry.
+            setTimeout(() => {
+              claimReferral({ data: { code } })
+                .then(() => {
+                  try {
+                    window.localStorage.removeItem("ref_code");
+                    window.sessionStorage.removeItem("ref_code");
+                  } catch {
+                    /* ignore */
+                  }
+                })
+                .catch(() => {});
+            }, 0);
           }
         } catch {
           /* ignore */
