@@ -640,7 +640,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           <p className="text-sm font-medium leading-relaxed text-foreground">
             Press <strong>Start tracking</strong> before listening to this playlist on Spotify. Press{" "}
             <strong>Stop</strong> when you finish; only plays during this session can earn points
-            for this playlist. Songs from any playlist in this room count too.
+            for this playlist. Only songs that are on this playlist count.
             <br />
             <strong>Tip:</strong> Turn off Spotify Smart Shuffle (✨) and Autoplay so outside songs
             don't play.
