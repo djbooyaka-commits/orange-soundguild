@@ -172,7 +172,24 @@ export const listMyTrackSubmissions = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase.rpc("list_my_track_submissions");
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const rows = (data ?? []) as any[];
+    const approvedIds = rows.filter((r) => r.status === "approved").map((r) => r.id);
+    if (!approvedIds.length) return rows;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const waitingIds = new Set<string>();
+    for (let i = 0; i < approvedIds.length; i += 200) {
+      const { data: flags } = await supabaseAdmin
+        .from("curator_submissions")
+        .select("id, added_to_spotify")
+        .in("id", approvedIds.slice(i, i + 200));
+      for (const f of flags ?? []) if (!f.added_to_spotify) waitingIds.add(f.id as string);
+    }
+    // Approved tracks not yet on Spotify still look "pending" to the submitter
+    return rows.map((r) =>
+      waitingIds.has(r.id)
+        ? { ...r, status: "pending", reviewed_at: null, curator_note: null }
+        : r,
+    );
   });
 
 export const listCuratorSubmissionsForMe = createServerFn({ method: "GET" })

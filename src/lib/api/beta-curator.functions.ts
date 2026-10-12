@@ -570,7 +570,7 @@ export const listMyBetaSubmissions = createServerFn({ method: "POST" })
     const { data: rows } = await supabaseAdmin
       .from("beta_submissions")
       .select(
-        "id, playlist_id, spotify_track_id, spotify_track_url, spotify_track_name, cost_points, status, curator_note, created_at, reviewed_at",
+        "id, playlist_id, spotify_track_id, spotify_track_url, spotify_track_name, cost_points, status, curator_note, created_at, reviewed_at, added_to_spotify",
       )
       .eq("room_id", data.roomId)
       .eq("submitter_user_id", context.userId)
@@ -583,10 +583,18 @@ export const listMyBetaSubmissions = createServerFn({ method: "POST" })
       : { data: [] as any[] };
     const playlistNames = new Map((playlists ?? []).map((playlist: any) => [playlist.id, playlist.name]));
 
-    return (rows ?? []).map((row: any) => ({
-      ...row,
-      playlist_name: playlistNames.get(row.playlist_id) ?? null,
-    }));
+    // Approved tracks that are not on Spotify yet still look "pending" to the submitter
+    return (rows ?? []).map(({ added_to_spotify, ...row }: any) => {
+      const waiting = row.status === "approved" && !added_to_spotify;
+      return {
+        ...row,
+        status: waiting ? "pending" : row.status,
+        reviewed_at: waiting ? null : row.reviewed_at,
+        curator_note: waiting ? null : row.curator_note,
+        awaiting_add: waiting,
+        playlist_name: playlistNames.get(row.playlist_id) ?? null,
+      };
+    });
   });
 
 export const cancelBetaSubmission = createServerFn({ method: "POST" })
