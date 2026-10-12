@@ -4,11 +4,13 @@ import { History, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getBetaMemberPointTimeline } from "@/lib/api/beta-playlist-rooms.functions";
+import { getSpotifyMemberPointTimeline } from "@/lib/api/curator-team.functions";
 
 type Ev = { at: string; kind: "stream" | "submission" | "adjustment"; points: number; label: string; balance: number };
 
-export function PointTimelineButton({ playlistId, userId, username, currentPoints }: { playlistId: string; userId: string; username: string; currentPoints: number }) {
+export function PointTimelineButton({ playlistId = "", userId, username, currentPoints, spotify }: { playlistId?: string; userId: string; username: string; currentPoints: number; spotify?: { mode: "osg" | "team"; curatorId?: string } }) {
   const fn = useServerFn(getBetaMemberPointTimeline);
+  const spFn = useServerFn(getSpotifyMemberPointTimeline);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<Ev[] | null>(null);
@@ -19,7 +21,9 @@ export function PointTimelineButton({ playlistId, userId, username, currentPoint
     setLoading(true);
     setErr(null);
     try {
-      const r = await fn({ data: { playlistId, userId } });
+      const r = spotify
+        ? await spFn({ data: { mode: spotify.mode, userId, playlistId, curatorId: spotify.curatorId } })
+        : await fn({ data: { playlistId, userId } });
       setEvents(r.events as Ev[]);
     } catch (e: any) {
       setErr(e?.message ?? "Could not load timeline");

@@ -20,6 +20,7 @@ import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
 import { OsgDailyStreams } from "@/components/OsgDailyStreams";
 import { NoPassStars } from "@/components/NoPassStars";
+import { PointTimelineButton } from "@/components/PointTimelineButton";
 
 const DEFAULT_WEEKLY_MIN = 600;
 
@@ -536,6 +537,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             {a.weekly_points} / {min} total pts
           </span>
           <span className="inline-flex items-center gap-2">
+            {(a.showDeduct || a.is_me) && (
+              <PointTimelineButton userId={a.artist_id} username={a.username ?? "user"} currentPoints={a.weekly_points} spotify={{ mode: "osg", curatorId: a.curator_id }} />
+            )}
             {recentlyDeducted && (
               <span
                 className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-500"

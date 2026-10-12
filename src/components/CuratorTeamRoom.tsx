@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { NoPassStars } from "@/components/NoPassStars";
+import { PointTimelineButton } from "@/components/PointTimelineButton";
 import {
   curatorTeamAddMember,
   curatorTeamSetPeriod,
@@ -605,6 +606,9 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                     )}
                     {m.points} pts
                   </span>
+                  {(room.is_owner || m.is_me) && (
+                    <PointTimelineButton playlistId={room.playlist_id} userId={m.user_id} username={m.username ?? "user"} currentPoints={m.points} spotify={{ mode: "team" }} />
+                  )}
                   <span className="inline-flex items-center gap-1">
                     {below ? (
                       <>

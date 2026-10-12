@@ -327,3 +327,59 @@ export const curatorTeamSetPeriod = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Chronological points ledger for a Spotify stream tracker member (OSG Artists or Team room). */
+export const getSpotifyMemberPointTimeline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { mode: "osg" | "team"; userId: string; playlistId?: string; curatorId?: string }) => ({
+    mode: data?.mode === "team" ? ("team" as const) : ("osg" as const),
+    userId: String(data?.userId ?? ""),
+    playlistId: String(data?.playlistId ?? ""),
+    curatorId: String(data?.curatorId ?? ""),
+  }))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let curatorId = data.curatorId;
+    let playlistIds: string[] = [];
+    if (data.mode === "team") {
+      const { data: pl } = await supabaseAdmin.from("curator_playlists").select("id, curator_id").eq("id", data.playlistId).maybeSingle();
+      if (!pl) throw new Error("Playlist not found");
+      curatorId = pl.curator_id;
+      playlistIds = [pl.id];
+    } else {
+      const { data: pls } = await supabaseAdmin.from("curator_playlists").select("id").eq("curator_id", curatorId).eq("is_osg", true);
+      playlistIds = (pls ?? []).map((p: any) => p.id);
+    }
+    if (curatorId !== context.userId && data.userId !== context.userId) {
+      const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" } as any);
+      if (!isAdmin) throw new Error("Only the curator or the member can view this timeline");
+    }
+    const plays: { played_at: string }[] = [];
+    if (playlistIds.length) {
+      for (let from = 0; ; from += 1000) {
+        const { data: rows, error } = await supabaseAdmin.from("stream_points").select("played_at")
+          .in("curator_playlist_id", playlistIds).eq("user_id", data.userId)
+          .order("played_at", { ascending: true }).range(from, from + 999);
+        if (error) throw new Error(error.message);
+        plays.push(...(rows ?? []));
+        if (!rows || rows.length < 1000) break;
+      }
+    }
+    const { data: adjs } = data.mode === "team"
+      ? await supabaseAdmin.from("curator_team_point_adjustments").select("created_at, delta, reason").eq("playlist_id", data.playlistId).eq("user_id", data.userId)
+      : await supabaseAdmin.from("osg_point_adjustments").select("created_at, delta, reason").eq("curator_id", curatorId).eq("user_id", data.userId);
+    type Ev = { at: string; kind: "stream" | "submission" | "adjustment"; points: number; label: string };
+    const events: Ev[] = [];
+    const byDay = new Map<string, { at: string; n: number }>();
+    for (const p of plays) {
+      const d = p.played_at.slice(0, 10);
+      const e = byDay.get(d);
+      if (e) e.n++; else byDay.set(d, { at: p.played_at, n: 1 });
+    }
+    for (const [, v] of byDay) events.push({ at: v.at, kind: "stream", points: v.n, label: `Streamed ${v.n} play${v.n === 1 ? "" : "s"}` });
+    for (const a of (adjs ?? []) as any[]) events.push({ at: a.created_at, kind: "adjustment", points: a.delta, label: a.reason || (a.delta >= 0 ? "Curator added points" : "Curator removed points") });
+    events.sort((a, b) => a.at.localeCompare(b.at));
+    let bal = 0;
+    const out = events.map((e) => ({ ...e, balance: (bal += e.points) }));
+    return { events: out.reverse(), lifetimeBalance: bal };
+  });
