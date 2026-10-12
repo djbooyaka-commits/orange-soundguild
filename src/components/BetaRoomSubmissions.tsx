@@ -487,7 +487,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                {s.status === "pending" && (
+                {s.status === "pending" && !(s as any).awaiting_add && (
                   <button
                     onClick={() => cancelSubmission(s.id)}
                     disabled={busyId === s.id}
