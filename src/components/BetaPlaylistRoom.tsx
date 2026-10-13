@@ -566,6 +566,11 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
+                {!isTeam && ((data.playlist as any).holdDays ?? 0) > 0 && (
+                  <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-sm font-semibold text-primary">
+                    Tracks stay {(data.playlist as any).holdDays} days
+                  </span>
+                )}
               </p>
             </div>
           </div>
