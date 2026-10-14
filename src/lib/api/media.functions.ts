@@ -4,7 +4,7 @@ import { z } from "zod";
 const BUCKETS = ["audio", "covers", "avatars"] as const;
 // Longer TTL keeps URLs stable so the browser/CDN can cache the media
 // instead of re-downloading it on every navigation.
-const SIGNED_TTL = 60 * 60 * 6; // 6 hours
+const SIGNED_TTL = 60 * 60 * 24; // 24 hours
 
 const inputSchema = z.object({
   items: z

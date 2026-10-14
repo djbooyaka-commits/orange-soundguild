@@ -6,8 +6,8 @@ const AVATAR_TTL = 60 * 60 * 24 * 365;
 
 // Cache signed URLs so repeat navigation doesn't re-sign (and re-download)
 // the same media. Kept a bit under the server TTL (6h) for safety.
-const CACHE_TTL_MS = 5 * 60 * 60 * 1000;
-const STORAGE_KEY = "osg:signed-media:v1";
+const CACHE_TTL_MS = 23 * 60 * 60 * 1000;
+const STORAGE_KEY = "osg:signed-media:v2";
 
 type Entry = { url: string; exp: number };
 const memCache = new Map<string, Entry>();
@@ -17,7 +17,7 @@ function loadCache() {
   if (loaded || typeof window === "undefined") return;
   loaded = true;
   try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     const parsed = JSON.parse(raw) as Record<string, Entry>;
     const now = Date.now();
@@ -36,7 +36,7 @@ function persistCache() {
   persistTimer = setTimeout(() => {
     persistTimer = null;
     try {
-      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(memCache)));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(memCache)));
     } catch {
       /* quota / private mode — cache stays in memory only */
     }
