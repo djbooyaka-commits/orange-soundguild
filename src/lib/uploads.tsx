@@ -180,6 +180,28 @@ function isTransient(err: unknown): boolean {
   return /network|fetch|timeout|failed to fetch|load failed|connection/i.test(msg);
 }
 
+// Shrink cover photos (max 1200px, JPEG 85%) so every view downloads far less data.
+async function compressCover(file: File): Promise<Blob | null> {
+  try {
+    if (/gif/i.test(file.type)) return null;
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1200 / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * scale);
+    const h = Math.round(bmp.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bmp, 0, 0, w, h);
+    bmp.close?.();
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+    return blob && blob.size < file.size ? blob : null;
+  } catch {
+    return null;
+  }
+}
+
 // Mobile networks drop connections mid-upload; retry transient failures once.
 async function uploadToStorage(
   bucket: "audio" | "covers",
@@ -187,10 +209,18 @@ async function uploadToStorage(
   file: File,
   contentType: string,
 ) {
+  let body: Blob = file;
+  if (bucket === "covers") {
+    const small = await compressCover(file);
+    if (small) {
+      body = small;
+      contentType = "image/jpeg";
+    }
+  }
   for (let attempt = 0; attempt < 2; attempt++) {
     const { error } = await supabase.storage
       .from(bucket)
-      .upload(path, file, { contentType, upsert: attempt > 0 });
+      .upload(path, body, { contentType, upsert: attempt > 0 });
     if (!error) return;
     if (attempt === 1 || !isTransient(error)) throw error;
     await new Promise((r) => setTimeout(r, 1200));
