@@ -9,6 +9,7 @@ import {
   removeBetaRoomPlaylist,
   setBetaPlaylistHoldDays,
   setBetaPlaylistTeam,
+  setBetaPlaylistDailyLimit,
 } from "@/lib/api/beta-curator.functions";
 
 type Playlist = {
@@ -17,6 +18,7 @@ type Playlist = {
   name: string;
   imageUrl: string | null;
   holdDays: number;
+  dailyLimit: number | null;
   isTeam: boolean;
   trackCount: number;
 };
@@ -36,6 +38,8 @@ export function BetaRoomPlaylists({
   const removeFn = useServerFn(removeBetaRoomPlaylist);
   const holdFn = useServerFn(setBetaPlaylistHoldDays);
   const teamFn = useServerFn(setBetaPlaylistTeam);
+  const limitFn = useServerFn(setBetaPlaylistDailyLimit);
+  const [limitDrafts, setLimitDrafts] = useState<Record<string, string>>({});
 
   const [items, setItems] = useState<Playlist[]>([]);
   const [url, setUrl] = useState("");
@@ -106,6 +110,28 @@ export function BetaRoomPlaylists({
       await refresh();
     } catch (e: any) {
       toast.error(e?.message ?? "Could not save hold days");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const saveLimit = async (p: Playlist) => {
+    const n = Number(limitDrafts[p.id] ?? p.dailyLimit ?? 3);
+    if (!Number.isFinite(n) || n < 1 || n > 6) {
+      toast.error("Pick a number from 1 to 6");
+      return;
+    }
+    setBusyId(p.id);
+    try {
+      await limitFn({ data: { playlistId: p.id, limit: n } });
+      toast.success(`${p.name}: ${n} submission${n === 1 ? "" : "s"} per 24 hours`);
+      setLimitDrafts((d) => {
+        const { [p.id]: _, ...rest } = d;
+        return rest;
+      });
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not save limit");
     } finally {
       setBusyId(null);
     }
@@ -226,6 +252,32 @@ export function BetaRoomPlaylists({
                     Save
                   </button>
                 </div>
+                {!p.isTeam && (
+                  <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1">
+                    <label className="text-xs text-muted-foreground" htmlFor={`blimit-${p.id}`}>
+                      Submissions / 24h
+                    </label>
+                    <input
+                      id={`blimit-${p.id}`}
+                      type="number"
+                      min={1}
+                      max={6}
+                      placeholder="room"
+                      value={limitDrafts[p.id] ?? (p.dailyLimit != null ? String(p.dailyLimit) : "")}
+                      onChange={(e) => setLimitDrafts((d) => ({ ...d, [p.id]: e.target.value }))}
+                      className="w-12 rounded border border-border bg-background px-1 py-0.5 text-xs"
+                      title="How many tracks each member can submit to this playlist every 24 hours (1-6)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => saveLimit(p)}
+                      disabled={busyId === p.id}
+                      className="ml-1 rounded border border-border px-2 py-0.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                  </div>
+                )}
                 <label className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs">
                   <input
                     type="checkbox"

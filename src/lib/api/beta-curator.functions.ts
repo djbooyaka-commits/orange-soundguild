@@ -136,7 +136,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
     await assertMember(supabaseAdmin, data.roomId, context.userId);
     const { data: rows } = await supabaseAdmin
       .from("beta_room_playlists")
-      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at")
+      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at, daily_submission_limit")
       .eq("room_id", data.roomId)
       .order("created_at", { ascending: true });
 
@@ -161,6 +161,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
       name: r.name as string,
       imageUrl: (r.image_url as string | null) ?? null,
       holdDays: (r.track_hold_days as number) ?? 30,
+      dailyLimit: (r.daily_submission_limit as number | null) ?? null,
       isTeam: Boolean(r.is_team),
       trackCount: counts.get(r.id) ?? 0,
     }));
@@ -363,6 +364,29 @@ export const setBetaPlaylistHoldDays = createServerFn({ method: "POST" })
     return { ok: true, days: data.days };
   });
 
+export const setBetaPlaylistDailyLimit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; limit: number }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    limit: clampDailyLimit(data?.limit),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: pl } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("id, room_id")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (!pl) throw new Error("Playlist not found");
+    await assertOwner(supabaseAdmin, pl.room_id as string, context.userId);
+    const { error } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .update({ daily_submission_limit: data.limit } as any)
+      .eq("id", pl.id);
+    if (error) throw new Error(error.message);
+    return { ok: true, limit: data.limit };
+  });
+
 export const setBetaPlaylistTeam = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { playlistId: string; isTeam: boolean }) => ({
@@ -447,7 +471,7 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
 
     const { data: pl } = await supabaseAdmin
       .from("beta_room_playlists")
-      .select("id, room_id, track_hold_days, name, is_team")
+      .select("id, room_id, track_hold_days, name, is_team, daily_submission_limit")
       .eq("id", data.playlistId)
       .eq("room_id", data.roomId)
       .maybeSingle();
@@ -467,7 +491,9 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
       .eq("playlist_id", pl.id)
       .eq("submitter_user_id", context.userId)
       .gte("created_at", since);
-    const dailyLimit = clampDailyLimit((room as any)?.daily_submission_limit);
+    const dailyLimit = clampDailyLimit(
+      (pl as any).daily_submission_limit ?? (room as any)?.daily_submission_limit,
+    );
     if ((recent ?? 0) >= dailyLimit) {
       throw new Error(
         `You can submit ${dailyLimit} track${dailyLimit === 1 ? "" : "s"} to "${pl.name}" every 24 hours`,
