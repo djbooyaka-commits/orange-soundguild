@@ -376,9 +376,6 @@ function ProfilePage() {
 
       {/* Uploaded tracks */}
       <main className="mx-auto mt-8 max-w-7xl px-4 sm:px-6">
-        {isMe && (accountType === "fan" || accountType === "superfan") && profileUserId && (
-          <SuperfanPublicProfile userId={profileUserId} displayName="you" />
-        )}
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
@@ -430,8 +427,8 @@ function ProfilePage() {
               </>
             )}
 
-            {!isMe && profileUserId && (effectiveAccountType === "fan" || effectiveAccountType === "superfan") && (
-              <SuperfanPublicProfile userId={profileUserId} displayName={displayName} />
+            {profileUserId && (effectiveAccountType === "fan" || effectiveAccountType === "superfan") && (
+              <SuperfanPublicProfile userId={profileUserId} displayName={isMe ? "you" : displayName} />
             )}
           </div>
 
