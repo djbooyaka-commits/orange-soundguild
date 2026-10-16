@@ -151,6 +151,15 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
     e.preventDefault();
     setBusy(true);
     try {
+      const audioFiles = mode === "single" ? (file ? [file] : []) : albumRows.map((r) => r.file);
+      const big = audioFiles.filter((f) => f.size > 20 * 1024 * 1024 || /\.(wav|aiff?|flac)$/i.test(f.name));
+      if (
+        big.length &&
+        !window.confirm(
+          `${big.length} file${big.length === 1 ? " is" : "s are"} very large (WAV/FLAC or over 20 MB). A 320kbps MP3 sounds great and loads much faster for listeners. Upload anyway?`,
+        )
+      )
+        return;
       const collaboratorIds = collabs.map((c) => c.id);
       if (mode === "single") {
         if (!title.trim() || !file) return;
