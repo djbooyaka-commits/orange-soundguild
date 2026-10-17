@@ -871,3 +871,34 @@ export const markBetaSubmissionAdded = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Whether the signed-in curator has a Spotify account connected for adding tracks. */
+export const getBetaSpotifyStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("spotify_connections")
+      .select("user_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    return { connected: !!data };
+  });
+
+/** Marks every approved-but-not-added submission in a room as added by hand. */
+export const markAllBetaSubmissionsAdded = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { roomId: string }) => ({ roomId: String(data?.roomId ?? "") }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await assertOwner(supabaseAdmin, data.roomId, context.userId);
+    const { data: rows, error } = await supabaseAdmin
+      .from("beta_submissions")
+      .update({ added_to_spotify: true, spotify_error: null })
+      .eq("room_id", data.roomId)
+      .eq("status", "approved")
+      .eq("added_to_spotify", false)
+      .select("id");
+    if (error) throw new Error(error.message);
+    return { count: rows?.length ?? 0 };
+  });
