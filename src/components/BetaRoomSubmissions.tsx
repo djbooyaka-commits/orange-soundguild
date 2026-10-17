@@ -13,6 +13,8 @@ import {
   addBetaSubmissionToSpotify,
   cancelBetaSubmission,
   markBetaSubmissionAdded,
+  getBetaSpotifyStatus,
+  markAllBetaSubmissionsAdded,
 } from "@/lib/api/beta-curator.functions";
 
 type Playlist = { id: string; name: string; holdDays: number; isTeam?: boolean };
@@ -43,6 +45,8 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const addToSpotifyFn = useServerFn(addBetaSubmissionToSpotify);
   const cancelFn = useServerFn(cancelBetaSubmission);
   const markAddedFn = useServerFn(markBetaSubmissionAdded);
+  const spotifyStatusFn = useServerFn(getBetaSpotifyStatus);
+  const markAllFn = useServerFn(markAllBetaSubmissionsAdded);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [points, setPoints] = useState<{
@@ -65,6 +69,8 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [limitDraft, setLimitDraft] = useState<string>("");
   const [savingLimit, setSavingLimit] = useState(false);
+  const [spotifyConnected, setSpotifyConnected] = useState(true);
+  const [markingAll, setMarkingAll] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -86,8 +92,12 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
       const submittable = (pl ?? []).filter((x) => !x.isTeam);
       if (!playlistId && submittable[0]) setPlaylistId(submittable[0].id);
       if (isOwner) {
-        const q = (await queueFn({ data: { roomId } })) as Submission[];
+        const [q, sp] = await Promise.all([
+          queueFn({ data: { roomId } }) as Promise<Submission[]>,
+          spotifyStatusFn().catch(() => ({ connected: true })),
+        ]);
         setQueue(q ?? []);
+        setSpotifyConnected(!!sp?.connected);
       }
     } catch {
       /* ignore */
@@ -130,10 +140,26 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
     }
   };
 
-  const review = async (id: string, approve: boolean) => {
+  const markAllAdded = async () => {
+    if (!window.confirm("Mark every track in this list as added to your playlist?")) return;
+    setMarkingAll(true);
+    try {
+      const r: any = await markAllFn({ data: { roomId } });
+      toast.success(`${r.count} track${r.count === 1 ? "" : "s"} marked as added`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not mark tracks as added");
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
+  const review = async (id: string, approve: boolean, manual = false) => {
     setBusyId(id);
     try {
-      const r: any = await reviewFn({ data: { submissionId: id, approve, note: notes[id] } });
+      const r: any = await reviewFn({
+        data: { submissionId: id, approve, note: notes[id], manual },
+      });
       toast.success(approve ? (r.spotifyNote ?? "Approved") : "Rejected");
       await refresh();
     } catch (e: any) {
@@ -247,7 +273,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                     />
                     <div className="flex gap-2">
                       <button
-                        onClick={() => review(s.id, true)}
+                        onClick={() => review(s.id, true, !spotifyConnected)}
                         disabled={busyId === s.id}
                         className="inline-flex items-center gap-1 rounded-md bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
                       >
@@ -256,7 +282,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                         ) : (
                           <Check className="h-3 w-3" />
                         )}
-                        Approve
+                        {spotifyConnected ? "Approve" : "Added it myself"}
                       </button>
                       <button
                         onClick={() => review(s.id, false)}
@@ -275,12 +301,25 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
 
           {notAdded.length > 0 && (
             <div className="mt-4 rounded-md border border-amber-500/50 bg-amber-500/5 p-3">
-              <h3 className="text-sm font-semibold text-amber-500">
-                Needs adding to your playlist ({notAdded.length})
-              </h3>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-amber-500">
+                  Needs adding to your playlist ({notAdded.length})
+                </h3>
+                {notAdded.length > 1 && (
+                  <button
+                    onClick={markAllAdded}
+                    disabled={markingAll}
+                    className="inline-flex items-center gap-1 rounded-md border border-amber-500/60 px-2 py-1 text-xs font-semibold text-amber-600 hover:bg-amber-500/10 disabled:opacity-50"
+                  >
+                    {markingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                    Mark all as added
+                  </button>
+                )}
+              </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Newest approval first. Press Add to Spotify to try again, or Added it myself once the
-                track is on your playlist.
+                {spotifyConnected
+                  ? "Newest approval first. Press Add to Spotify to try again, or Added it myself once the track is on your playlist."
+                  : "Newest approval first. Press Added it myself once the track is on your playlist."}
               </p>
               <ul className="mt-2 space-y-2 text-xs">
                 {notAdded.map((s) => (
@@ -303,11 +342,12 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                           ? ` · approved ${new Date(s.reviewed_at).toLocaleString()}`
                           : ""}
                       </p>
-                      {s.spotify_error ? (
+                      {spotifyConnected && s.spotify_error ? (
                         <p className="mt-1 text-amber-600">{s.spotify_error}</p>
                       ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
+                      {spotifyConnected && (
                       <button
                         onClick={() => addApprovedToSpotify(s.id)}
                         disabled={busyId === s.id}
@@ -320,6 +360,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                         )}
                         Add to Spotify
                       </button>
+                      )}
                       <button
                         onClick={() => markAdded(s.id)}
                         disabled={busyId === s.id}
