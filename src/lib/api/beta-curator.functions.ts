@@ -703,11 +703,14 @@ function describeSpotifyAddError(error?: string | null): string {
 
 export const reviewBetaSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { submissionId: string; approve: boolean; note?: string }) => ({
-    submissionId: String(data?.submissionId ?? ""),
-    approve: Boolean(data?.approve),
-    note: String(data?.note ?? "").slice(0, 500),
-  }))
+  .inputValidator(
+    (data: { submissionId: string; approve: boolean; note?: string; manual?: boolean }) => ({
+      submissionId: String(data?.submissionId ?? ""),
+      approve: Boolean(data?.approve),
+      note: String(data?.note ?? "").slice(0, 500),
+      manual: Boolean(data?.manual),
+    }),
+  )
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: sub } = await supabaseAdmin
@@ -722,7 +725,10 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
     let spotifyNote: string | null = null;
     let addedToSpotify = false;
     let spotifyError: string | null = null;
-    if (data.approve) {
+    if (data.approve && data.manual) {
+      addedToSpotify = true;
+      spotifyNote = "Approved and marked as added to your playlist.";
+    } else if (data.approve) {
       try {
         const { getBetaAccessToken, betaAddTrackToPlaylist, betaPlaylistContainsTrack } =
           await import("./beta-spotify.server");
