@@ -11,6 +11,7 @@ import {
 import { useUploads } from "@/lib/uploads";
 import type { Track } from "@/lib/tracks";
 import { toast } from "sonner";
+import { FreeDownloadSettings } from "@/components/FreeDownloadSettings";
 
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
@@ -464,6 +465,8 @@ export function EditTrackDialog({
               </>
             )}
           </div>
+
+          <FreeDownloadSettings trackId={track.id} open={open} />
 
           {/* Free download codes */}
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">

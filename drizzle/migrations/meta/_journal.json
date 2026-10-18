@@ -36,6 +36,13 @@
       "when": 1792112967797,
       "tag": "0004_beta_playlist_daily_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792290841815,
+      "tag": "0005_free_download_gate",
+      "breakpoints": true
     }
   ]
 }

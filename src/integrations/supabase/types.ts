@@ -1944,7 +1944,11 @@ export type Database = {
           audio_url: string
           cover_art_url: string | null
           created_at: string
+          download_gate: Json
           download_lossless_url: string | null
+          free_download: boolean
+          free_download_count: number
+          free_download_limit: number | null
           genre: string
           id: string
           plays_count: number
@@ -1958,7 +1962,11 @@ export type Database = {
           audio_url: string
           cover_art_url?: string | null
           created_at?: string
+          download_gate?: Json
           download_lossless_url?: string | null
+          free_download?: boolean
+          free_download_count?: number
+          free_download_limit?: number | null
           genre: string
           id?: string
           plays_count?: number
@@ -1972,7 +1980,11 @@ export type Database = {
           audio_url?: string
           cover_art_url?: string | null
           created_at?: string
+          download_gate?: Json
           download_lossless_url?: string | null
+          free_download?: boolean
+          free_download_count?: number
+          free_download_limit?: number | null
           genre?: string
           id?: string
           plays_count?: number
