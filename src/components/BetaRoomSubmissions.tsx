@@ -15,6 +15,7 @@ import {
   markBetaSubmissionAdded,
   getBetaSpotifyStatus,
   markAllBetaSubmissionsAdded,
+  approveAllPendingBetaSubmissionsAdded,
 } from "@/lib/api/beta-curator.functions";
 
 type Playlist = { id: string; name: string; holdDays: number; isTeam?: boolean };
@@ -47,6 +48,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
   const markAddedFn = useServerFn(markBetaSubmissionAdded);
   const spotifyStatusFn = useServerFn(getBetaSpotifyStatus);
   const markAllFn = useServerFn(markAllBetaSubmissionsAdded);
+  const approveAllFn = useServerFn(approveAllPendingBetaSubmissionsAdded);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [points, setPoints] = useState<{
@@ -140,6 +142,20 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
     }
   };
 
+  const approveAllPending = async () => {
+    if (!window.confirm("Mark every pending track as added to your playlist?")) return;
+    setMarkingAll(true);
+    try {
+      const r: any = await approveAllFn({ data: { roomId } });
+      toast.success(`${r.count} track${r.count === 1 ? "" : "s"} marked as added`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not mark tracks");
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
   const markAllAdded = async () => {
     if (!window.confirm("Mark every track in this list as added to your playlist?")) return;
     setMarkingAll(true);
@@ -225,17 +241,27 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
     <div className="space-y-6">
       {isOwner && (
         <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Inbox className="h-5 w-5" />
             </span>
-            <div>
+            <div className="min-w-0 flex-1">
               <h2 className="font-semibold">Track submissions</h2>
               <p className="text-sm text-muted-foreground">
                 Approving adds the track to your Spotify playlist (if Spotify is connected) and keeps
                 it tracked. Submissions older than 15 days drop off this list.
               </p>
             </div>
+            {!spotifyConnected && pending.length > 0 && (
+              <button
+                onClick={approveAllPending}
+                disabled={markingAll}
+                className="ml-auto inline-flex items-center gap-1 rounded-md border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-500/10 disabled:opacity-50"
+              >
+                {markingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                Mark all as added ({pending.length})
+              </button>
+            )}
           </div>
 
           {pending.length === 0 ? (

@@ -902,3 +902,35 @@ export const markAllBetaSubmissionsAdded = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { count: rows?.length ?? 0 };
   });
+
+/** Approves every pending submission in a room and marks it added by hand (no Spotify connected). */
+export const approveAllPendingBetaSubmissionsAdded = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { roomId: string }) => ({ roomId: String(data?.roomId ?? "") }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await assertOwner(supabaseAdmin, data.roomId, context.userId);
+    const { data: rows, error } = await supabaseAdmin
+      .from("beta_submissions")
+      .update({
+        status: "approved",
+        reviewed_at: new Date().toISOString(),
+        added_to_spotify: true,
+        spotify_error: null,
+      })
+      .eq("room_id", data.roomId)
+      .eq("status", "pending")
+      .select("id, room_id, playlist_id, spotify_track_id");
+    if (error) throw new Error(error.message);
+    const tracks = (rows ?? []).map((r: any) => ({
+      room_id: r.room_id,
+      playlist_id: r.playlist_id,
+      spotify_track_id: r.spotify_track_id,
+    }));
+    if (tracks.length) {
+      await supabaseAdmin
+        .from("beta_room_tracks")
+        .upsert(tracks, { onConflict: "room_id,playlist_id,spotify_track_id" });
+    }
+    return { count: rows?.length ?? 0 };
+  });
