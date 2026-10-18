@@ -20,6 +20,8 @@ import {
   getTrackDownloadUrl,
 } from "@/lib/api/track-sales.functions";
 import { formatArtistLine } from "@/lib/tracks";
+import { getFreeDownloadInfo } from "@/lib/api/free-download.functions";
+import { FreeDownloadGate } from "@/components/FreeDownloadGate";
 
 export const Route = createFileRoute("/t/$trackId")({
   loader: ({ params }) => getTrackShareMeta({ data: { trackId: params.trackId } }),
@@ -133,6 +135,13 @@ function TrackPage() {
   const [priceCents, setPriceCents] = useState<number | null>(null);
   const [owns, setOwns] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const loadFree = useServerFn(getFreeDownloadInfo);
+  const [free, setFree] = useState<Awaited<ReturnType<typeof getFreeDownloadInfo>>>(null);
+  useEffect(() => {
+    let cancel = false;
+    loadFree({ data: { trackId } }).then((r) => { if (!cancel) setFree(r); }).catch(() => {});
+    return () => { cancel = true; };
+  }, [trackId, loadFree]);
 
   useEffect(() => {
     let cancel = false;
@@ -314,6 +323,15 @@ function TrackPage() {
                   <Download className="h-4 w-4" />
                   {downloading ? "Preparing…" : "Download"}
                 </button>
+              ) : free?.enabled && !(priceCents && priceCents >= 100) ? (
+                <FreeDownloadGate
+                  trackId={track.id}
+                  title={track.title}
+                  gate={free.gate}
+                  remaining={free.remaining}
+                  signedIn={!!user}
+                  onUnlocked={() => setOwns(true)}
+                />
               ) : priceCents && priceCents >= 100 ? (
                 <BuyTrackDialog
                   trackId={track.id}
