@@ -93,35 +93,37 @@ export const claimFreeDownload = createServerFn({ method: "POST" })
     const r = t as unknown as FreeRow;
     if (!r.free_download) throw new Error("This track is not a free download");
 
-    // Atomic-ish increment guarded by the current count to respect the cap.
-    for (let i = 0; i < 3; i++) {
+    // One free copy per user: record the claim first (unique per user+track),
+    // then take a slot. If no slot is left, undo the claim.
+    const txRef = `free:${context.userId}:${data.trackId}`;
+    const { error: insErr } = await supabaseAdmin.from("track_purchases").insert({
+      user_id: context.userId,
+      track_id: data.trackId,
+      method: "free",
+      tx_ref: txRef,
+      price_cents: 0,
+      amount: 0,
+    } as never);
+    if (insErr) {
+      if (insErr.code === "23505") return { ok: true }; // already claimed
+      throw new Error("Could not record free download");
+    }
+    for (let i = 0; i < 5; i++) {
       const { data: cur } = await supabaseAdmin
         .from("tracks")
         .select("free_download_limit, free_download_count")
         .eq("id", data.trackId)
         .single();
       const c = cur as unknown as { free_download_limit: number | null; free_download_count: number };
-      if (c.free_download_limit != null && c.free_download_count >= c.free_download_limit) {
-        throw new Error("All free downloads have been claimed");
-      }
+      if (c.free_download_limit != null && c.free_download_count >= c.free_download_limit) break;
       const { data: upd } = await supabaseAdmin
         .from("tracks")
         .update({ free_download_count: c.free_download_count + 1 } as never)
         .eq("id", data.trackId)
         .eq("free_download_count" as never, c.free_download_count as never)
         .select("id");
-      if (upd && upd.length > 0) {
-        const { error } = await supabaseAdmin.from("track_purchases").insert({
-          user_id: context.userId,
-          track_id: data.trackId,
-          method: "free",
-          tx_ref: `free:${context.userId}:${data.trackId}`,
-          price_cents: 0,
-          amount: 0,
-        } as never);
-        if (error) throw new Error("Could not record free download");
-        return { ok: true };
-      }
+      if (upd && upd.length > 0) return { ok: true };
     }
-    throw new Error("Busy, please try again");
+    await supabaseAdmin.from("track_purchases").delete().eq("method", "free").eq("tx_ref", txRef);
+    throw new Error("All free downloads have been claimed");
   });

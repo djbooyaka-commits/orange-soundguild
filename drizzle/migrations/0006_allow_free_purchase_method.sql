@@ -1,0 +1,2 @@
+ALTER TABLE public.track_purchases DROP CONSTRAINT IF EXISTS track_purchases_method_check;
+ALTER TABLE public.track_purchases ADD CONSTRAINT track_purchases_method_check CHECK (method IN ('paypal','phantom_sol','phantom_usdc','code','free'));
