@@ -224,6 +224,35 @@ export type Database = {
           },
         ]
       }
+      beta_playlist_member_targets: {
+        Row: {
+          created_at: string
+          playlist_id: string
+          target_min: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          playlist_id: string
+          target_min: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          playlist_id?: string
+          target_min?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_playlist_member_targets_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "beta_room_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_playlist_tracking_sessions: {
         Row: {
           created_at: string
