@@ -1202,6 +1202,27 @@ export type Database = {
         }
         Relationships: []
       }
+      osg_member_targets: {
+        Row: {
+          created_at: string
+          curator_id: string
+          target_min: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          target_min: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          target_min?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       osg_point_adjustments: {
         Row: {
           created_at: string
