@@ -912,6 +912,35 @@ export type Database = {
           },
         ]
       }
+      curator_team_member_targets: {
+        Row: {
+          created_at: string
+          playlist_id: string
+          target_min: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          playlist_id: string
+          target_min: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          playlist_id?: string
+          target_min?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curator_team_member_targets_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "curator_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       curator_team_members: {
         Row: {
           created_at: string

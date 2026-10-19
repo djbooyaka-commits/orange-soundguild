@@ -57,6 +57,13 @@
       "when": 1792379685732,
       "tag": "0007_beta_playlist_member_targets",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792380146334,
+      "tag": "0008_curator_team_member_targets",
+      "breakpoints": true
     }
   ]
 }
