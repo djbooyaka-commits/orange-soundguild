@@ -50,6 +50,13 @@
       "when": 1792372632415,
       "tag": "0006_allow_free_purchase_method",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792379685732,
+      "tag": "0007_beta_playlist_member_targets",
+      "breakpoints": true
     }
   ]
 }
