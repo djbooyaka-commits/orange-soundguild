@@ -210,6 +210,13 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     );
 
     const min = (pl.weekly_min as number) ?? DEFAULT_WEEKLY_MIN;
+    const { data: targetRows } = await (supabaseAdmin as any)
+      .from("beta_playlist_member_targets")
+      .select("user_id, target_min")
+      .eq("playlist_id", pl.id);
+    const lockedMin = new Map<string, number>(
+      (targetRows ?? []).map((t: any) => [t.user_id as string, Number(t.target_min)]),
+    );
     const members_ = userIds.map((uid) => {
       const p = profileById.get(uid);
       const points = Math.max(
@@ -228,7 +235,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         streamed_points: earned.get(uid) ?? 0,
         submission_points: spent.get(uid) ?? 0,
         submission_count: subCount.get(uid) ?? 0,
-        weekly_min: min,
+        weekly_min: lockedMin.get(uid) ?? min,
         last_deduction_at: lastAdjust.get(uid) ?? null,
         is_me: uid === context.userId,
         spotify_artist_url: (l?.spotify_artist_url as string | null) ?? null,
@@ -303,6 +310,34 @@ export const setBetaPlaylistWeeklyMin = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
     if (room.owner_id !== context.userId) throw new Error("Only the room owner can do that");
+    // Members still working toward their pass keep the minimum they started with.
+    const oldMin = Number((pl as any).weekly_min ?? DEFAULT_WEEKLY_MIN);
+    if (oldMin !== data.min) {
+      const periodMs = (Number((pl as any).min_period_days) || 7) * 24 * 60 * 60 * 1000;
+      const since = new Date(Date.now() - periodMs).toISOString();
+      const [{ data: roomMembers }, { data: recent }, { data: existing }] = await Promise.all([
+        supabaseAdmin.from("beta_room_members").select("user_id").eq("room_id", room.id),
+        supabaseAdmin
+          .from("beta_point_adjustments")
+          .select("user_id")
+          .eq("playlist_id", pl.id)
+          .lt("delta", 0)
+          .gte("created_at", since),
+        (supabaseAdmin as any)
+          .from("beta_playlist_member_targets")
+          .select("user_id")
+          .eq("playlist_id", pl.id),
+      ]);
+      const passed = new Set((recent ?? []).map((r: any) => r.user_id as string));
+      const locked = new Set((existing ?? []).map((r: any) => r.user_id as string));
+      const toLock = (roomMembers ?? [])
+        .map((m: any) => m.user_id as string)
+        .filter((uid) => uid !== room.owner_id && !passed.has(uid) && !locked.has(uid))
+        .map((uid) => ({ playlist_id: pl.id, user_id: uid, target_min: oldMin }));
+      if (toLock.length) {
+        await (supabaseAdmin as any).from("beta_playlist_member_targets").insert(toLock);
+      }
+    }
     await supabaseAdmin
       .from("beta_room_playlists")
       .update({ weekly_min: data.min })
@@ -381,6 +416,14 @@ export const adjustBetaPlaylistPoints = createServerFn({ method: "POST" })
       reason: data.reason || null,
     });
     if (error) throw new Error(error.message);
+    // A pass (points removed) ends any locked target; next cycle uses the current minimum.
+    if (appliedDelta < 0) {
+      await (supabaseAdmin as any)
+        .from("beta_playlist_member_targets")
+        .delete()
+        .eq("playlist_id", pl.id)
+        .eq("user_id", data.userId);
+    }
     return { ok: true, appliedDelta };
   });
 
