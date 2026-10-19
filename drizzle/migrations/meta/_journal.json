@@ -43,6 +43,13 @@
       "when": 1792290841815,
       "tag": "0005_free_download_gate",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792372632415,
+      "tag": "0006_allow_free_purchase_method",
+      "breakpoints": true
     }
   ]
 }
