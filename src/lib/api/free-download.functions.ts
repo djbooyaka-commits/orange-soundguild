@@ -23,9 +23,9 @@ export const getMyDefaultGate = createServerFn({ method: "POST" })
     const osgUrl = prof?.username ? `https://orangesoundguild.com/u/${encodeURIComponent(prof.username)}` : null;
     const { data: rows } = await supabaseAdmin
       .from("tracks")
-      .select("download_gate, free_download_limit, updated_at")
+      .select("download_gate, free_download_limit, created_at")
       .eq("user_id", context.userId)
-      .order("updated_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(50);
     const last = (rows ?? []).find((r) => Array.isArray(r.download_gate) && (r.download_gate as unknown[]).length > 0);
     return {
