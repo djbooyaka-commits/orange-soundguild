@@ -12,6 +12,8 @@ import { useOnlineCount } from "@/hooks/useOnlineCount";
 import { useTotalUsers } from "@/hooks/useTotalUsers";
 import { toast } from "sonner";
 import { Flame, TrendingUp, Users, UserPlus, ChevronDown } from "lucide-react";
+import { getPublicTracks } from "@/lib/api/public-tracks.functions";
+import { CrawlableTrackList } from "@/components/CrawlableTrackList";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -24,6 +26,9 @@ export const Route = createFileRoute("/")({
     ],
     links: [{ rel: "canonical", href: "https://orangesoundguild.com/" }],
   }),
+  loader: () => getPublicTracks({ data: { order: "latest" } }),
+  errorComponent: ({ error }) => <div role="alert" className="p-8">{error.message}</div>,
+  notFoundComponent: () => <div className="p-8">Not found.</div>,
   component: Index,
 });
 
@@ -31,7 +36,8 @@ const AFRO_SUBGENRES = ["Afro House", "Afrobeats", "Amapiano"];
 const GENRES = ["All", "Electronic", "House", "Tech House", "Drum and Bass", "Afro", "Hip-Hop", "Lo-fi", "Indie", "Ambient", "Jazz", "Techno", "Psytrance", "POP", "Rock", "R&B"];
 
 function Index() {
-  const { tracks: uploaded } = useAllTracks();
+  const initial = Route.useLoaderData();
+  const { tracks: uploaded, loading } = useAllTracks();
   const isAdmin = useIsAdmin();
   const onlineCount = useOnlineCount();
   const totalUsers = useTotalUsers();
@@ -199,7 +205,9 @@ function Index() {
             </div>
           </header>
 
-          {feed.length === 0 ? (
+          {loading && initial.length ? (
+            <CrawlableTrackList tracks={initial} />
+          ) : feed.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
               No tracks in {genre} yet.
             </div>
