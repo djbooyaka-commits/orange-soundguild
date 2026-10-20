@@ -36,7 +36,7 @@ export const Route = createFileRoute("/top100")({
     ],
   }),
   loader: () => getPublicTracks({ data: { order: "top" } }),
-  errorComponent: ({ error }) => <div role="alert" className="p-8">{error.message}</div>,
+  errorComponent: ({ error }) => <div role="alert" className="p-8">{error instanceof Error ? error.message : String(error)}</div>,
   notFoundComponent: () => <div className="p-8">Not found.</div>,
   component: Top100,
 });

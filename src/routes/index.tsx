@@ -27,7 +27,7 @@ export const Route = createFileRoute("/")({
     links: [{ rel: "canonical", href: "https://orangesoundguild.com/" }],
   }),
   loader: () => getPublicTracks({ data: { order: "latest" } }),
-  errorComponent: ({ error }) => <div role="alert" className="p-8">{error.message}</div>,
+  errorComponent: ({ error }) => <div role="alert" className="p-8">{error instanceof Error ? error.message : String(error)}</div>,
   notFoundComponent: () => <div className="p-8">Not found.</div>,
   component: Index,
 });
