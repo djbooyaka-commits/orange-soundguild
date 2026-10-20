@@ -20,10 +20,10 @@ export const Route = createFileRoute("/library")({
       { name: "description", content: "Your saved playlists and purchased tracks on Orange Sound Guild." },
       { property: "og:title", content: "Your Library — Orange Sound Guild" },
       { property: "og:description", content: "Your saved playlists and purchased tracks on Orange Sound Guild." },
-      { property: "og:url", content: "https://orange-soundguild.lovable.app/library" },
+      { property: "og:url", content: "https://orangesoundguild.com/library" },
       { name: "robots", content: "noindex" },
     ],
-    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/library" }],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/library" }],
   }),
   component: LibraryPage,
 });

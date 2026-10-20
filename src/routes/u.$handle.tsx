@@ -28,7 +28,7 @@ import { FriendButton } from "@/components/FriendButton";
 export const Route = createFileRoute("/u/$handle")({
   head: ({ params }) => {
     const handle = safeDecode(params.handle);
-    const url = `https://orange-soundguild.lovable.app/u/${params.handle}`;
+    const url = `https://orangesoundguild.com/u/${params.handle}`;
     return {
       meta: [
         { title: `@${handle} — Orange Sound Guild` },

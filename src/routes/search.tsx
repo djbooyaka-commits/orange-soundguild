@@ -23,9 +23,9 @@ export const Route = createFileRoute("/search")({
       { name: "description", content: "Search artists, tracks and genres on Orange Sound Guild." },
       { property: "og:title", content: "Search — Orange Sound Guild" },
       { property: "og:description", content: "Search artists, tracks and genres on Orange Sound Guild." },
-      { property: "og:url", content: "https://orange-soundguild.lovable.app/search" },
+      { property: "og:url", content: "https://orangesoundguild.com/search" },
     ],
-    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/search" }],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/search" }],
   }),
 });
 

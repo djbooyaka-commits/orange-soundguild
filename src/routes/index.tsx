@@ -20,9 +20,9 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Stream the latest uploads from independent artists on Orange Sound Guild — a modern music community for creators and listeners." },
       { property: "og:title", content: "Orange Sound Guild — Discover and share music" },
       { property: "og:description", content: "Stream the latest uploads from independent artists on Orange Sound Guild." },
-      { property: "og:url", content: "https://orange-soundguild.lovable.app/" },
+      { property: "og:url", content: "https://orangesoundguild.com/" },
     ],
-    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/" }],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/" }],
   }),
   component: Index,
 });

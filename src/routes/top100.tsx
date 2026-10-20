@@ -16,9 +16,9 @@ export const Route = createFileRoute("/top100")({
       { name: "description", content: "The 100 most-played tracks on Orange Sound Guild right now." },
       { property: "og:title", content: "Top 100 — Orange Sound Guild" },
       { property: "og:description", content: "The 100 most-played tracks on Orange Sound Guild right now." },
-      { property: "og:url", content: "https://orange-soundguild.lovable.app/top100" },
+      { property: "og:url", content: "https://orangesoundguild.com/top100" },
     ],
-    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/top100" }],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/top100" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/top100")({
           "@type": "MusicPlaylist",
           name: "Top 100 — Orange Sound Guild",
           description: "The 100 most-played tracks on Orange Sound Guild right now.",
-          url: "https://orange-soundguild.lovable.app/top100",
+          url: "https://orangesoundguild.com/top100",
           numTracks: 100,
         }),
       },

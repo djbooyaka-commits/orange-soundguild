@@ -14,10 +14,10 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Sign in to upload, save playlists and share music on Orange Sound Guild." },
       { property: "og:title", content: "Sign in — Orange Sound Guild" },
       { property: "og:description", content: "Sign in to upload, save playlists and share music on Orange Sound Guild." },
-      { property: "og:url", content: "https://orange-soundguild.lovable.app/auth" },
+      { property: "og:url", content: "https://orangesoundguild.com/auth" },
       { name: "robots", content: "noindex" },
     ],
-    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/auth" }],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/auth" }],
   }),
   component: AuthPage,
 });

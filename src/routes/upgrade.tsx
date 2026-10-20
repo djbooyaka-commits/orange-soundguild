@@ -20,9 +20,9 @@ export const Route = createFileRoute("/upgrade")({
         property: "og:description",
         content: "Artist and Superfan plans, plus a referral system that pays.",
       },
-      { property: "og:url", content: "https://orange-soundguild.lovable.app/upgrade" },
+      { property: "og:url", content: "https://orangesoundguild.com/upgrade" },
     ],
-    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/upgrade" }],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/upgrade" }],
   }),
   component: UpgradePage,
 });
