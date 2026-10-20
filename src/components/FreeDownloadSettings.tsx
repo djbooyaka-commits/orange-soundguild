@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Gift, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { getFreeDownloadInfo, setFreeDownloadSettings, type GateStep } from "@/lib/api/free-download.functions";
+import { getFreeDownloadInfo, setFreeDownloadSettings, getMyDefaultGate, type GateStep } from "@/lib/api/free-download.functions";
 
 const PLATFORMS = [
+  { v: "osg", l: "Follow on Orange Sound Guild" },
   { v: "spotify", l: "Follow on Spotify" },
   { v: "youtube", l: "Subscribe on YouTube" },
   { v: "instagram", l: "Follow on Instagram" },
@@ -16,25 +17,42 @@ const PLATFORMS = [
 
 export function FreeDownloadSettings({ trackId, open }: { trackId: string; open: boolean }) {
   const load = useServerFn(getFreeDownloadInfo);
+  const loadDefault = useServerFn(getMyDefaultGate);
   const save = useServerFn(setFreeDownloadSettings);
   const [enabled, setEnabled] = useState(false);
   const [limit, setLimit] = useState("");
   const [claimed, setClaimed] = useState(0);
   const [gate, setGate] = useState<GateStep[]>([]);
   const [busy, setBusy] = useState(false);
+  const [osgUrl, setOsgUrl] = useState<string | null>(null);
+  const [prefilled, setPrefilled] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    load({ data: { trackId } })
-      .then((r) => {
-        if (!r) return;
-        setEnabled(r.enabled);
-        setLimit(r.limit != null ? String(r.limit) : "");
-        setClaimed(r.claimed);
-        setGate(r.gate);
+    setPrefilled(false);
+    Promise.all([load({ data: { trackId } }), loadDefault().catch(() => null)])
+      .then(([r, d]) => {
+        if (d) setOsgUrl(d.osgUrl);
+        const osgStep = (url: string): GateStep => ({ platform: "osg", label: "Follow on Orange Sound Guild", url });
+        const withOsg = (g: GateStep[]) =>
+          d?.osgUrl && !g.some((s) => s.platform === "osg") ? [osgStep(d.osgUrl), ...g] : g;
+        if (r && r.gate.length) {
+          setEnabled(r.enabled);
+          setLimit(r.limit != null ? String(r.limit) : "");
+          setClaimed(r.claimed);
+          setGate(r.gate);
+          return;
+        }
+        setEnabled(r?.enabled ?? false);
+        setClaimed(r?.claimed ?? 0);
+        const base = d?.gate ?? [];
+        setGate(withOsg(base));
+        const lim = r?.limit ?? d?.limit ?? null;
+        setLimit(lim != null ? String(lim) : "");
+        if (base.length) setPrefilled(true);
       })
       .catch(() => {});
-  }, [open, trackId, load]);
+  }, [open, trackId, load, loadDefault]);
 
   const update = (i: number, patch: Partial<GateStep>) =>
     setGate((g) => g.map((s, j) => (j === i ? { ...s, ...patch } : s)));
@@ -81,13 +99,20 @@ export function FreeDownloadSettings({ trackId, open }: { trackId: string; open:
           </div>
           <div className="space-y-2">
             <span className="text-xs font-medium text-muted-foreground">Steps fans must do first</span>
+            {prefilled && (
+              <p className="text-xs text-primary">Filled in from your last free download setup — just save.</p>
+            )}
             {gate.map((s, i) => (
               <div key={i} className="flex flex-wrap gap-2 rounded-md border border-border p-2">
                 <select
                   value={s.platform}
                   onChange={(e) => {
                     const p = PLATFORMS.find((x) => x.v === e.target.value);
-                    update(i, { platform: e.target.value, label: p?.l ?? s.label });
+                    update(i, {
+                      platform: e.target.value,
+                      label: p?.l ?? s.label,
+                      ...(e.target.value === "osg" && osgUrl ? { url: osgUrl } : {}),
+                    });
                   }}
                   className="h-9 rounded-md border border-border bg-background px-2 text-sm"
                 >

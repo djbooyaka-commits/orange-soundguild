@@ -12,7 +12,28 @@ type FreeRow = {
   download_gate: GateStep[] | null;
 };
 
-const PLATFORMS = ["spotify", "youtube", "instagram", "tiktok", "facebook", "soundcloud", "custom"];
+const PLATFORMS = ["osg", "spotify", "youtube", "instagram", "tiktok", "facebook", "soundcloud", "custom"];
+
+/** Artist's saved gate setup (from their most recent gated track) + their OSG profile link. */
+export const getMyDefaultGate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: prof } = await supabaseAdmin.from("profiles").select("username").eq("id", context.userId).maybeSingle();
+    const osgUrl = prof?.username ? `https://orangesoundguild.com/u/${encodeURIComponent(prof.username)}` : null;
+    const { data: rows } = await supabaseAdmin
+      .from("tracks")
+      .select("download_gate, free_download_limit, created_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    const last = (rows ?? []).find((r) => Array.isArray(r.download_gate) && (r.download_gate as unknown[]).length > 0);
+    return {
+      osgUrl,
+      gate: (last?.download_gate as unknown as GateStep[]) ?? [],
+      limit: (last?.free_download_limit as number | null) ?? null,
+    };
+  });
 
 export const getFreeDownloadInfo = createServerFn({ method: "POST" })
   .inputValidator((d: { trackId: string }) => {
