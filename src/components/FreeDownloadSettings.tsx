@@ -99,13 +99,20 @@ export function FreeDownloadSettings({ trackId, open }: { trackId: string; open:
           </div>
           <div className="space-y-2">
             <span className="text-xs font-medium text-muted-foreground">Steps fans must do first</span>
+            {prefilled && (
+              <p className="text-xs text-primary">Filled in from your last free download setup — just save.</p>
+            )}
             {gate.map((s, i) => (
               <div key={i} className="flex flex-wrap gap-2 rounded-md border border-border p-2">
                 <select
                   value={s.platform}
                   onChange={(e) => {
                     const p = PLATFORMS.find((x) => x.v === e.target.value);
-                    update(i, { platform: e.target.value, label: p?.l ?? s.label });
+                    update(i, {
+                      platform: e.target.value,
+                      label: p?.l ?? s.label,
+                      ...(e.target.value === "osg" && osgUrl ? { url: osgUrl } : {}),
+                    });
                   }}
                   className="h-9 rounded-md border border-border bg-background px-2 text-sm"
                 >
