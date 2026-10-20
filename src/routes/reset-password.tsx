@@ -20,10 +20,10 @@ export const Route = createFileRoute("/reset-password")({
         property: "og:description",
         content: "Set a new password for your Orange Sound Guild account.",
       },
-      { property: "og:url", content: "https://orange-soundguild.lovable.app/reset-password" },
+      { property: "og:url", content: "https://orangesoundguild.com/reset-password" },
       { name: "robots", content: "noindex" },
     ],
-    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/reset-password" }],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/reset-password" }],
   }),
   beforeLoad: async () => {
     // This route is reached from the email recovery link, which contains

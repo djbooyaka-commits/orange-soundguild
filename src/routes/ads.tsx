@@ -34,9 +34,9 @@ export const Route = createFileRoute("/ads")({
         property: "og:description",
         content: "Advertise your music on the home feed and player bar.",
       },
-      { property: "og:url", content: "https://orange-soundguild.lovable.app/ads" },
+      { property: "og:url", content: "https://orangesoundguild.com/ads" },
     ],
-    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/ads" }],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/ads" }],
   }),
   component: AdsPage,
 });

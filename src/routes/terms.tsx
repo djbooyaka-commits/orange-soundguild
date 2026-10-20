@@ -16,9 +16,9 @@ export const Route = createFileRoute("/terms")({
         content:
           "Read the Terms of Service for Orange Sound Guild, including artist ownership, listener licenses, and prohibited conduct.",
       },
-      { property: "og:url", content: "https://orange-soundguild.lovable.app/terms" },
+      { property: "og:url", content: "https://orangesoundguild.com/terms" },
     ],
-    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/terms" }],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/terms" }],
   }),
   component: TermsPage,
 });
@@ -356,12 +356,12 @@ function TermsPage() {
             <div className="text-sm text-muted-foreground">
               Website:{" "}
               <a
-                href="https://orange-soundguild.lovable.app"
+                href="https://orangesoundguild.com"
                 target="_blank"
                 rel="noreferrer"
                 className="text-primary underline-offset-4 hover:underline"
               >
-                orange-soundguild.lovable.app
+                orangesoundguild.com
               </a>
             </div>
           </div>

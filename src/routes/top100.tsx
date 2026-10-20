@@ -8,6 +8,8 @@ import { usePlayer } from "@/components/player/PlayerContext";
 import { formatArtistLine, type Track } from "@/lib/tracks";
 import { fetchCollaboratorsFor } from "@/lib/collaborators";
 import cover2 from "@/assets/cover2.jpg";
+import { getPublicTracks } from "@/lib/api/public-tracks.functions";
+import { CrawlableTrackList } from "@/components/CrawlableTrackList";
 
 export const Route = createFileRoute("/top100")({
   head: () => ({
@@ -16,9 +18,9 @@ export const Route = createFileRoute("/top100")({
       { name: "description", content: "The 100 most-played tracks on Orange Sound Guild right now." },
       { property: "og:title", content: "Top 100 — Orange Sound Guild" },
       { property: "og:description", content: "The 100 most-played tracks on Orange Sound Guild right now." },
-      { property: "og:url", content: "https://orange-soundguild.lovable.app/top100" },
+      { property: "og:url", content: "https://orangesoundguild.com/top100" },
     ],
-    links: [{ rel: "canonical", href: "https://orange-soundguild.lovable.app/top100" }],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/top100" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -27,12 +29,15 @@ export const Route = createFileRoute("/top100")({
           "@type": "MusicPlaylist",
           name: "Top 100 — Orange Sound Guild",
           description: "The 100 most-played tracks on Orange Sound Guild right now.",
-          url: "https://orange-soundguild.lovable.app/top100",
+          url: "https://orangesoundguild.com/top100",
           numTracks: 100,
         }),
       },
     ],
   }),
+  loader: () => getPublicTracks({ data: { order: "top" } }),
+  errorComponent: ({ error }) => <div role="alert" className="p-8">{error instanceof Error ? error.message : String(error)}</div>,
+  notFoundComponent: () => <div className="p-8">Not found.</div>,
   component: Top100,
 });
 
@@ -49,6 +54,7 @@ type Row = {
 };
 
 function Top100() {
+  const initial = Route.useLoaderData();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const { current, isPlaying, play, toggle, shuffle, toggleShuffle } = usePlayer();
@@ -169,9 +175,13 @@ function Top100() {
         {/* Chart list */}
         <section className="mt-8">
           {loading ? (
-            <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
-              Loading the chart…
-            </div>
+            initial.length ? (
+              <CrawlableTrackList tracks={initial} ordered />
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
+                Loading the chart…
+              </div>
+            )
           ) : tracks.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
               No tracks yet. Be the first to upload!
