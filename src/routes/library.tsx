@@ -68,10 +68,10 @@ function LibraryPage() {
     return () => { cancel = true; };
   }, [user, loadOwned]);
 
-  const download = async (trackId: string) => {
+  const download = async (trackId: string, format: "mp3" | "original" = "mp3") => {
     setBusyId(trackId);
     try {
-      const { url, filename } = await getDownload({ data: { trackId } });
+      const { url, filename } = await getDownload({ data: { trackId, format } });
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
@@ -142,17 +142,27 @@ function LibraryPage() {
                           {it.title}
                         </Link>
                         <p className="truncate text-xs text-muted-foreground">
-                          {it.artist ?? "Unknown"} · {it.hasLossless ? "WAV" : "MP3"}
+                          {it.artist ?? "Unknown"} · {it.method === "free" ? "MP3 (free download)" : it.hasLossless ? "Original or MP3" : "MP3"}
                           {it.method === "code" ? " · free code" : ""}
                         </p>
                       </div>
+                      {it.hasLossless && it.method !== "free" && (
+                        <button
+                          onClick={() => download(it.trackId, "original")}
+                          disabled={busyId === it.trackId}
+                          className="inline-flex h-9 items-center gap-1 rounded-full border border-border px-3 text-xs font-semibold disabled:opacity-60"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Original
+                        </button>
+                      )}
                       <button
-                        onClick={() => download(it.trackId)}
+                        onClick={() => download(it.trackId, "mp3")}
                         disabled={busyId === it.trackId}
                         className="inline-flex h-9 items-center gap-1 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-60"
                       >
                         <Download className="h-3.5 w-3.5" />
-                        {busyId === it.trackId ? "…" : "Download"}
+                        {busyId === it.trackId ? "…" : "MP3"}
                       </button>
                     </li>
                   ))}
