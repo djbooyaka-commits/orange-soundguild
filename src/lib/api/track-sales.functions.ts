@@ -169,10 +169,12 @@ export const getMyTrackPrivateFields = createServerFn({ method: "POST" })
 
 export const getTrackDownloadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { trackId: string }) => ({ trackId: d.trackId }))
+  .inputValidator((d: { trackId: string; format?: "mp3" | "original" }) => ({
+    trackId: d.trackId,
+    format: d.format === "original" ? ("original" as const) : ("mp3" as const),
+  }))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Verify ownership OR that the caller is the track's artist
     const { data: t } = await supabaseAdmin
       .from("tracks")
       .select("id, user_id, title, audio_url, download_lossless_url")
@@ -180,20 +182,22 @@ export const getTrackDownloadUrl = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!t) throw new Error("Track not found");
 
-    const isOwner = t.user_id === context.userId;
-    if (!isOwner) {
-      const { data: purchase } = await supabaseAdmin
+    // Free claims only get the standard MP3; buyers/codes/artist may pick the original.
+    let canOriginal = t.user_id === context.userId;
+    if (!canOriginal) {
+      const { data: purchases } = await supabaseAdmin
         .from("track_purchases")
-        .select("id")
+        .select("method")
         .eq("user_id", context.userId)
-        .eq("track_id", data.trackId)
-        .limit(1)
-        .maybeSingle();
-      if (!purchase) throw new Error("You don't own this track");
+        .eq("track_id", data.trackId);
+      const list = (purchases ?? []) as Array<{ method: string }>;
+      if (list.length === 0) throw new Error("You don't own this track");
+      canOriginal = list.some((p) => p.method !== "free");
     }
 
     const lossless = (t as { download_lossless_url: string | null }).download_lossless_url;
-    const path = lossless || t.audio_url;
+    const useOriginal = canOriginal && data.format === "original" && !!lossless;
+    const path = useOriginal ? (lossless as string) : t.audio_url;
     const filename = (t.title || "track").replace(/[^\w\-. ]+/g, "_").slice(0, 80);
     const ext = path.split(".").pop() || "mp3";
     const { data: signed } = await supabaseAdmin.storage
@@ -204,9 +208,33 @@ export const getTrackDownloadUrl = createServerFn({ method: "POST" })
     if (!signed?.signedUrl) throw new Error("Could not sign download");
     return {
       url: signed.signedUrl,
-      lossless: !!lossless,
+      lossless: useOriginal,
       filename: `${filename}.${ext}`,
     };
+  });
+
+// What download formats the signed-in user may pick for a track.
+export const getMyDownloadOptions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { trackId: string }) => ({ trackId: d.trackId }))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: t } = await supabaseAdmin
+      .from("tracks")
+      .select("user_id, download_lossless_url")
+      .eq("id", data.trackId)
+      .maybeSingle();
+    if (!t) return { canOriginal: false };
+    const lossless = !!(t as { download_lossless_url: string | null }).download_lossless_url;
+    if (!lossless) return { canOriginal: false };
+    if (t.user_id === context.userId) return { canOriginal: true };
+    const { data: purchases } = await supabaseAdmin
+      .from("track_purchases")
+      .select("method")
+      .eq("user_id", context.userId)
+      .eq("track_id", data.trackId);
+    const list = (purchases ?? []) as Array<{ method: string }>;
+    return { canOriginal: list.some((p) => p.method !== "free") };
   });
 
 // --- Code claim / management ---
