@@ -150,16 +150,25 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    const rawFile = file;
+    const rawAlbumRows = albumRows;
     try {
-      const audioFiles = mode === "single" ? (file ? [file] : []) : albumRows.map((r) => r.file);
-      const big = audioFiles.filter((f) => f.size > 20 * 1024 * 1024 || /\.(wav|aiff?|flac)$/i.test(f.name));
-      if (
-        big.length &&
-        !window.confirm(
-          `${big.length} file${big.length === 1 ? " is" : "s are"} very large (WAV/FLAC or over 20 MB). A 320kbps MP3 sounds great and loads much faster for listeners. Upload anyway?`,
-        )
-      )
-        return;
+      const { needsMp3Conversion, convertToMp3 } = await import("@/lib/mp3-convert");
+      const conv = async (f: File) => {
+        if (!needsMp3Conversion(f)) return f;
+        const id = toast.loading(`Converting ${f.name} to MP3…`);
+        try {
+          const out = await convertToMp3(f, (p) => toast.loading(`Converting ${f.name} to MP3… ${p}%`, { id }));
+          toast.success(`Converted to MP3 (${(out.size / 1048576).toFixed(1)} MB)`, { id });
+          return out;
+        } catch {
+          toast.error(`Couldn't convert ${f.name} — uploading original`, { id });
+          return f;
+        }
+      };
+      const file = mode === "single" && rawFile ? await conv(rawFile) : rawFile;
+      const albumRows: AlbumRow[] = [];
+      if (mode === "album") for (const r of rawAlbumRows) albumRows.push({ ...r, file: await conv(r.file) });
       const collaboratorIds = collabs.map((c) => c.id);
       if (mode === "single") {
         if (!title.trim() || !file) return;
@@ -299,7 +308,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
                     ) : (
                       <>
                         <span className="block font-medium text-foreground">Choose an audio file</span>
-                        <span className="text-xs text-muted-foreground">MP3, WAV, FLAC up to 50 MB</span>
+                        <span className="text-xs text-muted-foreground">MP3, or WAV/FLAC (auto-converted to 320kbps MP3)</span>
                       </>
                     )}
                   </span>
