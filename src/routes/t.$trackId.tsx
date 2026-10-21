@@ -18,6 +18,7 @@ import {
   getTrackForPurchase,
   ownsTrack,
   getTrackDownloadUrl,
+  getMyDownloadOptions,
 } from "@/lib/api/track-sales.functions";
 import { formatArtistLine } from "@/lib/tracks";
 import { getFreeDownloadInfo } from "@/lib/api/free-download.functions";
@@ -162,13 +163,24 @@ function TrackPage() {
     return () => { cancel = true; };
   }, [trackId, user, checkOwns]);
 
+  const loadOptions = useServerFn(getMyDownloadOptions);
+  const [canOriginal, setCanOriginal] = useState(false);
+  useEffect(() => {
+    let cancel = false;
+    if (!user || !owns) { setCanOriginal(false); return; }
+    loadOptions({ data: { trackId } })
+      .then((r) => { if (!cancel) setCanOriginal(r.canOriginal); })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, [trackId, user, owns, loadOptions]);
+
   const isOwnTrack = user && track && (track as { artist?: string }).artist && user.id ? false : false;
   void isOwnTrack;
 
-  const doDownload = async () => {
+  const doDownload = async (format: "mp3" | "original" = "mp3") => {
     setDownloading(true);
     try {
-      const { url, filename } = await getDownload({ data: { trackId } });
+      const { url, filename } = await getDownload({ data: { trackId, format } });
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
@@ -315,14 +327,26 @@ function TrackPage() {
               </button>
 
               {owns ? (
-                <button
-                  onClick={doDownload}
-                  disabled={downloading}
-                  className="inline-flex h-12 items-center gap-2 rounded-full bg-green-600 px-5 text-sm font-semibold text-white transition hover:brightness-105 disabled:opacity-60"
-                >
-                  <Download className="h-4 w-4" />
-                  {downloading ? "Preparing…" : "Download"}
-                </button>
+                <>
+                  <button
+                    onClick={() => doDownload("mp3")}
+                    disabled={downloading}
+                    className="inline-flex h-12 items-center gap-2 rounded-full bg-green-600 px-5 text-sm font-semibold text-white transition hover:brightness-105 disabled:opacity-60"
+                  >
+                    <Download className="h-4 w-4" />
+                    {downloading ? "Preparing…" : "Download MP3"}
+                  </button>
+                  {canOriginal && (
+                    <button
+                      onClick={() => doDownload("original")}
+                      disabled={downloading}
+                      className="inline-flex h-12 items-center gap-2 rounded-full border border-border px-5 text-sm font-semibold transition hover:border-primary/40 disabled:opacity-60"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download original
+                    </button>
+                  )}
+                </>
               ) : (
                 <>
                   {free?.enabled && (
