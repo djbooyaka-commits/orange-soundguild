@@ -166,7 +166,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
           return f;
         }
       };
-      let file = mode === "single" && rawFile ? await conv(rawFile) : rawFile;
+      const file = mode === "single" && rawFile ? await conv(rawFile) : rawFile;
       const albumRows: AlbumRow[] = [];
       if (mode === "album") for (const r of rawAlbumRows) albumRows.push({ ...r, file: await conv(r.file) });
       const collaboratorIds = collabs.map((c) => c.id);
@@ -308,7 +308,7 @@ export function UploadDialog({ children }: { children: React.ReactNode }) {
                     ) : (
                       <>
                         <span className="block font-medium text-foreground">Choose an audio file</span>
-                        <span className="text-xs text-muted-foreground">MP3, WAV, FLAC up to 50 MB</span>
+                        <span className="text-xs text-muted-foreground">MP3, or WAV/FLAC (auto-converted to 320kbps MP3)</span>
                       </>
                     )}
                   </span>
