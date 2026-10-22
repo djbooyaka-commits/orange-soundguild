@@ -15,6 +15,7 @@ import { Route as AdsRouteImport } from './routes/ads'
 import { Route as ArtistWelcomeRouteImport } from './routes/artist-welcome'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CuratorRouteImport } from './routes/curator'
+import { Route as CuratorPlaylistsRouteImport } from './routes/curator-playlists'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as MessagesRouteImport } from './routes/messages'
@@ -72,6 +73,11 @@ const AuthRoute = AuthRouteImport.update({
 const CuratorRoute = CuratorRouteImport.update({
   id: '/curator',
   path: '/curator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CuratorPlaylistsRoute = CuratorPlaylistsRouteImport.update({
+  id: '/curator-playlists',
+  path: '/curator-playlists',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiscoverRoute = DiscoverRouteImport.update({
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/curator': typeof CuratorRouteWithChildren
+  '/curator-playlists': typeof CuratorPlaylistsRoute
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
@@ -263,6 +270,7 @@ export interface FileRoutesByTo {
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/curator': typeof CuratorRouteWithChildren
+  '/curator-playlists': typeof CuratorPlaylistsRoute
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
@@ -300,6 +308,7 @@ export interface FileRoutesById {
   '/artist-welcome': typeof ArtistWelcomeRoute
   '/auth': typeof AuthRoute
   '/curator': typeof CuratorRouteWithChildren
+  '/curator-playlists': typeof CuratorPlaylistsRoute
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/artist-welcome'
     | '/auth'
     | '/curator'
+    | '/curator-playlists'
     | '/discover'
     | '/library'
     | '/messages'
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/artist-welcome'
     | '/auth'
     | '/curator'
+    | '/curator-playlists'
     | '/discover'
     | '/library'
     | '/messages'
@@ -410,6 +421,7 @@ export interface FileRouteTypes {
     | '/artist-welcome'
     | '/auth'
     | '/curator'
+    | '/curator-playlists'
     | '/discover'
     | '/library'
     | '/messages'
@@ -447,6 +459,7 @@ export interface RootRouteChildren {
   ArtistWelcomeRoute: typeof ArtistWelcomeRoute
   AuthRoute: typeof AuthRoute
   CuratorRoute: typeof CuratorRouteWithChildren
+  CuratorPlaylistsRoute: typeof CuratorPlaylistsRoute
   DiscoverRoute: typeof DiscoverRoute
   LibraryRoute: typeof LibraryRoute
   MessagesRoute: typeof MessagesRoute
@@ -518,6 +531,13 @@ declare module '@tanstack/react-router' {
       path: '/curator'
       fullPath: '/curator'
       preLoaderRoute: typeof CuratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/curator-playlists': {
+      id: '/curator-playlists'
+      path: '/curator-playlists'
+      fullPath: '/curator-playlists'
+      preLoaderRoute: typeof CuratorPlaylistsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/discover': {
@@ -737,6 +757,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArtistWelcomeRoute: ArtistWelcomeRoute,
   AuthRoute: AuthRoute,
   CuratorRoute: CuratorRouteWithChildren,
+  CuratorPlaylistsRoute: CuratorPlaylistsRoute,
   DiscoverRoute: DiscoverRoute,
   LibraryRoute: LibraryRoute,
   MessagesRoute: MessagesRoute,
