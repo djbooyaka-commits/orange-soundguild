@@ -136,7 +136,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
     await assertMember(supabaseAdmin, data.roomId, context.userId);
     const { data: rows } = await supabaseAdmin
       .from("beta_room_playlists")
-      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at, daily_submission_limit")
+      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at, daily_submission_limit, accept_pool_submissions")
       .eq("room_id", data.roomId)
       .order("created_at", { ascending: true });
 
