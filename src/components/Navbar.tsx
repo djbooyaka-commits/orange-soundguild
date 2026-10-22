@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User, Radio, FlaskConical } from "lucide-react";
+import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User, Radio, FlaskConical, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
