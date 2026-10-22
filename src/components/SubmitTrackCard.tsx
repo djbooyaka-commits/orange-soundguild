@@ -7,6 +7,7 @@ import {
   listPlaylistsForSubmission,
   listMyTrackSubmissions,
   submitCuratorTrack,
+  listPoolPlaylists,
 } from "@/lib/api/curator-submissions.functions";
 import { toast } from "sonner";
 
@@ -33,8 +34,10 @@ type Submission = {
   created_at: string;
 };
 
-export function SubmitTrackCard() {
-  const listPlaylists = useServerFn(listPlaylistsForSubmission);
+export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
+  const listJoined = useServerFn(listPlaylistsForSubmission);
+  const listPool = useServerFn(listPoolPlaylists);
+  const listPlaylists = pool ? listPool : listJoined;
   const listMine = useServerFn(listMyTrackSubmissions);
   const submitFn = useServerFn(submitCuratorTrack);
 
@@ -168,7 +171,9 @@ export function SubmitTrackCard() {
 
       {playlists.length === 0 ? (
         <div className="mt-4 rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-          You aren't enrolled with any Curators yet. Open a Curator invite link to get started.
+          {pool
+            ? "No curators have joined the program yet. Check back soon."
+            : "You aren't enrolled with any Curators yet. Open a Curator invite link to get started."}
         </div>
       ) : (
         <form onSubmit={submit} className="mt-4 space-y-3">
@@ -181,7 +186,8 @@ export function SubmitTrackCard() {
           >
             {playlists.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} — @{p.curator_username} · {p.available_points} pts
+                {p.name} — @{p.curator_username}
+                {(p as any).track_hold_days ? ` · stays ${(p as any).track_hold_days} days` : ""} · {p.available_points} pts
               </option>
             ))}
           </select>
