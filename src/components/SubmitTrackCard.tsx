@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Send, Loader2, Music, Info, CheckCircle2, X } from "lucide-react";
@@ -51,8 +52,15 @@ export function SubmitTrackCard() {
   } | null>(null);
 
 
+  const [dailyPass, setDailyPass] = useState(false);
+
   const refresh = async () => {
-    const [pl, m] = await Promise.all([listPlaylists(), listMine()]);
+    const [pl, m, dp] = await Promise.all([
+      listPlaylists(),
+      listMine(),
+      (supabase as any).rpc("artist_daily_pass_available"),
+    ]);
+    setDailyPass(Boolean(dp?.data));
     const sorted = (pl as Playlist[]).sort((a, b) => b.available_points - a.available_points);
     setPlaylists(sorted);
     setMine((m ?? []) as Submission[]);
@@ -80,7 +88,9 @@ export function SubmitTrackCard() {
     try {
       const res = await submitFn({ data: { playlistId, trackUrl } });
       toast.success(
-        `Submitted — ${res.cost} points spent`,
+        res.cost === 0
+          ? "Submitted with your free daily 50-point artist pass"
+          : `Submitted — ${res.cost} points spent`,
       );
       setReceipt({
         playlistName: res.playlistName,
@@ -113,6 +123,12 @@ export function SubmitTrackCard() {
           </p>
         </div>
       </div>
+
+      {dailyPass && (
+        <div className="mt-4 rounded-md border border-primary/30 bg-primary/10 p-3 text-sm font-medium text-primary">
+          Daily 50-point artist pass available — your next submission today is free. Resets at 00:00 UTC.
+        </div>
+      )}
 
       {receipt && (
         <div className="mt-4 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-4">

@@ -624,7 +624,12 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
 
-    const cost = 50;
+    const { data: subRow } = await supabaseAdmin
+      .from("curator_submissions")
+      .select("cost_points")
+      .eq("id", submissionId as string)
+      .maybeSingle();
+    const cost = Number(subRow?.cost_points ?? 50);
 
     // Fetch playlist name for the receipt
     const { data: plMeta } = await supabaseAdmin

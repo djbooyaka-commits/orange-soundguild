@@ -808,6 +808,7 @@ export type Database = {
           curator_id: string
           curator_note: string | null
           curator_playlist_id: string
+          daily_pass: boolean
           followed_all_artists: boolean
           id: string
           reviewed_at: string | null
@@ -825,6 +826,7 @@ export type Database = {
           curator_id: string
           curator_note?: string | null
           curator_playlist_id: string
+          daily_pass?: boolean
           followed_all_artists?: boolean
           id?: string
           reviewed_at?: string | null
@@ -842,6 +844,7 @@ export type Database = {
           curator_id?: string
           curator_note?: string | null
           curator_playlist_id?: string
+          daily_pass?: boolean
           followed_all_artists?: boolean
           id?: string
           reviewed_at?: string | null
@@ -2275,6 +2278,7 @@ export type Database = {
         Returns: undefined
       }
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      artist_daily_pass_available: { Args: never; Returns: boolean }
       assert_track_hold_window: {
         Args: { _playlist_id: string; _spotify_track_id: string }
         Returns: undefined
@@ -2331,6 +2335,17 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      curator_pool_summary: {
+        Args: { p_period_start: string }
+        Returns: {
+          curator_id: string
+          placements: number
+          pool_cents: number
+          share_cents: number
+          total_placements: number
+          username: string
+        }[]
       }
       curator_set_daily_submission_limit: {
         Args: { _limit: number; _playlist_id: string }

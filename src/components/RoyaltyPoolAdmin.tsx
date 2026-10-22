@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, PiggyBank, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CuratorPoolCard } from "@/components/CuratorPoolCard";
 
 type PoolSummary = {
   period_start: string;
@@ -170,6 +171,9 @@ export function RoyaltyPoolAdmin() {
           </div>
         </>
       )}
+      <div className="mt-4">
+        <CuratorPoolCard admin />
+      </div>
     </section>
   );
 }

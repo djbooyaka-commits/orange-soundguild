@@ -71,6 +71,13 @@
       "when": 1792381182682,
       "tag": "0009_osg_member_targets",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792630966084,
+      "tag": "0010_artist_daily_pass_curator_pool",
+      "breakpoints": true
     }
   ]
 }
