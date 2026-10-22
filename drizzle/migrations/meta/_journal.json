@@ -85,6 +85,13 @@
       "when": 1792634712037,
       "tag": "0011_curator_pool_optin",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792636871695,
+      "tag": "0012_beta_pool_optin",
+      "breakpoints": true
     }
   ]
 }

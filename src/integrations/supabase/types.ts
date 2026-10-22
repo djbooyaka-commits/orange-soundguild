@@ -414,6 +414,7 @@ export type Database = {
       }
       beta_room_playlists: {
         Row: {
+          accept_pool_submissions: boolean
           created_at: string
           curator_notice: string | null
           daily_submission_limit: number | null
@@ -429,6 +430,7 @@ export type Database = {
           weekly_min: number
         }
         Insert: {
+          accept_pool_submissions?: boolean
           created_at?: string
           curator_notice?: string | null
           daily_submission_limit?: number | null
@@ -444,6 +446,7 @@ export type Database = {
           weekly_min?: number
         }
         Update: {
+          accept_pool_submissions?: boolean
           created_at?: string
           curator_notice?: string | null
           daily_submission_limit?: number | null
@@ -609,6 +612,7 @@ export type Database = {
           cost_points: number
           created_at: string
           curator_note: string | null
+          daily_pass: boolean
           id: string
           owner_id: string
           playlist_id: string
@@ -626,6 +630,7 @@ export type Database = {
           cost_points?: number
           created_at?: string
           curator_note?: string | null
+          daily_pass?: boolean
           id?: string
           owner_id: string
           playlist_id: string
@@ -643,6 +648,7 @@ export type Database = {
           cost_points?: number
           created_at?: string
           curator_note?: string | null
+          daily_pass?: boolean
           id?: string
           owner_id?: string
           playlist_id?: string
