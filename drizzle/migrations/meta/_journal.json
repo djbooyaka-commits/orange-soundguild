@@ -78,6 +78,13 @@
       "when": 1792630966084,
       "tag": "0010_artist_daily_pass_curator_pool",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792634712037,
+      "tag": "0011_curator_pool_optin",
+      "breakpoints": true
     }
   ]
 }

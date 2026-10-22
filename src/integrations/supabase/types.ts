@@ -757,6 +757,7 @@ export type Database = {
       }
       curator_playlists: {
         Row: {
+          accept_pool_submissions: boolean
           created_at: string
           curator_id: string
           daily_submission_limit: number
@@ -771,6 +772,7 @@ export type Database = {
           track_hold_days: number
         }
         Insert: {
+          accept_pool_submissions?: boolean
           created_at?: string
           curator_id: string
           daily_submission_limit?: number
@@ -785,6 +787,7 @@ export type Database = {
           track_hold_days?: number
         }
         Update: {
+          accept_pool_submissions?: boolean
           created_at?: string
           curator_id?: string
           daily_submission_limit?: number
@@ -2663,6 +2666,20 @@ export type Database = {
           spotify_playlist_id: string
         }[]
       }
+      list_pool_playlists: {
+        Args: never
+        Returns: {
+          available_points: number
+          curator_id: string
+          curator_username: string
+          daily_submission_limit: number
+          id: string
+          image_url: string
+          name: string
+          spotify_playlist_id: string
+          track_hold_days: number
+        }[]
+      }
       osg_adjust_points: {
         Args: { _delta: number; _reason?: string; _user_id: string }
         Returns: string
@@ -2715,6 +2732,10 @@ export type Database = {
       }
       set_curator_playlist_is_team: {
         Args: { _is_team: boolean; _playlist_id: string }
+        Returns: undefined
+      }
+      set_curator_playlist_pool: {
+        Args: { _on: boolean; _playlist_id: string }
         Returns: undefined
       }
       set_member_facebook: {
