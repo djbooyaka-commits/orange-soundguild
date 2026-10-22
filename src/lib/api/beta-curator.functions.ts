@@ -163,9 +163,124 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
       holdDays: (r.track_hold_days as number) ?? 30,
       dailyLimit: (r.daily_submission_limit as number | null) ?? null,
       isTeam: Boolean(r.is_team),
+      inPool: Boolean(r.accept_pool_submissions),
       trackCount: counts.get(r.id) ?? 0,
     }));
   });
+
+export const setBetaPlaylistPool = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; on: boolean }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    on: Boolean(data?.on),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: pl } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("id, room_id, is_team")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (!pl) throw new Error("Playlist not found");
+    await assertOwner(supabaseAdmin, pl.room_id as string, context.userId);
+    if (data.on && (pl as any).is_team) throw new Error("Team playlists can't join the Curator Pool");
+    await supabaseAdmin
+      .from("beta_room_playlists")
+      .update({ accept_pool_submissions: data.on } as any)
+      .eq("id", pl.id);
+    return { ok: true, on: data.on };
+  });
+
+/**
+ * Submission to a Last.fm room playlist from the public Curator Playlists page.
+ * Uses the artist's free daily pass first; otherwise room members can spend
+ * 50 points earned on that playlist.
+ */
+export async function submitBetaPoolTrack(
+  supabaseAdmin: any,
+  userSupabase: any,
+  userId: string,
+  playlistId: string,
+  trackId: string,
+  trackName: string | null,
+) {
+  const { data: pl } = await supabaseAdmin
+    .from("beta_room_playlists")
+    .select("id, room_id, name, is_team, track_hold_days, daily_submission_limit, accept_pool_submissions")
+    .eq("id", playlistId)
+    .maybeSingle();
+  if (!pl || !pl.accept_pool_submissions || pl.is_team) throw new Error("Playlist not found");
+  const { data: room } = await supabaseAdmin
+    .from("beta_rooms")
+    .select("id, owner_id, daily_submission_limit")
+    .eq("id", pl.room_id)
+    .maybeSingle();
+  if (!room) throw new Error("Playlist not found");
+  if (room.owner_id === userId) throw new Error("You cannot submit to your own playlist");
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count: recent } = await supabaseAdmin
+    .from("beta_submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("playlist_id", pl.id)
+    .eq("submitter_user_id", userId)
+    .gte("created_at", since);
+  const dailyLimit = clampDailyLimit(pl.daily_submission_limit ?? room.daily_submission_limit);
+  if ((recent ?? 0) >= dailyLimit) {
+    throw new Error(`You can submit ${dailyLimit} track${dailyLimit === 1 ? "" : "s"} to "${pl.name}" every 24 hours`);
+  }
+
+  const [{ data: onPlaylist }, { data: pendingDup }] = await Promise.all([
+    supabaseAdmin.from("beta_room_tracks").select("id").eq("playlist_id", pl.id).eq("spotify_track_id", trackId).limit(1),
+    supabaseAdmin.from("beta_submissions").select("id").eq("playlist_id", pl.id).eq("spotify_track_id", trackId).eq("status", "pending").limit(1),
+  ]);
+  if ((onPlaylist ?? []).length > 0) throw new Error(`That track is already on "${pl.name}" — pick a different track`);
+  if ((pendingDup ?? []).length > 0) throw new Error("That track has already been submitted and is waiting for review");
+
+  const holdDays = (pl.track_hold_days as number) ?? 30;
+  if (holdDays > 0) {
+    const holdSince = new Date(Date.now() - holdDays * 24 * 60 * 60 * 1000).toISOString();
+    const { data: held } = await supabaseAdmin
+      .from("beta_submissions").select("id")
+      .eq("playlist_id", pl.id).eq("spotify_track_id", trackId).eq("status", "approved")
+      .gte("created_at", holdSince).limit(1);
+    if ((held ?? []).length > 0) throw new Error(`That track was added within the last ${holdDays} days`);
+  }
+
+  const { data: pass } = await userSupabase.rpc("artist_daily_pass_available");
+  let cost = 0;
+  let remaining = 0;
+  if (!pass) {
+    const { data: member } = await supabaseAdmin
+      .from("beta_room_members").select("id").eq("room_id", room.id).eq("user_id", userId).maybeSingle();
+    if (!member) throw new Error("Your free daily pass is used for today — it resets at 00:00 UTC");
+    const pts = await pointsForPlaylist(supabaseAdmin, room.id, userId, pl.id);
+    if (pts.available < SUBMIT_COST) {
+      throw new Error(`Your free daily pass is used. You need ${SUBMIT_COST} points from "${pl.name}" — you have ${pts.available}`);
+    }
+    cost = SUBMIT_COST;
+    remaining = pts.available - SUBMIT_COST;
+  }
+
+  const { data: row, error } = await supabaseAdmin
+    .from("beta_submissions")
+    .insert({
+      room_id: room.id,
+      playlist_id: pl.id,
+      submitter_user_id: userId,
+      owner_id: room.owner_id,
+      spotify_track_id: trackId,
+      spotify_track_url: `https://open.spotify.com/track/${trackId}`,
+      spotify_track_name: trackName,
+      cost_points: cost,
+      daily_pass: Boolean(pass),
+    } as any)
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return { id: row.id as string, cost, playlistName: pl.name as string, newBalance: remaining };
+}
+
 
 export async function importPlaylistTracks(
   supabaseAdmin: any,
