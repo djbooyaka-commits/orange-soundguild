@@ -11,6 +11,7 @@ import {
   setCuratorPlaylistDailyLimit,
 } from "@/lib/api/curator.functions";
 import { setCuratorPlaylistIsTeam } from "@/lib/api/curator-team.functions";
+import { setCuratorPlaylistPool } from "@/lib/api/curator-submissions.functions";
 
 type Playlist = {
   id: string;
@@ -18,6 +19,7 @@ type Playlist = {
   name: string;
   image_url: string | null;
   is_team?: boolean;
+  accept_pool_submissions?: boolean;
   track_hold_days?: number | null;
   daily_submission_limit?: number | null;
 };
@@ -29,6 +31,7 @@ export function CuratorPlaylistManager() {
   const earnedFn = useServerFn(getCuratorEarnedPoints);
   const importFn = useServerFn(importMySpotifyCuratorPlaylists);
   const setTeamFn = useServerFn(setCuratorPlaylistIsTeam);
+  const setPoolFn = useServerFn(setCuratorPlaylistPool);
   const setHoldFn = useServerFn(setCuratorPlaylistHoldDays);
   const setLimitFn = useServerFn(setCuratorPlaylistDailyLimit);
 
@@ -116,6 +119,18 @@ export function CuratorPlaylistManager() {
       await refresh();
     } catch (ex: any) {
       setErr(ex?.message ?? "Failed to update Team playlist");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const togglePool = async (p: Playlist) => {
+    setTogglingId(p.id);
+    try {
+      await setPoolFn({ data: { playlistId: p.id, on: !p.accept_pool_submissions } });
+      await refresh();
+    } catch (ex: any) {
+      setErr(ex?.message ?? "Failed to update");
     } finally {
       setTogglingId(null);
     }
@@ -290,6 +305,16 @@ export function CuratorPlaylistManager() {
                 {savingLimitId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
               </button>
             </div>
+            {!p.is_team && (
+              <button
+                onClick={() => togglePool(p)}
+                disabled={busy || togglingId === p.id}
+                className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50 ${p.accept_pool_submissions ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90" : "border-border hover:bg-muted"}`}
+                title="Show this playlist on the public Curator Playlists page so any artist can submit (Curator Pool)"
+              >
+                {p.accept_pool_submissions ? "In Curator Pool" : "Join Curator Pool"}
+              </button>
+            )}
             <button
               onClick={() => toggleTeam(p)}
               disabled={busy || togglingId === p.id}

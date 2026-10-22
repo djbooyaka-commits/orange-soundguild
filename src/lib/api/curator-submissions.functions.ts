@@ -921,3 +921,30 @@ export const followAllArtistsOnOsgPlaylist = createServerFn({ method: "POST" })
 
     return { followed, total: artistIds.length, source: artistSource };
   });
+
+export const listPoolPlaylists = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await (context.supabase as any).rpc("list_pool_playlists");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{
+      id: string;
+      curator_id: string;
+      curator_username: string;
+      spotify_playlist_id: string;
+      name: string;
+      image_url: string | null;
+      available_points: number;
+      daily_submission_limit: number | null;
+      track_hold_days: number | null;
+    }>;
+  });
+
+export const setCuratorPlaylistPool = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; on: boolean }) => ({ playlistId: String(data.playlistId), on: Boolean(data.on) }))
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase as any).rpc("set_curator_playlist_pool", { _playlist_id: data.playlistId, _on: data.on });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
