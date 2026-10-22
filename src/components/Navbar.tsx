@@ -156,7 +156,7 @@ export function Navbar() {
             const term = q.trim();
             if (term) navigate({ to: "/search", search: { q: term } });
           }}
-          className="relative hidden w-56 shrink-0 xl:block 2xl:w-64"
+          className="relative hidden w-48 shrink-0 xl:block 2xl:w-64"
         >
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -299,7 +299,7 @@ export function Navbar() {
         ) : (
           <Link
             to="/auth"
-            className="inline-flex h-10 items-center rounded-full border border-border px-4 text-sm font-semibold hover:bg-muted"
+            className="inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-full border border-border px-4 text-sm font-semibold hover:bg-muted"
           >
             Sign in
           </Link>

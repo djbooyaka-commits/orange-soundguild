@@ -9,5 +9,5 @@
 - [x] Last.fm passes: waive the weekly shortfall by preventing point removals from creating debt.
 - [x] Last.fm room links: one curator-named tab containing all links for members.
 
-- [ ] Header: fix search/Upload overlap so it works and looks good.
-- [ ] Join Curator Pool for Last.fm stream tracker playlists (show on /curator-playlists, daily pass).
+- [x] Header: fix search/Upload overlap so it works and looks good.
+- [x] Join Curator Pool for Last.fm stream tracker playlists (show on /curator-playlists, daily pass).
