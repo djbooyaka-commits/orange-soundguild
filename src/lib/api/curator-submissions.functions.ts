@@ -575,6 +575,29 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    if (data.playlistId.startsWith("beta:")) {
+      const appTok = await getAppToken();
+      const meta = await fetchTrackMeta(trackId, appTok);
+      if (!meta) throw new Error("Track not found on Spotify");
+      const { submitBetaPoolTrack } = await import("./beta-curator.functions");
+      const r = await submitBetaPoolTrack(
+        supabaseAdmin,
+        context.supabase,
+        context.userId,
+        data.playlistId.slice(5),
+        trackId,
+        meta.name ?? null,
+      );
+      return {
+        id: r.id,
+        cost: r.cost,
+        followedAll: false,
+        playlistName: r.playlistName,
+        trackName: meta.name ?? null,
+        newBalance: r.newBalance,
+      };
+    }
+
     // Load playlist
     const { data: pl } = await supabaseAdmin
       .from("curator_playlists")
@@ -927,7 +950,7 @@ export const listPoolPlaylists = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await (context.supabase as any).rpc("list_pool_playlists");
     if (error) throw new Error(error.message);
-    return (data ?? []) as Array<{
+    type Row = {
       id: string;
       curator_id: string;
       curator_username: string;
@@ -937,7 +960,38 @@ export const listPoolPlaylists = createServerFn({ method: "GET" })
       available_points: number;
       daily_submission_limit: number | null;
       track_hold_days: number | null;
-    }>;
+      source?: "spotify" | "lastfm";
+    };
+    const rows: Row[] = ((data ?? []) as Row[]).map((r) => ({ ...r, source: "spotify" as const }));
+
+    // Last.fm stream tracker playlists that joined the Curator Pool
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: beta } = await (supabaseAdmin as any)
+      .from("beta_room_playlists")
+      .select("id, spotify_playlist_id, name, image_url, track_hold_days, daily_submission_limit, beta_rooms!inner(owner_id, daily_submission_limit)")
+      .eq("accept_pool_submissions", true)
+      .eq("is_team", false);
+    const ownerIds = Array.from(new Set((beta ?? []).map((b: any) => b.beta_rooms.owner_id)));
+    const { data: profs } = ownerIds.length
+      ? await supabaseAdmin.from("profiles").select("id, username").in("id", ownerIds as string[])
+      : { data: [] as any[] };
+    const names = new Map((profs ?? []).map((p: any) => [p.id, p.username ?? "curator"]));
+    for (const b of beta ?? []) {
+      if (b.beta_rooms.owner_id === context.userId) continue;
+      rows.push({
+        id: `beta:${b.id}`,
+        curator_id: b.beta_rooms.owner_id,
+        curator_username: names.get(b.beta_rooms.owner_id) ?? "curator",
+        spotify_playlist_id: b.spotify_playlist_id,
+        name: b.name,
+        image_url: b.image_url,
+        available_points: 0,
+        daily_submission_limit: b.daily_submission_limit ?? b.beta_rooms.daily_submission_limit ?? 2,
+        track_hold_days: b.track_hold_days,
+        source: "lastfm",
+      });
+    }
+    return rows.sort((a, b) => a.name.localeCompare(b.name));
   });
 
 export const setCuratorPlaylistPool = createServerFn({ method: "POST" })
