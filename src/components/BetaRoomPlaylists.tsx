@@ -10,6 +10,7 @@ import {
   setBetaPlaylistHoldDays,
   setBetaPlaylistTeam,
   setBetaPlaylistDailyLimit,
+  setBetaPlaylistPool,
 } from "@/lib/api/beta-curator.functions";
 
 type Playlist = {
@@ -20,6 +21,7 @@ type Playlist = {
   holdDays: number;
   dailyLimit: number | null;
   isTeam: boolean;
+  inPool?: boolean;
   trackCount: number;
 };
 
@@ -38,6 +40,7 @@ export function BetaRoomPlaylists({
   const removeFn = useServerFn(removeBetaRoomPlaylist);
   const holdFn = useServerFn(setBetaPlaylistHoldDays);
   const teamFn = useServerFn(setBetaPlaylistTeam);
+  const poolFn = useServerFn(setBetaPlaylistPool);
   const limitFn = useServerFn(setBetaPlaylistDailyLimit);
   const [limitDrafts, setLimitDrafts] = useState<Record<string, string>>({});
 
@@ -144,6 +147,19 @@ export function BetaRoomPlaylists({
       toast.success(!p.isTeam ? "Marked as a team playlist" : "Team mark removed");
       await refresh();
       onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not update playlist");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const togglePool = async (p: Playlist) => {
+    setBusyId(p.id);
+    try {
+      await poolFn({ data: { playlistId: p.id, on: !p.inPool } });
+      toast.success(!p.inPool ? "Joined the Curator Pool — artists can now submit from Curator Playlists" : "Left the Curator Pool");
+      await refresh();
     } catch (e: any) {
       toast.error(e?.message ?? "Could not update playlist");
     } finally {
@@ -288,6 +304,15 @@ export function BetaRoomPlaylists({
                   />
                   <span title="Team playlists can't be submitted to with points">Team</span>
                 </label>
+                {!p.isTeam && (
+                  <button
+                    onClick={() => togglePool(p)}
+                    disabled={busyId === p.id}
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50 ${p.inPool ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90" : "border-border hover:bg-muted"}`}
+                  >
+                    {p.inPool ? "In Curator Pool" : "Join Curator Pool"}
+                  </button>
+                )}
                 <button
                   onClick={() => sync(p.id)}
                   disabled={busyId === p.id}

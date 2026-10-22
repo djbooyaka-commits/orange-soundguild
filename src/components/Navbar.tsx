@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User, Radio, FlaskConical } from "lucide-react";
+import { Search, Upload, Bell, Music2, LogOut, Sparkles, MessageCircle, User, Radio, FlaskConical, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { UploadDialog } from "./UploadDialog";
 import { CURRENT_USER } from "@/lib/uploads";
@@ -101,58 +101,81 @@ export function Navbar() {
           <Link to="/discover" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
             Discover
           </Link>
-          <Link to="/posts" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
-            Posts
+          <Link to="/curator-playlists" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+            Curator Playlists
           </Link>
-          {user && (
-            <Link
-              to="/u/$handle"
-              params={{ handle: CURRENT_USER.handle }}
-              className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted"
-            >
-              Profile
-            </Link>
-          )}
-          <Link to="/curator-playlists" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Curator Playlists</Link>
-          <Link to="/library" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Library</Link>
-          {user && (
-            <Link to="/messages" className="relative inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
-              <MessageCircle className="h-4 w-4" /> Messages
-              {unreadMessages > 0 && (
-                <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
-                  {unreadMessages > 99 ? "99+" : unreadMessages}
-                </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+                More <ChevronDown className="h-3.5 w-3.5" />
+                {unreadMessages > 0 && (
+                  <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                    {unreadMessages > 99 ? "99+" : unreadMessages}
+                  </span>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link to="/posts">Posts</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/library">Library</Link>
+              </DropdownMenuItem>
+              {user && (
+                <DropdownMenuItem asChild>
+                  <Link to="/u/$handle" params={{ handle: CURRENT_USER.handle }}>Profile</Link>
+                </DropdownMenuItem>
               )}
-            </Link>
-          )}
-          {isAdmin && (
-
-            <Link to="/admin" className="whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-primary hover:bg-muted">
-              Admin
-            </Link>
-          )}
+              {user && (
+                <DropdownMenuItem asChild>
+                  <Link to="/messages" className="flex items-center justify-between">
+                    <span>Messages</span>
+                    {unreadMessages > 0 && (
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                        {unreadMessages > 99 ? "99+" : unreadMessages}
+                      </span>
+                    )}
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {isAdmin && (
+                <DropdownMenuItem asChild>
+                  <Link to="/admin" className="font-medium text-primary">Admin</Link>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
 
+        <div className="flex-1" />
 
-        <div className="flex min-w-0 flex-1 items-center justify-end md:justify-start">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const term = q.trim();
-              if (term) navigate({ to: "/search", search: { q: term } });
-            }}
-            className="relative w-full max-w-xs"
-          >
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              type="search"
-              placeholder="Search…"
-              className="h-10 w-full rounded-full border border-border bg-muted/60 pl-10 pr-4 text-sm outline-none transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/30"
-            />
-          </form>
-        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const term = q.trim();
+            if (term) navigate({ to: "/search", search: { q: term } });
+          }}
+          className="relative hidden w-48 shrink-0 xl:block 2xl:w-64"
+        >
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            type="search"
+            placeholder="Search…"
+            aria-label="Search"
+            className="h-10 w-full rounded-full border border-border bg-muted/60 pl-10 pr-4 text-sm outline-none transition focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/30"
+          />
+        </form>
+        <Link
+          to="/search"
+          search={{ q: "" }}
+          aria-label="Search"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground xl:hidden"
+        >
+          <Search className="h-4 w-4" />
+        </Link>
 
 
 
@@ -276,7 +299,7 @@ export function Navbar() {
         ) : (
           <Link
             to="/auth"
-            className="inline-flex h-10 items-center rounded-full border border-border px-4 text-sm font-semibold hover:bg-muted"
+            className="inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-full border border-border px-4 text-sm font-semibold hover:bg-muted"
           >
             Sign in
           </Link>
