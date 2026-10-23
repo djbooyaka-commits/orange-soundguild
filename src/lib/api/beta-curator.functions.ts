@@ -136,7 +136,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
     await assertMember(supabaseAdmin, data.roomId, context.userId);
     const { data: rows } = await supabaseAdmin
       .from("beta_room_playlists")
-      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at, daily_submission_limit, accept_pool_submissions")
+      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at, daily_submission_limit, accept_pool_submissions, genre")
       .eq("room_id", data.roomId)
       .order("created_at", { ascending: true });
 
@@ -164,6 +164,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
       dailyLimit: (r.daily_submission_limit as number | null) ?? null,
       isTeam: Boolean(r.is_team),
       inPool: Boolean(r.accept_pool_submissions),
+      genre: (r.genre as string | null) ?? null,
       trackCount: counts.get(r.id) ?? 0,
     }));
   });
@@ -189,6 +190,21 @@ export const setBetaPlaylistPool = createServerFn({ method: "POST" })
       .update({ accept_pool_submissions: data.on } as any)
       .eq("id", pl.id);
     return { ok: true, on: data.on };
+  });
+
+export const setBetaPlaylistGenre = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; genre: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    genre: String(data?.genre ?? "").trim().slice(0, 40),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: pl } = await supabaseAdmin.from("beta_room_playlists").select("id, room_id").eq("id", data.playlistId).maybeSingle();
+    if (!pl) throw new Error("Playlist not found");
+    await assertOwner(supabaseAdmin, pl.room_id as string, context.userId);
+    await supabaseAdmin.from("beta_room_playlists").update({ genre: data.genre || null } as any).eq("id", pl.id);
+    return { ok: true };
   });
 
 /**

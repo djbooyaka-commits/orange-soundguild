@@ -418,6 +418,7 @@ export type Database = {
           created_at: string
           curator_notice: string | null
           daily_submission_limit: number | null
+          genre: string | null
           id: string
           image_url: string | null
           is_team: boolean
@@ -434,6 +435,7 @@ export type Database = {
           created_at?: string
           curator_notice?: string | null
           daily_submission_limit?: number | null
+          genre?: string | null
           id?: string
           image_url?: string | null
           is_team?: boolean
@@ -450,6 +452,7 @@ export type Database = {
           created_at?: string
           curator_notice?: string | null
           daily_submission_limit?: number | null
+          genre?: string | null
           id?: string
           image_url?: string | null
           is_team?: boolean
@@ -767,6 +770,7 @@ export type Database = {
           created_at: string
           curator_id: string
           daily_submission_limit: number
+          genre: string | null
           id: string
           image_url: string | null
           is_osg: boolean
@@ -782,6 +786,7 @@ export type Database = {
           created_at?: string
           curator_id: string
           daily_submission_limit?: number
+          genre?: string | null
           id?: string
           image_url?: string | null
           is_osg?: boolean
@@ -797,6 +802,7 @@ export type Database = {
           created_at?: string
           curator_id?: string
           daily_submission_limit?: number
+          genre?: string | null
           id?: string
           image_url?: string | null
           is_osg?: boolean
@@ -2679,6 +2685,7 @@ export type Database = {
           curator_id: string
           curator_username: string
           daily_submission_limit: number
+          genre: string
           id: string
           image_url: string
           name: string
@@ -2731,6 +2738,10 @@ export type Database = {
           id: string
           username: string
         }[]
+      }
+      set_curator_playlist_genre: {
+        Args: { _genre: string; _playlist_id: string }
+        Returns: undefined
       }
       set_curator_playlist_is_osg: {
         Args: { _is_osg: boolean; _playlist_id: string }

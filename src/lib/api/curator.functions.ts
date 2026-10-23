@@ -319,7 +319,7 @@ export const listMyCuratorPlaylists = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("curator_playlists")
-      .select("id, spotify_playlist_id, name, image_url, created_at, is_osg, is_team, team_weekly_min, track_hold_days, daily_submission_limit, accept_pool_submissions")
+      .select("id, spotify_playlist_id, name, image_url, created_at, is_osg, is_team, team_weekly_min, track_hold_days, daily_submission_limit, accept_pool_submissions, genre")
       .eq("curator_id", context.userId)
       .order("created_at", { ascending: false });
     return data ?? [];

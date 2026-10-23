@@ -960,6 +960,7 @@ export const listPoolPlaylists = createServerFn({ method: "GET" })
       available_points: number;
       daily_submission_limit: number | null;
       track_hold_days: number | null;
+      genre?: string | null;
       source?: "spotify" | "lastfm";
     };
     const rows: Row[] = ((data ?? []) as Row[]).map((r) => ({ ...r, source: "spotify" as const }));
@@ -968,7 +969,7 @@ export const listPoolPlaylists = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: beta } = await (supabaseAdmin as any)
       .from("beta_room_playlists")
-      .select("id, spotify_playlist_id, name, image_url, track_hold_days, daily_submission_limit, beta_rooms!inner(owner_id, daily_submission_limit)")
+      .select("id, spotify_playlist_id, name, image_url, track_hold_days, daily_submission_limit, genre, beta_rooms!inner(owner_id, daily_submission_limit)")
       .eq("accept_pool_submissions", true)
       .eq("is_team", false);
     const ownerIds = Array.from(new Set((beta ?? []).map((b: any) => b.beta_rooms.owner_id)));
@@ -988,6 +989,7 @@ export const listPoolPlaylists = createServerFn({ method: "GET" })
         available_points: 0,
         daily_submission_limit: b.daily_submission_limit ?? b.beta_rooms.daily_submission_limit ?? 2,
         track_hold_days: b.track_hold_days,
+        genre: b.genre ?? null,
         source: "lastfm",
       });
     }
@@ -999,6 +1001,15 @@ export const setCuratorPlaylistPool = createServerFn({ method: "POST" })
   .inputValidator((data: { playlistId: string; on: boolean }) => ({ playlistId: String(data.playlistId), on: Boolean(data.on) }))
   .handler(async ({ data, context }) => {
     const { error } = await (context.supabase as any).rpc("set_curator_playlist_pool", { _playlist_id: data.playlistId, _on: data.on });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const setCuratorPlaylistGenre = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; genre: string }) => ({ playlistId: String(data.playlistId), genre: String(data.genre ?? "").slice(0, 40) }))
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase as any).rpc("set_curator_playlist_genre", { _playlist_id: data.playlistId, _genre: data.genre });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

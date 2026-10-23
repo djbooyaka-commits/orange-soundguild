@@ -11,7 +11,8 @@ import {
   setCuratorPlaylistDailyLimit,
 } from "@/lib/api/curator.functions";
 import { setCuratorPlaylistIsTeam } from "@/lib/api/curator-team.functions";
-import { setCuratorPlaylistPool } from "@/lib/api/curator-submissions.functions";
+import { setCuratorPlaylistPool, setCuratorPlaylistGenre } from "@/lib/api/curator-submissions.functions";
+import { PLAYLIST_GENRES } from "@/lib/playlist-genres";
 
 type Playlist = {
   id: string;
@@ -20,6 +21,7 @@ type Playlist = {
   image_url: string | null;
   is_team?: boolean;
   accept_pool_submissions?: boolean;
+  genre?: string | null;
   track_hold_days?: number | null;
   daily_submission_limit?: number | null;
 };
@@ -34,6 +36,7 @@ export function CuratorPlaylistManager() {
   const setPoolFn = useServerFn(setCuratorPlaylistPool);
   const setHoldFn = useServerFn(setCuratorPlaylistHoldDays);
   const setLimitFn = useServerFn(setCuratorPlaylistDailyLimit);
+  const setGenreFn = useServerFn(setCuratorPlaylistGenre);
 
   const [items, setItems] = useState<Playlist[]>([]);
   const [earned, setEarned] = useState(0);
@@ -305,6 +308,26 @@ export function CuratorPlaylistManager() {
                 {savingLimitId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
               </button>
             </div>
+            <select
+              value={p.genre ?? ""}
+              disabled={togglingId === p.id}
+              aria-label="Playlist genre"
+              onChange={async (e) => {
+                setTogglingId(p.id);
+                try {
+                  await setGenreFn({ data: { playlistId: p.id, genre: e.target.value } });
+                  await refresh();
+                } catch (ex: any) {
+                  setErr(ex?.message ?? "Failed to save genre");
+                } finally {
+                  setTogglingId(null);
+                }
+              }}
+              className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+            >
+              <option value="">Genre…</option>
+              {PLAYLIST_GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
             {!p.is_team && (
               <button
                 onClick={() => togglePool(p)}
