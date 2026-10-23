@@ -978,7 +978,6 @@ export const listPoolPlaylists = createServerFn({ method: "GET" })
       : { data: [] as any[] };
     const names = new Map((profs ?? []).map((p: any) => [p.id, p.username ?? "curator"]));
     for (const b of beta ?? []) {
-      if (b.beta_rooms.owner_id === context.userId) continue;
       rows.push({
         id: `beta:${b.id}`,
         curator_id: b.beta_rooms.owner_id,
