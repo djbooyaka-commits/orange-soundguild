@@ -8,6 +8,7 @@ import { SpotifyConnectCard } from "@/components/SpotifyConnectCard";
 import { CuratorPlaylistManager } from "@/components/CuratorPlaylistManager";
 import { CuratorInviteManager } from "@/components/CuratorInviteManager";
 import { CuratorInvitesInbox } from "@/components/CuratorInvitesInbox";
+import { SubmitTrackCard } from "@/components/SubmitTrackCard";
 import { CuratorSubmissionsQueue } from "@/components/CuratorSubmissionsQueue";
 import { CuratorPoolCard } from "@/components/CuratorPoolCard";
 import { OsgArtistsTab } from "@/components/OsgArtistsTab";
@@ -243,6 +244,7 @@ function CuratorPage() {
             <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="main">{isSuperfan ? "Curator" : "Stream Tracker"}</TabsTrigger>
               <TabsTrigger value="curator-playlists">Curator playlists</TabsTrigger>
+              <TabsTrigger value="submit-track">Submit a track</TabsTrigger>
               {canUseOsg && <TabsTrigger value="osg-artists">OSG Artists</TabsTrigger>}
               {teamRooms.map((r) => (
                 <TabsTrigger key={r.playlist_id} value={`team-${r.playlist_id}`}>
@@ -322,6 +324,10 @@ function CuratorPage() {
               </section>
             </TabsContent>
 
+
+            <TabsContent value="submit-track">
+              <SubmitTrackCard />
+            </TabsContent>
 
             <TabsContent value="curator-playlists">
               {joinedPlaylists.length === 0 ? (
