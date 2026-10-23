@@ -230,9 +230,9 @@ export function CuratorPlaylistManager() {
         {items.map((p) => (
           <li
             key={p.id}
-            className={`flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center ${p.is_team ? "border-primary/60 bg-primary/5" : "border-border"}`}
+            className={`flex flex-wrap items-center gap-2 rounded-md border p-3 ${p.is_team ? "border-primary/60 bg-primary/5" : "border-border"}`}
           >
-            <div className="flex items-start gap-3 sm:flex-1 sm:items-center">
+            <div className="flex w-full basis-full items-center gap-3">
               {p.image_url ? (
                 <img src={p.image_url} alt="" className="h-12 w-12 shrink-0 rounded object-cover"  loading="lazy" decoding="async" />
               ) : (
