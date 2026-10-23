@@ -187,7 +187,8 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
             {playlists.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} — @{p.curator_username}
-                {(p as any).track_hold_days ? ` · stays ${(p as any).track_hold_days} days` : ""} · {p.available_points} pts
+                {(p as any).track_hold_days ? ` · stays ${(p as any).track_hold_days} days` : ""}
+                {pool ? "" : ` · ${p.available_points} pts`}
               </option>
             ))}
           </select>
@@ -204,6 +205,7 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
             disabled={busy}
           />
 
+          {!pool && (
           <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <div>
@@ -222,6 +224,7 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
               .
             </div>
           </div>
+          )}
 
           <button
             type="submit"
@@ -253,7 +256,7 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
                     {s.spotify_track_name ?? s.spotify_track_url}
                   </a>
                   <p className="text-xs text-muted-foreground">
-                    {s.playlist_name} · {s.cost_points} pts
+                    {s.playlist_name}{pool ? "" : ` · ${s.cost_points} pts`}
                   </p>
                   {s.curator_note && (
                     <p className="mt-1 text-xs italic text-muted-foreground">"{s.curator_note}"</p>
