@@ -213,9 +213,9 @@ export function BetaRoomPlaylists({
         {items.map((p) => (
           <li
             key={p.id}
-            className="flex flex-col gap-3 rounded-md border border-border p-3 sm:flex-row sm:items-center"
+            className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3"
           >
-            <div className="flex items-start gap-3 sm:flex-1 sm:items-center">
+            <div className="flex w-full basis-full items-center gap-3">
               {p.imageUrl ? (
                 <img src={p.imageUrl} alt="" className="h-12 w-12 shrink-0 rounded object-cover"  loading="lazy" decoding="async" />
               ) : (
