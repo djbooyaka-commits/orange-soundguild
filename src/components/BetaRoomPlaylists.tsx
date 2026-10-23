@@ -11,7 +11,9 @@ import {
   setBetaPlaylistTeam,
   setBetaPlaylistDailyLimit,
   setBetaPlaylistPool,
+  setBetaPlaylistGenre,
 } from "@/lib/api/beta-curator.functions";
+import { PLAYLIST_GENRES } from "@/lib/playlist-genres";
 
 type Playlist = {
   id: string;
@@ -22,6 +24,7 @@ type Playlist = {
   dailyLimit: number | null;
   isTeam: boolean;
   inPool?: boolean;
+  genre?: string | null;
   trackCount: number;
 };
 
@@ -42,6 +45,7 @@ export function BetaRoomPlaylists({
   const teamFn = useServerFn(setBetaPlaylistTeam);
   const poolFn = useServerFn(setBetaPlaylistPool);
   const limitFn = useServerFn(setBetaPlaylistDailyLimit);
+  const genreFn = useServerFn(setBetaPlaylistGenre);
   const [limitDrafts, setLimitDrafts] = useState<Record<string, string>>({});
 
   const [items, setItems] = useState<Playlist[]>([]);
@@ -304,6 +308,27 @@ export function BetaRoomPlaylists({
                   />
                   <span title="Team playlists can't be submitted to with points">Team</span>
                 </label>
+                <select
+                  value={p.genre ?? ""}
+                  disabled={busyId === p.id}
+                  aria-label="Playlist genre"
+                  onChange={async (e) => {
+                    setBusyId(p.id);
+                    try {
+                      await genreFn({ data: { playlistId: p.id, genre: e.target.value } });
+                      toast.success("Genre saved");
+                      await refresh();
+                    } catch (err: any) {
+                      toast.error(err?.message ?? "Could not save genre");
+                    } finally {
+                      setBusyId(null);
+                    }
+                  }}
+                  className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+                >
+                  <option value="">Genre…</option>
+                  {PLAYLIST_GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
                 {!p.isTeam && (
                   <button
                     onClick={() => togglePool(p)}

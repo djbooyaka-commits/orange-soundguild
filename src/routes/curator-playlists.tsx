@@ -5,6 +5,7 @@ import { ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SubmitTrackCard } from "@/components/SubmitTrackCard";
 import { listPoolPlaylists } from "@/lib/api/curator-submissions.functions";
+import { PLAYLIST_GENRES } from "@/lib/playlist-genres";
 
 export const Route = createFileRoute("/curator-playlists")({
   head: () => ({
@@ -26,11 +27,13 @@ type PoolPlaylist = {
   curator_username: string;
   spotify_playlist_id: string;
   image_url: string | null;
+  genre?: string | null;
 };
 
 function CuratorPlaylistsPage() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [playlists, setPlaylists] = useState<PoolPlaylist[]>([]);
+  const [genre, setGenre] = useState("All");
   const listPool = useServerFn(listPoolPlaylists);
 
   useEffect(() => {
@@ -44,6 +47,8 @@ function CuratorPlaylistsPage() {
       .catch(() => setPlaylists([]));
   }, [signedIn, listPool]);
 
+  const shown = genre === "All" ? playlists : playlists.filter((p) => p.genre === genre);
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="text-3xl font-bold">Curator Playlists</h1>
@@ -56,8 +61,25 @@ function CuratorPlaylistsPage() {
           <>
             <SubmitTrackCard pool />
             {playlists.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {["All", ...PLAYLIST_GENRES].map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGenre(g)}
+                    className={`rounded-full border px-4 py-1.5 text-sm ${genre === g ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted"}`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            )}
+            {playlists.length > 0 && shown.length === 0 && (
+              <p className="text-sm text-muted-foreground">No {genre} playlists yet.</p>
+            )}
+            {shown.length > 0 && (
               <ul className="grid gap-3 sm:grid-cols-2">
-                {playlists.map((p) => (
+                {shown.map((p) => (
                   <li key={p.id} className="flex min-w-0 items-center gap-3 rounded-lg border border-border bg-card p-3">
                     {p.image_url ? (
                       <img src={p.image_url} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />
@@ -67,6 +89,9 @@ function CuratorPlaylistsPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{p.name}</p>
                       <p className="truncate text-xs text-muted-foreground">@{p.curator_username}</p>
+                      {p.genre && (
+                        <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{p.genre}</span>
+                      )}
                     </div>
                     <a
                       href={`https://open.spotify.com/playlist/${p.spotify_playlist_id}`}
