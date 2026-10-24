@@ -11,4 +11,4 @@
 
 - [x] Header: fix search/Upload overlap so it works and looks good.
 - [x] Join Curator Pool for Last.fm stream tracker playlists (show on /curator-playlists, daily pass).
-- [ ] Curator Pool: visible membership, estimated earnings, available balance and existing cashout access.
+- [x] Curator Pool: visible membership, estimated earnings, available balance and existing cashout access.
