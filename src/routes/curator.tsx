@@ -22,6 +22,7 @@ import { AdSlotScript } from "@/components/AdSlotScript";
 import { listPlaylistsForSubmission } from "@/lib/api/curator-submissions.functions";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/curator")({
   head: () => ({
@@ -233,6 +234,7 @@ function CuratorPage() {
           </p>
         </div>
       </header>
+      {isSuperfan && <Button asChild variant="outline" className="mb-6"><Link to="/curator-pool">Curator Pool & earnings</Link></Button>}
 
       {joining && (
         <div className="mb-4 rounded-md border border-border bg-muted/40 p-3 text-sm">

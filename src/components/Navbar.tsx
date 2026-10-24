@@ -240,6 +240,9 @@ export function Navbar() {
               <DropdownMenuItem asChild>
                 <Link to="/referrals">Referrals</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/curator-pool">Curator Pool & earnings</Link>
+              </DropdownMenuItem>
               {accountType !== "artist" && accountType !== "superfan" && (
                 <DropdownMenuItem asChild>
                   <Link to="/upgrade" className="flex items-center gap-2 font-medium text-primary">
