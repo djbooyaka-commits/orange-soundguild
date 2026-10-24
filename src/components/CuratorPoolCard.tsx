@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 
 type Row = {
   curator_id: string;
@@ -58,6 +60,7 @@ export function CuratorPoolCard({ admin = false }: { admin?: boolean }) {
             : "No paid placements yet this month."}
         </p>
       )}
+      {!admin && <Button asChild variant="outline" className="mt-4"><Link to="/curator-pool">Pool membership, earnings & cashout</Link></Button>}
     </section>
   );
 }
