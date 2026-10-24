@@ -627,6 +627,7 @@ export type Database = {
           spotify_track_url: string
           status: Database["public"]["Enums"]["curator_submission_status"]
           submitter_user_id: string
+          via_pool: boolean
         }
         Insert: {
           added_to_spotify?: boolean
@@ -645,6 +646,7 @@ export type Database = {
           spotify_track_url: string
           status?: Database["public"]["Enums"]["curator_submission_status"]
           submitter_user_id: string
+          via_pool?: boolean
         }
         Update: {
           added_to_spotify?: boolean
@@ -663,6 +665,7 @@ export type Database = {
           spotify_track_url?: string
           status?: Database["public"]["Enums"]["curator_submission_status"]
           submitter_user_id?: string
+          via_pool?: boolean
         }
         Relationships: [
           {
@@ -833,6 +836,7 @@ export type Database = {
           spotify_track_url: string
           status: Database["public"]["Enums"]["curator_submission_status"]
           submitter_user_id: string
+          via_pool: boolean
         }
         Insert: {
           added_to_spotify?: boolean
@@ -851,6 +855,7 @@ export type Database = {
           spotify_track_url: string
           status?: Database["public"]["Enums"]["curator_submission_status"]
           submitter_user_id: string
+          via_pool?: boolean
         }
         Update: {
           added_to_spotify?: boolean
@@ -869,6 +874,7 @@ export type Database = {
           spotify_track_url?: string
           status?: Database["public"]["Enums"]["curator_submission_status"]
           submitter_user_id?: string
+          via_pool?: boolean
         }
         Relationships: [
           {
