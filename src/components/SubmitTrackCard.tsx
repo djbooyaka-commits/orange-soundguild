@@ -89,7 +89,7 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
     if (!playlistId || !trackUrl.trim()) return;
     setBusy(true);
     try {
-      const res = await submitFn({ data: { playlistId, trackUrl } });
+      const res = await submitFn({ data: { playlistId, trackUrl, pool } });
       toast.success(
         res.cost === 0
           ? "Submitted with your free daily 50-point artist pass"

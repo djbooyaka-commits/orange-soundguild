@@ -564,10 +564,10 @@ export const markCuratorSubmissionAdded = createServerFn({ method: "POST" })
 
 export const submitCuratorTrack = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { playlistId: string; trackUrl: string }) => {
+  .inputValidator((d: { playlistId: string; trackUrl: string; pool?: boolean }) => {
     const trackUrl = String(d?.trackUrl ?? "").trim();
     if (!trackUrl) throw new Error("Track URL is required");
-    return { playlistId: String(d?.playlistId ?? ""), trackUrl };
+    return { playlistId: String(d?.playlistId ?? ""), trackUrl, pool: d?.pool === true };
   })
   .handler(async ({ context, data }) => {
     const trackId = extractTrackId(data.trackUrl);
@@ -646,6 +646,10 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
       _followed_all: followedAll,
     });
     if (error) throw new Error(error.message);
+
+    if (data.pool) {
+      await supabaseAdmin.from("curator_submissions").update({ via_pool: true } as any).eq("id", submissionId as string);
+    }
 
     const { data: subRow } = await supabaseAdmin
       .from("curator_submissions")

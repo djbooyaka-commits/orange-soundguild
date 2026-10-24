@@ -68,11 +68,11 @@ function EarningsContent({ userId }: { userId: string }) {
       <h2 className="text-lg font-semibold">Earnings · {monthLabel}</h2>
       <div className="mt-5 grid gap-6 sm:grid-cols-3">
         <div><div className="flex items-center gap-2 text-sm text-muted-foreground"><Coins className="h-4 w-4" /> Estimated share</div><p className="mt-2 text-3xl font-bold">{usd(data.estimate?.share_cents ?? 0)}</p><p className="mt-2 text-xs text-muted-foreground">Not yet available to cash out</p></div>
-        <div><p className="text-sm text-muted-foreground">Qualifying placements</p><p className="mt-2 text-3xl font-bold">{data.estimate?.placements ?? 0}</p><p className="mt-2 text-xs text-muted-foreground">Approved and added Spotify submissions</p></div>
+        <div><p className="text-sm text-muted-foreground">Qualifying placements</p><p className="mt-2 text-3xl font-bold">{data.estimate?.placements ?? 0}</p><p className="mt-2 text-xs text-muted-foreground">Approved tracks submitted from Curator Playlists</p></div>
         <div><p className="text-sm text-muted-foreground">Monthly pool</p><p className="mt-2 text-3xl font-bold">{data.estimate ? usd(data.estimate.pool_cents) : "—"}</p><p className="mt-2 text-xs text-muted-foreground">{data.estimate ? `${data.estimate.total_placements} total qualifying placements` : "Unavailable until a qualifying placement is recorded"}</p></div>
       </div>
       <p className="mt-6 text-sm text-muted-foreground">15% of qualifying Artist subscription revenue is shared between Superfan curators by qualifying placements. Estimates can change until the month ends.</p>
-      <p className="mt-2 text-sm text-muted-foreground">Pool estimates are not automatically credited to your balance. The current calculation includes Spotify tracker submissions only; Last.fm room placements are not included.</p>
+      <p className="mt-2 text-sm text-muted-foreground">Pool estimates are not automatically credited to your balance. Only tracks submitted from the Curator Playlists page count.</p>
     </section>
 
     <section className="border-y border-border py-6">

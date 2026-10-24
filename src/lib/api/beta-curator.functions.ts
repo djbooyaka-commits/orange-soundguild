@@ -290,6 +290,7 @@ export async function submitBetaPoolTrack(
       spotify_track_name: trackName,
       cost_points: cost,
       daily_pass: Boolean(pass),
+      via_pool: true,
     } as any)
     .select("id")
     .single();
