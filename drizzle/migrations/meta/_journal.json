@@ -99,6 +99,13 @@
       "when": 1792722541518,
       "tag": "0013_playlist_genre",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792807375514,
+      "tag": "0014_curator_pool_only_directory_submissions",
+      "breakpoints": true
     }
   ]
 }
