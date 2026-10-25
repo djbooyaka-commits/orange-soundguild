@@ -418,12 +418,14 @@ export type Database = {
           created_at: string
           curator_notice: string | null
           daily_submission_limit: number | null
+          external_url: string | null
           genre: string | null
           id: string
           image_url: string | null
           is_team: boolean
           min_period_days: number
           name: string
+          platform: string
           room_id: string
           spotify_playlist_id: string
           track_hold_days: number
@@ -435,12 +437,14 @@ export type Database = {
           created_at?: string
           curator_notice?: string | null
           daily_submission_limit?: number | null
+          external_url?: string | null
           genre?: string | null
           id?: string
           image_url?: string | null
           is_team?: boolean
           min_period_days?: number
           name: string
+          platform?: string
           room_id: string
           spotify_playlist_id: string
           track_hold_days?: number
@@ -452,12 +456,14 @@ export type Database = {
           created_at?: string
           curator_notice?: string | null
           daily_submission_limit?: number | null
+          external_url?: string | null
           genre?: string | null
           id?: string
           image_url?: string | null
           is_team?: boolean
           min_period_days?: number
           name?: string
+          platform?: string
           room_id?: string
           spotify_playlist_id?: string
           track_hold_days?: number
