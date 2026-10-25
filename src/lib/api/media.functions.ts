@@ -41,7 +41,7 @@ export const signMediaUrls = createServerFn({ method: "POST" })
     const avatarPaths = new Set<string>();
     for (const { bucket, path } of data.items) {
       if (path.startsWith("http")) continue;
-      if (bucket === "audio") audioPaths.add(path);
+      if (bucket === "audio") { if (signedIn) audioPaths.add(path); }
       else if (bucket === "covers") coverPaths.add(path);
       else if (bucket === "avatars") avatarPaths.add(path);
     }
