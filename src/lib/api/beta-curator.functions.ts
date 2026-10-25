@@ -516,16 +516,19 @@ export const addBetaRoomPlaylist = createServerFn({ method: "POST" })
       if (osgId) {
         const { data: items } = await supabaseAdmin
           .from("playlist_tracks")
-          .select("position, tracks(title, profiles(username))")
-          .eq("playlist_id", osgId)
-          .order("position", { ascending: true });
-        const rows = ((items ?? []) as Array<{
-          tracks: { title: string; profiles: { username: string | null } | null } | null;
+          .select("track_id")
+          .eq("playlist_id", osgId);
+        const ids = (items ?? []).map((i) => i.track_id as string);
+        const { data: trs } = ids.length
+          ? await supabaseAdmin.from("tracks").select("title, profiles(username)").in("id", ids)
+          : { data: [] };
+        const rows = ((trs ?? []) as unknown as Array<{
+          title: string;
+          profiles: { username: string | null } | null;
         }>)
-          .filter((i) => i.tracks)
-          .map((i) => {
-            const artist = i.tracks!.profiles?.username ?? "Artist";
-            const name = i.tracks!.title;
+          .map((t) => {
+            const artist = t.profiles?.username ?? "Artist";
+            const name = t.title;
             return {
               room_id: data.roomId,
               playlist_id: row.id,
