@@ -10,8 +10,24 @@ import {
 } from "react";
 import type { Track } from "@/lib/tracks";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Streaming is members-only: signed-out visitors get a sign-in prompt.
+const signedInRef = { current: false };
+function promptSignIn() {
+  toast("Sign in to stream", {
+    id: "stream-sign-in",
+    description: "Create a free account or sign in to listen to tracks.",
+    action: {
+      label: "Sign in",
+      onClick: () => {
+        window.location.href = "/auth";
+      },
+    },
+  });
+}
 
 type PlayerState = {
   current: Track | null;
@@ -260,6 +276,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     const PAID_TIERS = new Set(["artist", "superfan", "pioneer"]);
     const refresh = async (userId: string | undefined) => {
+      signedInRef.current = !!userId;
       if (!userId) {
         if (!cancelled) isFreeRef.current = true;
         return;
@@ -286,6 +303,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     (t: Track, queue?: Track[]) => {
       const audio = audioRef.current;
       if (!audio) return;
+      if (!signedInRef.current) {
+        promptSignIn();
+        return;
+      }
       if (queue && queue.length) {
         queueRef.current = queue;
         playedRef.current = new Set();

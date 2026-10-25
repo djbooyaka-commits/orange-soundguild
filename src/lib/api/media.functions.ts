@@ -22,6 +22,16 @@ export const signMediaUrls = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+
+    // Audio streams are members-only: only sign audio for a verified session.
+    let signedIn = false;
+    const auth = getRequestHeader("authorization") ?? "";
+    const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+    if (token && data.items.some((i) => i.bucket === "audio")) {
+      const { data: u } = await supabaseAdmin.auth.getUser(token);
+      signedIn = !!u?.user;
+    }
 
     // Collect distinct paths per bucket and verify they belong to a publicly
     // visible row before signing. This lets anonymous browsing work while
