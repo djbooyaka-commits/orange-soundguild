@@ -36,6 +36,7 @@ import { Route as BetaRoomsIndexRouteImport } from './routes/beta-rooms.index'
 import { Route as BetaRoomsRoomIdRouteImport } from './routes/beta-rooms.$roomId'
 import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submit'
 import { Route as GuidePromotionRouteImport } from './routes/guide.promotion'
+import { Route as PlaylistPlaylistIdRouteImport } from './routes/playlist.$playlistId'
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as AlbumHandleAlbumRouteImport } from './routes/album.$handle.$album'
@@ -181,6 +182,11 @@ const GuidePromotionRoute = GuidePromotionRouteImport.update({
   path: '/guide/promotion',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlaylistPlaylistIdRoute = PlaylistPlaylistIdRouteImport.update({
+  id: '/playlist/$playlistId',
+  path: '/playlist/$playlistId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TTrackIdRoute = TTrackIdRouteImport.update({
   id: '/t/$trackId',
   path: '/t/$trackId',
@@ -259,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/guide/promotion': typeof GuidePromotionRoute
+  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/beta-rooms/': typeof BetaRoomsIndexRoute
@@ -297,6 +304,7 @@ export interface FileRoutesByTo {
   '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/guide/promotion': typeof GuidePromotionRoute
+  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/beta-rooms': typeof BetaRoomsIndexRoute
@@ -336,6 +344,7 @@ export interface FileRoutesById {
   '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
   '/guide/promotion': typeof GuidePromotionRoute
+  '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/beta-rooms/': typeof BetaRoomsIndexRoute
@@ -376,6 +385,7 @@ export interface FileRouteTypes {
     | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
     | '/guide/promotion'
+    | '/playlist/$playlistId'
     | '/t/$trackId'
     | '/u/$handle'
     | '/beta-rooms/'
@@ -414,6 +424,7 @@ export interface FileRouteTypes {
     | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
     | '/guide/promotion'
+    | '/playlist/$playlistId'
     | '/t/$trackId'
     | '/u/$handle'
     | '/beta-rooms'
@@ -452,6 +463,7 @@ export interface FileRouteTypes {
     | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
     | '/guide/promotion'
+    | '/playlist/$playlistId'
     | '/t/$trackId'
     | '/u/$handle'
     | '/beta-rooms/'
@@ -490,6 +502,7 @@ export interface RootRouteChildren {
   UpgradeRoute: typeof UpgradeRoute
   BetaRoomsRoomIdRoute: typeof BetaRoomsRoomIdRoute
   GuidePromotionRoute: typeof GuidePromotionRoute
+  PlaylistPlaylistIdRoute: typeof PlaylistPlaylistIdRoute
   TTrackIdRoute: typeof TTrackIdRoute
   UHandleRoute: typeof UHandleRoute
   BetaRoomsIndexRoute: typeof BetaRoomsIndexRoute
@@ -693,6 +706,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuidePromotionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/playlist/$playlistId': {
+      id: '/playlist/$playlistId'
+      path: '/playlist/$playlistId'
+      fullPath: '/playlist/$playlistId'
+      preLoaderRoute: typeof PlaylistPlaylistIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/t/$trackId': {
       id: '/t/$trackId'
       path: '/t/$trackId'
@@ -796,6 +816,7 @@ const rootRouteChildren: RootRouteChildren = {
   UpgradeRoute: UpgradeRoute,
   BetaRoomsRoomIdRoute: BetaRoomsRoomIdRoute,
   GuidePromotionRoute: GuidePromotionRoute,
+  PlaylistPlaylistIdRoute: PlaylistPlaylistIdRoute,
   TTrackIdRoute: TTrackIdRoute,
   UHandleRoute: UHandleRoute,
   BetaRoomsIndexRoute: BetaRoomsIndexRoute,
