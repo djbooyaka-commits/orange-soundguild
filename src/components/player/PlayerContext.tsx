@@ -11,6 +11,7 @@ import {
 import type { Track } from "@/lib/tracks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { recordOsgRoomPlay } from "@/lib/api/osg-room-streams.functions";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -177,6 +178,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         console.error("Failed to record track play", error);
         return;
       }
+      // Credit OSG stream-room points for members (no-op if not in a room).
+      void recordOsgRoomPlay({ data: { trackId: t.id } }).catch(() => {});
       if (currentRef.current?.id !== t.id) return;
       countedRef.current = true;
       window.dispatchEvent(

@@ -49,6 +49,7 @@ const DEFAULT_WEEKLY_MIN = 600;
 import { NoPassStars } from "@/components/NoPassStars";
 import { PlaylistCuratorNotice } from "@/components/PlaylistCuratorNotice";
 import { PointTimelineButton } from "@/components/PointTimelineButton";
+import { OsgRoomPlayer } from "@/components/OsgRoomPlayer";
 
 type Member = {
   user_id: string;
@@ -490,6 +491,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   };
 
   const isTeam = data.playlist.isTeam;
+  const isOsg = (data.playlist as any).platform === "osg";
   // Pass is granted only by the curator removing the member's points —
   // streamed or manually added points never flip someone to Pass.
   const passRank = (m: Member) => (!isTeam || isRecentlyDeducted(m) ? 0 : 1); // pass on top, red stars bottom
@@ -574,7 +576,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={`flex flex-wrap items-center gap-2 ${isOsg && !data.trackingStartedAt ? "hidden" : ""}`}>
             <Button
               type="button"
               onClick={toggleTracking}
@@ -640,17 +642,23 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
         )}
         {trackingMsg && <p className="mt-3 text-xs text-muted-foreground">{trackingMsg}</p>}
 
+        {isOsg ? (
+          <div className="mt-4">
+            <OsgRoomPlayer externalUrl={(data.playlist as any).externalUrl ?? null} />
+          </div>
+        ) : (
         <div className="mt-4 flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
           <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <p className="text-sm font-medium leading-relaxed text-foreground">
-            Press <strong>Start tracking</strong> before listening to this playlist on Spotify. Press{" "}
+            Press <strong>Start tracking</strong> before listening to this playlist. Press{" "}
             <strong>Stop</strong> when you finish; only plays during this session can earn points
             for this playlist. Only songs that are on this playlist count.
             <br />
-            <strong>Tip:</strong> Turn off Spotify Smart Shuffle (✨) and Autoplay so outside songs
+            <strong>Tip:</strong> Turn off Smart Shuffle (✨) and Autoplay so outside songs
             don't play.
           </p>
         </div>
+        )}
 
         {isTeam && (
           <div className="mt-3 flex items-start gap-3 rounded-lg border border-primary/40 bg-primary/10 p-4">

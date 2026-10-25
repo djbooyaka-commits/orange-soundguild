@@ -13,7 +13,7 @@ export const PLATFORM_SCROBBLE_TIPS: Record<PlaylistPlatform, string> = {
   youtube: "Use the Web Scrobbler browser extension, or a scrobbler app on Android.",
   tidal: "Turn on Last.fm in Tidal settings (Connected services).",
   apple_music: "Use the Last.fm app on iPhone/Mac, or Web Scrobbler on music.apple.com.",
-  osg: "Use the Web Scrobbler browser extension while playing on Orange Sound Guild.",
+  osg: "Open this playlist's tab and press Play — full plays on Orange Sound Guild earn points automatically.",
 };
 
 /** Detects the streaming service of a playlist link, or null when unsupported. */

@@ -15,7 +15,7 @@ const POINT_TTL_DAYS = 30;
 async function loadPlaylist(supabaseAdmin: any, playlistId: string) {
   const { data: pl } = await supabaseAdmin
     .from("beta_room_playlists")
-    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team, min_period_days, curator_notice, track_hold_days")
+    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team, min_period_days, curator_notice, track_hold_days, platform, external_url")
     .eq("id", playlistId)
     .maybeSingle();
   if (!pl) throw new Error("Playlist not found");
@@ -274,6 +274,8 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
         periodDays: ((pl as any).min_period_days as number | null) ?? 7,
         curatorNotice: ((pl as any).curator_notice as string | null) ?? null,
         holdDays: ((pl as any).track_hold_days as number | null) ?? 30,
+        platform: ((pl as any).platform as string | null) ?? "spotify",
+        externalUrl: ((pl as any).external_url as string | null) ?? null,
       },
       removedMembers: isOwner ? removedList : [],
       trackingStartedAt: (activeTracking?.started_at as string | null) ?? null,

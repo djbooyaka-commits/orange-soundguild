@@ -14,6 +14,7 @@ import {
   setBetaPlaylistGenre,
   setBetaPlaylistTracklist,
 } from "@/lib/api/beta-curator.functions";
+import { syncOsgRoomPlaylist } from "@/lib/api/osg-room-streams.functions";
 import { PLAYLIST_GENRES } from "@/lib/playlist-genres";
 import {
   PLATFORM_LABELS,
@@ -60,6 +61,7 @@ export function BetaRoomPlaylists({
   const genreFn = useServerFn(setBetaPlaylistGenre);
   const [limitDrafts, setLimitDrafts] = useState<Record<string, string>>({});
   const tracklistFn = useServerFn(setBetaPlaylistTracklist);
+  const osgSyncFn = useServerFn(syncOsgRoomPlaylist);
   const [editId, setEditId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [listDraft, setListDraft] = useState("");
@@ -116,6 +118,20 @@ export function BetaRoomPlaylists({
       onChanged?.();
     } catch (e: any) {
       toast.error(e?.message ?? "Sync failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const syncOsg = async (id: string) => {
+    setBusyId(id);
+    try {
+      const r: any = await osgSyncFn({ data: { playlistId: id } });
+      toast.success(`Synced ${r.imported} track${r.imported === 1 ? "" : "s"}`);
+      await refresh();
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not sync");
     } finally {
       setBusyId(null);
     }
@@ -255,7 +271,7 @@ export function BetaRoomPlaylists({
         {items.map((p) => (
           <li
             key={p.id}
-            className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3"
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background/50 p-3 sm:p-4"
           >
             <div className="flex w-full basis-full items-center gap-3">
               {p.imageUrl ? (
@@ -380,9 +396,9 @@ export function BetaRoomPlaylists({
                     {p.inPool ? "In Curator Pool" : "Join Curator Pool"}
                   </button>
                 )}
-                {(p.platform ?? "spotify") === "spotify" ? (
+                {(p.platform ?? "spotify") === "spotify" || p.platform === "osg" ? (
                   <button
-                    onClick={() => sync(p.id)}
+                    onClick={() => (p.platform === "osg" ? syncOsg(p.id) : sync(p.id))}
                     disabled={busyId === p.id}
                     className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-muted disabled:opacity-50"
                   >
