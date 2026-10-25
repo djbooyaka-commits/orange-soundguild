@@ -12,6 +12,6 @@
 - [x] Header: fix search/Upload overlap so it works and looks good.
 - [x] Join Curator Pool for Last.fm stream tracker playlists (show on /curator-playlists, daily pass).
 - [x] Curator Pool: visible membership, estimated earnings, available balance and existing cashout access.
-- [ ] Shared playlist page: save to library + /playlist landing.
-- [ ] Curator Playlists: platform tabs (Spotify, YouTube, Tidal, Apple Music, OSG) with ?platform= link.
-- [ ] Playlist submissions admin: filter by platform and genre.
+- [x] Shared playlist page: save to library + /playlist landing.
+- [x] Curator Playlists: platform tabs (Spotify, YouTube, Tidal, Apple Music, OSG) with ?platform= link.
+- [x] Playlist submissions admin: filter by platform and genre.
