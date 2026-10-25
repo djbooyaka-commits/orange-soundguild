@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ListMusic, Plus, Loader2, RefreshCw, Trash2, Clock } from "lucide-react";
+import { ListMusic, ListPlus, Plus, Loader2, RefreshCw, Trash2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import {
   listBetaRoomPlaylists,
@@ -12,12 +12,20 @@ import {
   setBetaPlaylistDailyLimit,
   setBetaPlaylistPool,
   setBetaPlaylistGenre,
+  setBetaPlaylistTracklist,
 } from "@/lib/api/beta-curator.functions";
 import { PLAYLIST_GENRES } from "@/lib/playlist-genres";
+import {
+  PLATFORM_LABELS,
+  PLATFORM_SCROBBLE_TIPS,
+  type PlaylistPlatform,
+} from "@/lib/playlist-platforms";
 
 type Playlist = {
   id: string;
   spotifyPlaylistId: string;
+  platform?: PlaylistPlatform;
+  externalUrl?: string | null;
   name: string;
   imageUrl: string | null;
   holdDays: number;
@@ -27,6 +35,10 @@ type Playlist = {
   genre?: string | null;
   trackCount: number;
 };
+
+function playlistHref(p: Playlist) {
+  return p.externalUrl || `https://open.spotify.com/playlist/${p.spotifyPlaylistId}`;
+}
 
 export function BetaRoomPlaylists({
   roomId,
@@ -47,6 +59,10 @@ export function BetaRoomPlaylists({
   const limitFn = useServerFn(setBetaPlaylistDailyLimit);
   const genreFn = useServerFn(setBetaPlaylistGenre);
   const [limitDrafts, setLimitDrafts] = useState<Record<string, string>>({});
+  const tracklistFn = useServerFn(setBetaPlaylistTracklist);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState("");
+  const [listDraft, setListDraft] = useState("");
 
   const [items, setItems] = useState<Playlist[]>([]);
   const [url, setUrl] = useState("");
@@ -73,7 +89,14 @@ export function BetaRoomPlaylists({
     setBusy(true);
     try {
       const r: any = await addFn({ data: { roomId, url } });
-      toast.success(`Playlist added — tracking ${r.imported} track${r.imported === 1 ? "" : "s"}`);
+      if (r.platform && r.platform !== "spotify") {
+        toast.success("Playlist added — now paste its tracklist");
+        setEditId(r.id);
+        setNameDraft("");
+        setListDraft("");
+      } else {
+        toast.success(`Playlist added — tracking ${r.imported} track${r.imported === 1 ? "" : "s"}`);
+      }
       setUrl("");
       await refresh();
       onChanged?.();
@@ -93,6 +116,21 @@ export function BetaRoomPlaylists({
       onChanged?.();
     } catch (e: any) {
       toast.error(e?.message ?? "Sync failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const saveTracklist = async (id: string) => {
+    setBusyId(id);
+    try {
+      const r: any = await tracklistFn({ data: { playlistId: id, name: nameDraft, text: listDraft } });
+      toast.success(`Tracking ${r.imported} track${r.imported === 1 ? "" : "s"}`);
+      setEditId(null);
+      await refresh();
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not save tracklist");
     } finally {
       setBusyId(null);
     }
@@ -181,8 +219,8 @@ export function BetaRoomPlaylists({
           <h2 className="font-semibold">Curator playlists</h2>
           <p className="text-sm text-muted-foreground">
             {isOwner
-              ? "Add the Spotify playlists you curate. Every track on them is tracked through Last.fm scrobbles."
-              : "Stream these playlists on Spotify (any account) — scrobbles matched via Last.fm earn points."}
+              ? "Add playlists from Spotify, YouTube, Tidal, Apple Music or Orange Sound Guild. Every track is tracked through Last.fm scrobbles."
+              : "Stream these playlists on their service — scrobbles matched via Last.fm earn points."}
           </p>
         </div>
       </div>
@@ -193,7 +231,7 @@ export function BetaRoomPlaylists({
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://open.spotify.com/playlist/..."
+            placeholder="Spotify, YouTube, Tidal, Apple Music or OSG playlist link"
             className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
             disabled={busy}
           />
@@ -234,13 +272,17 @@ export function BetaRoomPlaylists({
                     </span>
                   )}
                 </p>
+                <span className="mr-2 inline-flex rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {PLATFORM_LABELS[(p.platform ?? "spotify") as PlaylistPlatform]}
+                </span>
                 <a
-                  href={`https://open.spotify.com/playlist/${p.spotifyPlaylistId}`}
+                  href={playlistHref(p)}
                   target="_blank"
                   rel="noreferrer"
                   className="text-xs text-muted-foreground hover:text-foreground"
                 >
-                  {p.trackCount} tracked track{p.trackCount === 1 ? "" : "s"} · Open in Spotify ↗
+                  {p.trackCount} tracked track{p.trackCount === 1 ? "" : "s"} · Open in{" "}
+                  {PLATFORM_LABELS[(p.platform ?? "spotify") as PlaylistPlatform]} ↗
                 </a>
               </div>
             </div>
@@ -338,18 +380,32 @@ export function BetaRoomPlaylists({
                     {p.inPool ? "In Curator Pool" : "Join Curator Pool"}
                   </button>
                 )}
-                <button
-                  onClick={() => sync(p.id)}
-                  disabled={busyId === p.id}
-                  className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-muted disabled:opacity-50"
-                >
-                  {busyId === p.id ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3 w-3" />
-                  )}
-                  Sync tracks
-                </button>
+                {(p.platform ?? "spotify") === "spotify" ? (
+                  <button
+                    onClick={() => sync(p.id)}
+                    disabled={busyId === p.id}
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                  >
+                    {busyId === p.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" />
+                    )}
+                    Sync tracks
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setEditId(editId === p.id ? null : p.id);
+                      setNameDraft(p.name);
+                      setListDraft("");
+                    }}
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-muted"
+                  >
+                    <ListPlus className="h-3 w-3" />
+                    Edit tracklist
+                  </button>
+                )}
                 <button
                   onClick={() => remove(p.id)}
                   disabled={busyId === p.id}
@@ -358,7 +414,40 @@ export function BetaRoomPlaylists({
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
+                {editId === p.id && (
+                  <div className="w-full basis-full space-y-2 rounded-md border border-border bg-muted/30 p-3">
+                    <input
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      placeholder="Playlist name"
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    />
+                    <textarea
+                      value={listDraft}
+                      onChange={(e) => setListDraft(e.target.value)}
+                      rows={8}
+                      placeholder={"One track per line:\nArtist - Song\nArtist - Song"}
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Saving replaces this playlist's tracked tracks. Scrobbles are matched by artist and song name.
+                    </p>
+                    <button
+                      onClick={() => saveTracklist(p.id)}
+                      disabled={busyId === p.id || !listDraft.trim()}
+                      className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {busyId === p.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                      Save tracklist
+                    </button>
+                  </div>
+                )}
               </>
+            )}
+            {!isOwner && (
+              <p className="w-full basis-full text-[11px] text-muted-foreground">
+                Scrobble tip: {PLATFORM_SCROBBLE_TIPS[(p.platform ?? "spotify") as PlaylistPlatform]}
+              </p>
             )}
           </li>
         ))}
