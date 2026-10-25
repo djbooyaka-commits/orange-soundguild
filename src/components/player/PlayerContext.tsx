@@ -177,6 +177,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         console.error("Failed to record track play", error);
         return;
       }
+      // Credit OSG stream-room points for members (no-op if not in a room).
+      void recordOsgRoomPlay({ data: { trackId: t.id } }).catch(() => {});
       if (currentRef.current?.id !== t.id) return;
       countedRef.current = true;
       window.dispatchEvent(
