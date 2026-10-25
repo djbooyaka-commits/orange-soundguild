@@ -11,6 +11,7 @@ import {
 import type { Track } from "@/lib/tracks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { recordOsgRoomPlay } from "@/lib/api/osg-room-streams.functions";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
