@@ -337,6 +337,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current;
     if (!audio || !current) return;
     if (audio.paused) {
+      if (!signedInRef.current) {
+        promptSignIn();
+        return;
+      }
       if (audio.ended) {
         audio.currentTime = 0;
         setCurrentTime(0);
