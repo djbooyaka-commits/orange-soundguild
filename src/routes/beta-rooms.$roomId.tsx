@@ -276,7 +276,7 @@ function BetaRoomDetail() {
                 )}
                 {p.isTeam && <span className="ml-1 shrink-0 text-orange-400" title="Team playlist">★</span>}
               </TabsTrigger>
-              {p.spotifyPlaylistId && (
+              {p.spotifyPlaylistId && !p.spotifyPlaylistId.startsWith("ext-") && (
                 <a
                   href={`https://open.spotify.com/playlist/${p.spotifyPlaylistId}`}
                   target="_blank"

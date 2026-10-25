@@ -555,7 +555,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                 ) : null}
                 Tracking {data.playlist.trackCount} track
                 {data.playlist.trackCount === 1 ? "" : "s"}.{" "}
-                {data.playlist.spotifyPlaylistId && (
+                {data.playlist.spotifyPlaylistId && !data.playlist.spotifyPlaylistId.startsWith("ext-") && (
                   <a
                     href={`https://open.spotify.com/playlist/${data.playlist.spotifyPlaylistId}`}
                     target="_blank"
