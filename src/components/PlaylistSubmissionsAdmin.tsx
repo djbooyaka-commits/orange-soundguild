@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Loader2, ExternalLink, ListMusic } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { genreForPlaylistUrl } from "@/lib/official-playlists";
 
 type Row = {
   id: string;
@@ -24,13 +25,22 @@ const PLATFORM_LABEL: Record<string, string> = {
   apple_music: "Apple Music",
   youtube: "YouTube",
   tidal: "Tidal",
+  osg: "Orange Sound Guild",
 };
+
+const PLATFORM_FILTERS = ["all", "spotify", "youtube", "tidal", "apple_music", "osg"] as const;
+
+const pill = (on: boolean) =>
+  "rounded-full px-3 py-1 text-xs font-semibold transition " +
+  (on ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:bg-muted");
 
 export function PlaylistSubmissionsAdmin() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "all">("pending");
   const [busy, setBusy] = useState<string | null>(null);
+  const [platform, setPlatform] = useState<string>("all");
+  const [genre, setGenre] = useState<string>("All");
   const [notes, setNotes] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
@@ -61,7 +71,10 @@ export function PlaylistSubmissionsAdmin() {
     void load();
   }
 
-  const visible = filter === "pending" ? rows.filter((r) => r.status === "pending") : rows;
+  const byStatus = filter === "pending" ? rows.filter((r) => r.status === "pending") : rows;
+  const byPlatform = platform === "all" ? byStatus : byStatus.filter((r) => r.platform === platform);
+  const genres = ["All", ...Array.from(new Set(byPlatform.map((r) => genreForPlaylistUrl(r.playlist_url)))).sort()];
+  const visible = genre === "All" ? byPlatform : byPlatform.filter((r) => genreForPlaylistUrl(r.playlist_url) === genre);
 
   return (
     <section className="rounded-2xl border border-border bg-card/50 p-5">
@@ -83,6 +96,21 @@ export function PlaylistSubmissionsAdmin() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-2" aria-label="Filter by platform">
+        {PLATFORM_FILTERS.map((p) => (
+          <button key={p} onClick={() => { setPlatform(p); setGenre("All"); }} className={pill(platform === p)}>
+            {p === "all" ? "All platforms" : PLATFORM_LABEL[p]}
+          </button>
+        ))}
+      </div>
+      <div className="mb-4 flex flex-wrap gap-2" aria-label="Filter by genre">
+        {genres.map((g) => (
+          <button key={g} onClick={() => setGenre(g)} className={pill(genre === g)}>
+            {g === "All" ? "All genres" : g}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -112,6 +140,9 @@ export function PlaylistSubmissionsAdmin() {
                   <span className="font-medium">@unknown</span>
                 )}
                 <span className="text-xs capitalize text-muted-foreground">{r.account_type}</span>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                  {genreForPlaylistUrl(r.playlist_url)}
+                </span>
                 <span
                   className={
                     "ml-auto rounded-full px-2 py-0.5 text-xs font-semibold capitalize " +
