@@ -966,14 +966,16 @@ export const listPoolPlaylists = createServerFn({ method: "GET" })
       track_hold_days: number | null;
       genre?: string | null;
       source?: "spotify" | "lastfm";
+      platform?: string;
+      external_url?: string | null;
     };
-    const rows: Row[] = ((data ?? []) as Row[]).map((r) => ({ ...r, source: "spotify" as const }));
+    const rows: Row[] = ((data ?? []) as Row[]).map((r) => ({ ...r, source: "spotify" as const, platform: "spotify", external_url: null }));
 
     // Last.fm stream tracker playlists that joined the Curator Pool
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: beta } = await (supabaseAdmin as any)
       .from("beta_room_playlists")
-      .select("id, spotify_playlist_id, name, image_url, track_hold_days, daily_submission_limit, genre, beta_rooms!inner(owner_id, daily_submission_limit)")
+      .select("id, spotify_playlist_id, name, image_url, track_hold_days, daily_submission_limit, genre, platform, external_url, beta_rooms!inner(owner_id, daily_submission_limit)")
       .eq("accept_pool_submissions", true)
       .eq("is_team", false);
     const ownerIds = Array.from(new Set((beta ?? []).map((b: any) => b.beta_rooms.owner_id)));
@@ -994,6 +996,8 @@ export const listPoolPlaylists = createServerFn({ method: "GET" })
         track_hold_days: b.track_hold_days,
         genre: b.genre ?? null,
         source: "lastfm",
+        platform: b.platform ?? "spotify",
+        external_url: b.external_url ?? null,
       });
     }
     return rows.sort((a, b) => a.name.localeCompare(b.name));
