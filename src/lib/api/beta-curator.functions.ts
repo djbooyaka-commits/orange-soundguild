@@ -14,6 +14,75 @@ import {
  */
 
 const SUBMIT_COST = 50;
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&#x27;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function nameFromSlug(url: string): string | null {
+  try {
+    const parts = new URL(url).pathname.split("/").filter(Boolean);
+    const i = parts.indexOf("playlist");
+    const slug = i >= 0 ? parts[i + 1] : null;
+    if (!slug || /^[0-9a-f-]{20,}$/i.test(slug) || slug.startsWith("pl.")) return null;
+    return decodeURIComponent(slug)
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  } catch {
+    return null;
+  }
+}
+
+/** Best-effort title lookup for non-Spotify playlist links. */
+async function fetchExternalPlaylistName(
+  platform: PlaylistPlatform,
+  url: string,
+): Promise<string | null> {
+  try {
+    if (platform === "youtube") {
+      const r = await fetch(
+        `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}`,
+      );
+      if (r.ok) {
+        const j = (await r.json()) as { title?: string };
+        if (j.title) return j.title.slice(0, 120);
+      }
+      return null;
+    }
+    const r = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+        Accept: "text/html",
+      },
+    });
+    if (r.ok) {
+      const html = (await r.text()).slice(0, 300_000);
+      const m =
+        html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ??
+        html.match(/<title>([^<]+)<\/title>/i);
+      if (m) {
+        let t = decodeEntities(m[1]).trim();
+        t = t.replace(/\s+on Apple Music$/i, "").replace(/\s+on TIDAL$/i, "");
+        t = t.replace(/\s+by\s+[^|]+$/i, "").replace(/\s*\|\s*TIDAL$/i, "").trim();
+        if (t && !/^(tidal|apple music)$/i.test(t)) return t.slice(0, 120);
+      }
+    }
+  } catch {
+    /* fall through */
+  }
+  return nameFromSlug(url);
+}
+
+function parseOsgPlaylistId(url: string): string | null {
+  const m = url.match(/\/playlist\/([0-9a-f-]{36})/i);
+  return m ? m[1] : null;
+}
 const DEFAULT_SUBMISSIONS_PER_DAY = 2;
 
 function clampDailyLimit(n: unknown): number {
@@ -426,19 +495,57 @@ export const addBetaRoomPlaylist = createServerFn({ method: "POST" })
         .eq("external_url", cleanUrl)
         .maybeSingle();
       if (existing) return { ok: true, imported: 0, name: null, platform, id: existing.id as string };
+      const osgId = platform === "osg" ? parseOsgPlaylistId(cleanUrl) : null;
+      const fetchedName = osgId
+        ? (((await supabaseAdmin.from("playlists").select("name").eq("id", osgId).maybeSingle()).data
+            ?.name as string | undefined) ?? null)
+        : await fetchExternalPlaylistName(platform, cleanUrl);
       const { data: row, error } = await supabaseAdmin
         .from("beta_room_playlists")
         .insert({
           room_id: data.roomId,
           spotify_playlist_id: `ext-${crypto.randomUUID()}`,
-          name: `${PLATFORM_LABELS[platform]} playlist`,
+          name: fetchedName || `${PLATFORM_LABELS[platform]} playlist`,
           platform,
           external_url: cleanUrl,
         })
         .select("id")
         .single();
       if (error) throw new Error(error.message);
-      return { ok: true, imported: 0, name: null, platform, id: row.id as string };
+      let imported = 0;
+      if (osgId) {
+        const { data: items } = await supabaseAdmin
+          .from("playlist_tracks")
+          .select("track_id")
+          .eq("playlist_id", osgId);
+        const ids = (items ?? []).map((i) => i.track_id as string);
+        const { data: trs } = ids.length
+          ? await supabaseAdmin.from("tracks").select("title, profiles(username)").in("id", ids)
+          : { data: [] };
+        const rows = ((trs ?? []) as unknown as Array<{
+          title: string;
+          profiles: { username: string | null } | null;
+        }>)
+          .map((t) => {
+            const artist = t.profiles?.username ?? "Artist";
+            const name = t.title;
+            return {
+              room_id: data.roomId,
+              playlist_id: row.id,
+              spotify_track_id: `ext:${artist.toLowerCase()}|${name.toLowerCase()}`.slice(0, 250),
+              track_name: name,
+              artist_name: artist,
+            };
+          });
+        const uniq = Array.from(new Map(rows.map((r) => [r.spotify_track_id, r])).values());
+        if (uniq.length) {
+          await supabaseAdmin
+            .from("beta_room_tracks")
+            .upsert(uniq, { onConflict: "room_id,playlist_id,spotify_track_id" });
+          imported = uniq.length;
+        }
+      }
+      return { ok: true, imported, name: fetchedName, platform, id: row.id as string };
     }
     const playlistId = parseSpotifyPlaylistId(data.url);
     if (!playlistId) throw new Error("Paste a Spotify playlist link (open.spotify.com/playlist/…)");

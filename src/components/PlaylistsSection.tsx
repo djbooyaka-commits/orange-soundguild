@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus, Heart, ImagePlus, X } from "lucide-react";
+import { Play, Pause, Trash2, ChevronDown, ChevronUp, ListMusic, Plus, ArrowUp, ArrowDown, BookmarkPlus, Heart, ImagePlus, X, Share2 } from "lucide-react";
 import { usePlaylistsForUser, savePlaylistToLibrary } from "@/lib/playlists";
 import { usePlayer } from "./player/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -225,6 +225,23 @@ export function PlaylistsSection({ userId, isOwner }: { userId: string | null; i
                   )}
                 </>
               ) : null}
+              {isLiked ? null : (
+                <button
+                  onClick={() => {
+                    const link = `${window.location.origin}/playlist/${pl.id}`;
+                    void navigator.clipboard.writeText(link).then(
+                      () => toast.success("Playlist link copied"),
+                      () => toast.error(link),
+                    );
+                  }}
+                  aria-label="Copy playlist link"
+                  title="Copy playlist link"
+                  className="inline-flex h-8 items-center gap-1 rounded-full border border-border bg-background px-3 text-xs font-semibold text-foreground transition hover:border-primary hover:text-primary"
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  Share
+                </button>
+              )}
               {isLiked ? null : isOwner ? (
                 <button
                   onClick={() => {
