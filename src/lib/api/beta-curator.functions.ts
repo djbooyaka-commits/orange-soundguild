@@ -136,7 +136,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
     await assertMember(supabaseAdmin, data.roomId, context.userId);
     const { data: rows } = await supabaseAdmin
       .from("beta_room_playlists")
-      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at, daily_submission_limit, accept_pool_submissions, genre")
+      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at, daily_submission_limit, accept_pool_submissions, genre, platform, external_url")
       .eq("room_id", data.roomId)
       .order("created_at", { ascending: true });
 
@@ -158,6 +158,8 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
     return (rows ?? []).map((r: any) => ({
       id: r.id as string,
       spotifyPlaylistId: r.spotify_playlist_id as string,
+      platform: ((r.platform as string) || "spotify") as PlaylistPlatform,
+      externalUrl: (r.external_url as string | null) ?? null,
       name: r.name as string,
       imageUrl: (r.image_url as string | null) ?? null,
       holdDays: (r.track_hold_days as number) ?? 30,
@@ -306,6 +308,8 @@ export async function importPlaylistTracks(
   spotifyPlaylistId: string,
   ownerId: string,
 ) {
+  // Non-Spotify playlists use a pasted tracklist instead of automatic syncing.
+  if (spotifyPlaylistId.startsWith("ext-")) return { imported: 0, name: null };
   const {
     getBetaAccessToken,
     getBetaAppToken,
@@ -404,8 +408,35 @@ export const addBetaRoomPlaylist = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertOwner(supabaseAdmin, data.roomId, context.userId);
     const { parseSpotifyPlaylistId } = await import("./beta-spotify.server");
+    const platform = detectPlaylistPlatform(data.url);
+    if (!platform)
+      throw new Error("Paste a Spotify, YouTube, Tidal, Apple Music or Orange Sound Guild playlist link");
+    if (platform !== "spotify") {
+      const cleanUrl = data.url.trim();
+      const { data: existing } = await supabaseAdmin
+        .from("beta_room_playlists")
+        .select("id")
+        .eq("room_id", data.roomId)
+        .eq("external_url", cleanUrl)
+        .maybeSingle();
+      if (existing) return { ok: true, imported: 0, name: null, platform, id: existing.id as string };
+      const { data: row, error } = await supabaseAdmin
+        .from("beta_room_playlists")
+        .insert({
+          room_id: data.roomId,
+          spotify_playlist_id: `ext-${crypto.randomUUID()}`,
+          name: `${PLATFORM_LABELS[platform]} playlist`,
+          platform,
+          external_url: cleanUrl,
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      return { ok: true, imported: 0, name: null, platform, id: row.id as string };
+    }
     const playlistId = parseSpotifyPlaylistId(data.url);
     if (!playlistId) throw new Error("Paste a Spotify playlist link (open.spotify.com/playlist/…)");
+
 
     const { data: row, error } = await supabaseAdmin
       .from("beta_room_playlists")
