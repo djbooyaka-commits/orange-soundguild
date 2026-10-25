@@ -1048,7 +1048,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                 )}
 
                 <div
-                  className={`flex items-center justify-between rounded-md px-2 py-1.5 text-xs ${
+                  className={`flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 rounded-md px-2 py-1.5 text-xs ${
                     isTeam
                       ? below
                         ? "bg-destructive/10 text-destructive"
@@ -1203,13 +1203,14 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                   </div>
 
                   {/* Always-clickable links */}
+                  <div className="flex flex-wrap gap-1.5">
                   {[
-                    { url: m.spotify_artist_url, label: `Artist: ${m.spotify_artist_name ?? m.spotify_artist_url}` },
-                    { url: m.track_url, label: `Track 1: ${m.track_name ?? m.track_url}` },
-                    { url: m.track2_url, label: `Track 2: ${m.track2_name ?? m.track2_url}` },
-                    { url: m.track3_url, label: `Track 3: ${m.track3_name ?? m.track3_url}` },
-                    { url: m.track4_url, label: `Track 4: ${m.track4_name ?? m.track4_url}` },
-                    { url: m.track5_url, label: `Track 5: ${m.track5_name ?? m.track5_url}` },
+                    { url: m.spotify_artist_url, label: m.spotify_artist_name ? `Artist: ${m.spotify_artist_name}` : "Artist profile" },
+                    { url: m.track_url, label: m.track_name ?? "Track 1" },
+                    { url: m.track2_url, label: m.track2_name ?? "Track 2" },
+                    { url: m.track3_url, label: m.track3_name ?? "Track 3" },
+                    { url: m.track4_url, label: m.track4_name ?? "Track 4" },
+                    { url: m.track5_url, label: m.track5_name ?? "Track 5" },
                   ]
                     .filter((x) => !!x.url)
                     .map((x) => (
@@ -1218,12 +1219,13 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                         href={x.url as string}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-xs text-primary hover:border-primary/50 hover:underline"
+                        className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-primary hover:border-primary/50"
                       >
-                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                        <span className="min-w-0 flex-1 truncate">{x.label}</span>
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                        <span className="min-w-0 truncate">{x.label}</span>
                       </a>
                     ))}
+                  </div>
 
                   {!m.spotify_artist_url &&
                     !m.track_url &&
