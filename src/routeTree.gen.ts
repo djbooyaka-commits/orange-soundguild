@@ -36,6 +36,7 @@ import { Route as BetaRoomsIndexRouteImport } from './routes/beta-rooms.index'
 import { Route as BetaRoomsRoomIdRouteImport } from './routes/beta-rooms.$roomId'
 import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submit'
 import { Route as GuidePromotionRouteImport } from './routes/guide.promotion'
+import { Route as PlaylistIndexRouteImport } from './routes/playlist.index'
 import { Route as PlaylistPlaylistIdRouteImport } from './routes/playlist.$playlistId'
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
@@ -182,6 +183,11 @@ const GuidePromotionRoute = GuidePromotionRouteImport.update({
   path: '/guide/promotion',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlaylistIndexRoute = PlaylistIndexRouteImport.update({
+  id: '/playlist/',
+  path: '/playlist/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlaylistPlaylistIdRoute = PlaylistPlaylistIdRouteImport.update({
   id: '/playlist/$playlistId',
   path: '/playlist/$playlistId',
@@ -269,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/beta-rooms/': typeof BetaRoomsIndexRoute
+  '/playlist/': typeof PlaylistIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
@@ -308,6 +315,7 @@ export interface FileRoutesByTo {
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/beta-rooms': typeof BetaRoomsIndexRoute
+  '/playlist': typeof PlaylistIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
@@ -348,6 +356,7 @@ export interface FileRoutesById {
   '/t/$trackId': typeof TTrackIdRoute
   '/u/$handle': typeof UHandleRoute
   '/beta-rooms/': typeof BetaRoomsIndexRoute
+  '/playlist/': typeof PlaylistIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
@@ -389,6 +398,7 @@ export interface FileRouteTypes {
     | '/t/$trackId'
     | '/u/$handle'
     | '/beta-rooms/'
+    | '/playlist/'
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/t/$trackId'
     | '/u/$handle'
     | '/beta-rooms'
+    | '/playlist'
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
@@ -467,6 +478,7 @@ export interface FileRouteTypes {
     | '/t/$trackId'
     | '/u/$handle'
     | '/beta-rooms/'
+    | '/playlist/'
     | '/album/$handle/$album'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
@@ -506,6 +518,7 @@ export interface RootRouteChildren {
   TTrackIdRoute: typeof TTrackIdRoute
   UHandleRoute: typeof UHandleRoute
   BetaRoomsIndexRoute: typeof BetaRoomsIndexRoute
+  PlaylistIndexRoute: typeof PlaylistIndexRoute
   AlbumHandleAlbumRoute: typeof AlbumHandleAlbumRoute
   ApiPublicHooksCleanupChatLinksRoute: typeof ApiPublicHooksCleanupChatLinksRoute
   ApiPublicHooksCleanupChatMediaRoute: typeof ApiPublicHooksCleanupChatMediaRoute
@@ -706,6 +719,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuidePromotionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/playlist/': {
+      id: '/playlist/'
+      path: '/playlist'
+      fullPath: '/playlist/'
+      preLoaderRoute: typeof PlaylistIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/playlist/$playlistId': {
       id: '/playlist/$playlistId'
       path: '/playlist/$playlistId'
@@ -820,6 +840,7 @@ const rootRouteChildren: RootRouteChildren = {
   TTrackIdRoute: TTrackIdRoute,
   UHandleRoute: UHandleRoute,
   BetaRoomsIndexRoute: BetaRoomsIndexRoute,
+  PlaylistIndexRoute: PlaylistIndexRoute,
   AlbumHandleAlbumRoute: AlbumHandleAlbumRoute,
   ApiPublicHooksCleanupChatLinksRoute: ApiPublicHooksCleanupChatLinksRoute,
   ApiPublicHooksCleanupChatMediaRoute: ApiPublicHooksCleanupChatMediaRoute,

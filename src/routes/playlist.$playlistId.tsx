@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ListMusic, Pause, Play, Share2 } from "lucide-react";
+import { BookmarkCheck, BookmarkPlus, ListMusic, Pause, Play, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveTracksByIds } from "@/lib/playlists";
+import { resolveTracksByIds, savePlaylistToLibrary } from "@/lib/playlists";
+import { useAuth } from "@/hooks/useAuth";
+import { Navbar } from "@/components/Navbar";
 import { signMany } from "@/lib/signMedia";
 import { formatArtistLine, type Track } from "@/lib/tracks";
 import { usePlayer } from "@/components/player/PlayerContext";
@@ -22,13 +24,38 @@ export const Route = createFileRoute("/playlist/$playlistId")({
   component: PlaylistPage,
 });
 
-type Info = { name: string; owner: string | null; cover: string | null; tracks: Track[] };
+type Info = { ownerId: string; name: string; owner: string | null; cover: string | null; tracks: Track[] };
 
 function PlaylistPage() {
   const { playlistId } = Route.useParams();
   const [info, setInfo] = useState<Info | null>(null);
   const [missing, setMissing] = useState(false);
   const { current, isPlaying, play, toggle } = usePlayer();
+  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const save = async () => {
+    if (!info) return;
+    if (!user) {
+      toast.error("Sign in to save playlists.", { action: { label: "Sign in", onClick: () => (window.location.href = "/auth") } });
+      return;
+    }
+    setSaving(true);
+    try {
+      await savePlaylistToLibrary(playlistId, user.id, info.name);
+      setSaved(true);
+      toast.success(`Saved "${info.name}" to your library`, {
+        action: { label: "Open library", onClick: () => (window.location.href = "/library") },
+      });
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (msg.includes("already have")) setSaved(true);
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     let off = false;
@@ -54,6 +81,7 @@ function PlaylistPage() {
       const [cover] = await signMany([{ bucket: "covers", path: pl.cover_art_url }]);
       if (!off)
         setInfo({
+          ownerId: pl.user_id,
           name: pl.name,
           owner: (prof?.username as string | null) ?? null,
           cover: cover ?? tracks[0]?.cover ?? null,
@@ -67,6 +95,10 @@ function PlaylistPage() {
 
   const share = () => {
     const link = window.location.href;
+    if (typeof navigator.share === "function" && window.matchMedia("(pointer: coarse)").matches) {
+      void navigator.share({ title: info?.name ?? "Playlist", url: link }).catch(() => {});
+      return;
+    }
     void navigator.clipboard.writeText(link).then(
       () => toast.success("Playlist link copied"),
       () => toast.error(link),
@@ -74,11 +106,20 @@ function PlaylistPage() {
   };
 
   if (missing)
-    return <div className="mx-auto max-w-3xl px-4 py-16 text-center text-muted-foreground">Playlist not found.</div>;
+    return (
+      <div className="min-h-screen bg-background"><Navbar />
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center text-muted-foreground">Playlist not found.</div>
+      </div>
+    );
   if (!info)
-    return <div className="mx-auto max-w-3xl px-4 py-16 text-center text-muted-foreground">Loading…</div>;
+    return (
+      <div className="min-h-screen bg-background"><Navbar />
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center text-muted-foreground">Loading…</div>
+      </div>
+    );
 
   return (
+    <div className="min-h-screen bg-background pb-40"><Navbar />
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="flex flex-wrap items-end gap-4">
         {info.cover ? (
@@ -100,7 +141,7 @@ function PlaylistPage() {
             {" · "}
             {info.tracks.length} tracks
           </p>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               disabled={!info.tracks.length}
               onClick={() => info.tracks[0] && play(info.tracks[0], info.tracks)}
@@ -112,8 +153,31 @@ function PlaylistPage() {
               onClick={share}
               className="inline-flex items-center gap-1 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:border-primary hover:text-primary"
             >
-              <Share2 className="h-4 w-4" /> Copy link
+              <Share2 className="h-4 w-4" /> Share
             </button>
+            {user?.id === info.ownerId ? (
+              <Link
+                to="/library"
+                className="inline-flex items-center gap-1 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:border-primary hover:text-primary"
+              >
+                Your playlist
+              </Link>
+            ) : saved ? (
+              <Link
+                to="/library"
+                className="inline-flex items-center gap-1 rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary"
+              >
+                <BookmarkCheck className="h-4 w-4" /> Saved
+              </Link>
+            ) : (
+              <button
+                onClick={() => void save()}
+                disabled={saving || !info.tracks.length}
+                className="inline-flex items-center gap-1 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                <BookmarkPlus className="h-4 w-4" /> {saving ? "Saving…" : "Save to library"}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -145,6 +209,7 @@ function PlaylistPage() {
           })
         )}
       </ul>
+    </div>
     </div>
   );
 }

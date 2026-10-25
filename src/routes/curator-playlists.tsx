@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { SubmitTrackCard } from "@/components/SubmitTrackCard";
 import { listPoolPlaylists } from "@/lib/api/curator-submissions.functions";
 import { PLAYLIST_GENRES } from "@/lib/playlist-genres";
+import { PLATFORM_LABELS, type PlaylistPlatform } from "@/lib/playlist-platforms";
+
+const PLATFORM_TABS: Array<"all" | PlaylistPlatform> = ["all", "spotify", "youtube", "tidal", "apple_music", "osg"];
 
 export const Route = createFileRoute("/curator-playlists")({
   head: () => ({
@@ -18,6 +21,8 @@ export const Route = createFileRoute("/curator-playlists")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { platform?: string } =>
+    typeof search.platform === "string" ? { platform: search.platform } : {},
   component: CuratorPlaylistsPage,
 });
 
@@ -28,13 +33,25 @@ type PoolPlaylist = {
   spotify_playlist_id: string;
   image_url: string | null;
   genre?: string | null;
+  platform?: string;
+  external_url?: string | null;
 };
+
+function playlistHref(p: PoolPlaylist) {
+  if (p.external_url) return p.external_url;
+  return `https://open.spotify.com/playlist/${p.spotify_playlist_id}`;
+}
 
 function CuratorPlaylistsPage() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [playlists, setPlaylists] = useState<PoolPlaylist[]>([]);
   const [genre, setGenre] = useState("All");
   const listPool = useServerFn(listPoolPlaylists);
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const platform = PLATFORM_TABS.includes(search.platform as PlaylistPlatform) ? (search.platform as PlaylistPlatform) : "all";
+  const setPlatform = (p: "all" | PlaylistPlatform) =>
+    navigate({ search: p === "all" ? {} : { platform: p }, replace: true });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
@@ -47,7 +64,8 @@ function CuratorPlaylistsPage() {
       .catch(() => setPlaylists([]));
   }, [signedIn, listPool]);
 
-  const shown = genre === "All" ? playlists : playlists.filter((p) => p.genre === genre);
+  const byPlatform = platform === "all" ? playlists : playlists.filter((p) => (p.platform ?? "spotify") === platform);
+  const shown = genre === "All" ? byPlatform : byPlatform.filter((p) => p.genre === genre);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
@@ -56,6 +74,20 @@ function CuratorPlaylistsPage() {
         Every playlist from curators in the Orange Sound Guild Curator Pool. Artist accounts get a free 50-point pass
         each day (resets 00:00 UTC).
       </p>
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Streaming service">
+        {PLATFORM_TABS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            role="tab"
+            aria-selected={platform === p}
+            onClick={() => setPlatform(p)}
+            className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold ${platform === p ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted"}`}
+          >
+            {p === "all" ? "All" : PLATFORM_LABELS[p]}
+          </button>
+        ))}
+      </div>
       <div className="mt-6 space-y-6">
         {signedIn === null ? null : signedIn ? (
           <>
@@ -75,7 +107,9 @@ function CuratorPlaylistsPage() {
               </div>
             )}
             {playlists.length > 0 && shown.length === 0 && (
-              <p className="text-sm text-muted-foreground">No {genre} playlists yet.</p>
+              <p className="text-sm text-muted-foreground">
+                No {genre === "All" ? "" : `${genre} `}playlists{platform === "all" ? "" : ` on ${PLATFORM_LABELS[platform]}`} yet.
+              </p>
             )}
             {shown.length > 0 && (
               <ul className="grid gap-3 sm:grid-cols-2">
@@ -89,16 +123,19 @@ function CuratorPlaylistsPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{p.name}</p>
                       <p className="truncate text-xs text-muted-foreground">@{p.curator_username}</p>
+                      <span className="mr-1 mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                        {PLATFORM_LABELS[(p.platform ?? "spotify") as PlaylistPlatform] ?? "Spotify"}
+                      </span>
                       {p.genre && (
                         <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{p.genre}</span>
                       )}
                     </div>
                     <a
-                      href={`https://open.spotify.com/playlist/${p.spotify_playlist_id}`}
+                      href={playlistHref(p)}
                       target="_blank"
                       rel="noreferrer"
-                      aria-label={`Open ${p.name} on Spotify`}
-                      title="Open on Spotify"
+                      aria-label={`Open ${p.name}`}
+                      title="Open playlist"
                       className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-primary hover:bg-muted"
                     >
                       <ExternalLink className="h-4 w-4" />
