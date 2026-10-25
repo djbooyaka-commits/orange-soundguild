@@ -138,7 +138,7 @@ function PlaylistPage() {
                   <Link to="/t/$trackId" params={{ trackId: t.id }} className="block truncate text-sm font-semibold hover:text-primary">
                     {t.title}
                   </Link>
-                  <p className="truncate text-xs text-muted-foreground">{formatArtistLine(t)}</p>
+                  <p className="truncate text-xs text-muted-foreground">{formatArtistLine(t.artist, t.collaborators)}</p>
                 </div>
               </li>
             );
