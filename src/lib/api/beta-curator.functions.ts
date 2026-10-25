@@ -1,5 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  detectPlaylistPlatform,
+  parseTracklist,
+  PLATFORM_LABELS,
+  type PlaylistPlatform,
+} from "@/lib/playlist-platforms";
 
 /**
  * Curator features for the Last.fm stream tracker rooms:
@@ -485,6 +491,45 @@ export const syncBetaRoomPlaylist = createServerFn({ method: "POST" })
       context.userId,
     );
     return { ok: true, ...result };
+  });
+
+export const setBetaPlaylistTracklist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; name?: string; text: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    name: String(data?.name ?? "").trim().slice(0, 120),
+    text: String(data?.text ?? "").slice(0, 200_000),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: pl } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("id, room_id, spotify_playlist_id")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (!pl) throw new Error("Playlist not found");
+    await assertOwner(supabaseAdmin, pl.room_id as string, context.userId);
+    if (!String(pl.spotify_playlist_id).startsWith("ext-"))
+      throw new Error("Spotify playlists sync automatically — use Sync instead.");
+    const tracks = parseTracklist(data.text);
+    if (tracks.length === 0) throw new Error('Paste one track per line as "Artist - Song"');
+    if (data.name)
+      await supabaseAdmin.from("beta_room_playlists").update({ name: data.name }).eq("id", pl.id);
+    await supabaseAdmin.from("beta_room_tracks").delete().eq("playlist_id", pl.id);
+    const rows = tracks.map((t) => ({
+      room_id: pl.room_id,
+      playlist_id: pl.id,
+      spotify_track_id: `ext:${t.artist.toLowerCase()}|${t.name.toLowerCase()}`.slice(0, 250),
+      track_name: t.name,
+      artist_name: t.artist,
+    }));
+    for (let i = 0; i < rows.length; i += 200) {
+      const { error } = await supabaseAdmin
+        .from("beta_room_tracks")
+        .upsert(rows.slice(i, i + 200), { onConflict: "room_id,playlist_id,spotify_track_id" });
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true, imported: rows.length };
   });
 
 export const removeBetaRoomPlaylist = createServerFn({ method: "POST" })
