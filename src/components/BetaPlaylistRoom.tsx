@@ -1239,20 +1239,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                       </div>
                     )}
 
-                  {/* Last.fm profile */}
-                  {m.lastfm_username ? (
-                    <a
-                      href={`https://www.last.fm/user/${encodeURIComponent(m.lastfm_username)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-2 rounded-md border border-[#D51007]/30 bg-[#D51007]/5 px-2 py-1.5 text-xs hover:border-[#D51007]/60 hover:underline"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-[#D51007]" />
-                      <span className="min-w-0 flex-1 truncate">
-                        Last.fm: {m.lastfm_username}
-                      </span>
-                    </a>
-                  ) : (
+                  {!m.lastfm_username && (
                     <div className="rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted-foreground">
                       Last.fm not connected
                     </div>
