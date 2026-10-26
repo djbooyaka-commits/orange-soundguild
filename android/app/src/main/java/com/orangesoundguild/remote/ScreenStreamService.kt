@@ -67,7 +67,6 @@ class ScreenStreamService : Service() {
 
         @Suppress("DEPRECATION")
         val data: Intent? = intent?.getParcelableExtra(EXTRA_DATA)
-        val code = intent?.getIntExtra(EXTRA_CODE, 0) ?: 0
         if (data == null || capturer != null) return START_NOT_STICKY
 
         PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(this).createInitializationOptions())
@@ -89,7 +88,6 @@ class ScreenStreamService : Service() {
         val h = (b.height().toLong() * w / b.width().coerceAtLeast(1)).toInt()
         cap.startCapture(w, h, 30)
         instance = this
-        code.hashCode()
         return START_NOT_STICKY
     }
 

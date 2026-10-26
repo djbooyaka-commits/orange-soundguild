@@ -2,6 +2,7 @@ package com.orangesoundguild.remote
 
 import android.app.Activity
 import android.content.Intent
+import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -78,6 +79,13 @@ class MainActivity : Activity() {
 
         col.addView(text("Step 3 — Keep it running", 18f, true))
         col.addView(text("These let the phone open apps while the screen is off and keep working at home."))
+        col.addView(text("Live video", 14f, true))
+        col.addView(text("Smooth live screen on the website. Android will ask to share your screen."))
+        col.addView(button("Start live video") {
+            val mpm = getSystemService(MediaProjectionManager::class.java)
+            startActivityForResult(mpm.createScreenCaptureIntent(), 77)
+        })
+        col.addView(button("Stop live video") { stopService(Intent(this, ScreenStreamService::class.java)) })
         col.addView(button("Allow display over other apps") {
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
         })
@@ -93,6 +101,16 @@ class MainActivity : Activity() {
         col.addView(serverInput)
 
         setContentView(ScrollView(this).apply { addView(col) })
+    }
+
+    @Deprecated("Activity result")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 77 && resultCode == RESULT_OK && data != null) {
+            startForegroundService(Intent(this, ScreenStreamService::class.java)
+                .putExtra(ScreenStreamService.EXTRA_CODE, resultCode)
+                .putExtra(ScreenStreamService.EXTRA_DATA, data))
+        }
     }
 
     override fun onResume() { super.onResume(); ui.post(refresh) }
