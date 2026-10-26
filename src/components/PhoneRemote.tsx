@@ -60,6 +60,7 @@ export function PhoneRemote({ userId }: { userId: string }) {
     return () => { void supabase.removeChannel(ch); };
   }, [activeId]);
 
+  const device = devices?.find((d) => d.id === activeId);
   const paired = !!device?.paired;
 
   // Tell the phone someone is watching so it streams its screen (it idles otherwise).
