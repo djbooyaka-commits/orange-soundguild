@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OSG Remote</string>
+    <string name="accessibility_description">Lets you control this phone from your Orange Sound Guild Phone Remote page: taps, swipes, opening apps and web pages, and sending the screen picture.</string>
+</resources>
