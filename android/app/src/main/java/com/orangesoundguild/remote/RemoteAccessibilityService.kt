@@ -42,6 +42,7 @@ class RemoteAccessibilityService : AccessibilityService() {
     @Volatile private var watching = false
     private var lastCommandAt = 0L
     private var pendingFrame: String? = null
+    private var pendingAnswer: JSONObject? = null
     private var screenW = 0
     private var screenH = 0
     private val results = JSONArray()
@@ -81,7 +82,7 @@ class RemoteAccessibilityService : AccessibilityService() {
                 return
             }
 
-            if (watching) {
+            if (watching && ScreenStreamService.instance?.live != true) {
                 captureFrame()?.let { pendingFrame = it }
             }
             if (screenW == 0) updateScreenSize()
@@ -92,6 +93,7 @@ class RemoteAccessibilityService : AccessibilityService() {
                 .put("width", screenW)
                 .put("height", screenH)
             pendingFrame?.let { body.put("frame", it) }
+            pendingAnswer?.let { body.put("answer", it) }
             val sentResults: JSONArray
             synchronized(results) {
                 sentResults = JSONArray(results.toString())
@@ -100,6 +102,7 @@ class RemoteAccessibilityService : AccessibilityService() {
 
             val reply = Api.post(Prefs.server(this), "/api/public/remote/poll", body)
             pendingFrame = null
+            pendingAnswer = null
             synchronized(results) {
                 // Remove only the results that were just delivered.
                 val keep = JSONArray()
@@ -148,6 +151,12 @@ class RemoteAccessibilityService : AccessibilityService() {
         if (running) handler.postDelayed({ tick() }, delay)
     }
 
+    /** Commands arriving over the live video data channel run right away. */
+    fun runRemote(kind: String, p: JSONObject) {
+        if (kind == "webrtc_offer") return
+        handler.post { try { execute(kind, p) } catch (_: Exception) {} }
+    }
+
     // ---------------------------------------------------------------- commands
 
     /** Returns null on success, or an error message. */
@@ -173,6 +182,13 @@ class RemoteAccessibilityService : AccessibilityService() {
             "open_app" -> openApp(p.optString("package"))
             "open_url" -> openUrl(p.optString("url"))
             "type_text" -> typeText(p.optString("text"))
+            "webrtc_offer" -> {
+                val svc = ScreenStreamService.instance
+                    ?: return "Open OSG Remote on the phone and tap \"Start live video\""
+                val sdp = svc.answer(p.optString("sdp"))
+                pendingAnswer = JSONObject().put("session", p.optString("session")).put("sdp", sdp)
+                null
+            }
             else -> "Unknown command: $kind"
         }
     }

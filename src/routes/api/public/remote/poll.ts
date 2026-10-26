@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/public/remote/poll")({
     handlers: {
       POST: async ({ request }) => {
         const body = (await request.json().catch(() => null)) as {
-          deviceId?: unknown; token?: unknown; width?: unknown; height?: unknown; frame?: unknown; results?: unknown;
+          deviceId?: unknown; token?: unknown; width?: unknown; height?: unknown; frame?: unknown; results?: unknown; answer?: unknown;
         } | null;
         const deviceId = typeof body?.deviceId === "string" ? body.deviceId : "";
         const token = typeof body?.token === "string" ? body.token : "";
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/public/remote/poll")({
         }
 
         const now = new Date();
-        const update: { last_seen: string; screen_width?: number; screen_height?: number; last_frame?: string } = { last_seen: now.toISOString() };
+        const update: { last_seen: string; screen_width?: number; screen_height?: number; last_frame?: string; webrtc_answer?: string } = { last_seen: now.toISOString() };
         const w = Number(body?.width), h = Number(body?.height);
         if (Number.isInteger(w) && Number.isInteger(h) && w > 100 && h > 100 && w < 10000 && h < 10000) {
           update.screen_width = w;
@@ -45,6 +45,10 @@ export const Route = createFileRoute("/api/public/remote/poll")({
         }
         if (typeof body?.frame === "string" && body.frame.startsWith("data:image/jpeg;base64,") && body.frame.length <= MAX_FRAME) {
           update.last_frame = body.frame;
+        }
+        const ans = body?.answer as { session?: unknown; sdp?: unknown } | undefined;
+        if (ans && typeof ans.session === "string" && typeof ans.sdp === "string" && ans.sdp.length < 20_000) {
+          update.webrtc_answer = JSON.stringify({ session: ans.session.slice(0, 64), sdp: ans.sdp });
         }
         await supabaseAdmin.from("remote_devices").update(update).eq("id", deviceId);
 

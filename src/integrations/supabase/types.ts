@@ -1686,6 +1686,7 @@ export type Database = {
           screen_height: number
           screen_width: number
           watch_until: string | null
+          webrtc_answer: string | null
         }
         Insert: {
           created_at?: string
@@ -1701,6 +1702,7 @@ export type Database = {
           screen_height?: number
           screen_width?: number
           watch_until?: string | null
+          webrtc_answer?: string | null
         }
         Update: {
           created_at?: string
@@ -1716,6 +1718,7 @@ export type Database = {
           screen_height?: number
           screen_width?: number
           watch_until?: string | null
+          webrtc_answer?: string | null
         }
         Relationships: []
       }
