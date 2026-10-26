@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/public/remote/poll")({
         }
 
         const now = new Date();
-        const update: Record<string, unknown> = { last_seen: now.toISOString() };
+        const update: { last_seen: string; screen_width?: number; screen_height?: number; last_frame?: string } = { last_seen: now.toISOString() };
         const w = Number(body?.width), h = Number(body?.height);
         if (Number.isInteger(w) && Number.isInteger(h) && w > 100 && h > 100 && w < 10000 && h < 10000) {
           update.screen_width = w;
