@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { SubmitTrackCard } from "@/components/SubmitTrackCard";
+import { SubmitTrackCard, type SubmissionPlaylist } from "@/components/SubmitTrackCard";
+import { Button } from "@/components/ui/button";
+import { filterSubmissionPlaylists, resolveSubmissionPlaylistId } from "@/lib/playlist-submission-selection";
 import { listPoolPlaylists } from "@/lib/api/curator-submissions.functions";
 import { PLAYLIST_GENRES } from "@/lib/playlist-genres";
 import { PLATFORM_LABELS, type PlaylistPlatform } from "@/lib/playlist-platforms";
@@ -26,16 +28,7 @@ export const Route = createFileRoute("/curator-playlists")({
   component: CuratorPlaylistsPage,
 });
 
-type PoolPlaylist = {
-  id: string;
-  name: string;
-  curator_username: string;
-  spotify_playlist_id: string;
-  image_url: string | null;
-  genre?: string | null;
-  platform?: string;
-  external_url?: string | null;
-};
+type PoolPlaylist = SubmissionPlaylist;
 
 function playlistHref(p: PoolPlaylist) {
   if (p.external_url) return p.external_url;
@@ -46,6 +39,8 @@ function CuratorPlaylistsPage() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [playlists, setPlaylists] = useState<PoolPlaylist[]>([]);
   const [genre, setGenre] = useState("All");
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState("");
+  const submissionForm = useRef<HTMLDivElement>(null);
   const listPool = useServerFn(listPoolPlaylists);
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -64,8 +59,14 @@ function CuratorPlaylistsPage() {
       .catch(() => setPlaylists([]));
   }, [signedIn, listPool]);
 
-  const byPlatform = platform === "all" ? playlists : playlists.filter((p) => (p.platform ?? "spotify") === platform);
-  const shown = genre === "All" ? byPlatform : byPlatform.filter((p) => p.genre === genre);
+  const shown = filterSubmissionPlaylists(playlists, platform, genre);
+  const activePlaylistId = resolveSubmissionPlaylistId(shown, selectedPlaylistId);
+  const openSubmission = (id: string) => {
+    setSelectedPlaylistId(id);
+    const form = submissionForm.current;
+    form?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
+    form?.querySelector("select")?.focus({ preventScroll: true });
+  };
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
@@ -76,8 +77,9 @@ function CuratorPlaylistsPage() {
       </p>
       <div className="mt-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Streaming service">
         {PLATFORM_TABS.map((p) => (
-          <button
+          <Button
             key={p}
+            variant={platform === p ? "default" : "outline"}
             type="button"
             role="tab"
             aria-selected={platform === p}
@@ -85,24 +87,27 @@ function CuratorPlaylistsPage() {
             className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold ${platform === p ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted"}`}
           >
             {p === "all" ? "All" : PLATFORM_LABELS[p]}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="mt-6 space-y-6">
         {signedIn === null ? null : signedIn ? (
           <>
-            <SubmitTrackCard pool />
+            <div ref={submissionForm} className="scroll-mt-6">
+              <SubmitTrackCard pool playlistOptions={shown} selectedPlaylistId={activePlaylistId} onPlaylistChange={setSelectedPlaylistId} />
+            </div>
             {playlists.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {["All", ...PLAYLIST_GENRES].map((g) => (
-                  <button
+                  <Button
                     key={g}
+                    variant={genre === g ? "default" : "outline"}
                     type="button"
                     onClick={() => setGenre(g)}
                     className={`rounded-full border px-4 py-1.5 text-sm ${genre === g ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted"}`}
                   >
                     {g}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -114,7 +119,8 @@ function CuratorPlaylistsPage() {
             {shown.length > 0 && (
               <ul className="grid gap-3 sm:grid-cols-2">
                 {shown.map((p) => (
-                  <li key={p.id} className="flex min-w-0 items-center gap-3 rounded-lg border border-border bg-card p-3">
+                  <li key={p.id} className={`flex min-w-0 items-center gap-3 rounded-lg border bg-card p-3 ${activePlaylistId === p.id ? "border-primary ring-1 ring-primary/20" : "border-border"}`}>
+                    <Button variant="ghost" onClick={() => openSubmission(p.id)} aria-label={`Submit to ${p.name}`} aria-pressed={activePlaylistId === p.id} className="h-auto min-w-0 flex-1 justify-start gap-3 whitespace-normal p-0 text-left hover:bg-transparent">
                     {p.image_url ? (
                       <img src={p.image_url} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />
                     ) : (
@@ -130,6 +136,8 @@ function CuratorPlaylistsPage() {
                         <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{p.genre}</span>
                       )}
                     </div>
+                    </Button>
+                    <Button asChild variant="outline" size="icon" className="shrink-0 text-primary">
                     <a
                       href={playlistHref(p)}
                       target="_blank"
@@ -140,6 +148,7 @@ function CuratorPlaylistsPage() {
                     >
                       <ExternalLink className="h-4 w-4" />
                     </a>
+                    </Button>
                   </li>
                 ))}
               </ul>
