@@ -73,6 +73,21 @@ export function PhoneRemote({ userId }: { userId: string }) {
     return () => clearInterval(i);
   }, [activeId, paired]);
 
+  // Realtime can't carry large frames, so poll the latest screen while watching.
+  const refreshFrame = useCallback(async () => {
+    if (!activeId) return;
+    const { data } = await supabase.from("remote_devices")
+      .select("last_frame, last_seen, screen_width, screen_height").eq("id", activeId).maybeSingle();
+    if (!data) return;
+    setDevices((ds) => ds?.map((d) => (d.id === activeId && (d.last_frame !== data.last_frame || d.last_seen !== data.last_seen) ? { ...d, ...(data as Partial<Device>) } : d)) ?? ds);
+  }, [activeId]);
+  useEffect(() => {
+    if (!activeId || !paired) return;
+    void refreshFrame();
+    const i = setInterval(() => { if (!document.hidden) void refreshFrame(); }, 1000);
+    return () => clearInterval(i);
+  }, [activeId, paired, refreshFrame]);
+
   async function addDevice() {
     const { error } = await supabase.from("remote_devices").insert({ owner_id: userId });
     if (error) return toast.error(error.message);
@@ -99,7 +114,8 @@ export function PhoneRemote({ userId }: { userId: string }) {
   async function send(kind: string, payload: Record<string, unknown> = {}) {
     if (!device) return;
     const { error } = await supabase.from("remote_commands").insert({ device_id: device.id, owner_id: userId, kind, payload: payload as never });
-    if (error) toast.error(error.message);
+    if (error) return toast.error(error.message);
+    for (const ms of [400, 1000, 2000]) setTimeout(() => void refreshFrame(), ms);
   }
 
   function toPhone(e: React.PointerEvent<HTMLDivElement>) {
