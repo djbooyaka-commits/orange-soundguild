@@ -17,4 +17,4 @@
 - [x] Playlist submissions admin: filter by platform and genre.
 - [x] Curator Playlists: filter submission dropdown by service and genre, and select a playlist from its card.
 - [x] Phone Remote website side (/remote): pairing, live screen, tap/swipe, app/web launcher.
-- [ ] Phone Remote Android app (waiting on user go-ahead).
+- [x] Phone Remote Android app source (android/) + GitHub APK build workflow.

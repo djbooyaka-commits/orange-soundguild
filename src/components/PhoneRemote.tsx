@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type Device = {
-  id: string; name: string; pairing_code: string; paired: boolean;
+  id: string; name: string; pairing_code: string; paired: boolean; pairing_expires_at: string;
   screen_width: number; screen_height: number; last_frame: string | null; last_seen: string | null;
 };
+const DEVICE_COLS = "id, name, pairing_code, paired, pairing_expires_at, screen_width, screen_height, last_frame, last_seen";
 type Command = { id: string; kind: string; payload: unknown; status: string; result: string | null; created_at: string };
 
 const APPS = [
@@ -32,7 +33,7 @@ export function PhoneRemote({ userId }: { userId: string }) {
   const dragStart = useRef<{ x: number; y: number; t: number } | null>(null);
 
   const loadDevices = useCallback(async () => {
-    const { data } = await supabase.from("remote_devices").select("*").order("created_at");
+    const { data } = await supabase.from("remote_devices").select(DEVICE_COLS).order("created_at");
     const list = (data ?? []) as Device[];
     setDevices(list);
     setActiveId((cur) => (list.some((d) => d.id === cur) ? cur : list[0]?.id ?? ""));
@@ -60,9 +61,30 @@ export function PhoneRemote({ userId }: { userId: string }) {
   }, [activeId]);
 
   const device = devices?.find((d) => d.id === activeId);
+  const paired = !!device?.paired;
+
+  // Tell the phone someone is watching so it streams its screen (it idles otherwise).
+  useEffect(() => {
+    if (!activeId || !paired) return;
+    const beat = () => void supabase.from("remote_devices")
+      .update({ watch_until: new Date(Date.now() + 20_000).toISOString() }).eq("id", activeId);
+    beat();
+    const i = setInterval(beat, 8000);
+    return () => clearInterval(i);
+  }, [activeId, paired]);
 
   async function addDevice() {
     const { error } = await supabase.from("remote_devices").insert({ owner_id: userId });
+    if (error) return toast.error(error.message);
+    await loadDevices();
+  }
+  async function newCode(id: string) {
+    const bytes = crypto.getRandomValues(new Uint8Array(4));
+    const code = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+    const { error } = await supabase.from("remote_devices").update({
+      pairing_code: code, paired: false, device_token_hash: null, last_frame: null,
+      pairing_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    }).eq("id", id);
     if (error) return toast.error(error.message);
     await loadDevices();
   }
@@ -155,9 +177,15 @@ export function PhoneRemote({ userId }: { userId: string }) {
                 Status: <strong>{isOnline(device) ? "Online" : device.paired ? "Offline" : "Not paired"}</strong>
                 {device.last_seen && <span className="text-muted-foreground"> · last seen {new Date(device.last_seen).toLocaleString()}</span>}
               </p>
-              {!device.paired && (
-                <p className="mt-2 text-sm">Pairing code: <span className="rounded bg-muted px-2 py-1 font-mono text-lg tracking-widest">{device.pairing_code}</span>
-                  <span className="block mt-1 text-muted-foreground">Enter this code in the Orange Sound Guild phone app (signed in with this account).</span></p>
+              {!device.paired ? (
+                new Date(device.pairing_expires_at).getTime() > Date.now() ? (
+                  <p className="mt-2 text-sm">Pairing code: <span className="rounded bg-muted px-2 py-1 font-mono text-lg tracking-widest">{device.pairing_code}</span>
+                    <span className="mt-1 block text-muted-foreground">Enter this code in the OSG Remote phone app. It works for 1 hour.</span></p>
+                ) : (
+                  <p className="mt-2 text-sm text-muted-foreground">This pairing code expired. <Button variant="link" className="h-auto p-0" onClick={() => newCode(device.id)}>Get a new code</Button></p>
+                )
+              ) : (
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => { if (confirm("Disconnect this phone and pair again?")) void newCode(device.id); }}>Pair again</Button>
               )}
             </section>
 

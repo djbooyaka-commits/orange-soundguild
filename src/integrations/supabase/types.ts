@@ -1674,6 +1674,7 @@ export type Database = {
       remote_devices: {
         Row: {
           created_at: string
+          device_token_hash: string | null
           id: string
           last_frame: string | null
           last_seen: string | null
@@ -1681,11 +1682,14 @@ export type Database = {
           owner_id: string
           paired: boolean
           pairing_code: string
+          pairing_expires_at: string
           screen_height: number
           screen_width: number
+          watch_until: string | null
         }
         Insert: {
           created_at?: string
+          device_token_hash?: string | null
           id?: string
           last_frame?: string | null
           last_seen?: string | null
@@ -1693,11 +1697,14 @@ export type Database = {
           owner_id: string
           paired?: boolean
           pairing_code?: string
+          pairing_expires_at?: string
           screen_height?: number
           screen_width?: number
+          watch_until?: string | null
         }
         Update: {
           created_at?: string
+          device_token_hash?: string | null
           id?: string
           last_frame?: string | null
           last_seen?: string | null
@@ -1705,8 +1712,10 @@ export type Database = {
           owner_id?: string
           paired?: boolean
           pairing_code?: string
+          pairing_expires_at?: string
           screen_height?: number
           screen_width?: number
+          watch_until?: string | null
         }
         Relationships: []
       }

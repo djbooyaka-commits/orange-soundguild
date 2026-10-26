@@ -46,6 +46,8 @@ import { Route as ApiPublicHooksCleanupChatLinksRouteImport } from './routes/api
 import { Route as ApiPublicHooksCleanupChatMediaRouteImport } from './routes/api/public/hooks/cleanup-chat-media'
 import { Route as ApiPublicHooksSyncPlaylistTracksRouteImport } from './routes/api/public/hooks/sync-playlist-tracks'
 import { Route as ApiPublicHooksSyncSpotifyPointsRouteImport } from './routes/api/public/hooks/sync-spotify-points'
+import { Route as ApiPublicRemotePairRouteImport } from './routes/api/public/remote/pair'
+import { Route as ApiPublicRemotePollRouteImport } from './routes/api/public/remote/poll'
 import { Route as ApiPublicSpotifyCallbackRouteImport } from './routes/api/public/spotify/callback'
 import { Route as ApiPublicOgTrackTrackIdRouteImport } from './routes/api/public/og/track.$trackId'
 
@@ -238,6 +240,16 @@ const ApiPublicHooksSyncSpotifyPointsRoute =
     path: '/api/public/hooks/sync-spotify-points',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicRemotePairRoute = ApiPublicRemotePairRouteImport.update({
+  id: '/api/public/remote/pair',
+  path: '/api/public/remote/pair',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicRemotePollRoute = ApiPublicRemotePollRouteImport.update({
+  id: '/api/public/remote/poll',
+  path: '/api/public/remote/poll',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSpotifyCallbackRoute =
   ApiPublicSpotifyCallbackRouteImport.update({
     id: '/api/public/spotify/callback',
@@ -288,6 +300,8 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
   '/api/public/hooks/sync-playlist-tracks': typeof ApiPublicHooksSyncPlaylistTracksRoute
   '/api/public/hooks/sync-spotify-points': typeof ApiPublicHooksSyncSpotifyPointsRoute
+  '/api/public/remote/pair': typeof ApiPublicRemotePairRoute
+  '/api/public/remote/poll': typeof ApiPublicRemotePollRoute
   '/api/public/spotify/callback': typeof ApiPublicSpotifyCallbackRoute
   '/api/public/og/track/$trackId': typeof ApiPublicOgTrackTrackIdRoute
 }
@@ -329,6 +343,8 @@ export interface FileRoutesByTo {
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
   '/api/public/hooks/sync-playlist-tracks': typeof ApiPublicHooksSyncPlaylistTracksRoute
   '/api/public/hooks/sync-spotify-points': typeof ApiPublicHooksSyncSpotifyPointsRoute
+  '/api/public/remote/pair': typeof ApiPublicRemotePairRoute
+  '/api/public/remote/poll': typeof ApiPublicRemotePollRoute
   '/api/public/spotify/callback': typeof ApiPublicSpotifyCallbackRoute
   '/api/public/og/track/$trackId': typeof ApiPublicOgTrackTrackIdRoute
 }
@@ -371,6 +387,8 @@ export interface FileRoutesById {
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
   '/api/public/hooks/sync-playlist-tracks': typeof ApiPublicHooksSyncPlaylistTracksRoute
   '/api/public/hooks/sync-spotify-points': typeof ApiPublicHooksSyncSpotifyPointsRoute
+  '/api/public/remote/pair': typeof ApiPublicRemotePairRoute
+  '/api/public/remote/poll': typeof ApiPublicRemotePollRoute
   '/api/public/spotify/callback': typeof ApiPublicSpotifyCallbackRoute
   '/api/public/og/track/$trackId': typeof ApiPublicOgTrackTrackIdRoute
 }
@@ -414,6 +432,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cleanup-chat-media'
     | '/api/public/hooks/sync-playlist-tracks'
     | '/api/public/hooks/sync-spotify-points'
+    | '/api/public/remote/pair'
+    | '/api/public/remote/poll'
     | '/api/public/spotify/callback'
     | '/api/public/og/track/$trackId'
   fileRoutesByTo: FileRoutesByTo
@@ -455,6 +475,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cleanup-chat-media'
     | '/api/public/hooks/sync-playlist-tracks'
     | '/api/public/hooks/sync-spotify-points'
+    | '/api/public/remote/pair'
+    | '/api/public/remote/poll'
     | '/api/public/spotify/callback'
     | '/api/public/og/track/$trackId'
   id:
@@ -496,6 +518,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cleanup-chat-media'
     | '/api/public/hooks/sync-playlist-tracks'
     | '/api/public/hooks/sync-spotify-points'
+    | '/api/public/remote/pair'
+    | '/api/public/remote/poll'
     | '/api/public/spotify/callback'
     | '/api/public/og/track/$trackId'
   fileRoutesById: FileRoutesById
@@ -537,6 +561,8 @@ export interface RootRouteChildren {
   ApiPublicHooksCleanupChatMediaRoute: typeof ApiPublicHooksCleanupChatMediaRoute
   ApiPublicHooksSyncPlaylistTracksRoute: typeof ApiPublicHooksSyncPlaylistTracksRoute
   ApiPublicHooksSyncSpotifyPointsRoute: typeof ApiPublicHooksSyncSpotifyPointsRoute
+  ApiPublicRemotePairRoute: typeof ApiPublicRemotePairRoute
+  ApiPublicRemotePollRoute: typeof ApiPublicRemotePollRoute
   ApiPublicSpotifyCallbackRoute: typeof ApiPublicSpotifyCallbackRoute
   ApiPublicOgTrackTrackIdRoute: typeof ApiPublicOgTrackTrackIdRoute
 }
@@ -802,6 +828,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSyncSpotifyPointsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/remote/pair': {
+      id: '/api/public/remote/pair'
+      path: '/api/public/remote/pair'
+      fullPath: '/api/public/remote/pair'
+      preLoaderRoute: typeof ApiPublicRemotePairRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/remote/poll': {
+      id: '/api/public/remote/poll'
+      path: '/api/public/remote/poll'
+      fullPath: '/api/public/remote/poll'
+      preLoaderRoute: typeof ApiPublicRemotePollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/spotify/callback': {
       id: '/api/public/spotify/callback'
       path: '/api/public/spotify/callback'
@@ -867,6 +907,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksCleanupChatMediaRoute: ApiPublicHooksCleanupChatMediaRoute,
   ApiPublicHooksSyncPlaylistTracksRoute: ApiPublicHooksSyncPlaylistTracksRoute,
   ApiPublicHooksSyncSpotifyPointsRoute: ApiPublicHooksSyncSpotifyPointsRoute,
+  ApiPublicRemotePairRoute: ApiPublicRemotePairRoute,
+  ApiPublicRemotePollRoute: ApiPublicRemotePollRoute,
   ApiPublicSpotifyCallbackRoute: ApiPublicSpotifyCallbackRoute,
   ApiPublicOgTrackTrackIdRoute: ApiPublicOgTrackTrackIdRoute,
 }
