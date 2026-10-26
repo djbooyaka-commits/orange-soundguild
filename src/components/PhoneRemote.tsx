@@ -60,7 +60,6 @@ export function PhoneRemote({ userId }: { userId: string }) {
     return () => { void supabase.removeChannel(ch); };
   }, [activeId]);
 
-  const device = devices?.find((d) => d.id === activeId);
   const paired = !!device?.paired;
 
   // Tell the phone someone is watching so it streams its screen (it idles otherwise).
@@ -177,9 +176,15 @@ export function PhoneRemote({ userId }: { userId: string }) {
                 Status: <strong>{isOnline(device) ? "Online" : device.paired ? "Offline" : "Not paired"}</strong>
                 {device.last_seen && <span className="text-muted-foreground"> · last seen {new Date(device.last_seen).toLocaleString()}</span>}
               </p>
-              {!device.paired && (
-                <p className="mt-2 text-sm">Pairing code: <span className="rounded bg-muted px-2 py-1 font-mono text-lg tracking-widest">{device.pairing_code}</span>
-                  <span className="block mt-1 text-muted-foreground">Enter this code in the Orange Sound Guild phone app (signed in with this account).</span></p>
+              {!device.paired ? (
+                new Date(device.pairing_expires_at).getTime() > Date.now() ? (
+                  <p className="mt-2 text-sm">Pairing code: <span className="rounded bg-muted px-2 py-1 font-mono text-lg tracking-widest">{device.pairing_code}</span>
+                    <span className="mt-1 block text-muted-foreground">Enter this code in the OSG Remote phone app. It works for 1 hour.</span></p>
+                ) : (
+                  <p className="mt-2 text-sm text-muted-foreground">This pairing code expired. <Button variant="link" className="h-auto p-0" onClick={() => newCode(device.id)}>Get a new code</Button></p>
+                )
+              ) : (
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => { if (confirm("Disconnect this phone and pair again?")) void newCode(device.id); }}>Pair again</Button>
               )}
             </section>
 
