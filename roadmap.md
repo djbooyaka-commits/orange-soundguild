@@ -15,3 +15,4 @@
 - [x] Shared playlist page: save to library + /playlist landing.
 - [x] Curator Playlists: platform tabs (Spotify, YouTube, Tidal, Apple Music, OSG) with ?platform= link.
 - [x] Playlist submissions admin: filter by platform and genre.
+- [ ] Curator Playlists: filter submission dropdown by service and genre, and select a playlist from its card.
