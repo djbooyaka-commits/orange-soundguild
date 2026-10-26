@@ -1,0 +1,1 @@
+ALTER TABLE public.remote_devices ADD COLUMN webrtc_answer text;
