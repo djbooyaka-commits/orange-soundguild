@@ -10,16 +10,21 @@ import {
   listPoolPlaylists,
 } from "@/lib/api/curator-submissions.functions";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { resolveSubmissionPlaylistId } from "@/lib/playlist-submission-selection";
 
-type Playlist = {
+export type SubmissionPlaylist = {
   id: string;
-  curator_id: string;
+  curator_id?: string;
   curator_username: string;
   spotify_playlist_id: string;
   name: string;
   image_url: string | null;
-  available_points: number;
+  available_points?: number;
   daily_submission_limit?: number | null;
+  genre?: string | null;
+  platform?: string | null;
+  external_url?: string | null;
 };
 
 type Submission = {
@@ -34,14 +39,19 @@ type Submission = {
   created_at: string;
 };
 
-export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
+export function SubmitTrackCard({ pool = false, playlistOptions, selectedPlaylistId, onPlaylistChange }: {
+  pool?: boolean;
+  playlistOptions?: SubmissionPlaylist[];
+  selectedPlaylistId?: string;
+  onPlaylistChange?: (id: string) => void;
+} = {}) {
   const listJoined = useServerFn(listPlaylistsForSubmission);
   const listPool = useServerFn(listPoolPlaylists);
   const listPlaylists = pool ? listPool : listJoined;
   const listMine = useServerFn(listMyTrackSubmissions);
   const submitFn = useServerFn(submitCuratorTrack);
 
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [playlists, setPlaylists] = useState<SubmissionPlaylist[]>([]);
   const [mine, setMine] = useState<Submission[]>([]);
   const [playlistId, setPlaylistId] = useState<string>("");
   const [trackUrl, setTrackUrl] = useState("");
@@ -59,15 +69,14 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
 
   const refresh = async () => {
     const [pl, m, dp] = await Promise.all([
-      listPlaylists(),
+      playlistOptions ?? listPlaylists(),
       listMine(),
       (supabase as any).rpc("artist_daily_pass_available"),
     ]);
     setDailyPass(Boolean(dp?.data));
-    const sorted = (pl as Playlist[]).sort((a, b) => b.available_points - a.available_points);
+    const sorted = [...(pl as SubmissionPlaylist[])].sort((a, b) => (b.available_points ?? 0) - (a.available_points ?? 0));
     setPlaylists(sorted);
     setMine((m ?? []) as Submission[]);
-    if (!playlistId && sorted.length > 0) setPlaylistId(sorted[0].id);
   };
 
   useEffect(() => {
@@ -75,7 +84,9 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const selected = playlists.find((p) => p.id === playlistId);
+  const visiblePlaylists = playlistOptions ?? playlists;
+  const activePlaylistId = resolveSubmissionPlaylistId(visiblePlaylists, selectedPlaylistId ?? playlistId);
+  const selected = visiblePlaylists.find((p) => p.id === activePlaylistId);
   const recentCount = mine.filter(
     (s) =>
       Date.now() - new Date(s.created_at).getTime() < 24 * 60 * 60 * 1000 &&
@@ -86,10 +97,10 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!playlistId || !trackUrl.trim()) return;
+    if (!activePlaylistId || !trackUrl.trim()) return;
     setBusy(true);
     try {
-      const res = await submitFn({ data: { playlistId, trackUrl, pool } });
+      const res = await submitFn({ data: { playlistId: activePlaylistId, trackUrl, pool } });
       toast.success(
         res.cost === 0
           ? "Submitted with your free daily 50-point artist pass"
@@ -119,10 +130,9 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
           <Music className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="font-semibold">Submit a track</h2>
+          <h2 className="font-semibold">{pool && selected ? `Submit to ${selected.name}` : "Submit a track"}</h2>
           <p className="text-sm text-muted-foreground">
-            Spend points earned from a Curator's playlist to suggest a Spotify track for that same
-            playlist.
+            {pool ? "Send your track to this curator for review." : "Spend points earned from a Curator's playlist to suggest a Spotify track for that same playlist."}
           </p>
         </div>
       </div>
@@ -156,35 +166,38 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
                 <dd className="text-foreground font-semibold">{receipt.newBalance} pts</dd>
               </dl>
             </div>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               type="button"
               onClick={() => setReceipt(null)}
               className="rounded p-1 text-muted-foreground hover:bg-muted"
               aria-label="Dismiss receipt"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
 
-      {playlists.length === 0 ? (
+      {visiblePlaylists.length === 0 ? (
         <div className="mt-4 rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
           {pool
-            ? "No curators have joined the program yet. Check back soon."
+            ? "No playlists match these filters."
             : "You aren't enrolled with any Curators yet. Open a Curator invite link to get started."}
         </div>
       ) : (
         <form onSubmit={submit} className="mt-4 space-y-3">
-          <label className="block text-xs font-medium text-muted-foreground">Playlist</label>
+          <label htmlFor="submission-playlist" className="block text-xs font-medium text-muted-foreground">Playlist</label>
           <select
-            value={playlistId}
-            onChange={(e) => setPlaylistId(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            id="submission-playlist"
+            value={activePlaylistId}
+            onChange={(e) => { setPlaylistId(e.target.value); onPlaylistChange?.(e.target.value); }}
+            className="w-full min-w-0 rounded-md border border-border bg-background px-3 py-2 text-sm"
             disabled={busy}
           >
-            {playlists.map((p) => (
+            {visiblePlaylists.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} — @{p.curator_username}
                 {(p as any).track_hold_days ? ` · stays ${(p as any).track_hold_days} days` : ""}
@@ -226,14 +239,14 @@ export function SubmitTrackCard({ pool = false }: { pool?: boolean } = {}) {
           </div>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={busy || !trackUrl.trim() || recentCount >= dailyLimit}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Submit for review
-          </button>
+          </Button>
         </form>
       )}
 
