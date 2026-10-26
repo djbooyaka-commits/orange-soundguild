@@ -31,6 +31,9 @@ export function PhoneRemote({ userId }: { userId: string }) {
   const [text, setText] = useState("");
   const [, tick] = useState(0);
   const dragStart = useRef<{ x: number; y: number; t: number } | null>(null);
+  const dragPct = useRef<{ x: number; y: number } | null>(null);
+  const [marks, setMarks] = useState<{ id: number; x: number; y: number; long: boolean }[]>([]);
+  const [trail, setTrail] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
 
   const loadDevices = useCallback(async () => {
     const { data } = await supabase.from("remote_devices").select(DEVICE_COLS).order("created_at");
@@ -126,16 +129,43 @@ export function PhoneRemote({ userId }: { userId: string }) {
       y: Math.round(((e.clientY - r.top) / r.height) * (device?.screen_height ?? 2400)),
     };
   }
-  function onDown(e: React.PointerEvent<HTMLDivElement>) { dragStart.current = { ...toPhone(e), t: Date.now() }; }
+  function pct(e: React.PointerEvent<HTMLDivElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 };
+  }
+  function mark(x: number, y: number, long = false) {
+    const id = Date.now() + Math.random();
+    setMarks((ms) => [...ms, { id, x, y, long }]);
+    setTimeout(() => setMarks((ms) => ms.filter((m) => m.id !== id)), 700);
+  }
+  function onDown(e: React.PointerEvent<HTMLDivElement>) {
+    dragStart.current = { ...toPhone(e), t: Date.now() };
+    dragPct.current = pct(e);
+  }
+  function onMove(e: React.PointerEvent<HTMLDivElement>) {
+    const p = dragPct.current; if (!p) return;
+    const c = pct(e);
+    if (Math.hypot(c.x - p.x, c.y - p.y) > 2) setTrail({ x1: p.x, y1: p.y, x2: c.x, y2: c.y });
+  }
   function onUp(e: React.PointerEvent<HTMLDivElement>) {
     const s = dragStart.current; dragStart.current = null;
-    if (!s) return;
+    const p = dragPct.current; dragPct.current = null;
+    if (!s || !p) return;
     const end = toPhone(e);
+    const c = pct(e);
     const dist = Math.hypot(end.x - s.x, end.y - s.y);
     const ms = Date.now() - s.t;
-    if (dist > 30) void send("swipe", { x1: s.x, y1: s.y, x2: end.x, y2: end.y, duration: Math.max(100, ms) });
-    else if (ms > 600) void send("long_press", { x: s.x, y: s.y });
-    else void send("tap", { x: s.x, y: s.y });
+    if (dist > 30) {
+      setTrail({ x1: p.x, y1: p.y, x2: c.x, y2: c.y });
+      setTimeout(() => setTrail(null), 500);
+      mark(c.x, c.y);
+      void send("swipe", { x1: s.x, y1: s.y, x2: end.x, y2: end.y, duration: Math.max(100, ms) });
+    } else {
+      setTrail(null);
+      mark(p.x, p.y, ms > 600);
+      if (ms > 600) void send("long_press", { x: s.x, y: s.y });
+      else void send("tap", { x: s.x, y: s.y });
+    }
   }
 
   if (devices === null) return <Loader2 aria-label="Loading phones" className="h-6 w-6 animate-spin text-muted-foreground" />;
@@ -173,6 +203,17 @@ export function PhoneRemote({ userId }: { userId: string }) {
                 <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
                   {device.paired ? "Waiting for the phone to send its screen…" : "Pair your phone to see its screen here."}
                 </div>
+              )}
+              {marks.map((m) => (
+                <span key={m.id} className="pointer-events-none absolute" style={{ left: `${m.x}%`, top: `${m.y}%` }}>
+                  <span className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-primary/30 animate-ping ${m.long ? "h-12 w-12" : "h-8 w-8"}`} />
+                  <span className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
+                </span>
+              ))}
+              {trail && (
+                <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <line x1={trail.x1} y1={trail.y1} x2={trail.x2} y2={trail.y2} className="stroke-primary" strokeWidth="1.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 4 }} />
+                </svg>
               )}
             </div>
             <div className="mx-auto mt-3 flex max-w-[360px] justify-center gap-2">
