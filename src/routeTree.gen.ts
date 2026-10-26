@@ -23,6 +23,7 @@ import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as PlaylistSubmitRouteImport } from './routes/playlist-submit'
 import { Route as PostsRouteImport } from './routes/posts'
 import { Route as ReferralsRouteImport } from './routes/referrals'
+import { Route as RemoteRouteImport } from './routes/remote'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RoyaltiesRouteImport } from './routes/royalties'
 import { Route as SearchRouteImport } from './routes/search'
@@ -116,6 +117,11 @@ const PostsRoute = PostsRouteImport.update({
 const ReferralsRoute = ReferralsRouteImport.update({
   id: '/referrals',
   path: '/referrals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RemoteRoute = RemoteRouteImport.update({
+  id: '/remote',
+  path: '/remote',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -259,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/playlist-submit': typeof PlaylistSubmitRoute
   '/posts': typeof PostsRoute
   '/referrals': typeof ReferralsRoute
+  '/remote': typeof RemoteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/playlist-submit': typeof PlaylistSubmitRoute
   '/posts': typeof PostsRoute
   '/referrals': typeof ReferralsRoute
+  '/remote': typeof RemoteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
@@ -340,6 +348,7 @@ export interface FileRoutesById {
   '/playlist-submit': typeof PlaylistSubmitRoute
   '/posts': typeof PostsRoute
   '/referrals': typeof ReferralsRoute
+  '/remote': typeof RemoteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/royalties': typeof RoyaltiesRoute
   '/search': typeof SearchRoute
@@ -382,6 +391,7 @@ export interface FileRouteTypes {
     | '/playlist-submit'
     | '/posts'
     | '/referrals'
+    | '/remote'
     | '/reset-password'
     | '/royalties'
     | '/search'
@@ -422,6 +432,7 @@ export interface FileRouteTypes {
     | '/playlist-submit'
     | '/posts'
     | '/referrals'
+    | '/remote'
     | '/reset-password'
     | '/royalties'
     | '/search'
@@ -462,6 +473,7 @@ export interface FileRouteTypes {
     | '/playlist-submit'
     | '/posts'
     | '/referrals'
+    | '/remote'
     | '/reset-password'
     | '/royalties'
     | '/search'
@@ -503,6 +515,7 @@ export interface RootRouteChildren {
   PlaylistSubmitRoute: typeof PlaylistSubmitRoute
   PostsRoute: typeof PostsRoute
   ReferralsRoute: typeof ReferralsRoute
+  RemoteRoute: typeof RemoteRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RoyaltiesRoute: typeof RoyaltiesRoute
   SearchRoute: typeof SearchRoute
@@ -626,6 +639,13 @@ declare module '@tanstack/react-router' {
       path: '/referrals'
       fullPath: '/referrals'
       preLoaderRoute: typeof ReferralsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/remote': {
+      id: '/remote'
+      path: '/remote'
+      fullPath: '/remote'
+      preLoaderRoute: typeof RemoteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -825,6 +845,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlaylistSubmitRoute: PlaylistSubmitRoute,
   PostsRoute: PostsRoute,
   ReferralsRoute: ReferralsRoute,
+  RemoteRoute: RemoteRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RoyaltiesRoute: RoyaltiesRoute,
   SearchRoute: SearchRoute,
