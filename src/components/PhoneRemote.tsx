@@ -115,7 +115,8 @@ export function PhoneRemote({ userId }: { userId: string }) {
     if (!device) return;
     const { error } = await supabase.from("remote_commands").insert({ device_id: device.id, owner_id: userId, kind, payload: payload as never });
     if (error) return toast.error(error.message);
-    for (const ms of [400, 1000, 2000]) setTimeout(() => void refreshFrame(), ms);
+    // Fast burst: check for the new screen every 300 ms for ~2.5 s after an action.
+    for (let ms = 300; ms <= 2400; ms += 300) setTimeout(() => void refreshFrame(), ms);
   }
 
   function toPhone(e: React.PointerEvent<HTMLDivElement>) {
