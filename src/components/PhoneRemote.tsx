@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, Circle, Globe, Home, Loader2, Plus, Power, Rocket, Square, Trash2 } from "lucide-react";
+import { ArrowLeft, Camera, Video, VideoOff, Circle, Globe, Home, Loader2, Plus, Power, Rocket, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,10 @@ export function PhoneRemote({ userId }: { userId: string }) {
   const dragStart = useRef<{ x: number; y: number; t: number } | null>(null);
   const dragPct = useRef<{ x: number; y: number } | null>(null);
   const [marks, setMarks] = useState<{ id: number; x: number; y: number; long: boolean }[]>([]);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const dcRef = useRef<RTCDataChannel | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [live, setLive] = useState<"off" | "connecting" | "on">("off");
   const [trail, setTrail] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
 
   const loadDevices = useCallback(async () => {
@@ -114,8 +118,61 @@ export function PhoneRemote({ userId }: { userId: string }) {
   async function rename(id: string, name: string) {
     await supabase.from("remote_devices").update({ name }).eq("id", id);
   }
+  function stopLive() {
+    pcRef.current?.close(); pcRef.current = null; dcRef.current = null; setLive("off");
+  }
+  useEffect(() => () => stopLive(), [activeId]);
+
+  async function goLive() {
+    if (!device) return;
+    stopLive();
+    setLive("connecting");
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+    pcRef.current = pc;
+    pc.addTransceiver("video", { direction: "recvonly" });
+    const dc = pc.createDataChannel("control");
+    dc.onopen = () => { dcRef.current = dc; };
+    dc.onclose = () => { if (dcRef.current === dc) dcRef.current = null; };
+    pc.ontrack = (e) => {
+      if (videoRef.current) { videoRef.current.srcObject = e.streams[0] ?? new MediaStream([e.track]); void videoRef.current.play().catch(() => {}); }
+      setLive("on");
+    };
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+        if (pcRef.current === pc) { stopLive(); toast.error("Live video stopped. Showing pictures instead."); }
+      }
+    };
+    await pc.setLocalDescription(await pc.createOffer());
+    await new Promise<void>((res) => {
+      if (pc.iceGatheringState === "complete") return res();
+      pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === "complete") res(); };
+      setTimeout(res, 3000);
+    });
+    const session = crypto.randomUUID();
+    const { error } = await supabase.from("remote_commands").insert({
+      device_id: device.id, owner_id: userId, kind: "webrtc_offer",
+      payload: { session, sdp: pc.localDescription?.sdp ?? "" } as never,
+    });
+    if (error) { stopLive(); return toast.error(error.message); }
+    const deadline = Date.now() + 25_000;
+    while (pcRef.current === pc && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 700));
+      const { data } = await supabase.from("remote_devices").select("webrtc_answer").eq("id", device.id).maybeSingle();
+      try {
+        const a = data?.webrtc_answer ? (JSON.parse(data.webrtc_answer) as { session: string; sdp: string }) : null;
+        if (a?.session === session) { await pc.setRemoteDescription({ type: "answer", sdp: a.sdp }); return; }
+      } catch { /* keep waiting */ }
+    }
+    if (pcRef.current === pc) {
+      stopLive();
+      toast.error("The phone didn't answer. On the phone, open OSG Remote and tap \"Start live video\" first.");
+    }
+  }
+
   async function send(kind: string, payload: Record<string, unknown> = {}) {
     if (!device) return;
+    const dc = dcRef.current;
+    if (dc && dc.readyState === "open") { dc.send(JSON.stringify({ kind, payload })); return; }
     const { error } = await supabase.from("remote_commands").insert({ device_id: device.id, owner_id: userId, kind, payload: payload as never });
     if (error) return toast.error(error.message);
     // Fast burst: check for the new screen every 300 ms for ~2.5 s after an action.
@@ -198,7 +255,8 @@ export function PhoneRemote({ userId }: { userId: string }) {
               className="relative mx-auto w-full max-w-[360px] cursor-crosshair touch-none select-none overflow-hidden rounded-[2rem] border-8 border-foreground/80 bg-muted"
               style={{ aspectRatio: `${device.screen_width} / ${device.screen_height}` }}
             >
-              {device.last_frame ? (
+              <video ref={videoRef} muted playsInline autoPlay className={`absolute inset-0 h-full w-full object-cover ${live === "on" ? "" : "hidden"}`} />
+              {live === "on" ? null : device.last_frame ? (
                 <img src={device.last_frame} alt="Live phone screen" draggable={false} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
@@ -217,11 +275,15 @@ export function PhoneRemote({ userId }: { userId: string }) {
                 </svg>
               )}
             </div>
-            <div className="mx-auto mt-3 flex max-w-[360px] justify-center gap-2">
+            <div className="mx-auto mt-3 flex max-w-[360px] flex-wrap justify-center gap-2">
               <Button variant="outline" size="icon" aria-label="Back" onClick={() => send("back")}><ArrowLeft className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" aria-label="Home" onClick={() => send("home")}><Home className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" aria-label="Recent apps" onClick={() => send("recents")}><Square className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" aria-label="Wake screen" onClick={() => send("wake")}><Power className="h-4 w-4" /></Button>
+              <Button variant={live === "off" ? "default" : "secondary"} size="sm" disabled={!paired || live === "connecting"} onClick={() => (live === "off" ? void goLive() : stopLive())}>
+                {live === "connecting" ? <Loader2 className="h-4 w-4 animate-spin" /> : live === "on" ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                {live === "on" ? "Stop live" : live === "connecting" ? "Connecting" : "Go live"}
+              </Button>
               <Button variant="outline" size="icon" aria-label="Take screenshot" onClick={() => send("screenshot")}><Camera className="h-4 w-4" /></Button>
             </div>
           </div>
