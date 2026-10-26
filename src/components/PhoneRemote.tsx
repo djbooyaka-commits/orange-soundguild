@@ -308,6 +308,7 @@ export function PhoneRemote({ userId }: { userId: string }) {
               ) : (
                 <Button variant="outline" size="sm" className="mt-3" onClick={() => { if (confirm("Disconnect this phone and pair again?")) void newCode(device.id); }}>Pair again</Button>
               )}
+              <a href="https://github.com/djbooyaka-commits/orange-soundguild/releases/tag/osg-remote-latest" target="_blank" rel="noopener noreferrer" className="mt-3 block text-sm font-medium text-primary underline underline-offset-4">Download the OSG Remote phone app (APK)</a>
             </section>
 
             <section className="rounded-xl border border-border p-4">
