@@ -1630,6 +1630,86 @@ export type Database = {
           },
         ]
       }
+      remote_commands: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          kind: string
+          owner_id: string
+          payload: Json
+          result: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          kind: string
+          owner_id: string
+          payload?: Json
+          result?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          kind?: string
+          owner_id?: string
+          payload?: Json
+          result?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remote_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "remote_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      remote_devices: {
+        Row: {
+          created_at: string
+          id: string
+          last_frame: string | null
+          last_seen: string | null
+          name: string
+          owner_id: string
+          paired: boolean
+          pairing_code: string
+          screen_height: number
+          screen_width: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_frame?: string | null
+          last_seen?: string | null
+          name?: string
+          owner_id: string
+          paired?: boolean
+          pairing_code?: string
+          screen_height?: number
+          screen_width?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_frame?: string | null
+          last_seen?: string | null
+          name?: string
+          owner_id?: string
+          paired?: boolean
+          pairing_code?: string
+          screen_height?: number
+          screen_width?: number
+        }
+        Relationships: []
+      }
       room_chat_messages: {
         Row: {
           body: string
@@ -2710,6 +2790,7 @@ export type Database = {
         Returns: string
       }
       osg_set_weekly_min: { Args: { _min: number }; Returns: number }
+      pair_remote_device: { Args: { p_code: string }; Returns: string }
       purge_expired_posts: { Args: never; Returns: number }
       record_track_play: { Args: { p_track_id: string }; Returns: undefined }
       request_payout: {
