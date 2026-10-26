@@ -256,11 +256,14 @@ class RemoteAccessibilityService : AccessibilityService() {
                             screenW = hw.width
                             screenH = hw.height
                             val soft = hw.copy(Bitmap.Config.ARGB_8888, false)
-                            val w = 540
+                            // Small, light frames (~20-25 KB) upload and display much faster.
+                            val w = 400
                             val h = (soft.height.toLong() * w / soft.width).toInt()
                             val scaled = Bitmap.createScaledBitmap(soft, w, h, true)
+                            soft.recycle()
                             val bytes = ByteArrayOutputStream()
-                            scaled.compress(Bitmap.CompressFormat.JPEG, 55, bytes)
+                            scaled.compress(Bitmap.CompressFormat.JPEG, 40, bytes)
+                            scaled.recycle()
                             out = "data:image/jpeg;base64," + Base64.encodeToString(bytes.toByteArray(), Base64.NO_WRAP)
                         }
                     } catch (_: Exception) {
