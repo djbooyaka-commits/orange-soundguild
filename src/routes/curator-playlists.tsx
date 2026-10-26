@@ -79,6 +79,7 @@ function CuratorPlaylistsPage() {
         {PLATFORM_TABS.map((p) => (
           <Button
             key={p}
+            variant={platform === p ? "default" : "outline"}
             type="button"
             role="tab"
             aria-selected={platform === p}
@@ -100,6 +101,7 @@ function CuratorPlaylistsPage() {
                 {["All", ...PLAYLIST_GENRES].map((g) => (
                   <Button
                     key={g}
+                    variant={genre === g ? "default" : "outline"}
                     type="button"
                     onClick={() => setGenre(g)}
                     className={`rounded-full border px-4 py-1.5 text-sm ${genre === g ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted"}`}
