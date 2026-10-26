@@ -114,7 +114,8 @@ export function PhoneRemote({ userId }: { userId: string }) {
   async function send(kind: string, payload: Record<string, unknown> = {}) {
     if (!device) return;
     const { error } = await supabase.from("remote_commands").insert({ device_id: device.id, owner_id: userId, kind, payload: payload as never });
-    if (error) toast.error(error.message);
+    if (error) return toast.error(error.message);
+    for (const ms of [400, 1000, 2000]) setTimeout(() => void refreshFrame(), ms);
   }
 
   function toPhone(e: React.PointerEvent<HTMLDivElement>) {
