@@ -193,6 +193,7 @@ export function PhoneRemote({ userId }: { userId: string }) {
               role="application"
               aria-label="Phone screen — click to tap, drag to swipe"
               onPointerDown={onDown}
+              onPointerMove={onMove}
               onPointerUp={onUp}
               className="relative mx-auto w-full max-w-[360px] cursor-crosshair touch-none select-none overflow-hidden rounded-[2rem] border-8 border-foreground/80 bg-muted"
               style={{ aspectRatio: `${device.screen_width} / ${device.screen_height}` }}
