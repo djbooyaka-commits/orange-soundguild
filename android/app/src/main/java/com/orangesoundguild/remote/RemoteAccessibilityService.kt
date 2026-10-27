@@ -36,7 +36,10 @@ class RemoteAccessibilityService : AccessibilityService() {
         @Volatile private var autoAcceptUntil = 0L
 
         /** Called right before we show Android's screen-cast prompt; auto-accepts it for ~20 s. */
-        fun armAutoAccept() { autoAcceptUntil = System.currentTimeMillis() + 20_000L }
+        fun armAutoAccept() {
+            autoAcceptUntil = System.currentTimeMillis() + 20_000L
+            instance?.entireChosen = false
+        }
     }
 
     private var lastAutoClickAt = 0L
@@ -47,28 +50,65 @@ class RemoteAccessibilityService : AccessibilityService() {
             pkg.contains("permissioncontroller") || pkg == "android"
     }
 
-    private fun findAcceptButton(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        // The dialog's positive button is android:id/button1 on most phones.
-        root.findAccessibilityNodeInfosByViewId("android:id/button1").firstOrNull { it.isClickable }?.let { return it }
-        val labels = listOf("Start now", "Start", "Allow", "Share screen", "Entire screen")
+    private var entireChosen = false
+
+    private fun clickableFor(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
+        var n = node
+        while (n != null && !n.isClickable) n = n.parent
+        return n
+    }
+
+    private fun findByLabels(root: AccessibilityNodeInfo, labels: List<String>): AccessibilityNodeInfo? {
         for (label in labels) {
-            val match = root.findAccessibilityNodeInfosByText(label).firstOrNull {
-                it.isEnabled && it.text?.toString()?.equals(label, ignoreCase = true) == true
-            } ?: continue
-            var n: AccessibilityNodeInfo? = match
-            while (n != null && !n.isClickable) n = n.parent
-            if (n != null) return n
+            root.findAccessibilityNodeInfosByText(label).firstOrNull {
+                it.isEnabled && it.text?.toString()?.trim()?.equals(label, ignoreCase = true) == true
+            }?.let { return it }
         }
         return null
     }
 
+    private val entireLabels = listOf("Entire screen", "Share entire screen", "Record entire screen", "Full screen", "Whole screen")
+    private val singleLabels = listOf("A single app", "Single app", "One app", "Share one app", "Record one app")
+
+    private fun findAcceptButton(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        // The dialog's positive button is android:id/button1 on most phones.
+        root.findAccessibilityNodeInfosByViewId("android:id/button1").firstOrNull { it.isClickable && it.isEnabled }?.let { return it }
+        return clickableFor(findByLabels(root, listOf("Start now", "Start", "Next", "Allow", "Share screen")))
+    }
+
+    /** Android 14+: make sure "Entire screen" is chosen before confirming. Returns true if it acted. */
+    private fun ensureEntireScreen(root: AccessibilityNodeInfo): Boolean {
+        if (entireChosen) return false
+        val entire = findByLabels(root, entireLabels)
+        val single = findByLabels(root, singleLabels)
+        if (entire != null) {
+            // Radio/list option visible (or dropdown open): pick it unless already selected.
+            val target = clickableFor(entire)
+            if (target != null && !(target.isChecked || target.isSelected || entire.isChecked)) {
+                // If only the spinner label shows "Entire screen" and no single-app option exists, it's already chosen.
+                if (single != null || target.className?.toString()?.contains("Spinner") != true) {
+                    target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                }
+            }
+            entireChosen = true
+            return true
+        }
+        if (single != null) {
+            // Dropdown currently set to "A single app": open it so the options appear.
+            clickableFor(single)?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            return true
+        }
+        return false
+    }
+
     private fun tryAutoAccept(event: AccessibilityEvent) {
-        if (System.currentTimeMillis() > autoAcceptUntil) return
+        if (System.currentTimeMillis() > autoAcceptUntil) { entireChosen = false; return }
         if (!isCastPromptPackage(event.packageName?.toString())) return
         val now = System.currentTimeMillis()
-        if (now - lastAutoClickAt < 400) return
+        if (now - lastAutoClickAt < 500) return
         val root = rootInActiveWindow ?: return
         if (!isCastPromptPackage(root.packageName?.toString())) return
+        if (ensureEntireScreen(root)) { lastAutoClickAt = now; return }
         val button = findAcceptButton(root) ?: return
         lastAutoClickAt = now
         button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
