@@ -55,10 +55,12 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
             printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/osg-release.keystore"
-            echo "OSG_KEYSTORE=$RUNNER_TEMP/osg-release.keystore" >> "$GITHUB_ENV"
-            echo "OSG_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
-            echo "OSG_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-            echo "OSG_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+            {
+              echo "OSG_KEYSTORE=$RUNNER_TEMP/osg-release.keystore"
+              echo "OSG_STORE_PASSWORD=$STORE_PASSWORD"
+              echo "OSG_KEY_ALIAS=$KEY_ALIAS"
+              echo "OSG_KEY_PASSWORD=$KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
           elif [ "$CACHE_HIT" != "true" ]; then
             if gh release download osg-remote-latest --repo "$REPOSITORY" --pattern update.json --dir "$RUNNER_TEMP/previous-update" >/dev/null 2>&1; then
               echo "Signing cache is missing. Restore the original signing key with GitHub signing secrets; refusing to publish an incompatible update."
