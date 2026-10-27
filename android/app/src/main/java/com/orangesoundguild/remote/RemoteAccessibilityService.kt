@@ -36,7 +36,10 @@ class RemoteAccessibilityService : AccessibilityService() {
         @Volatile private var autoAcceptUntil = 0L
 
         /** Called right before we show Android's screen-cast prompt; auto-accepts it for ~20 s. */
-        fun armAutoAccept() { autoAcceptUntil = System.currentTimeMillis() + 20_000L }
+        fun armAutoAccept() {
+            autoAcceptUntil = System.currentTimeMillis() + 20_000L
+            instance?.entireChosen = false
+        }
     }
 
     private var lastAutoClickAt = 0L
