@@ -12,18 +12,29 @@ android {
         // Android 11+ is required: screenshots come from the accessibility service.
         minSdk = 30
         targetSdk = 34
-        versionCode = 5
-        versionName = "2.3"
+        versionCode = 6
+        versionName = "2.4"
         buildConfigField("String", "SERVER_URL", "\"https://orangesoundguild.com\"")
     }
 
     buildFeatures { buildConfig = true }
 
+    signingConfigs {
+        if (!System.getenv("OSG_KEYSTORE").isNullOrBlank()) {
+            create("stableRelease") {
+                storeFile = file(System.getenv("OSG_KEYSTORE"))
+                storePassword = System.getenv("OSG_STORE_PASSWORD")
+                keyAlias = System.getenv("OSG_KEY_ALIAS")
+                keyPassword = System.getenv("OSG_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Signed with the debug key so the APK installs without a keystore setup.
-            signingConfig = signingConfigs.getByName("debug")
+            // CI reuses a cached fallback key, or a durable key supplied in GitHub secrets.
+            signingConfig = signingConfigs.findByName("stableRelease") ?: signingConfigs.getByName("debug")
         }
     }
 
@@ -35,5 +46,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.core:core:1.13.1")
     implementation("io.getstream:stream-webrtc-android:1.1.3")
+    testImplementation("junit:junit:4.13.2")
 }

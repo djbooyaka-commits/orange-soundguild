@@ -28,6 +28,7 @@ class MainActivity : Activity() {
     private lateinit var codeInput: EditText
     private lateinit var pairButton: Button
     private lateinit var unpairButton: Button
+    private lateinit var updater: AppUpdater
     private val ui = Handler(Looper.getMainLooper())
     private val refresh = object : Runnable {
         override fun run() { render(); ui.postDelayed(this, 1000) }
@@ -54,6 +55,18 @@ class MainActivity : Activity() {
         }
         col.addView(text("OSG Remote", 28f, true))
         col.addView(text("Control this phone from the Phone Remote page on Orange Sound Guild."))
+
+        col.addView(text("App updates — version ${BuildConfig.VERSION_NAME}", 18f, true))
+        val updateStatus = text("")
+        val updateButton = button("Check for updates") { updater.check() }
+        col.addView(updateStatus)
+        col.addView(updateButton)
+        updater = AppUpdater(this) { message, label, action ->
+            updateStatus.text = message
+            updateButton.text = label ?: "Please wait…"
+            updateButton.isEnabled = action != null
+            updateButton.setOnClickListener { action?.invoke() }
+        }
 
         statusView = text("", 16f, true)
         col.addView(statusView)
@@ -109,6 +122,7 @@ class MainActivity : Activity() {
         col.addView(serverInput)
 
         setContentView(ScrollView(this).apply { addView(col) })
+        updater.check()
     }
 
     @Deprecated("Activity result")
@@ -122,8 +136,9 @@ class MainActivity : Activity() {
         }
     }
 
-    override fun onResume() { super.onResume(); ui.post(refresh) }
+    override fun onResume() { super.onResume(); ui.post(refresh); updater.resume() }
     override fun onPause() { super.onPause(); ui.removeCallbacks(refresh) }
+    override fun onDestroy() { updater.close(); super.onDestroy() }
 
     private fun render() {
         val paired = Prefs.deviceId(this) != null

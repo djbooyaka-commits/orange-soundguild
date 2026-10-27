@@ -18,3 +18,4 @@
 - [x] Curator Playlists: filter submission dropdown by service and genre, and select a playlist from its card.
 - [x] Phone Remote website side (/remote): pairing, live screen, tap/swipe, app/web launcher.
 - [x] Phone Remote Android app source (android/) + GitHub APK build workflow.
+- [x] OSG Remote: in-app update check, verified download, Android install confirmation and release metadata (policy tests and updater compilation passed; phone installation requires the GitHub APK).
