@@ -33,6 +33,45 @@ class RemoteAccessibilityService : AccessibilityService() {
     companion object {
         @Volatile var instance: RemoteAccessibilityService? = null
         @Volatile var status: String = "Accessibility service is off"
+        @Volatile private var autoAcceptUntil = 0L
+
+        /** Called right before we show Android's screen-cast prompt; auto-accepts it for ~20 s. */
+        fun armAutoAccept() { autoAcceptUntil = System.currentTimeMillis() + 20_000L }
+    }
+
+    private var lastAutoClickAt = 0L
+
+    private fun isCastPromptPackage(pkg: String?): Boolean {
+        if (pkg == null) return false
+        return pkg.contains("systemui") || pkg.contains("mediaprojection") ||
+            pkg.contains("permissioncontroller") || pkg == "android"
+    }
+
+    private fun findAcceptButton(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        // The dialog's positive button is android:id/button1 on most phones.
+        root.findAccessibilityNodeInfosByViewId("android:id/button1").firstOrNull { it.isClickable }?.let { return it }
+        val labels = listOf("Start now", "Start", "Allow", "Share screen", "Entire screen")
+        for (label in labels) {
+            val match = root.findAccessibilityNodeInfosByText(label).firstOrNull {
+                it.isEnabled && it.text?.toString()?.equals(label, ignoreCase = true) == true
+            } ?: continue
+            var n: AccessibilityNodeInfo? = match
+            while (n != null && !n.isClickable) n = n.parent
+            if (n != null) return n
+        }
+        return null
+    }
+
+    private fun tryAutoAccept(event: AccessibilityEvent) {
+        if (System.currentTimeMillis() > autoAcceptUntil) return
+        if (!isCastPromptPackage(event.packageName?.toString())) return
+        val now = System.currentTimeMillis()
+        if (now - lastAutoClickAt < 400) return
+        val root = rootInActiveWindow ?: return
+        if (!isCastPromptPackage(root.packageName?.toString())) return
+        val button = findAcceptButton(root) ?: return
+        lastAutoClickAt = now
+        button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
     }
 
     private lateinit var thread: HandlerThread
@@ -56,7 +95,9 @@ class RemoteAccessibilityService : AccessibilityService() {
         handler.post { tick() }
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event != null) try { tryAutoAccept(event) } catch (_: Exception) {}
+    }
     override fun onInterrupt() {}
 
     override fun onDestroy() {
