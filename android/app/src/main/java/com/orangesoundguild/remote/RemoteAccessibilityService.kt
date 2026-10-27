@@ -6,10 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Path
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Base64
 import android.view.Display
@@ -39,7 +41,30 @@ class RemoteAccessibilityService : AccessibilityService() {
         fun armAutoAccept() {
             autoAcceptUntil = System.currentTimeMillis() + 20_000L
             instance?.entireChosen = false
+            instance?.startPromptRetries()
         }
+    }
+
+    private val promptHandler = Handler(Looper.getMainLooper())
+    private var lastAcceptKey: String? = null
+    private val promptRetry = object : Runnable {
+        override fun run() {
+            if (System.currentTimeMillis() > autoAcceptUntil) return
+            try { tryAutoAccept() } catch (_: Exception) {}
+            promptHandler.postDelayed(this, 200L)
+        }
+    }
+
+    private fun startPromptRetries() {
+        lastAutoClickAt = 0L
+        lastAcceptKey = null
+        promptHandler.removeCallbacks(promptRetry)
+        promptHandler.postDelayed(promptRetry, 200L)
+    }
+
+    fun stopPromptRetries() {
+        autoAcceptUntil = 0L
+        promptHandler.removeCallbacks(promptRetry)
     }
 
     private var lastAutoClickAt = 0L
@@ -61,7 +86,7 @@ class RemoteAccessibilityService : AccessibilityService() {
     private fun findByLabels(root: AccessibilityNodeInfo, labels: List<String>): AccessibilityNodeInfo? {
         for (label in labels) {
             root.findAccessibilityNodeInfosByText(label).firstOrNull {
-                it.isEnabled && it.text?.toString()?.trim()?.equals(label, ignoreCase = true) == true
+                it.isEnabled && it.isVisibleToUser && it.text?.toString()?.trim()?.equals(label, ignoreCase = true) == true
             }?.let { return it }
         }
         return null
@@ -71,29 +96,30 @@ class RemoteAccessibilityService : AccessibilityService() {
     private val singleLabels = listOf("A single app", "Single app", "One app", "Share one app", "Record one app")
 
     private fun findAcceptButton(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        // The dialog's positive button is android:id/button1 on most phones.
-        root.findAccessibilityNodeInfosByViewId("android:id/button1").firstOrNull { it.isClickable && it.isEnabled }?.let { return it }
-        return clickableFor(findByLabels(root, listOf("Start now", "Start", "Next", "Allow", "Share screen")))
+        // Only capture confirmation labels: never accept unrelated permissions.
+        return clickableFor(findByLabels(root, listOf("Start now", "Start", "Share screen", "Share", "Start sharing", "Start recording", "Continue")))
+            ?.takeIf { it.isEnabled && it.isVisibleToUser }
     }
 
     /** Android 14+: make sure "Entire screen" is chosen before confirming. Returns true if it acted. */
     private fun ensureEntireScreen(root: AccessibilityNodeInfo): Boolean {
-        if (entireChosen) return false
         val entire = findByLabels(root, entireLabels)
         val single = findByLabels(root, singleLabels)
+        if (entireChosen && single == null) return false
         if (entire != null) {
             // Radio/list option visible (or dropdown open): pick it unless already selected.
             val target = clickableFor(entire)
             if (target != null && !(target.isChecked || target.isSelected || entire.isChecked)) {
                 // If only the spinner label shows "Entire screen" and no single-app option exists, it's already chosen.
                 if (single != null || target.className?.toString()?.contains("Spinner") != true) {
-                    target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                    if (!target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
                 }
             }
             entireChosen = true
             return true
         }
         if (single != null) {
+            entireChosen = false
             // Dropdown currently set to "A single app": open it so the options appear.
             clickableFor(single)?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
             return true
@@ -101,17 +127,33 @@ class RemoteAccessibilityService : AccessibilityService() {
         return false
     }
 
-    private fun tryAutoAccept(event: AccessibilityEvent) {
+    private fun tryAutoAccept() {
         if (System.currentTimeMillis() > autoAcceptUntil) { entireChosen = false; return }
-        if (!isCastPromptPackage(event.packageName?.toString())) return
         val now = System.currentTimeMillis()
         if (now - lastAutoClickAt < 500) return
         val root = rootInActiveWindow ?: return
         if (!isCastPromptPackage(root.packageName?.toString())) return
+        // The locally armed window is not enough: verify screen capture content too.
+        val capturePrompt = findByLabels(root, entireLabels + singleLabels) != null ||
+            listOf("recording", "casting", "sharing your screen", "share your screen", "capture your screen")
+                .any { root.findAccessibilityNodeInfosByText(it).isNotEmpty() }
+        if (!capturePrompt) return
         if (ensureEntireScreen(root)) { lastAutoClickAt = now; return }
         val button = findAcceptButton(root) ?: return
         lastAutoClickAt = now
-        button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        val bounds = Rect()
+        button.getBoundsInScreen(bounds)
+        val key = "${button.text}:${bounds.toShortString()}"
+        // Re-find the button each time; a successful node action may be ignored.
+        // The next attempt uses a nonblocking gesture at its current center.
+        if (lastAcceptKey == key || !button.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+            if (!bounds.isEmpty) {
+                val path = Path().apply { moveTo(bounds.exactCenterX(), bounds.exactCenterY()) }
+                dispatchGesture(GestureDescription.Builder()
+                    .addStroke(GestureDescription.StrokeDescription(path, 0, 60L)).build(), null, promptHandler)
+            }
+        }
+        lastAcceptKey = key
     }
 
     private lateinit var thread: HandlerThread
@@ -136,12 +178,13 @@ class RemoteAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event != null) try { tryAutoAccept(event) } catch (_: Exception) {}
+        if (event != null) try { tryAutoAccept() } catch (_: Exception) {}
     }
     override fun onInterrupt() {}
 
     override fun onDestroy() {
         running = false
+        stopPromptRetries()
         instance = null
         status = "Accessibility service is off"
         if (::thread.isInitialized) thread.quitSafely()

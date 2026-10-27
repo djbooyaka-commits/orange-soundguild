@@ -3,8 +3,10 @@ package com.orangesoundguild.remote
 import android.app.Activity
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
+import android.media.projection.MediaProjectionConfig
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -84,7 +86,12 @@ class MainActivity : Activity() {
         col.addView(button("Start live video") {
             val mpm = getSystemService(MediaProjectionManager::class.java)
             RemoteAccessibilityService.armAutoAccept()
-            startActivityForResult(mpm.createScreenCaptureIntent(), 77)
+            val captureIntent = if (Build.VERSION.SDK_INT >= 34) {
+                mpm.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
+            } else {
+                mpm.createScreenCaptureIntent()
+            }
+            startActivityForResult(captureIntent, 77)
         })
         col.addView(button("Stop live video") { stopService(Intent(this, ScreenStreamService::class.java)) })
         col.addView(button("Allow display over other apps") {
@@ -107,6 +114,7 @@ class MainActivity : Activity() {
     @Deprecated("Activity result")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 77) RemoteAccessibilityService.instance?.stopPromptRetries()
         if (requestCode == 77 && resultCode == RESULT_OK && data != null) {
             startForegroundService(Intent(this, ScreenStreamService::class.java)
                 .putExtra(ScreenStreamService.EXTRA_CODE, resultCode)
