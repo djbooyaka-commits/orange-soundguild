@@ -19,11 +19,22 @@ android {
 
     buildFeatures { buildConfig = true }
 
+    signingConfigs {
+        if (!System.getenv("OSG_KEYSTORE").isNullOrBlank()) {
+            create("stableRelease") {
+                storeFile = file(System.getenv("OSG_KEYSTORE"))
+                storePassword = System.getenv("OSG_STORE_PASSWORD")
+                keyAlias = System.getenv("OSG_KEY_ALIAS")
+                keyPassword = System.getenv("OSG_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Signed with the debug key so the APK installs without a keystore setup.
-            signingConfig = signingConfigs.getByName("debug")
+            // CI reuses a cached fallback key, or a durable key supplied in GitHub secrets.
+            signingConfig = signingConfigs.findByName("stableRelease") ?: signingConfigs.getByName("debug")
         }
     }
 

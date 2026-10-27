@@ -42,8 +42,17 @@ class AppUpdater(private val activity: Activity, private val state: (String, Str
                 val conn = connection("${UpdatePolicy.RELEASE_BASE}/update.json?t=${System.currentTimeMillis()}")
                 val json = try {
                     check(conn.responseCode == 200) { "Release information isn't available yet." }
-                    val bytes = conn.inputStream.use { it.readNBytes(16385) }
-                    check(bytes.size <= 16384) { "Invalid release information." }
+                    val bytes = conn.inputStream.use { input ->
+                        val output = java.io.ByteArrayOutputStream()
+                        val buffer = ByteArray(4096)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            check(output.size() + count <= 16384) { "Invalid release information." }
+                            output.write(buffer, 0, count)
+                        }
+                        output.toByteArray()
+                    }
                     JSONObject(String(bytes, Charsets.UTF_8))
                 } finally { conn.disconnect() }
                 val release = Release(json.getLong("versionCode"), json.getString("versionName"), json.getString("sha256"))

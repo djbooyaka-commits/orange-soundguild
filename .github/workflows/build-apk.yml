@@ -30,16 +30,74 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      # Reuse the existing debug-signing setup, but never rotate its key silently.
+      # For long-term distribution, configure ANDROID_KEYSTORE_BASE64 and passwords.
+      - name: Restore fallback signing key
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 == '' }}
+        id: signing-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: osg-remote-signing-v1
+
+      - name: Prepare signing key
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          CACHE_HIT: ${{ steps.signing-cache.outputs.cache-hit }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/osg-release.keystore"
+            echo "OSG_KEYSTORE=$RUNNER_TEMP/osg-release.keystore" >> "$GITHUB_ENV"
+            echo "OSG_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "OSG_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "OSG_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+          elif [ "$CACHE_HIT" != "true" ]; then
+            if gh release download osg-remote-latest --repo "$REPOSITORY" --pattern update.json --dir "$RUNNER_TEMP/previous-update" >/dev/null 2>&1; then
+              echo "Signing cache is missing. Restore the original signing key with GitHub signing secrets; refusing to publish an incompatible update."
+              exit 1
+            fi
+            mkdir -p "$HOME/.android"
+            keytool -genkeypair -keystore "$HOME/.android/debug.keystore" -storepass android -keypass android -alias androiddebugkey -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000 >/dev/null 2>&1
+          fi
+
+      - name: Save fallback signing key before publishing
+        if: ${{ steps.signing-cache.outputs.cache-hit != 'true' && env.OSG_KEYSTORE == '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: osg-remote-signing-v1
+
       - name: Build APK
-        run: gradle assembleRelease --no-daemon
+        run: gradle testReleaseUnitTest assembleRelease --no-daemon
 
       - name: Rename APK
         run: cp app/build/outputs/apk/release/app-release.apk osg-remote.apk
 
+      - name: Generate update metadata
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib, re
+          config = pathlib.Path('app/build.gradle.kts').read_text()
+          metadata = {
+            'versionCode': int(re.search(r'versionCode = (\d+)', config).group(1)),
+            'versionName': re.search(r'versionName = "([^"]+)"', config).group(1),
+            'sha256': hashlib.sha256(pathlib.Path('osg-remote.apk').read_bytes()).hexdigest(),
+          }
+          pathlib.Path('update.json').write_text(json.dumps(metadata))
+          PY
+
       - uses: actions/upload-artifact@v4
         with:
           name: osg-remote-apk
-          path: android/osg-remote.apk
+          path: |
+            android/osg-remote.apk
+            android/update.json
 
       # Stable download link: Releases > "OSG Remote (latest)"
       - name: Publish latest release
@@ -47,4 +105,6 @@ jobs:
         with:
           tag_name: osg-remote-latest
           name: OSG Remote (latest)
-          files: android/osg-remote.apk
+          files: |
+            android/osg-remote.apk
+            android/update.json

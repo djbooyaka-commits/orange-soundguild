@@ -7,6 +7,16 @@ Companion app for the **Phone Remote** page at `/remote` on Orange Sound Guild.
 2. Download `osg-remote.apk` from **Releases → OSG Remote (latest)** (or from the run's Artifacts).
 3. Open the file on your phone and allow "Install unknown apps".
 
+## In-app updates (2.4+)
+- The app checks the fixed GitHub release on launch; **Check for updates** checks again.
+- **Download update** downloads into the app cache, verifies the release SHA-256 and APK package/version/signing certificate, then opens Android's installer.
+- Allow **Install unknown apps** for OSG Remote when asked, return to the app, and press **Install downloaded update**. Android still requires its own Update confirmation.
+- GitHub must make the repository/releases publicly readable. No site login or device token is sent to GitHub.
+- Install 2.4 manually once. Older builds used freshly generated debug keys; if Android rejects this first upgrade, uninstall the old app, install 2.4, then pair and enable Accessibility again. Uninstalling removes pairing data.
+
+### Signing continuity
+The workflow caches its fallback debug keystore before the first updater release and refuses subsequent publication if that cache is missing. GitHub can evict caches, so this fallback is not durable production signing. For reliable long-term releases, back up that same keystore and configure GitHub Actions secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`. A different key cannot update existing installations. Never commit a keystore or credentials. The workflow supports these secrets and does not silently fall back when a configured secret is incomplete.
+
 ## Set up on the phone
 1. On the site: **Phone Remote → Add phone** shows a pairing code (valid 1 hour).
 2. In the app type the code and press **Pair this phone**.
