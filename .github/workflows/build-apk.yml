@@ -15,6 +15,8 @@ jobs:
   apk:
     name: Build OSG Remote APK
     runs-on: ubuntu-latest
+    env:
+      HAS_SIGNING_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     defaults:
       run:
         working-directory: android
@@ -33,7 +35,7 @@ jobs:
       # Reuse the existing debug-signing setup, but never rotate its key silently.
       # For long-term distribution, configure ANDROID_KEYSTORE_BASE64 and passwords.
       - name: Restore fallback signing key
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 == '' }}
+        if: ${{ env.HAS_SIGNING_KEY != 'true' }}
         id: signing-cache
         uses: actions/cache@v4
         with:
