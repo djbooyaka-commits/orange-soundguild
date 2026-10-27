@@ -83,6 +83,7 @@ class MainActivity : Activity() {
         col.addView(text("Smooth live screen on the website. Android will ask to share your screen."))
         col.addView(button("Start live video") {
             val mpm = getSystemService(MediaProjectionManager::class.java)
+            RemoteAccessibilityService.armAutoAccept()
             startActivityForResult(mpm.createScreenCaptureIntent(), 77)
         })
         col.addView(button("Stop live video") { stopService(Intent(this, ScreenStreamService::class.java)) })
