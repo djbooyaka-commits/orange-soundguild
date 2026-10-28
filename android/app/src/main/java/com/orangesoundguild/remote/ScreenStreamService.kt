@@ -26,6 +26,11 @@ import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import org.webrtc.SurfaceTextureHelper
 import org.webrtc.VideoSource
+import org.webrtc.SoftwareVideoEncoderFactory
+import org.webrtc.VideoCodecInfo
+import org.webrtc.VideoEncoder
+import org.webrtc.VideoEncoderFactory
+import org.webrtc.VideoEncoderFallback
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -50,6 +55,7 @@ class ScreenStreamService : Service() {
     private var source: VideoSource? = null
     private var helper: SurfaceTextureHelper? = null
     private var pc: PeerConnection? = null
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
     @Volatile var live = false
         private set
 
@@ -71,7 +77,7 @@ class ScreenStreamService : Service() {
 
         PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(this).createInitializationOptions())
         val f = PeerConnectionFactory.builder()
-            .setVideoEncoderFactory(DefaultVideoEncoderFactory(egl.eglBaseContext, true, true))
+            .setVideoEncoderFactory(SoftwareFallbackEncoderFactory(DefaultVideoEncoderFactory(egl.eglBaseContext, true, false)))
             .setVideoDecoderFactory(DefaultVideoDecoderFactory(egl.eglBaseContext))
             .createPeerConnectionFactory()
         factory = f
@@ -85,8 +91,16 @@ class ScreenStreamService : Service() {
         cap.initialize(helper, this, src.capturerObserver)
         val b = (getSystemService(Context.WINDOW_SERVICE) as WindowManager).maximumWindowMetrics.bounds
         val w = 720
-        val h = (b.height().toLong() * w / b.width().coerceAtLeast(1)).toInt()
-        cap.startCapture(w, h, 30)
+        // Samsung/MediaTek encoders crash on sizes that aren't multiples of 16.
+        val rawH = (b.height().toLong() * w / b.width().coerceAtLeast(1)).toInt()
+        val h = ((rawH + 15) / 16) * 16
+        cap.startCapture(w, h, 24)
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            wakeLock = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "osg:live").apply {
+                setReferenceCounted(false); acquire()
+            }
+        } catch (_: Exception) {}
         instance = this
         return START_NOT_STICKY
     }
@@ -94,6 +108,7 @@ class ScreenStreamService : Service() {
     override fun onDestroy() {
         instance = null
         live = false
+        try { wakeLock?.release() } catch (_: Exception) {}
         try { pc?.close() } catch (_: Exception) {}
         try { capturer?.stopCapture() } catch (_: Exception) {}
         capturer?.dispose()
@@ -174,4 +189,16 @@ class ScreenStreamService : Service() {
         latch.await(5, TimeUnit.SECONDS)
         error?.let { throw IllegalStateException(it) }
     }
+}
+
+/** Wraps hardware encoders so Samsung chips that reject the stream fall back to software VP8. */
+class SoftwareFallbackEncoderFactory(private val hw: VideoEncoderFactory) : VideoEncoderFactory {
+    private val sw = SoftwareVideoEncoderFactory()
+    override fun createEncoder(info: VideoCodecInfo): VideoEncoder? {
+        val s = sw.createEncoder(info)
+        val h = try { hw.createEncoder(info) } catch (_: Exception) { null }
+        return if (h != null && s != null) VideoEncoderFallback(s, h) else h ?: s
+    }
+    override fun getSupportedCodecs(): Array<VideoCodecInfo> =
+        (sw.supportedCodecs + hw.supportedCodecs).distinctBy { it.name }.toTypedArray()
 }
