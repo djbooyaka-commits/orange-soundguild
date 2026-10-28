@@ -306,6 +306,7 @@ class RemoteAccessibilityService : AccessibilityService() {
             "open_app" -> openApp(p.optString("package"))
             "open_url" -> openUrl(p.optString("url"))
             "type_text" -> typeText(p.optString("text"))
+            "multi_sound" -> MultiSound.set(this, p.optBoolean("on", true))
             "webrtc_offer" -> {
                 val svc = ScreenStreamService.instance
                     ?: return "Open OSG Remote on the phone and tap \"Start live video\""

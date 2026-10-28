@@ -12,8 +12,8 @@ android {
         // Android 11+ is required: screenshots come from the accessibility service.
         minSdk = 30
         targetSdk = 34
-        versionCode = 7
-        versionName = "2.5"
+        versionCode = 8
+        versionName = "2.6"
         buildConfigField("String", "SERVER_URL", "\"https://orangesoundguild.com\"")
     }
 
