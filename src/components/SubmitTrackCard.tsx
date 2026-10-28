@@ -65,6 +65,14 @@ export function SubmitTrackCard({ pool = false, playlistOptions, selectedPlaylis
   } | null>(null);
 
 
+  const TRACK_INPUT = {
+    spotify: { label: "Spotify track URL", placeholder: "https://open.spotify.com/track/..." },
+    youtube: { label: "YouTube track / video URL", placeholder: "https://www.youtube.com/watch?v=..." },
+    tidal: { label: "Tidal track URL", placeholder: "https://tidal.com/browse/track/..." },
+    apple_music: { label: "Apple Music track URL", placeholder: "https://music.apple.com/..." },
+    osg: { label: "Orange Sound Guild track URL", placeholder: "https://orangesoundguild.com/t/..." },
+  } as const;
+
   const [dailyPass, setDailyPass] = useState(false);
 
   const refresh = async () => {
@@ -207,13 +215,13 @@ export function SubmitTrackCard({ pool = false, playlistOptions, selectedPlaylis
           </select>
 
           <label className="block text-xs font-medium text-muted-foreground">
-            Spotify track URL
+            {TRACK_INPUT[(selected?.platform ?? "spotify") as keyof typeof TRACK_INPUT]?.label ?? TRACK_INPUT.spotify.label}
           </label>
           <input
             type="url"
             value={trackUrl}
             onChange={(e) => setTrackUrl(e.target.value)}
-            placeholder="https://open.spotify.com/track/..."
+            placeholder={TRACK_INPUT[(selected?.platform ?? "spotify") as keyof typeof TRACK_INPUT]?.placeholder ?? TRACK_INPUT.spotify.placeholder}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             disabled={busy}
           />

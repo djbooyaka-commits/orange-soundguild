@@ -38,6 +38,13 @@ function nameFromSlug(url: string): string | null {
   }
 }
 
+/** Splits a stored "Artist - Title" name so Last.fm/OSG play matching works. */
+function externalTrackNames(full: string | null) {
+  const parts = (full ?? "").split(/\s+[-–—]\s+/);
+  if (parts.length < 2) return { track_name: full };
+  return { artist_name: parts[0].trim(), track_name: parts.slice(1).join(" - ").trim() };
+}
+
 /** Best-effort title lookup for non-Spotify playlist links. */
 async function fetchExternalPlaylistName(
   platform: PlaylistPlatform,
@@ -296,6 +303,7 @@ export async function submitBetaPoolTrack(
   playlistId: string,
   trackId: string,
   trackName: string | null,
+  trackUrl?: string,
 ) {
   const { data: pl } = await supabaseAdmin
     .from("beta_room_playlists")
@@ -363,7 +371,7 @@ export async function submitBetaPoolTrack(
       submitter_user_id: userId,
       owner_id: room.owner_id,
       spotify_track_id: trackId,
-      spotify_track_url: `https://open.spotify.com/track/${trackId}`,
+      spotify_track_url: trackUrl ?? `https://open.spotify.com/track/${trackId}`,
       spotify_track_name: trackName,
       cost_points: cost,
       daily_pass: Boolean(pass),
@@ -1030,17 +1038,18 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: sub } = await supabaseAdmin
       .from("beta_submissions")
-      .select("id, room_id, playlist_id, spotify_track_id, status")
+      .select("id, room_id, playlist_id, spotify_track_id, spotify_track_name, status")
       .eq("id", data.submissionId)
       .maybeSingle();
     if (!sub) throw new Error("Submission not found");
     await assertOwner(supabaseAdmin, sub.room_id as string, context.userId);
+    const isExternal = String(sub.spotify_track_id).startsWith("ext:");
     if (sub.status !== "pending") throw new Error("That submission was already reviewed");
 
     let spotifyNote: string | null = null;
     let addedToSpotify = false;
     let spotifyError: string | null = null;
-    if (data.approve && data.manual) {
+    if (data.approve && (data.manual || isExternal)) {
       addedToSpotify = true;
       spotifyNote = "Approved and marked as added to your playlist.";
     } else if (data.approve) {
@@ -1101,6 +1110,7 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
           room_id: sub.room_id,
           playlist_id: sub.playlist_id,
           spotify_track_id: sub.spotify_track_id,
+          ...(isExternal ? externalTrackNames(sub.spotify_track_name as string | null) : {}),
         },
         { onConflict: "room_id,playlist_id,spotify_track_id" },
       );
