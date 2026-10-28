@@ -312,6 +312,16 @@ export function PhoneRemote({ userId }: { userId: string }) {
             </section>
 
             <section className="rounded-xl border border-border p-4">
+              <h2 className="mb-1 font-semibold">Multi-Sound (Samsung only)</h2>
+              <p className="mb-3 text-sm text-muted-foreground">Let Spotify, Apple Music, YouTube and others play at the same time.</p>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => send("multi_sound", { on: true })}>Turn on</Button>
+                <Button size="sm" variant="outline" onClick={() => send("multi_sound", { on: false })}>Turn off</Button>
+              </div>
+            </section>
+
+
+            <section className="rounded-xl border border-border p-4">
               <h2 className="mb-3 font-semibold">Open an app</h2>
               <div className="flex flex-wrap gap-2">
                 {APPS.map((a) => <Button key={a.pkg} size="sm" variant="secondary" onClick={() => send("open_app", { package: a.pkg })}><Rocket className="h-4 w-4" /> {a.label}</Button>)}
