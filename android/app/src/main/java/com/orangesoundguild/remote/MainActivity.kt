@@ -96,16 +96,7 @@ class MainActivity : Activity() {
         col.addView(text("These let the phone open apps while the screen is off and keep working at home."))
         col.addView(text("Live video", 14f, true))
         col.addView(text("Smooth live screen on the website. Android will ask to share your screen."))
-        col.addView(button("Start live video") {
-            val mpm = getSystemService(MediaProjectionManager::class.java)
-            RemoteAccessibilityService.armAutoAccept()
-            val captureIntent = if (Build.VERSION.SDK_INT >= 34) {
-                mpm.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
-            } else {
-                mpm.createScreenCaptureIntent()
-            }
-            startActivityForResult(captureIntent, 77)
-        })
+        col.addView(button("Start live video") { startLive() })
         col.addView(button("Stop live video") { stopService(Intent(this, ScreenStreamService::class.java)) })
         col.addView(button("Allow display over other apps") {
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
@@ -123,7 +114,30 @@ class MainActivity : Activity() {
 
         setContentView(ScrollView(this).apply { addView(col) })
         updater.check()
+        maybeAutoStart(intent)
     }
+
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); maybeAutoStart(intent) }
+
+    /** The website's "Start live video" button opens this screen with this flag. */
+    private fun maybeAutoStart(i: Intent?) {
+        if (i?.getBooleanExtra(EXTRA_START_LIVE, false) != true) return
+        i.removeExtra(EXTRA_START_LIVE)
+        if (ScreenStreamService.instance == null) ui.postDelayed({ startLive() }, 400)
+    }
+
+    private fun startLive() {
+        val mpm = getSystemService(MediaProjectionManager::class.java)
+        RemoteAccessibilityService.armAutoAccept()
+        val captureIntent = if (Build.VERSION.SDK_INT >= 34) {
+            mpm.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
+        } else {
+            mpm.createScreenCaptureIntent()
+        }
+        startActivityForResult(captureIntent, 77)
+    }
+
+    companion object { const val EXTRA_START_LIVE = "start_live" }
 
     @Deprecated("Activity result")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

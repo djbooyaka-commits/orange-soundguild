@@ -304,6 +304,14 @@ class RemoteAccessibilityService : AccessibilityService() {
                 if (f == null) "Could not take a screenshot (some screens block it)" else { pendingFrame = f; null }
             }
             "open_app" -> openApp(p.optString("package"))
+            "start_live" -> {
+                if (ScreenStreamService.instance != null) null else {
+                    startActivity(Intent(this, MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        .putExtra(MainActivity.EXTRA_START_LIVE, true))
+                    null
+                }
+            }
             "open_url" -> openUrl(p.optString("url"))
             "type_text" -> typeText(p.optString("text"))
             "multi_sound" -> MultiSound.set(this, p.optBoolean("on", true))
