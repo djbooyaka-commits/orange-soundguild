@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import guideShot from "@/assets/osg-remote-start-live.png.asset.json";
 
 type Device = {
   id: string; name: string; pairing_code: string; paired: boolean; pairing_expires_at: string;
@@ -324,8 +325,15 @@ export function PhoneRemote({ userId }: { userId: string }) {
             <section className="rounded-xl border border-border p-4">
               <h2 className="mb-3 font-semibold">Open an app</h2>
               <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => { void send("start_live"); toast.success("Starting live video on the phone… press Go live in a few seconds."); }}><Video className="h-4 w-4" /> Start live video</Button>
+                <Button size="sm" variant="outline" onClick={() => send("open_app", { package: "com.orangesoundguild.remote" })}><Rocket className="h-4 w-4" /> OSG Remote</Button>
                 {APPS.map((a) => <Button key={a.pkg} size="sm" variant="secondary" onClick={() => send("open_app", { package: a.pkg })}><Rocket className="h-4 w-4" /> {a.label}</Button>)}
               </div>
+              <details className="mt-3 rounded-lg bg-muted/50 p-3 text-sm">
+                <summary className="cursor-pointer font-medium">Can't see the screen? Where to tap</summary>
+                <p className="mt-2 text-muted-foreground">Press "OSG Remote" above, scroll down in the app, and tap the circled "Start live video" button. Then press "Go live".</p>
+                <img src={guideShot.url} alt="OSG Remote app with the Start live video button circled" className="mx-auto mt-3 w-full max-w-[240px] rounded-lg border border-border" loading="lazy" />
+              </details>
               <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (pkg.trim()) void send("open_app", { package: pkg.trim() }); }}>
                 <Input value={pkg} onChange={(e) => setPkg(e.target.value)} placeholder="Other app, e.g. com.whatsapp" />
                 <Button type="submit" variant="outline">Open</Button>
