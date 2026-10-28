@@ -85,8 +85,16 @@ class ScreenStreamService : Service() {
         cap.initialize(helper, this, src.capturerObserver)
         val b = (getSystemService(Context.WINDOW_SERVICE) as WindowManager).maximumWindowMetrics.bounds
         val w = 720
-        val h = (b.height().toLong() * w / b.width().coerceAtLeast(1)).toInt()
-        cap.startCapture(w, h, 30)
+        // Samsung/MediaTek encoders crash on sizes that aren't multiples of 16.
+        val rawH = (b.height().toLong() * w / b.width().coerceAtLeast(1)).toInt()
+        val h = ((rawH + 15) / 16) * 16
+        cap.startCapture(w, h, 24)
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            wakeLock = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "osg:live").apply {
+                setReferenceCounted(false); acquire()
+            }
+        } catch (_: Exception) {}
         instance = this
         return START_NOT_STICKY
     }
