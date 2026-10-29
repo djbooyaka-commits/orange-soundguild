@@ -174,8 +174,19 @@ class RemoteAccessibilityService : AccessibilityService() {
         thread = HandlerThread("osg-remote").also { it.start() }
         handler = Handler(thread.looper)
         running = true
+        // Keep the CPU and Wi-Fi awake so the phone stays online while the screen is off.
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            keepAwake = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "osg:remote").apply { setReferenceCounted(false); acquire() }
+            val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+            @Suppress("DEPRECATION")
+            wifiLock = wm.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "osg:remote").apply { setReferenceCounted(false); acquire() }
+        } catch (_: Exception) {}
         handler.post { tick() }
     }
+
+    private var keepAwake: PowerManager.WakeLock? = null
+    private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event != null) try { tryAutoAccept() } catch (_: Exception) {}
@@ -184,6 +195,7 @@ class RemoteAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         running = false
+        try { keepAwake?.release(); wifiLock?.release() } catch (_: Exception) {}
         stopPromptRetries()
         instance = null
         status = "Accessibility service is off"
@@ -270,7 +282,7 @@ class RemoteAccessibilityService : AccessibilityService() {
             }
         } catch (e: Exception) {
             status = "Offline — retrying"
-            delay = 5000L
+            delay = 3000L
         }
         if (running) handler.postDelayed({ tick() }, delay)
     }
