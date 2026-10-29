@@ -10,9 +10,10 @@ export const Route = createFileRoute("/api/public/remote/pair")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const body = (await request.json().catch(() => null)) as { code?: unknown } | null;
+        const body = (await request.json().catch(() => null)) as { code?: unknown; kind?: unknown } | null;
         const code = typeof body?.code === "string" ? body.code.trim().toUpperCase() : "";
         if (!/^[0-9A-F]{6,8}$/.test(code)) return json({ error: "Invalid pairing code" }, 400);
+        const isPc = body?.kind === "pc";
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: rows } = await supabaseAdmin
@@ -32,6 +33,8 @@ export const Route = createFileRoute("/api/public/remote/pair")({
             paired: true,
             device_token_hash: createHash("sha256").update(token).digest("hex"),
             last_seen: new Date().toISOString(),
+            // A used code is never needed again; "PC" marks the device as a computer for the website.
+            ...(isPc ? { pairing_code: "PC" } : {}),
           })
           .eq("id", device.id)
           .eq("paired", false);
