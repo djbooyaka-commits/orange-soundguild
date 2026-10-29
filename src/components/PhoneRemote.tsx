@@ -117,7 +117,10 @@ export function PhoneRemote({ userId }: { userId: string }) {
     await loadDevices();
   }
   async function rename(id: string, name: string) {
-    await supabase.from("remote_devices").update({ name }).eq("id", id);
+    const { error } = await supabase.from("remote_devices").update({ name }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(`Renamed to ${name}`);
+    await loadDevices();
   }
   function stopLive() {
     pcRef.current?.close(); pcRef.current = null; dcRef.current = null; setLive("off");
@@ -292,7 +295,10 @@ export function PhoneRemote({ userId }: { userId: string }) {
           <div className="space-y-5">
             <section className="rounded-xl border border-border p-4">
               <div className="flex items-center justify-between gap-2">
-                <Input defaultValue={device.name} onBlur={(e) => rename(device.id, e.target.value || "My Android phone")} className="max-w-xs" aria-label="Phone name" />
+                <form key={device.id} className="flex flex-1 items-center gap-2" onSubmit={(e) => { e.preventDefault(); const v = String(new FormData(e.currentTarget).get("name") ?? "").trim(); void rename(device.id, v || "My Android phone"); }}>
+                  <Input name="name" defaultValue={device.name} className="max-w-xs" aria-label="Phone name" />
+                  <Button type="submit" variant="outline" size="sm">Save</Button>
+                </form>
                 <Button variant="ghost" size="icon" aria-label="Remove phone" onClick={() => removeDevice(device.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
               <p className="mt-3 text-sm">
