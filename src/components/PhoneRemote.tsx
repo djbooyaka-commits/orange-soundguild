@@ -108,7 +108,7 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
   }, [activeId, paired, refreshFrame]);
 
   async function addDevice(name?: string) {
-    const { error } = await supabase.from("remote_devices").insert(name ? { owner_id: userId, name } : { owner_id: userId });
+    const { error } = await supabase.from("remote_devices").insert(mode === "pc" ? { owner_id: userId, name: name ?? "My PC", screen_width: 1920, screen_height: 1080 } : name ? { owner_id: userId, name } : { owner_id: userId });
     if (error) return toast.error(error.message);
     await loadDevices();
   }
@@ -197,8 +197,8 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
   function toPhone(e: React.PointerEvent<HTMLDivElement>) {
     const r = e.currentTarget.getBoundingClientRect();
     return {
-      x: Math.round(((e.clientX - r.left) / r.width) * (device?.screen_width ?? 1080)),
-      y: Math.round(((e.clientY - r.top) / r.height) * (device?.screen_height ?? 2400)),
+      x: Math.round(((e.clientX - r.left) / r.width) * (isPc && device && device.screen_width <= device.screen_height ? 1920 : device?.screen_width ?? 1080)),
+      y: Math.round(((e.clientY - r.top) / r.height) * (isPc && device && device.screen_width <= device.screen_height ? 1080 : device?.screen_height ?? 2400)),
     };
   }
   function pct(e: React.PointerEvent<HTMLDivElement>) {
@@ -274,7 +274,7 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
               onPointerUp={onUp}
               onContextMenu={(e) => e.preventDefault()}
               className={`relative mx-auto w-full cursor-crosshair touch-none select-none overflow-hidden bg-muted ${isPc ? "rounded-md border-2 border-foreground/90" : "max-w-[360px] rounded-[2rem] border-8 border-foreground/80"}`}
-              style={{ aspectRatio: `${device.screen_width} / ${device.screen_height}` }}
+              style={{ aspectRatio: isPc ? (device.screen_width > device.screen_height ? `${device.screen_width} / ${device.screen_height}` : "16 / 9") : `${device.screen_width} / ${device.screen_height}` }}
             >
               <video ref={videoRef} muted playsInline autoPlay className={`absolute inset-0 h-full w-full object-cover ${live === "on" ? "" : "hidden"}`} />
               {live === "on" ? null : device.last_frame ? (
