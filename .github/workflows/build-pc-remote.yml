@@ -14,15 +14,12 @@ permissions:
 jobs:
   build:
     timeout-minutes: 30
-    continue-on-error: ${{ matrix.os == 'macos-latest' }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
             out: OSG-PC-Remote.exe
-          - os: macos-latest
-            out: OSG-PC-Remote-mac
           - os: ubuntu-latest
             out: OSG-PC-Remote-linux
     runs-on: ${{ matrix.os }}
@@ -73,4 +70,24 @@ jobs:
           name: OSG PC Remote (latest)
           body: Download, open, type the pairing code from orangesoundguild.com/pc-remote. Starts automatically after that.
           files: out/*
+          make_latest: false
+
+  # Mac builds independently and uploads its own file so a slow macOS queue never delays Windows.
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyinstaller mss pillow pyautogui requests
+      - run: pyinstaller --onefile --name OSG-PC-Remote public/pc-remote/osg_pc_remote.py
+      - run: mv dist/OSG-PC-Remote dist/OSG-PC-Remote-mac
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: osg-pc-remote-latest
+          name: OSG PC Remote (latest)
+          files: dist/OSG-PC-Remote-mac
           make_latest: false
