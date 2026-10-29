@@ -52,7 +52,9 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
     const { data } = await supabase.from("remote_devices").select(DEVICE_COLS).order("created_at");
     const list = ((data ?? []) as Device[]).filter((d) => (d.pairing_code === "PC" || /\bPC\b/.test(d.name) && !d.paired) === (mode === "pc"));
     setDevices(list);
-    setActiveId((cur) => (list.some((d) => d.id === cur) ? cur : list[0]?.id ?? ""));
+    // Default to the phone/PC that checked in most recently, so the live one shows first.
+    const best = [...list].sort((a, b) => (Number(b.paired) - Number(a.paired)) || ((b.last_seen ? Date.parse(b.last_seen) : 0) - (a.last_seen ? Date.parse(a.last_seen) : 0)))[0];
+    setActiveId((cur) => (list.some((d) => d.id === cur) ? cur : best?.id ?? ""));
   }, [mode]);
 
   useEffect(() => { void loadDevices(); }, [loadDevices]);
