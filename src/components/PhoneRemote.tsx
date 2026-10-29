@@ -346,15 +346,14 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                 <Button variant="outline" size="sm" className="mt-3" onClick={() => { if (confirm("Disconnect this phone and pair again?")) void newCode(device.id); }}>Pair again</Button>
               )}
               {!isPc && <a href="https://github.com/djbooyaka-commits/orange-soundguild/releases/tag/osg-remote-latest" target="_blank" rel="noopener noreferrer" className="mt-3 block text-sm font-medium text-primary underline underline-offset-4">Download the OSG Remote phone app (APK)</a>}
-              <details className="mt-3 rounded-lg bg-muted/50 p-3 text-sm" open={!device.paired && isPcMode}>
-                <summary className="cursor-pointer font-medium">Set up a PC (Windows, Mac or Linux)</summary>
+              {isPc && <div className="mt-3 rounded-lg bg-muted/50 p-3 text-sm">
+                <p className="font-medium">Set up your PC in 3 steps</p>
                 <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
-                  <li>On the work PC, install Python from python.org (tick "Add Python to PATH").</li>
-                  <li>Download both files into one folder: <a className="text-primary underline" href="/pc-remote/osg_pc_remote.py" download>osg_pc_remote.py</a> and <a className="text-primary underline" href="/pc-remote/start-osg-pc-remote.bat" download>start-osg-pc-remote.bat</a>.</li>
-                  <li>Double-click the .bat file (Mac/Linux: run <code>pip install mss pillow pyautogui requests</code> then <code>python3 osg_pc_remote.py</code>).</li>
-                  <li>Type the pairing code above. Leave the window open; it reconnects by itself.</li>
+                  <li>On the PC, download the app: <a className="font-medium text-primary underline" href="https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest/OSG-PC-Remote.exe">Windows</a> · <a className="text-primary underline" href="https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest/OSG-PC-Remote-mac">Mac</a> · <a className="text-primary underline" href="https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest/OSG-PC-Remote-linux">Linux</a></li>
+                  <li>Open it. If Windows says "protected your PC", click <strong>More info → Run anyway</strong>.</li>
+                  <li>Type the pairing code above. Done — it starts by itself when the PC turns on.</li>
                 </ol>
-              </details>
+              </div>}
             </section>
 
             {isPc ? (
