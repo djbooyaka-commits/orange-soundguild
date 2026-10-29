@@ -31,7 +31,7 @@ const PC_KEYS = [
 
 const isOnline = (d: Device) => !!d.last_seen && Date.now() - new Date(d.last_seen).getTime() < 30_000;
 
-export function PhoneRemote({ userId }: { userId: string }) {
+export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?: "phone" | "pc" }) {
   const [devices, setDevices] = useState<Device[] | null>(null);
   const [activeId, setActiveId] = useState<string>("");
   const [commands, setCommands] = useState<Command[]>([]);
@@ -50,10 +50,10 @@ export function PhoneRemote({ userId }: { userId: string }) {
 
   const loadDevices = useCallback(async () => {
     const { data } = await supabase.from("remote_devices").select(DEVICE_COLS).order("created_at");
-    const list = (data ?? []) as Device[];
+    const list = ((data ?? []) as Device[]).filter((d) => (d.pairing_code === "PC" || /\bPC\b/.test(d.name) && !d.paired) === (mode === "pc"));
     setDevices(list);
     setActiveId((cur) => (list.some((d) => d.id === cur) ? cur : list[0]?.id ?? ""));
-  }, []);
+  }, [mode]);
 
   useEffect(() => { void loadDevices(); }, [loadDevices]);
   useEffect(() => { const i = setInterval(() => tick((n) => n + 1), 5000); return () => clearInterval(i); }, []);
@@ -78,7 +78,8 @@ export function PhoneRemote({ userId }: { userId: string }) {
 
   const device = devices?.find((d) => d.id === activeId);
   const paired = !!device?.paired;
-  const isPc = device?.pairing_code === "PC";
+  const isPcMode = mode === "pc";
+  const isPc = isPcMode;
   const [pcClick, setPcClick] = useState<"left" | "double" | "right">("left");
 
   // Tell the phone someone is watching so it streams its screen (it idles otherwise).
@@ -250,18 +251,21 @@ export function PhoneRemote({ userId }: { userId: string }) {
             <Circle className={`h-2.5 w-2.5 ${isOnline(d) ? "fill-primary text-primary" : "text-muted-foreground"}`} /> {d.name}
           </Button>
         ))}
-        <Button variant="outline" size="sm" onClick={() => addDevice()}><Plus className="h-4 w-4" /> Add phone</Button>
-        <Button variant="outline" size="sm" onClick={() => addDevice("My PC")}><Monitor className="h-4 w-4" /> Add PC</Button>
+        {mode === "pc"
+          ? <Button variant="outline" size="sm" onClick={() => addDevice("My PC")}><Monitor className="h-4 w-4" /> Add PC</Button>
+          : <Button variant="outline" size="sm" onClick={() => addDevice()}><Plus className="h-4 w-4" /> Add phone</Button>}
       </div>
 
       {!device ? (
         <section className="rounded-xl border border-dashed border-border p-8 text-center">
           <h2 className="text-lg font-semibold">No device yet</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Press "Add phone" or "Add PC" to get a pairing code.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Press "{mode === "pc" ? "Add PC" : "Add phone"}" to get a pairing code.</p>
         </section>
       ) : (
         <div className={`grid gap-6 ${isPc ? "" : "lg:grid-cols-[minmax(0,360px)_1fr]"}`}>
           <div>
+            <div className={isPc ? "mx-auto max-w-5xl rounded-2xl border border-border bg-card p-3 pb-6 shadow-xl" : ""}>
+            {isPc && <div className="mb-2 flex items-center gap-1.5 px-1"><span className="h-2.5 w-2.5 rounded-full bg-destructive/70" /><span className="h-2.5 w-2.5 rounded-full bg-primary/70" /><span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50" /><span className="ml-3 truncate text-xs text-muted-foreground">{device.name} — {isOnline(device) ? "connected" : "offline"}</span></div>}
             <div
               role="application"
               aria-label={isPc ? "PC screen — click to click, drag to drag" : "Phone screen — click to tap, drag to swipe"}
@@ -269,7 +273,7 @@ export function PhoneRemote({ userId }: { userId: string }) {
               onPointerMove={onMove}
               onPointerUp={onUp}
               onContextMenu={(e) => e.preventDefault()}
-              className={`relative mx-auto w-full cursor-crosshair touch-none select-none overflow-hidden bg-muted ${isPc ? "rounded-lg border-4 border-foreground/80" : "max-w-[360px] rounded-[2rem] border-8 border-foreground/80"}`}
+              className={`relative mx-auto w-full cursor-crosshair touch-none select-none overflow-hidden bg-muted ${isPc ? "rounded-md border-2 border-foreground/90" : "max-w-[360px] rounded-[2rem] border-8 border-foreground/80"}`}
               style={{ aspectRatio: `${device.screen_width} / ${device.screen_height}` }}
             >
               <video ref={videoRef} muted playsInline autoPlay className={`absolute inset-0 h-full w-full object-cover ${live === "on" ? "" : "hidden"}`} />
@@ -292,6 +296,8 @@ export function PhoneRemote({ userId }: { userId: string }) {
                 </svg>
               )}
             </div>
+            </div>
+            {isPc && <div aria-hidden className="mx-auto flex flex-col items-center"><div className="h-8 w-24 bg-gradient-to-b from-muted to-border" /><div className="h-2 w-56 rounded-full bg-border" /></div>}
             {isPc ? (
               <div className="mt-3 flex flex-wrap justify-center gap-2">
                 {(["left", "double", "right"] as const).map((m) => (
@@ -340,7 +346,7 @@ export function PhoneRemote({ userId }: { userId: string }) {
                 <Button variant="outline" size="sm" className="mt-3" onClick={() => { if (confirm("Disconnect this phone and pair again?")) void newCode(device.id); }}>Pair again</Button>
               )}
               {!isPc && <a href="https://github.com/djbooyaka-commits/orange-soundguild/releases/tag/osg-remote-latest" target="_blank" rel="noopener noreferrer" className="mt-3 block text-sm font-medium text-primary underline underline-offset-4">Download the OSG Remote phone app (APK)</a>}
-              <details className="mt-3 rounded-lg bg-muted/50 p-3 text-sm" open={!device.paired && device.name.includes("PC")}>
+              <details className="mt-3 rounded-lg bg-muted/50 p-3 text-sm" open={!device.paired && isPcMode}>
                 <summary className="cursor-pointer font-medium">Set up a PC (Windows, Mac or Linux)</summary>
                 <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
                   <li>On the work PC, install Python from python.org (tick "Add Python to PATH").</li>
