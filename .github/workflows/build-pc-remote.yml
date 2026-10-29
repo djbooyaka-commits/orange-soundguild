@@ -1,0 +1,60 @@
+name: Build PC Remote installers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "public/pc-remote/**"
+      - ".github/workflows/build-pc-remote.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            out: OSG-PC-Remote.exe
+          - os: macos-latest
+            out: OSG-PC-Remote-mac
+          - os: ubuntu-latest
+            out: OSG-PC-Remote-linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyinstaller mss pillow pyautogui requests
+      - name: Linux GUI deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y python3-tk python3-dev scrot
+      - run: pyinstaller --onefile --name OSG-PC-Remote public/pc-remote/osg_pc_remote.py
+      - name: Rename
+        shell: bash
+        run: |
+          src=dist/OSG-PC-Remote; [ -f dist/OSG-PC-Remote.exe ] && src=dist/OSG-PC-Remote.exe
+          mv "$src" "dist/${{ matrix.out }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.out }}
+          path: dist/${{ matrix.out }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: osg-pc-remote-latest
+          name: OSG PC Remote (latest)
+          body: Download, open, type the pairing code from orangesoundguild.com/pc-remote. Starts automatically after that.
+          files: out/*
+          make_latest: false
