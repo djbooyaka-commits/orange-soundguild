@@ -36,8 +36,11 @@ jobs:
       - name: Rename
         shell: bash
         run: |
-          src=dist/OSG-PC-Remote; [ -f dist/OSG-PC-Remote.exe ] && src=dist/OSG-PC-Remote.exe
-          mv "$src" "dist/${{ matrix.out }}"
+          src=dist/OSG-PC-Remote
+          if [ -f dist/OSG-PC-Remote.exe ]; then src=dist/OSG-PC-Remote.exe; fi
+          dst="dist/${{ matrix.out }}"
+          if [ "$src" != "$dst" ]; then mv "$src" "$dst"; fi
+          ls -la dist
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.out }}
