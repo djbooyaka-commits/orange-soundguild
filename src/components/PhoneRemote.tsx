@@ -338,7 +338,7 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
               {!device.paired ? (
                 new Date(device.pairing_expires_at).getTime() > Date.now() ? (
                   <p className="mt-2 text-sm">Pairing code: <span className="rounded bg-muted px-2 py-1 font-mono text-lg tracking-widest">{device.pairing_code}</span>
-                    <span className="mt-1 block text-muted-foreground">Enter this code in the OSG Remote phone app. It works for 1 hour.</span></p>
+                    <span className="mt-1 block text-muted-foreground">{isPc ? "Type this code into the OSG PC Remote app on your computer." : "Enter this code in the OSG Remote phone app."} It works for 1 hour.</span></p>
                 ) : (
                   <p className="mt-2 text-sm text-muted-foreground">This pairing code expired. <Button variant="link" className="h-auto p-0" onClick={() => newCode(device.id)}>Get a new code</Button></p>
                 )
