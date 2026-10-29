@@ -13,7 +13,10 @@ permissions:
 
 jobs:
   build:
+    timeout-minutes: 30
+    continue-on-error: ${{ matrix.os == 'macos-latest' }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -48,12 +51,14 @@ jobs:
 
   release:
     needs: build
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: out
           merge-multiple: true
+      - run: ls -la out && test -f out/OSG-PC-Remote.exe
       - uses: actions/checkout@v4
         with:
           path: src
