@@ -112,8 +112,19 @@ class AppUpdater(private val activity: Activity, private val state: (String, Str
                 val installed = pm.getPackageInfo(activity.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
                 val currentSigners = installed.signingInfo?.apkContentsSigners?.toSet()
                 val updateSigners = archive.signingInfo?.apkContentsSigners?.toSet()
-                check(!currentSigners.isNullOrEmpty() && currentSigners == updateSigners) {
-                    "This release has a different signing key and can't replace this installation. Your current app has been kept."
+                if (currentSigners.isNullOrEmpty() || currentSigners != updateSigners) {
+                    temp.delete()
+                    show(
+                        "Version ${release.name} can't update this copy. Tap below to download it, then uninstall this OSG Remote app, open the downloaded file from Downloads, and install it. Pair again afterwards.",
+                        "Download new app"
+                    ) {
+                        try {
+                            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(UpdatePolicy.APK_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        } catch (_: Exception) {
+                            show("Open github.com/djbooyaka-commits/orange-soundguild/releases in your browser to download it.")
+                        }
+                    }
+                    return@execute
                 }
                 if (apk.exists()) check(apk.delete()) { "Couldn't replace the previous download." }
                 check(temp.renameTo(apk)) { "Couldn't save the update." }
