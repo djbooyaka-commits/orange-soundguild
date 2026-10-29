@@ -54,6 +54,14 @@ jobs:
         with:
           path: out
           merge-multiple: true
+      - uses: actions/checkout@v4
+        with:
+          path: src
+      - name: Version file
+        run: |
+          v=$(grep -m1 '^VERSION = ' src/public/pc-remote/osg_pc_remote.py | cut -d'"' -f2)
+          echo "{\"version\": \"$v\"}" > out/pc-version.json
+          cat out/pc-version.json
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: osg-pc-remote-latest

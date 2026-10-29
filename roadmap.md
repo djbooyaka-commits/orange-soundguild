@@ -21,3 +21,5 @@
 - [x] OSG Remote: in-app update check, verified download, Android install confirmation and release metadata (policy tests and updater compilation passed; phone installation requires the GitHub APK).
 - [x] PC Remote: own /pc-remote page with monitor look.
 - [x] PC Remote: one-click installer (Windows .exe, Mac, Linux) via GitHub release.
+- [x] PC Remote: pick the live PC by default, faster screen updates.
+- [x] PC Remote app: checks for and installs new versions by itself.

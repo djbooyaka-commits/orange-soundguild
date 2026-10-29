@@ -17,9 +17,11 @@ except ImportError:
     print("Missing packages. Run:  pip install mss pillow pyautogui requests")
     input("Press Enter to close..."); sys.exit(1)
 
+VERSION = "1.1"
+RELEASE = "https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest"
 SITE = os.environ.get("OSG_SITE", "https://orangesoundguild.com")
 CONFIG = os.path.join(os.path.expanduser("~"), ".osg-remote", "config.json")
-FRAME_WIDTH = 1280
+FRAME_WIDTH = 1152
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0.02
 
@@ -121,17 +123,56 @@ def autostart():
         print("Could not set auto-start:", e)
 
 
+def asset_name():
+    s = platform.system()
+    return "OSG-PC-Remote.exe" if s == "Windows" else "OSG-PC-Remote-mac" if s == "Darwin" else "OSG-PC-Remote-linux"
+
+
+def check_update():
+    """Installed app only: download a newer version from the release page and restart into it."""
+    if not getattr(sys, "frozen", False): return
+    try:
+        info = requests.get(f"{RELEASE}/pc-version.json", timeout=15).json()
+        latest = str(info.get("version", ""))
+        if not latest or tuple(map(int, latest.split("."))) <= tuple(map(int, VERSION.split("."))): return
+        print(f"Updating to version {latest}…")
+        exe = sys.executable
+        new = exe + ".new"
+        with requests.get(f"{RELEASE}/{asset_name()}", stream=True, timeout=120) as r:
+            r.raise_for_status()
+            with open(new, "wb") as f:
+                for chunk in r.iter_content(1 << 16): f.write(chunk)
+        if os.path.getsize(new) < 5_000_000: os.remove(new); return  # not a real app download
+        if platform.system() == "Windows":
+            bat = os.path.join(os.path.dirname(exe), "osg-update.bat")
+            with open(bat, "w") as f:
+                f.write(f'@echo off\r\ntimeout /t 2 /nobreak >nul\r\nmove /y "{new}" "{exe}" >nul\r\nstart "" "{exe}"\r\ndel "%~f0"\r\n')
+            subprocess.Popen(["cmd", "/c", bat], creationflags=0x00000008)  # detached
+        else:
+            os.chmod(new, 0o755); os.replace(new, exe)
+            subprocess.Popen([exe])
+        sys.exit(0)
+    except SystemExit: raise
+    except Exception as e:
+        print("Update check skipped:", e)
+
+
 def main():
     print("OSG PC Remote — orangesoundguild.com")
     print("Keep this window open (you can minimise it). It starts by itself when you sign in.")
+    print(f"Version {VERSION}")
+    check_update()
     cfg = load() or pair()
     autostart()
+    last_update_check = time.time()
     results, last_frame, watch = [], 0.0, False
     with mss.mss() as sct:
         mon = sct.monitors[1]
         while True:
             body = {"deviceId": cfg["deviceId"], "token": cfg["token"], "width": mon["width"], "height": mon["height"], "results": results}
-            if watch and time.time() - last_frame > 0.6:
+            if not watch and time.time() - last_update_check > 6 * 3600:
+                last_update_check = time.time(); check_update()
+            if watch and time.time() - last_frame > 0.3:
                 frame, w, h, mon = grab(sct)
                 if frame: body["frame"] = frame
                 last_frame = time.time()
@@ -150,7 +191,7 @@ def main():
                 except Exception as e: status, msg = "failed", str(e)[:200]
                 results.append({"id": c["id"], "status": status, "result": msg})
                 last_frame = 0  # refresh the screen right after an action
-            time.sleep(0.15 if watch else 1.5)
+            time.sleep(0.05 if watch else 1.5)
 
 
 if __name__ == "__main__":
