@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, Video, VideoOff, Circle, Globe, Home, Loader2, Plus, Power, Rocket, Square, Trash2 } from "lucide-react";
+import { ArrowLeft, Camera, Video, VideoOff, Circle, Globe, Home, Loader2, Monitor, Plus, Power, Rocket, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,14 @@ const APPS = [
   { label: "Chrome", pkg: "com.android.chrome" },
   { label: "TIDAL", pkg: "com.aspiro.tidal" },
   { label: "Apple Music", pkg: "com.apple.android.music" },
+];
+
+const PC_KEYS = [
+  { label: "Enter", keys: ["enter"] }, { label: "Esc", keys: ["esc"] }, { label: "Backspace", keys: ["backspace"] },
+  { label: "Tab", keys: ["tab"] }, { label: "Alt+Tab", keys: ["alt", "tab"] }, { label: "Win/⌘", keys: ["win"] },
+  { label: "Copy", keys: ["ctrl", "c"] }, { label: "Paste", keys: ["ctrl", "v"] }, { label: "Undo", keys: ["ctrl", "z"] },
+  { label: "←", keys: ["left"] }, { label: "↑", keys: ["up"] }, { label: "↓", keys: ["down"] }, { label: "→", keys: ["right"] },
+  { label: "Play/Pause", keys: ["playpause"] }, { label: "Vol −", keys: ["volumedown"] }, { label: "Vol +", keys: ["volumeup"] }, { label: "Mute", keys: ["volumemute"] },
 ];
 
 const isOnline = (d: Device) => !!d.last_seen && Date.now() - new Date(d.last_seen).getTime() < 30_000;
@@ -70,6 +78,8 @@ export function PhoneRemote({ userId }: { userId: string }) {
 
   const device = devices?.find((d) => d.id === activeId);
   const paired = !!device?.paired;
+  const isPc = device?.pairing_code === "PC";
+  const [pcClick, setPcClick] = useState<"left" | "double" | "right">("left");
 
   // Tell the phone someone is watching so it streams its screen (it idles otherwise).
   useEffect(() => {
@@ -96,8 +106,8 @@ export function PhoneRemote({ userId }: { userId: string }) {
     return () => clearInterval(i);
   }, [activeId, paired, refreshFrame]);
 
-  async function addDevice() {
-    const { error } = await supabase.from("remote_devices").insert({ owner_id: userId });
+  async function addDevice(name?: string) {
+    const { error } = await supabase.from("remote_devices").insert(name ? { owner_id: userId, name } : { owner_id: userId });
     if (error) return toast.error(error.message);
     await loadDevices();
   }
@@ -224,7 +234,8 @@ export function PhoneRemote({ userId }: { userId: string }) {
     } else {
       setTrail(null);
       mark(p.x, p.y, ms > 600);
-      if (ms > 600) void send("long_press", { x: s.x, y: s.y });
+      if (isPc && pcClick !== "left") void send(pcClick === "double" ? "double_click" : "long_press", { x: s.x, y: s.y });
+      else if (ms > 600 || (isPc && e.button === 2)) void send("long_press", { x: s.x, y: s.y });
       else void send("tap", { x: s.x, y: s.y });
     }
   }
@@ -239,32 +250,34 @@ export function PhoneRemote({ userId }: { userId: string }) {
             <Circle className={`h-2.5 w-2.5 ${isOnline(d) ? "fill-primary text-primary" : "text-muted-foreground"}`} /> {d.name}
           </Button>
         ))}
-        <Button variant="outline" size="sm" onClick={addDevice}><Plus className="h-4 w-4" /> Add phone</Button>
+        <Button variant="outline" size="sm" onClick={() => addDevice()}><Plus className="h-4 w-4" /> Add phone</Button>
+        <Button variant="outline" size="sm" onClick={() => addDevice("My PC")}><Monitor className="h-4 w-4" /> Add PC</Button>
       </div>
 
       {!device ? (
         <section className="rounded-xl border border-dashed border-border p-8 text-center">
-          <h2 className="text-lg font-semibold">No phone yet</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Press "Add phone" to get a pairing code for your Android phone.</p>
+          <h2 className="text-lg font-semibold">No device yet</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Press "Add phone" or "Add PC" to get a pairing code.</p>
         </section>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_1fr]">
+        <div className={`grid gap-6 ${isPc ? "" : "lg:grid-cols-[minmax(0,360px)_1fr]"}`}>
           <div>
             <div
               role="application"
-              aria-label="Phone screen — click to tap, drag to swipe"
+              aria-label={isPc ? "PC screen — click to click, drag to drag" : "Phone screen — click to tap, drag to swipe"}
               onPointerDown={onDown}
               onPointerMove={onMove}
               onPointerUp={onUp}
-              className="relative mx-auto w-full max-w-[360px] cursor-crosshair touch-none select-none overflow-hidden rounded-[2rem] border-8 border-foreground/80 bg-muted"
+              onContextMenu={(e) => e.preventDefault()}
+              className={`relative mx-auto w-full cursor-crosshair touch-none select-none overflow-hidden bg-muted ${isPc ? "rounded-lg border-4 border-foreground/80" : "max-w-[360px] rounded-[2rem] border-8 border-foreground/80"}`}
               style={{ aspectRatio: `${device.screen_width} / ${device.screen_height}` }}
             >
               <video ref={videoRef} muted playsInline autoPlay className={`absolute inset-0 h-full w-full object-cover ${live === "on" ? "" : "hidden"}`} />
               {live === "on" ? null : device.last_frame ? (
-                <img src={device.last_frame} alt="Live phone screen" draggable={false} className="h-full w-full object-cover" />
+                <img src={device.last_frame} alt={isPc ? "Live PC screen" : "Live phone screen"} draggable={false} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
-                  {device.paired ? "Waiting for the phone to send its screen…" : "Pair your phone to see its screen here."}
+                  {device.paired ? "Waiting for the screen…" : "Pair your device to see its screen here."}
                 </div>
               )}
               {marks.map((m) => (
@@ -279,6 +292,16 @@ export function PhoneRemote({ userId }: { userId: string }) {
                 </svg>
               )}
             </div>
+            {isPc ? (
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                {(["left", "double", "right"] as const).map((m) => (
+                  <Button key={m} size="sm" variant={pcClick === m ? "default" : "outline"} onClick={() => setPcClick(m)}>
+                    {m === "left" ? "Click" : m === "double" ? "Double-click" : "Right-click"}
+                  </Button>
+                ))}
+                <Button variant="outline" size="icon" aria-label="Refresh screen" onClick={() => send("screenshot")}><Camera className="h-4 w-4" /></Button>
+              </div>
+            ) : (
             <div className="mx-auto mt-3 flex max-w-[360px] flex-wrap justify-center gap-2">
               <Button variant="outline" size="icon" aria-label="Back" onClick={() => send("back")}><ArrowLeft className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" aria-label="Home" onClick={() => send("home")}><Home className="h-4 w-4" /></Button>
@@ -290,6 +313,7 @@ export function PhoneRemote({ userId }: { userId: string }) {
               </Button>
               <Button variant="outline" size="icon" aria-label="Take screenshot" onClick={() => send("screenshot")}><Camera className="h-4 w-4" /></Button>
             </div>
+            )}
           </div>
 
           <div className="space-y-5">
@@ -315,9 +339,33 @@ export function PhoneRemote({ userId }: { userId: string }) {
               ) : (
                 <Button variant="outline" size="sm" className="mt-3" onClick={() => { if (confirm("Disconnect this phone and pair again?")) void newCode(device.id); }}>Pair again</Button>
               )}
-              <a href="https://github.com/djbooyaka-commits/orange-soundguild/releases/tag/osg-remote-latest" target="_blank" rel="noopener noreferrer" className="mt-3 block text-sm font-medium text-primary underline underline-offset-4">Download the OSG Remote phone app (APK)</a>
+              {!isPc && <a href="https://github.com/djbooyaka-commits/orange-soundguild/releases/tag/osg-remote-latest" target="_blank" rel="noopener noreferrer" className="mt-3 block text-sm font-medium text-primary underline underline-offset-4">Download the OSG Remote phone app (APK)</a>}
+              <details className="mt-3 rounded-lg bg-muted/50 p-3 text-sm" open={!device.paired && device.name.includes("PC")}>
+                <summary className="cursor-pointer font-medium">Set up a PC (Windows, Mac or Linux)</summary>
+                <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
+                  <li>On the work PC, install Python from python.org (tick "Add Python to PATH").</li>
+                  <li>Download both files into one folder: <a className="text-primary underline" href="/pc-remote/osg_pc_remote.py" download>osg_pc_remote.py</a> and <a className="text-primary underline" href="/pc-remote/start-osg-pc-remote.bat" download>start-osg-pc-remote.bat</a>.</li>
+                  <li>Double-click the .bat file (Mac/Linux: run <code>pip install mss pillow pyautogui requests</code> then <code>python3 osg_pc_remote.py</code>).</li>
+                  <li>Type the pairing code above. Leave the window open; it reconnects by itself.</li>
+                </ol>
+              </details>
             </section>
 
+            {isPc ? (
+            <section className="rounded-xl border border-border p-4">
+              <h2 className="mb-3 font-semibold">Keyboard &amp; computer</h2>
+              <div className="flex flex-wrap gap-2">
+                {PC_KEYS.map((k) => <Button key={k.label} size="sm" variant="secondary" onClick={() => send("key", { keys: k.keys })}>{k.label}</Button>)}
+                <Button size="sm" variant="outline" onClick={() => send("scroll", { dy: 3 })}>Scroll up</Button>
+                <Button size="sm" variant="outline" onClick={() => send("scroll", { dy: -3 })}>Scroll down</Button>
+                <Button size="sm" variant="outline" onClick={() => { if (confirm("Lock this PC?")) void send("lock"); }}>Lock PC</Button>
+              </div>
+              <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (pkg.trim()) void send("open_app", { app: pkg.trim() }); }}>
+                <Input value={pkg} onChange={(e) => setPkg(e.target.value)} placeholder="Open a program, e.g. notepad or spotify" />
+                <Button type="submit" variant="outline"><Rocket className="h-4 w-4" /> Open</Button>
+              </form>
+            </section>
+            ) : (<>
             <section className="rounded-xl border border-border p-4">
               <h2 className="mb-1 font-semibold">Multi-Sound (Samsung only)</h2>
               <p className="mb-3 text-sm text-muted-foreground">Let Spotify, Apple Music, YouTube and others play at the same time.</p>
@@ -326,7 +374,6 @@ export function PhoneRemote({ userId }: { userId: string }) {
                 <Button size="sm" variant="outline" onClick={() => send("multi_sound", { on: false })}>Turn off</Button>
               </div>
             </section>
-
 
             <section className="rounded-xl border border-border p-4">
               <h2 className="mb-3 font-semibold">Open an app</h2>
@@ -345,6 +392,7 @@ export function PhoneRemote({ userId }: { userId: string }) {
                 <Button type="submit" variant="outline">Open</Button>
               </form>
             </section>
+            </>)}
 
             <section className="rounded-xl border border-border p-4">
               <h2 className="mb-3 font-semibold">Open a web page</h2>
