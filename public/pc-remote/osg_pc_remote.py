@@ -44,7 +44,7 @@ def save(cfg):
 
 def pair():
     while True:
-        code = input("Pairing code from orangesoundguild.com/remote: ").strip().upper()
+        code = input("Pairing code from orangesoundguild.com/pc-remote: ").strip().upper()
         r = requests.post(f"{SITE}/api/public/remote/pair", json={"code": code, "kind": "pc"}, timeout=20)
         if r.ok:
             d = r.json(); cfg = {"deviceId": d["deviceId"], "token": d["token"]}
@@ -103,9 +103,29 @@ def run(cmd, mon):
     return "done", None
 
 
+def autostart():
+    """Installed app (.exe): start automatically when the user signs in, so it's plug and play."""
+    if not getattr(sys, "frozen", False): return
+    exe = sys.executable
+    try:
+        s = platform.system()
+        if s == "Windows":
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE) as k:
+                winreg.SetValueEx(k, "OSG PC Remote", 0, winreg.REG_SZ, f'"{exe}"')
+        elif s == "Linux":
+            d = os.path.expanduser("~/.config/autostart"); os.makedirs(d, exist_ok=True)
+            with open(os.path.join(d, "osg-pc-remote.desktop"), "w") as f:
+                f.write(f"[Desktop Entry]\nType=Application\nName=OSG PC Remote\nExec={exe}\nTerminal=true\n")
+    except Exception as e:
+        print("Could not set auto-start:", e)
+
+
 def main():
     print("OSG PC Remote — orangesoundguild.com")
+    print("Keep this window open (you can minimise it). It starts by itself when you sign in.")
     cfg = load() or pair()
+    autostart()
     results, last_frame, watch = [], 0.0, False
     with mss.mss() as sct:
         mon = sct.monitors[1]

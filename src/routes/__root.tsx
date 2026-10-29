@@ -160,7 +160,7 @@ function RootComponent() {
   const isAuthPage = location.pathname === "/auth";
   const hidePlayer =
     isAuthPage ||
-    ["/royalties", "/referrals", "/messages", "/st-rooms", "/beta-rooms", "/remote"].some(
+    ["/royalties", "/referrals", "/messages", "/st-rooms", "/beta-rooms", "/remote", "/pc-remote"].some(
       (p) => location.pathname === p || location.pathname.startsWith(p + "/"),
     ) ||
     location.pathname.startsWith("/curator");

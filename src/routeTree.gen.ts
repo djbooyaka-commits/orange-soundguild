@@ -20,6 +20,7 @@ import { Route as CuratorPoolRouteImport } from './routes/curator-pool'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as MessagesRouteImport } from './routes/messages'
+import { Route as PcRemoteRouteImport } from './routes/pc-remote'
 import { Route as PlaylistSubmitRouteImport } from './routes/playlist-submit'
 import { Route as PostsRouteImport } from './routes/posts'
 import { Route as ReferralsRouteImport } from './routes/referrals'
@@ -104,6 +105,11 @@ const LibraryRoute = LibraryRouteImport.update({
 const MessagesRoute = MessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PcRemoteRoute = PcRemoteRouteImport.update({
+  id: '/pc-remote',
+  path: '/pc-remote',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlaylistSubmitRoute = PlaylistSubmitRouteImport.update({
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
+  '/pc-remote': typeof PcRemoteRoute
   '/playlist-submit': typeof PlaylistSubmitRoute
   '/posts': typeof PostsRoute
   '/referrals': typeof ReferralsRoute
@@ -317,6 +324,7 @@ export interface FileRoutesByTo {
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
+  '/pc-remote': typeof PcRemoteRoute
   '/playlist-submit': typeof PlaylistSubmitRoute
   '/posts': typeof PostsRoute
   '/referrals': typeof ReferralsRoute
@@ -361,6 +369,7 @@ export interface FileRoutesById {
   '/discover': typeof DiscoverRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
+  '/pc-remote': typeof PcRemoteRoute
   '/playlist-submit': typeof PlaylistSubmitRoute
   '/posts': typeof PostsRoute
   '/referrals': typeof ReferralsRoute
@@ -406,6 +415,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/library'
     | '/messages'
+    | '/pc-remote'
     | '/playlist-submit'
     | '/posts'
     | '/referrals'
@@ -449,6 +459,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/library'
     | '/messages'
+    | '/pc-remote'
     | '/playlist-submit'
     | '/posts'
     | '/referrals'
@@ -492,6 +503,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/library'
     | '/messages'
+    | '/pc-remote'
     | '/playlist-submit'
     | '/posts'
     | '/referrals'
@@ -536,6 +548,7 @@ export interface RootRouteChildren {
   DiscoverRoute: typeof DiscoverRoute
   LibraryRoute: typeof LibraryRoute
   MessagesRoute: typeof MessagesRoute
+  PcRemoteRoute: typeof PcRemoteRoute
   PlaylistSubmitRoute: typeof PlaylistSubmitRoute
   PostsRoute: typeof PostsRoute
   ReferralsRoute: typeof ReferralsRoute
@@ -644,6 +657,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/messages'
       preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pc-remote': {
+      id: '/pc-remote'
+      path: '/pc-remote'
+      fullPath: '/pc-remote'
+      preLoaderRoute: typeof PcRemoteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/playlist-submit': {
@@ -882,6 +902,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiscoverRoute: DiscoverRoute,
   LibraryRoute: LibraryRoute,
   MessagesRoute: MessagesRoute,
+  PcRemoteRoute: PcRemoteRoute,
   PlaylistSubmitRoute: PlaylistSubmitRoute,
   PostsRoute: PostsRoute,
   ReferralsRoute: ReferralsRoute,
