@@ -134,6 +134,13 @@
       "when": 1792991517029,
       "tag": "0018_remote_webrtc",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793248025894,
+      "tag": "0019_stream_points_perf_indexes",
+      "breakpoints": true
     }
   ]
 }
