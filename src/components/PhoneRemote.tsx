@@ -301,6 +301,11 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                   {device.paired ? "Waiting for the screen…" : "Pair your device to see its screen here."}
                 </div>
               )}
+              {live !== "on" && device.paired && frameAt > 0 && (
+                <span className={`pointer-events-none absolute right-2 top-2 rounded-full px-2 py-0.5 text-xs font-medium ${Date.now() - frameAt < 5000 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
+                  {Date.now() - frameAt < 5000 ? "● Live" : `Paused · ${Math.round((Date.now() - frameAt) / 1000)}s old`}
+                </span>
+              )}
               {marks.map((m) => (
                 <span key={m.id} className="pointer-events-none absolute" style={{ left: `${m.x}%`, top: `${m.y}%` }}>
                   <span className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-primary/30 animate-ping ${m.long ? "h-12 w-12" : "h-8 w-8"}`} />
