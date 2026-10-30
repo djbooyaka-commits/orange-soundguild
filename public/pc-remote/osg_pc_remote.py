@@ -17,7 +17,7 @@ except ImportError:
     print("Missing packages. Run:  pip install mss pillow pyautogui requests")
     input("Press Enter to close..."); sys.exit(1)
 
-VERSION = "1.1"
+VERSION = "1.2"
 RELEASE = "https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest"
 SITE = os.environ.get("OSG_SITE", "https://orangesoundguild.com")
 CONFIG = os.path.join(os.path.expanduser("~"), ".osg-remote", "config.json")
@@ -172,9 +172,15 @@ def main():
             body = {"deviceId": cfg["deviceId"], "token": cfg["token"], "width": mon["width"], "height": mon["height"], "results": results}
             if not watch and time.time() - last_update_check > 6 * 3600:
                 last_update_check = time.time(); check_update()
-            if watch and time.time() - last_frame > 0.3:
-                frame, w, h, mon = grab(sct)
-                if frame: body["frame"] = frame
+            if watch and time.time() - last_frame > 0.25:
+                try:
+                    frame, w, h, mon = grab(sct)
+                    if frame: body["frame"] = frame
+                except Exception as e:
+                    print("Screen capture failed, retrying…", e)
+                    try: sct.close()
+                    except Exception: pass
+                    sct = mss.mss()
                 last_frame = time.time()
             try:
                 r = requests.post(f"{SITE}/api/public/remote/poll", json=body, timeout=20)
