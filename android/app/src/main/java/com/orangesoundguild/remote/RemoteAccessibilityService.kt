@@ -182,7 +182,7 @@ class RemoteAccessibilityService : AccessibilityService() {
             @Suppress("DEPRECATION")
             wifiLock = wm.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "osg:remote").apply { setReferenceCounted(false); acquire() }
         } catch (_: Exception) {}
-        handler.post { tick() }
+        handler.postAtTime({ tick() }, TICK, android.os.SystemClock.uptimeMillis())
         KeepAliveService.start(this)
         // Re-poll right away when Wi-Fi / mobile data comes back.
         try {

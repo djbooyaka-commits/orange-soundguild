@@ -105,6 +105,19 @@ class MainActivity : Activity() {
             startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
         })
 
+        col.addView(text("Stay online", 18f, true))
+        col.addView(text("Keeps the phone connected while the screen is off, and reconnects after a restart."))
+        col.addView(button("Start stay-online service") { KeepAliveService.start(this) })
+        if (PhoneMaker.isXiaomi) {
+            col.addView(text("Redmi / Xiaomi phones also need these:", 14f, true))
+            col.addView(button("1. Turn on Autostart") { PhoneMaker.openAutostart(this) })
+            col.addView(button("2. Battery saver → No restrictions") { PhoneMaker.openBatterySaver(this) })
+            col.addView(text("3. Open recent apps, long-press the OSG Remote card and tap the lock icon."))
+        } else {
+            col.addView(button("Open app info (set Battery to Unrestricted)") { PhoneMaker.openAppInfo(this) })
+        }
+        col.addView(text("Also turn off Wi-Fi power saving, and keep the phone charging if it stays at home."))
+
         col.addView(text("Server", 14f, true))
         serverInput = EditText(this).apply {
             setText(Prefs.server(this@MainActivity))
@@ -114,6 +127,7 @@ class MainActivity : Activity() {
 
         setContentView(ScrollView(this).apply { addView(col) })
         updater.check()
+        KeepAliveService.start(this)
         maybeAutoStart(intent)
     }
 
@@ -175,7 +189,7 @@ class MainActivity : Activity() {
             try {
                 val r = Api.post(server, "/api/public/remote/pair", JSONObject().put("code", code))
                 Prefs.savePairing(this, server, r.getString("deviceId"), r.getString("token"), r.optString("name", "My phone"))
-                runOnUiThread { pairButton.isEnabled = true; render() }
+                runOnUiThread { pairButton.isEnabled = true; KeepAliveService.start(this); render() }
             } catch (e: Exception) {
                 runOnUiThread { pairButton.isEnabled = true; statusView.text = "Pairing failed: ${e.message}" }
             }
