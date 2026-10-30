@@ -183,7 +183,35 @@ class RemoteAccessibilityService : AccessibilityService() {
             wifiLock = wm.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "osg:remote").apply { setReferenceCounted(false); acquire() }
         } catch (_: Exception) {}
         handler.post { tick() }
+        KeepAliveService.start(this)
+        // Re-poll right away when Wi-Fi / mobile data comes back.
+        try {
+            val cm = getSystemService(android.net.ConnectivityManager::class.java)
+            netCallback = object : android.net.ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: android.net.Network) { handler.post { ensurePolling(force = true) } }
+            }
+            cm.registerDefaultNetworkCallback(netCallback!!)
+        } catch (_: Exception) {}
     }
+
+    private var netCallback: android.net.ConnectivityManager.NetworkCallback? = null
+    @Volatile private var lastTickAt = 0L
+
+    /** Watchdog: restart the polling loop if it stalled (Doze, Wi-Fi sleep, MIUI freezing). */
+    fun ensurePolling(force: Boolean = false) {
+        if (!running) return
+        try {
+            if (keepAwake?.isHeld != true) keepAwake?.acquire()
+            if (wifiLock?.isHeld != true) wifiLock?.acquire()
+        } catch (_: Exception) {}
+        val stale = System.currentTimeMillis() - lastTickAt > 20_000L
+        if (stale || force) {
+            handler.removeCallbacksAndMessages(TICK)
+            handler.postAtTime({ tick() }, TICK, android.os.SystemClock.uptimeMillis())
+        }
+    }
+
+    private val TICK = Any()
 
     private var keepAwake: PowerManager.WakeLock? = null
     private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
@@ -195,6 +223,7 @@ class RemoteAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         running = false
+        try { netCallback?.let { getSystemService(android.net.ConnectivityManager::class.java).unregisterNetworkCallback(it) } } catch (_: Exception) {}
         try { keepAwake?.release(); wifiLock?.release() } catch (_: Exception) {}
         stopPromptRetries()
         instance = null
@@ -208,13 +237,14 @@ class RemoteAccessibilityService : AccessibilityService() {
 
     private fun tick() {
         if (!running) return
+        lastTickAt = System.currentTimeMillis()
         var delay = 2500L
         try {
             val deviceId = Prefs.deviceId(this)
             val token = Prefs.token(this)
             if (deviceId == null || token == null) {
                 status = "Not paired — enter your pairing code in the app"
-                handler.postDelayed({ tick() }, 3000)
+                handler.postAtTime({ tick() }, TICK, android.os.SystemClock.uptimeMillis() + 3000)
                 return
             }
 
@@ -284,7 +314,7 @@ class RemoteAccessibilityService : AccessibilityService() {
             status = "Offline — retrying"
             delay = 3000L
         }
-        if (running) handler.postDelayed({ tick() }, delay)
+        if (running) handler.postAtTime({ tick() }, TICK, android.os.SystemClock.uptimeMillis() + delay)
     }
 
     /** Commands arriving over the live video data channel run right away. */
