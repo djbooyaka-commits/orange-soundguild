@@ -84,30 +84,45 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
   const isPc = isPcMode;
   const [pcClick, setPcClick] = useState<"left" | "double" | "right">("left");
 
-  // Tell the phone someone is watching so it streams its screen (it idles otherwise).
+  // Tell the phone/PC someone is watching so it streams its screen (it idles otherwise).
+  const [frameAt, setFrameAt] = useState<number>(0);
   useEffect(() => {
     if (!activeId || !paired) return;
-    const beat = () => void supabase.from("remote_devices")
-      .update({ watch_until: new Date(Date.now() + 20_000).toISOString() }).eq("id", activeId);
-    beat();
-    const i = setInterval(beat, 8000);
-    return () => clearInterval(i);
+    let warned = false;
+    const beat = async () => {
+      if (document.hidden) return;
+      const { error } = await supabase.from("remote_devices")
+        .update({ watch_until: new Date(Date.now() + 15_000).toISOString() }).eq("id", activeId);
+      if (error && !warned) { warned = true; toast.error("Couldn't start the live view: " + error.message); }
+    };
+    void beat();
+    const i = setInterval(() => void beat(), 4000);
+    const onVis = () => { if (!document.hidden) void beat(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(i); document.removeEventListener("visibilitychange", onVis); };
   }, [activeId, paired]);
 
   // Realtime can't carry large frames, so poll the latest screen while watching.
+  const lastFrameRef = useRef<string | null>(null);
   const refreshFrame = useCallback(async () => {
     if (!activeId) return;
     const { data } = await supabase.from("remote_devices")
       .select("last_frame, last_seen, screen_width, screen_height").eq("id", activeId).maybeSingle();
     if (!data) return;
+    if (data.last_frame && data.last_frame !== lastFrameRef.current) { lastFrameRef.current = data.last_frame; setFrameAt(Date.now()); }
     setDevices((ds) => ds?.map((d) => (d.id === activeId && (d.last_frame !== data.last_frame || d.last_seen !== data.last_seen) ? { ...d, ...(data as Partial<Device>) } : d)) ?? ds);
   }, [activeId]);
   useEffect(() => {
     if (!activeId || !paired) return;
+    lastFrameRef.current = null;
     void refreshFrame();
-    const i = setInterval(() => { if (!document.hidden) void refreshFrame(); }, 1000);
+    let busy = false;
+    const i = setInterval(async () => {
+      if (document.hidden || busy) return;
+      busy = true; try { await refreshFrame(); } finally { busy = false; }
+    }, mode === "pc" ? 350 : 1000);
     return () => clearInterval(i);
-  }, [activeId, paired, refreshFrame]);
+  }, [activeId, paired, refreshFrame, mode]);
 
   async function addDevice(name?: string) {
     const { error } = await supabase.from("remote_devices").insert(mode === "pc" ? { owner_id: userId, name: name ?? "My PC", screen_width: 1920, screen_height: 1080 } : name ? { owner_id: userId, name } : { owner_id: userId });
