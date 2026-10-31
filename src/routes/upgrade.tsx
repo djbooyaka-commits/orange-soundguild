@@ -36,8 +36,8 @@ const ARTIST_BENEFITS = [
   { icon: DollarSign, title: "Earn $1 / $0.50 per referral", desc: "Get paid every time someone you invited pays for their plan." },
   {
     icon: Sparkles,
-    title: "Unlock stream royalties",
-    desc: "Hit 500 followers, 20 Artist referrals, or 40 Superfan referrals to become royalty-eligible.",
+    title: "Stream royalties unlocked",
+    desc: "Paid Artists earn stream royalties right away and can cash out. Pioneer Artists unlock at 500 followers, 20 Artist referrals, or 40 Superfan referrals, but need a paid Artist plan to cash out.",
   },
 ];
 

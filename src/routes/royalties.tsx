@@ -46,7 +46,7 @@ type PayoutRequest = {
 
 function RoyaltiesPage() {
   const { user, loading: authLoading } = useAuth();
-  const { isArtist, loading: acctLoading } = useAccountType();
+  const { isArtist, isPioneer, loading: acctLoading } = useAccountType();
   const { data: progress } = useRoyaltyProgress(user?.id);
   const [payouts, setPayouts] = useState<Payout[] | null>(null);
   const [balanceCents, setBalanceCents] = useState<number>(0);
@@ -103,7 +103,7 @@ function RoyaltiesPage() {
     );
   }
 
-  if (!isArtist) {
+  if (!isArtist && !isPioneer) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -146,7 +146,9 @@ function RoyaltiesPage() {
             <p className="text-sm text-muted-foreground">
               {eligible
                 ? "You're eligible — your plays count toward the monthly pool."
-                : "Hit any one threshold below to unlock your share of the pool."}
+                : isPioneer
+                  ? "Pioneer artists: hit any one threshold below to unlock your share of the pool."
+                  : "Hit any one threshold below to unlock your share of the pool."}
             </p>
           </div>
         </div>
@@ -178,10 +180,10 @@ function RoyaltiesPage() {
               <button
                 type="button"
                 className="mt-4 inline-flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={balanceCents < 2500}
+                disabled={isArtist && balanceCents < 2500}
               >
                 <Send className="h-3.5 w-3.5" />
-                {balanceCents < 2500 ? "Cash out at $25" : "Cash out"}
+                {!isArtist ? "Upgrade to cash out" : balanceCents < 2500 ? "Cash out at $25" : "Cash out"}
               </button>
             </CashoutDialog>
           </div>
@@ -201,7 +203,7 @@ function RoyaltiesPage() {
         </div>
 
         <div className="mt-8">
-          <RoyaltyProgressCard userId={user.id} />
+          {isPioneer && <RoyaltyProgressCard userId={user.id} />}
         </div>
 
         <div className="mt-8 rounded-3xl border border-border bg-card p-6">

@@ -33,8 +33,8 @@ export function RoyaltyProgressCard({ userId }: { userId: string | null | undefi
           </div>
           <div className="text-xs text-muted-foreground">
             {p.eligible
-              ? "You've hit the threshold — you're royalty-eligible."
-              : "Reach any one of these to unlock:"}
+              ? "You're royalty-eligible. A paid Artist account is required to cash out."
+              : "Paid Artists are unlocked automatically. Pioneer Artists reach any one of these:"}
           </div>
         </div>
       </div>

@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
+import { useAccountType } from "@/hooks/useAccountType";
 
 const MIN_CENTS = 2500;
 
@@ -64,6 +66,7 @@ export function CashoutDialog({
   }
 
   const insufficient = balanceCents < MIN_CENTS;
+  const { isArtist, loading: acctLoading } = useAccountType();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -78,7 +81,17 @@ export function CashoutDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {insufficient ? (
+        {!acctLoading && !isArtist ? (
+          <div className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            A paid Artist account is required to cash out. Your balance stays saved until you upgrade.
+            <Link
+              to="/upgrade"
+              className="mt-3 flex h-9 w-fit items-center rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground"
+            >
+              Upgrade to Artist to cash out
+            </Link>
+          </div>
+        ) : insufficient ? (
           <div className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
             You need at least $25.00 to request a cashout. Keep earning and check back.
           </div>
