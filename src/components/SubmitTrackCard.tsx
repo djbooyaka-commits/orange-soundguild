@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { resolveSubmissionPlaylistId } from "@/lib/playlist-submission-selection";
+import { useAccountType } from "@/hooks/useAccountType";
 
 export type SubmissionPlaylist = {
   id: string;
@@ -74,6 +75,8 @@ export function SubmitTrackCard({ pool = false, playlistOptions, selectedPlaylis
   } as const;
 
   const [dailyPass, setDailyPass] = useState(false);
+  const { accountType } = useAccountType();
+  const isPioneer = accountType === "pioneer";
 
   const refresh = async () => {
     const [pl, m, dp] = await Promise.all([
@@ -147,7 +150,14 @@ export function SubmitTrackCard({ pool = false, playlistOptions, selectedPlaylis
 
       {dailyPass && (
         <div className="mt-4 rounded-md border border-primary/30 bg-primary/10 p-3 text-sm font-medium text-primary">
-          Daily 50-point artist pass available — your next submission today is free. Resets at 00:00 UTC.
+          {isPioneer
+            ? "Pioneer Artist pass available — 1 free submission every 15 days."
+            : "Daily 50-point artist pass available — your next submission today is free. Resets at 00:00 UTC."}
+        </div>
+      )}
+      {!dailyPass && isPioneer && pool && (
+        <div className="mt-4 rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
+          Pioneer Artists get 1 free submission every 15 days. Your pass is used — upgrade to Artist for a free submission every day.
         </div>
       )}
 
