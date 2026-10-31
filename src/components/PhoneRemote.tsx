@@ -86,8 +86,11 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
 
   // Tell the phone/PC someone is watching so it streams its screen (it idles otherwise).
   const [frameAt, setFrameAt] = useState<number>(0);
+  // PC only: the user can pause streaming so the computer stops capturing.
+  const [pcStreaming, setPcStreaming] = useState(true);
+  const watching = !isPcMode || pcStreaming;
   useEffect(() => {
-    if (!activeId || !paired) return;
+    if (!activeId || !paired || !watching) return;
     let warned = false;
     const beat = async () => {
       if (document.hidden) return;
@@ -100,7 +103,18 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
     const onVis = () => { if (!document.hidden) void beat(); };
     document.addEventListener("visibilitychange", onVis);
     return () => { clearInterval(i); document.removeEventListener("visibilitychange", onVis); };
-  }, [activeId, paired]);
+  }, [activeId, paired, watching]);
+
+  async function togglePcStream() {
+    if (pcStreaming) {
+      setPcStreaming(false);
+      await supabase.from("remote_devices").update({ watch_until: null }).eq("id", activeId);
+      toast.success("Stream stopped — your PC is no longer sending its screen.");
+    } else {
+      setPcStreaming(true);
+      toast.success("Going live…");
+    }
+  }
 
   // Realtime can't carry large frames, so poll the latest screen while watching.
   const lastFrameRef = useRef<string | null>(null);
@@ -120,9 +134,9 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
     const i = setInterval(async () => {
       if (document.hidden || busy) return;
       busy = true; try { await refreshFrame(); } finally { busy = false; }
-    }, mode === "pc" ? 350 : 1000);
+    }, mode === "pc" ? (watching ? 350 : 3000) : 1000);
     return () => clearInterval(i);
-  }, [activeId, paired, refreshFrame, mode]);
+  }, [activeId, paired, refreshFrame, mode, watching]);
 
   async function addDevice(name?: string) {
     const { error } = await supabase.from("remote_devices").insert(mode === "pc" ? { owner_id: userId, name: name ?? "My PC", screen_width: 1920, screen_height: 1080 } : name ? { owner_id: userId, name } : { owner_id: userId });
@@ -301,7 +315,10 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                   {device.paired ? "Waiting for the screen…" : "Pair your device to see its screen here."}
                 </div>
               )}
-              {live !== "on" && device.paired && frameAt > 0 && (
+              {live !== "on" && device.paired && !watching && (
+                <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">⏸ Stopped — press Go live</span>
+              )}
+              {live !== "on" && device.paired && watching && frameAt > 0 && (
                 <span className={`pointer-events-none absolute right-2 top-2 rounded-full px-2 py-0.5 text-xs font-medium ${Date.now() - frameAt < 5000 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
                   {Date.now() - frameAt < 5000 ? "● Live" : `Paused · ${Math.round((Date.now() - frameAt) / 1000)}s old`}
                 </span>
@@ -322,6 +339,10 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
             {isPc && <div aria-hidden className="mx-auto flex flex-col items-center"><div className="h-8 w-24 bg-gradient-to-b from-muted to-border" /><div className="h-2 w-56 rounded-full bg-border" /></div>}
             {isPc ? (
               <div className="mt-3 flex flex-wrap justify-center gap-2">
+                <Button size="sm" variant={pcStreaming ? "secondary" : "default"} disabled={!paired} onClick={() => void togglePcStream()}>
+                  {pcStreaming ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                  {pcStreaming ? "Stop live" : "Go live"}
+                </Button>
                 {(["left", "double", "right"] as const).map((m) => (
                   <Button key={m} size="sm" variant={pcClick === m ? "default" : "outline"} onClick={() => setPcClick(m)}>
                     {m === "left" ? "Click" : m === "double" ? "Double-click" : "Right-click"}
