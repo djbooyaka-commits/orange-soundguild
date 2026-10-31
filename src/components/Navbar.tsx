@@ -279,11 +279,6 @@ export function Navbar() {
                   </Link>
                 </DropdownMenuItem>
               )}
-              {(isArtist || accountType === "pioneer") && (
-                <DropdownMenuItem asChild>
-                  <Link to="/playlist-submit">Playlist submissions</Link>
-                </DropdownMenuItem>
-              )}
               {isArtist && (
                 <DropdownMenuItem asChild>
                   <Link to="/royalties">Royalties</Link>

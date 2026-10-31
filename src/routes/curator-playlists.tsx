@@ -73,7 +73,7 @@ function CuratorPlaylistsPage() {
       <h1 className="text-3xl font-bold">Curator Playlists</h1>
       <p className="mt-2 text-muted-foreground">
         Every playlist from curators in the Orange Sound Guild Curator Pool. Artist accounts get a free 50-point pass
-        each day (resets 00:00 UTC).
+        each day (resets 00:00 UTC). Pioneer Artists get 1 free submission every 15 days.
       </p>
       <div className="mt-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Streaming service">
         {PLATFORM_TABS.map((p) => (
