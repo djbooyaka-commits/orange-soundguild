@@ -315,7 +315,10 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                   {device.paired ? "Waiting for the screen…" : "Pair your device to see its screen here."}
                 </div>
               )}
-              {live !== "on" && device.paired && frameAt > 0 && (
+              {live !== "on" && device.paired && !watching && (
+                <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">⏸ Stopped — press Go live</span>
+              )}
+              {live !== "on" && device.paired && watching && frameAt > 0 && (
                 <span className={`pointer-events-none absolute right-2 top-2 rounded-full px-2 py-0.5 text-xs font-medium ${Date.now() - frameAt < 5000 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
                   {Date.now() - frameAt < 5000 ? "● Live" : `Paused · ${Math.round((Date.now() - frameAt) / 1000)}s old`}
                 </span>
@@ -336,6 +339,10 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
             {isPc && <div aria-hidden className="mx-auto flex flex-col items-center"><div className="h-8 w-24 bg-gradient-to-b from-muted to-border" /><div className="h-2 w-56 rounded-full bg-border" /></div>}
             {isPc ? (
               <div className="mt-3 flex flex-wrap justify-center gap-2">
+                <Button size="sm" variant={pcStreaming ? "secondary" : "default"} disabled={!paired} onClick={() => void togglePcStream()}>
+                  {pcStreaming ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                  {pcStreaming ? "Stop live" : "Go live"}
+                </Button>
                 {(["left", "double", "right"] as const).map((m) => (
                   <Button key={m} size="sm" variant={pcClick === m ? "default" : "outline"} onClick={() => setPcClick(m)}>
                     {m === "left" ? "Click" : m === "double" ? "Double-click" : "Right-click"}
