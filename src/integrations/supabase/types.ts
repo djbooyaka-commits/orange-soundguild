@@ -1722,6 +1722,56 @@ export type Database = {
         }
         Relationships: []
       }
+      remote_plays: {
+        Row: {
+          album: string | null
+          app: string
+          artist: string | null
+          created_at: string
+          device_id: string
+          id: string
+          owner_id: string
+          package: string | null
+          played_seconds: number
+          started_at: string
+          title: string
+        }
+        Insert: {
+          album?: string | null
+          app: string
+          artist?: string | null
+          created_at?: string
+          device_id: string
+          id?: string
+          owner_id: string
+          package?: string | null
+          played_seconds?: number
+          started_at: string
+          title: string
+        }
+        Update: {
+          album?: string | null
+          app?: string
+          artist?: string | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          owner_id?: string
+          package?: string | null
+          played_seconds?: number
+          started_at?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remote_plays_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "remote_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_chat_messages: {
         Row: {
           body: string

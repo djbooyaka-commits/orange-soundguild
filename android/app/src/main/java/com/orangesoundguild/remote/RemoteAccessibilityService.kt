@@ -265,8 +265,15 @@ class RemoteAccessibilityService : AccessibilityService() {
                 sentResults = JSONArray(results.toString())
             }
             body.put("results", sentResults)
+            val plays = MusicTracker.drain()
+            if (plays.length() > 0) body.put("plays", plays)
 
-            val reply = Api.post(Prefs.server(this), "/api/public/remote/poll", body)
+            val reply = try {
+                Api.post(Prefs.server(this), "/api/public/remote/poll", body)
+            } catch (e: Exception) {
+                MusicTracker.restore(plays)
+                throw e
+            }
             pendingFrame = null
             pendingAnswer = null
             synchronized(results) {

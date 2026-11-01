@@ -66,9 +66,13 @@ class KeepAliveService : Service() {
             wake = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "osg:keepalive").apply { setReferenceCounted(false); acquire() }
         } catch (_: Exception) {}
         handler.postDelayed(watchdog, 30_000L)
+        WakeAlarm.schedule(this)
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        WakeAlarm.schedule(this)
+        return START_STICKY
+    }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         // Swiped away from recents: come straight back.
