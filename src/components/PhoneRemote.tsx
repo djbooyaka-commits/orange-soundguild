@@ -316,10 +316,10 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                 </div>
               )}
               {live !== "on" && device.paired && !watching && (
-                <span className={`pointer-events-none absolute rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ${isPc ? "right-2 top-2" : "bottom-14 left-1/2 -translate-x-1/2"}`}>⏸ Stopped — press Go live</span>
+                <span className={`pointer-events-none absolute rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ${isPc ? "right-2 top-2" : "top-1 left-1/2 -translate-x-1/2"}`}>⏸ Stopped — press Go live</span>
               )}
               {live !== "on" && device.paired && watching && frameAt > 0 && (
-                <span className={`pointer-events-none absolute rounded-full px-2 py-0.5 text-[10px] font-medium opacity-90 ${isPc ? "right-2 top-2" : "bottom-14 left-1/2 -translate-x-1/2"} ${Date.now() - frameAt < 5000 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
+                <span className={`pointer-events-none absolute rounded-full px-2 py-0.5 text-[10px] font-medium opacity-90 ${isPc ? "right-2 top-2" : "top-1 left-1/2 -translate-x-1/2"} ${Date.now() - frameAt < 5000 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
                   {Date.now() - frameAt < 5000 ? "● Live" : `Paused · ${Math.round((Date.now() - frameAt) / 1000)}s old`}
                 </span>
               )}
@@ -473,5 +473,49 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
         </div>
       )}
     </div>
+  );
+}
+
+type Play = { id: string; app: string; title: string; artist: string | null; played_seconds: number; started_at: string };
+
+/** Songs the phone reported playing in Spotify, Apple Music, YouTube and others. */
+function MusicPlayed({ deviceId }: { deviceId: string }) {
+  const [plays, setPlays] = useState<Play[] | null>(null);
+  useEffect(() => {
+    let stop = false;
+    const load = async () => {
+      const { data } = await supabase.from("remote_plays")
+        .select("id, app, title, artist, played_seconds, started_at")
+        .eq("device_id", deviceId).order("started_at", { ascending: false }).limit(30);
+      if (!stop) setPlays((data ?? []) as Play[]);
+    };
+    void load();
+    const t = setInterval(load, 20_000);
+    return () => { stop = true; clearInterval(t); };
+  }, [deviceId]);
+  const today = (plays ?? []).filter((p) => new Date(p.started_at).toDateString() === new Date().toDateString()).length;
+  return (
+    <section className="rounded-xl border border-border p-4">
+      <h2 className="mb-1 font-semibold">Music played on this phone</h2>
+      <p className="mb-3 text-xs text-muted-foreground">Plays of 30 seconds or more. Turn on "Music tracking" in the OSG Remote app (version 3.1). {today} today.</p>
+      {plays === null ? <Loader2 className="h-4 w-4 animate-spin" /> : plays.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No music tracked yet.</p>
+      ) : (
+        <ul className="space-y-2 text-sm">
+          {plays.map((p) => (
+            <li key={p.id} className="flex justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block truncate font-medium">{p.title}</span>
+                <span className="block truncate text-xs text-muted-foreground">{p.artist ?? "Unknown artist"} · {p.app}</span>
+              </span>
+              <span className="shrink-0 text-right text-xs text-muted-foreground">
+                {new Date(p.started_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}<br />
+                {Math.floor(p.played_seconds / 60)}:{String(p.played_seconds % 60).padStart(2, "0")}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
