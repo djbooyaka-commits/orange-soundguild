@@ -316,10 +316,10 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                 </div>
               )}
               {live !== "on" && device.paired && !watching && (
-                <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">⏸ Stopped — press Go live</span>
+                <span className={`pointer-events-none absolute rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ${isPc ? "right-2 top-2" : "bottom-14 left-1/2 -translate-x-1/2"}`}>⏸ Stopped — press Go live</span>
               )}
               {live !== "on" && device.paired && watching && frameAt > 0 && (
-                <span className={`pointer-events-none absolute right-2 top-2 rounded-full px-2 py-0.5 text-xs font-medium ${Date.now() - frameAt < 5000 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
+                <span className={`pointer-events-none absolute rounded-full px-2 py-0.5 text-[10px] font-medium opacity-90 ${isPc ? "right-2 top-2" : "bottom-14 left-1/2 -translate-x-1/2"} ${Date.now() - frameAt < 5000 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
                   {Date.now() - frameAt < 5000 ? "● Live" : `Paused · ${Math.round((Date.now() - frameAt) / 1000)}s old`}
                 </span>
               )}
@@ -467,6 +467,8 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                 </ul>
               )}
             </section>
+
+            {!isPc && <MusicPlayed deviceId={device.id} />}
           </div>
         </div>
       )}
