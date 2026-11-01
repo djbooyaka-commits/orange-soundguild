@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/public/remote/poll")({
     handlers: {
       POST: async ({ request }) => {
         const body = (await request.json().catch(() => null)) as {
-          deviceId?: unknown; token?: unknown; width?: unknown; height?: unknown; frame?: unknown; results?: unknown; answer?: unknown;
+          deviceId?: unknown; token?: unknown; width?: unknown; height?: unknown; frame?: unknown; results?: unknown; answer?: unknown; plays?: unknown;
         } | null;
         const deviceId = typeof body?.deviceId === "string" ? body.deviceId : "";
         const token = typeof body?.token === "string" ? body.token : "";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/public/remote/poll")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: device } = await supabaseAdmin
           .from("remote_devices")
-          .select("id, device_token_hash, watch_until, paired")
+          .select("id, owner_id, device_token_hash, watch_until, paired")
           .eq("id", deviceId)
           .maybeSingle();
         const provided = createHash("sha256").update(token).digest();
@@ -62,6 +62,25 @@ export const Route = createFileRoute("/api/public/remote/poll")({
               .eq("id", r.id)
               .eq("device_id", deviceId);
           }
+        }
+
+        // Music the phone reports as played (Spotify, Apple Music, YouTube...).
+        if (Array.isArray(body?.plays)) {
+          const str = (v: unknown, n: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n) : null);
+          const rows = (body.plays as Record<string, unknown>[]).slice(0, 50).flatMap((p) => {
+            const title = str(p?.title, 300);
+            const started = Number(p?.startedAt);
+            const secs = Math.round(Number(p?.playedSeconds));
+            if (!title || !Number.isFinite(started) || started < 1.6e12 || started > now.getTime() + 60_000) return [];
+            if (!Number.isFinite(secs) || secs < 1 || secs > 6 * 3600) return [];
+            return [{
+              device_id: deviceId, owner_id: device.owner_id, title,
+              app: str(p?.app, 60) ?? "Unknown", package: str(p?.package, 200),
+              artist: str(p?.artist, 300), album: str(p?.album, 300),
+              played_seconds: secs, started_at: new Date(started).toISOString(),
+            }];
+          });
+          if (rows.length) await supabaseAdmin.from("remote_plays").upsert(rows, { onConflict: "device_id,started_at,title", ignoreDuplicates: true });
         }
 
         // Drop commands that waited too long so an offline phone doesn't replay old taps.
