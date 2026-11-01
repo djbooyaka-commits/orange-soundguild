@@ -24,6 +24,7 @@ class MainActivity : Activity() {
 
     private lateinit var statusView: TextView
     private lateinit var accessView: TextView
+    private lateinit var musicView: TextView
     private lateinit var serverInput: EditText
     private lateinit var codeInput: EditText
     private lateinit var pairButton: Button
@@ -105,6 +106,17 @@ class MainActivity : Activity() {
             startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
         })
 
+        col.addView(text("Music tracking", 18f, true))
+        col.addView(text("Shows what Spotify, Apple Music and YouTube play on this phone on the website. Plays of 30 seconds or more are counted."))
+        musicView = text("")
+        col.addView(musicView)
+        col.addView(button("Turn on music tracking") {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        })
+        col.addView(button("Allow wake-up alarms (stay online overnight)") {
+            if (Build.VERSION.SDK_INT >= 31) startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:$packageName")))
+        })
+
         col.addView(text("Stay online", 18f, true))
         col.addView(text("Keeps the phone connected while the screen is off, and reconnects after a restart."))
         col.addView(button("Start stay-online service") { KeepAliveService.start(this) })
@@ -174,6 +186,8 @@ class MainActivity : Activity() {
         else "Not paired yet"
         accessView.text = if (RemoteAccessibilityService.instance != null)
             "Accessibility: ON ✔" else "Accessibility: OFF — turn on \"OSG Remote\" in Accessibility settings."
+        musicView.text = if (MusicTracker.isEnabled(this)) "Music tracking: ON ✔"
+            else "Music tracking: OFF — tap below and turn on \"OSG Remote\"."
         pairButton.visibility = if (paired) View.GONE else View.VISIBLE
         codeInput.visibility = if (paired) View.GONE else View.VISIBLE
         unpairButton.visibility = if (paired) View.VISIBLE else View.GONE
