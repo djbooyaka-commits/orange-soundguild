@@ -169,6 +169,13 @@
       "when": 1793582761034,
       "tag": "0023_subscription_renewal_stacking",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793582839058,
+      "tag": "0024_verify_subscription_renewal_rules",
+      "breakpoints": true
     }
   ]
 }
