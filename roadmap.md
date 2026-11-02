@@ -23,3 +23,4 @@
 - [x] PC Remote: one-click installer (Windows .exe, Mac, Linux) via GitHub release.
 - [x] PC Remote: pick the live PC by default, faster screen updates.
 - [x] PC Remote app: checks for and installs new versions by itself.
+- [ ] Subscription: always-accessible account menu link, plan status, expiration and days remaining, PayPal/Phantom renewal, and preserved remaining time.
