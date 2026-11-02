@@ -62,8 +62,8 @@ export default function SubscriptionRenewalBanner() {
   };
 
   return (
-    <div className="fixed inset-x-0 top-0 z-[60] flex justify-center px-3 pt-3">
-      <div className="flex w-full max-w-2xl items-start gap-3 rounded-xl border border-primary/40 bg-card p-3 shadow-lg">
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center px-3 pt-3">
+      <div className="pointer-events-auto flex w-full max-w-2xl items-start gap-3 rounded-xl border border-primary/40 bg-card p-3 shadow-lg">
         <AlertCircle
           className={`mt-0.5 h-5 w-5 shrink-0 ${expired ? "text-destructive" : "text-primary"}`}
         />
