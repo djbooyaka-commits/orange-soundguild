@@ -2933,6 +2933,10 @@ export type Database = {
         }
         Returns: string
       }
+      subscription_renewal_expiration: {
+        Args: { _expires_at: string; _paid_at: string }
+        Returns: string
+      }
       upsert_osg_artist_follow_link: {
         Args: {
           _curator_id: string

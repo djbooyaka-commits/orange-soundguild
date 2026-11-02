@@ -241,6 +241,9 @@ export function Navbar() {
                 <Link to="/referrals">Referrals</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/subscription">Subscription</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/curator-pool">Curator Pool & earnings</Link>
               </DropdownMenuItem>
               {(isAdmin || accountType === "artist" || accountType === "superfan") && (

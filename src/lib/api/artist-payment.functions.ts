@@ -220,8 +220,8 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
       const post = tx.meta?.postTokenBalances ?? [];
       const findBal = (arr: typeof post) =>
         arr.find((b) => b.owner === RECEIVER && b.mint === USDC_MINT);
-      const preAmt = findBal(pre) ? Number(findBal(pre)!.uiTokenAmount.amount) : 0;
-      const postAmt = findBal(post) ? Number(findBal(post)!.uiTokenAmount.amount) : 0;
+      const preAmt = Number(findBal(pre)?.uiTokenAmount.amount ?? 0);
+      const postAmt = Number(findBal(post)?.uiTokenAmount.amount ?? 0);
       const delta = postAmt - preAmt;
       const need = priceUsd * 10 ** USDC_DECIMALS;
       if (delta < need)
@@ -229,7 +229,8 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
       verifiedAmount = delta / 10 ** USDC_DECIMALS;
     }
 
-    const expiresAt = new Date(Date.now() + SUB_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    // The insert trigger preserves existing time and serializes concurrent renewals.
+    const requestedExpiration = new Date(Date.now() + SUB_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: sub, error: insErr } = await supabaseAdmin
@@ -241,12 +242,14 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
         amount: verifiedAmount,
         from_wallet: feePayer,
         network: NETWORK,
-        expires_at: expiresAt,
+        expires_at: requestedExpiration,
         tier: data.tier,
       } as never)
-      .select("id")
+      .select("id, expires_at")
       .maybeSingle();
     if (insErr) throw new Error(insErr.message);
+    if (!sub) throw new Error("Payment could not be recorded. Please try again.");
+    const expiresAt = sub.expires_at;
 
     await postPaymentSideEffects({
       userId,
@@ -257,16 +260,17 @@ export const verifyArtistPayment = createServerFn({ method: "POST" })
     return { ok: true, expiresAt, amount: verifiedAmount, token: data.token, tier: data.tier };
   });
 
-const PAYPAL_API =
-  (process.env.PAYPAL_MODE ?? "sandbox") === "live"
+function paypalApi() {
+  return (process.env.PAYPAL_MODE ?? "sandbox") === "live"
     ? "https://api-m.paypal.com"
     : "https://api-m.sandbox.paypal.com";
+}
 
 async function paypalAccessToken(): Promise<string> {
   const id = process.env.PAYPAL_CLIENT_ID;
   const secret = process.env.PAYPAL_CLIENT_SECRET;
   if (!id || !secret) throw new Error("PayPal not configured");
-  const res = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
+  const res = await fetch(`${paypalApi()}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",
@@ -294,7 +298,7 @@ export const createPaypalOrder = createServerFn({ method: "POST" })
     const token = await paypalAccessToken();
     const priceUsd = priceFor(data.tier);
     const label = data.tier === "artist" ? "Artist plan" : "Superfan plan";
-    const res = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
+    const res = await fetch(`${paypalApi()}/v2/checkout/orders`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -342,7 +346,7 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
     const token = await paypalAccessToken();
 
     const capRes = await fetch(
-      `${PAYPAL_API}/v2/checkout/orders/${data.orderId}/capture`,
+      `${paypalApi()}/v2/checkout/orders/${data.orderId}/capture`,
       {
         method: "POST",
         headers: {
@@ -376,7 +380,7 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
     if (currency !== "USD") throw new Error("Currency must be USD");
     if (!(amt >= priceUsd)) throw new Error(`Amount ${amt} less than required ${priceUsd}`);
 
-    const expiresAt = new Date(Date.now() + SUB_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const requestedExpiration = new Date(Date.now() + SUB_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const payerRef = order.payer?.payer_id ?? order.payer?.email_address ?? "paypal";
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -389,12 +393,14 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
         amount: amt,
         from_wallet: payerRef,
         network: process.env.PAYPAL_MODE ?? "sandbox",
-        expires_at: expiresAt,
+        expires_at: requestedExpiration,
         tier: data.tier,
       } as never)
-      .select("id")
+      .select("id, expires_at")
       .maybeSingle();
     if (insErr) throw new Error(insErr.message);
+    if (!sub) throw new Error("Payment could not be recorded. Please try again.");
+    const expiresAt = sub.expires_at;
 
     await postPaymentSideEffects({
       userId,
@@ -406,6 +412,22 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
   });
 
 // ---- Referral read APIs ----
+
+export const getMySubscription = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: profile, error: profileError } = await supabase.from("profiles")
+      .select("account_type").eq("id", userId).maybeSingle();
+    if (profileError) throw new Error("Could not load your account.");
+    const { data: subscriptions, error } = await supabase.from("artist_subscriptions")
+      .select("tier, expires_at").eq("user_id", userId).order("expires_at", { ascending: false });
+    if (error) throw new Error("Could not load your subscription. Please try again.");
+    const tier = profile?.account_type === "artist" || profile?.account_type === "superfan"
+      ? profile.account_type : subscriptions?.[0]?.tier;
+    const subscription = subscriptions?.find((sub) => sub.tier === tier) ?? null;
+    return { accountType: profile?.account_type ?? "fan", subscription };
+  });
 
 export const getMyReferralInfo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

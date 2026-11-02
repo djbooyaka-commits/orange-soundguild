@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountType } from "@/hooks/useAccountType";
 import { useNavigate } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 import {
   getPaymentConfig,
   verifyArtistPayment,
@@ -16,9 +17,11 @@ type Tier = "artist" | "superfan";
 
 interface Props {
   tier?: Tier;
+  renewal?: boolean;
+  onSuccess?: () => void;
 }
 
-export function PhantomPayPanel({ tier = "artist" }: Props) {
+export function PhantomPayPanel({ tier = "artist", renewal = false, onSuccess }: Props) {
   const { user } = useAuth();
   const { isArtist, accountType } = useAccountType();
   const navigate = useNavigate();
@@ -101,7 +104,9 @@ export function PhantomPayPanel({ tier = "artist" }: Props) {
       toast.success(
         `${tier === "artist" ? "Artist" : "Superfan"} access active until ${new Date(res.expiresAt).toLocaleDateString()}.`,
       );
-      navigate({ to: tier === "artist" ? "/artist-welcome" : "/referrals" });
+      setSignature("");
+      if (onSuccess) onSuccess();
+      else navigate({ to: tier === "artist" ? "/artist-welcome" : "/referrals" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Verification failed");
     } finally {
@@ -152,7 +157,7 @@ export function PhantomPayPanel({ tier = "artist" }: Props) {
         </p>
       </div>
 
-      {alreadyActive ? (
+      {alreadyActive && !renewal ? (
         <div className="flex items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
           <CheckCircle2 className="h-4 w-4" /> You already have this plan
         </div>
@@ -234,14 +239,14 @@ export function PhantomPayPanel({ tier = "artist" }: Props) {
               placeholder="Transaction signature"
               className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
             />
-            <button
+            <Button
               onClick={submitSignature}
               disabled={busy || !signature.trim()}
               className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-105 disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Activate {tier === "artist" ? "artist" : "superfan"} access
-            </button>
+              {renewal ? "Renew" : "Activate"} {tier === "artist" ? "artist" : "superfan"} access
+            </Button>
           </div>
         </>
       )}
