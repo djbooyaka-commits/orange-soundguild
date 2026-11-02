@@ -71,7 +71,7 @@ export default function SubscriptionRenewalBanner() {
           <div className="font-semibold">
             {expired
               ? `Your ${label} plan has expired`
-              : `Your ${label} plan renews in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`}
+              : `Your ${label} plan expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`}
           </div>
           <p className="mt-0.5 text-muted-foreground">
             PayPal and Phantom payments cover 30 days and don&apos;t renew automatically — renew to
@@ -79,7 +79,7 @@ export default function SubscriptionRenewalBanner() {
           </p>
         </div>
         <Link
-          to="/upgrade"
+          to="/subscription"
           className="shrink-0 rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
         >
           Renew
