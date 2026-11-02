@@ -162,6 +162,13 @@
       "when": 1793503438307,
       "tag": "0022_remote_plays",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793582761034,
+      "tag": "0023_subscription_renewal_stacking",
+      "breakpoints": true
     }
   ]
 }
