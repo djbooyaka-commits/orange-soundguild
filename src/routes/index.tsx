@@ -21,6 +21,8 @@ export const Route = createFileRoute("/")({
       { title: "Orange Sound Guild — Discover and share music" },
       { name: "description", content: "Stream the latest uploads from independent artists on Orange Sound Guild — a modern music community for creators and listeners." },
       { property: "og:title", content: "Orange Sound Guild — Discover and share music" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:description", content: "Stream the latest uploads from independent artists on Orange Sound Guild." },
       { property: "og:url", content: "https://orangesoundguild.com/" },
     ],

@@ -16,6 +16,8 @@ export const Route = createFileRoute("/upgrade")({
           "Become an Artist ($10/mo) or Superfan ($5/mo). Earn referral commissions when you invite others to Orange Sound Guild.",
       },
       { property: "og:title", content: "Upgrade — Orange Sound Guild" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:description",
         content: "Artist and Superfan plans, plus a referral system that pays.",
