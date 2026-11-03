@@ -17,7 +17,7 @@ except ImportError:
     print("Missing packages. Run:  pip install mss pillow pyautogui requests")
     input("Press Enter to close..."); sys.exit(1)
 
-VERSION = "1.2"
+VERSION = "1.3"
 RELEASE = "https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest"
 SITE = os.environ.get("OSG_SITE", "https://orangesoundguild.com")
 CONFIG = os.path.join(os.path.expanduser("~"), ".osg-remote", "config.json")
@@ -100,6 +100,17 @@ def run(cmd, mon):
         if s == "Windows": import ctypes; ctypes.windll.user32.LockWorkStation()
         elif s == "Darwin": pyautogui.hotkey("ctrl", "command", "q")
         else: subprocess.Popen(["loginctl", "lock-session"])
+    elif k == "lift_lock":
+        # Lift the Windows lock-screen picture so the sign-in box shows.
+        pyautogui.press("space"); time.sleep(0.4); pyautogui.press("space")
+    elif k == "unlock":
+        # Lift the curtain, then type the password straight away before Windows drops it again.
+        pw = str(p.get("password", ""))[:256]
+        pyautogui.press("space"); time.sleep(0.8)
+        pyautogui.press("space"); time.sleep(0.6)
+        if pw:
+            pyautogui.write(pw, interval=0.02)
+            pyautogui.press("enter")
     elif k in ("screenshot", "wake"): pass
     else: return "failed", f"Not supported on PC: {k}"
     return "done", None
@@ -165,14 +176,14 @@ def main():
     cfg = load() or pair()
     autostart()
     last_update_check = time.time()
-    results, last_frame, watch = [], 0.0, False
+    results, last_frame, watch, burst_until = [], 0.0, False, 0.0
     with mss.mss() as sct:
         mon = sct.monitors[1]
         while True:
             body = {"deviceId": cfg["deviceId"], "token": cfg["token"], "width": mon["width"], "height": mon["height"], "results": results}
             if not watch and time.time() - last_update_check > 6 * 3600:
                 last_update_check = time.time(); check_update()
-            if watch and time.time() - last_frame > 0.25:
+            if (watch or time.time() < burst_until) and time.time() - last_frame > (0.12 if time.time() < burst_until else 0.25):
                 try:
                     frame, w, h, mon = grab(sct)
                     if frame: body["frame"] = frame
@@ -195,8 +206,9 @@ def main():
             for c in d.get("commands", []):
                 try: status, msg = run(c, mon)
                 except Exception as e: status, msg = "failed", str(e)[:200]
-                results.append({"id": c["id"], "status": status, "result": msg})
+                results.append({"id": c["id"], "kind": c.get("kind"), "status": status, "result": msg})
                 last_frame = 0  # refresh the screen right after an action
+                burst_until = time.time() + 3
             time.sleep(0.05 if watch else 1.5)
 
 
