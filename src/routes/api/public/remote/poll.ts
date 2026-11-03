@@ -11,7 +11,7 @@ const json = (body: unknown, status = 200) =>
 const MAX_FRAME = 600_000;
 const STALE_MS = 2 * 60 * 1000;
 
-type Result = { id?: unknown; status?: unknown; result?: unknown };
+type Result = { id?: unknown; status?: unknown; result?: unknown; kind?: unknown };
 
 export const Route = createFileRoute("/api/public/remote/poll")({
   server: {
@@ -58,7 +58,8 @@ export const Route = createFileRoute("/api/public/remote/poll")({
             const status = r.status === "done" ? "done" : "failed";
             await supabaseAdmin
               .from("remote_commands")
-              .update({ status, result: typeof r.result === "string" ? r.result.slice(0, 500) : null })
+              // Passwords sent for "unlock" are wiped as soon as the PC reports back.
+              .update({ status, result: typeof r.result === "string" ? r.result.slice(0, 500) : null, ...(r.kind === "unlock" ? { payload: {} } : {}) })
               .eq("id", r.id)
               .eq("device_id", deviceId);
           }
@@ -76,7 +77,7 @@ export const Route = createFileRoute("/api/public/remote/poll")({
             return [{
               device_id: deviceId, owner_id: device.owner_id, title,
               app: str(p?.app, 60) ?? "Unknown", package: str(p?.package, 200),
-              artist: str(p?.artist, 300), album: str(p?.album, 300),
+              artist: str(p?.artist, 300), album: str(p?.album, 300), playlist: str(p?.playlist, 200),
               played_seconds: secs, started_at: new Date(started).toISOString(),
             }];
           });
@@ -86,7 +87,7 @@ export const Route = createFileRoute("/api/public/remote/poll")({
         // Drop commands that waited too long so an offline phone doesn't replay old taps.
         await supabaseAdmin
           .from("remote_commands")
-          .update({ status: "expired" })
+          .update({ status: "expired", payload: {} })
           .eq("device_id", deviceId)
           .eq("status", "pending")
           .lt("created_at", new Date(now.getTime() - STALE_MS).toISOString());
@@ -101,6 +102,9 @@ export const Route = createFileRoute("/api/public/remote/poll")({
         const commands = pending ?? [];
         if (commands.length) {
           await supabaseAdmin.from("remote_commands").update({ status: "sent" }).in("id", commands.map((c) => c.id));
+          // Never leave a password sitting in the database once it's been handed to the PC.
+          const unlocks = commands.filter((c) => c.kind === "unlock").map((c) => c.id);
+          if (unlocks.length) await supabaseAdmin.from("remote_commands").update({ payload: {} }).in("id", unlocks);
         }
 
         const watch = !!device.watch_until && new Date(device.watch_until).getTime() > now.getTime();
