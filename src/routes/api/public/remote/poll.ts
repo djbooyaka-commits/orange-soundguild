@@ -81,7 +81,7 @@ export const Route = createFileRoute("/api/public/remote/poll")({
               played_seconds: secs, started_at: new Date(started).toISOString(),
             }];
           });
-          if (rows.length) await supabaseAdmin.from("remote_plays").upsert(rows, { onConflict: "device_id,started_at,title", ignoreDuplicates: true });
+          if (rows.length) await supabaseAdmin.from("remote_plays").upsert(rows as never, { onConflict: "device_id,started_at,title", ignoreDuplicates: true });
         }
 
         // Drop commands that waited too long so an offline phone doesn't replay old taps.

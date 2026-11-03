@@ -503,7 +503,7 @@ function MusicPlayed({ deviceId }: { deviceId: string }) {
       const { data } = await supabase.from("remote_plays")
         .select("id, app, title, artist, playlist, played_seconds, started_at")
         .eq("device_id", deviceId).order("started_at", { ascending: false }).limit(30);
-      if (!stop) setPlays((data ?? []) as Play[]);
+      if (!stop) setPlays((data ?? []) as unknown as Play[]);
     };
     void load();
     const t = setInterval(load, 20_000);
