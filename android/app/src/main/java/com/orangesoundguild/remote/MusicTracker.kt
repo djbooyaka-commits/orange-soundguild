@@ -54,6 +54,7 @@ class MusicTracker : NotificationListenerService() {
 
     /** One track currently loaded in one app. */
     private class Track(val pkg: String, val title: String, val artist: String?, val album: String?) {
+        var playlist: String? = null
         val startedAt = System.currentTimeMillis()
         var playedMs = 0L
         var playingSince = 0L
@@ -117,6 +118,8 @@ class MusicTracker : NotificationListenerService() {
             tracks[pkg] = Track(pkg, title, artist, album)
         }
         val t = tracks[pkg]!!
+        // Spotify and others report the playlist/queue name here (e.g. "Super lucky").
+        try { c.queueTitle?.toString()?.trim()?.takeIf { it.isNotEmpty() }?.let { t.playlist = it.take(200) } } catch (_: Exception) {}
         if (c.playbackState?.state == PlaybackState.STATE_PLAYING) t.play(now) else t.pause(now)
     }
 
@@ -132,6 +135,7 @@ class MusicTracker : NotificationListenerService() {
                 .put("title", t.title)
                 .put("artist", t.artist ?: JSONObject.NULL)
                 .put("album", t.album ?: JSONObject.NULL)
+                .put("playlist", t.playlist ?: JSONObject.NULL)
                 .put("playedSeconds", secs)
                 .put("startedAt", t.startedAt)
         )
