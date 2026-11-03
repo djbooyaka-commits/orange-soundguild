@@ -38,6 +38,7 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
   const [url, setUrl] = useState("");
   const [pkg, setPkg] = useState("");
   const [text, setText] = useState("");
+  const [pw, setPw] = useState("");
   const [, tick] = useState(0);
   const dragStart = useRef<{ x: number; y: number; t: number } | null>(null);
   const dragPct = useRef<{ x: number; y: number } | null>(null);
@@ -319,8 +320,8 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                 <span className={`pointer-events-none absolute rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ${isPc ? "right-2 top-2" : "top-1 left-1/2 -translate-x-1/2"}`}>⏸ Stopped — press Go live</span>
               )}
               {live !== "on" && device.paired && watching && frameAt > 0 && (
-                <span className={`pointer-events-none absolute rounded-full px-2 py-0.5 text-[10px] font-medium opacity-90 ${isPc ? "right-2 top-2" : "top-1 left-1/2 -translate-x-1/2"} ${Date.now() - frameAt < 5000 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
-                  {Date.now() - frameAt < 5000 ? "● Live" : `Paused · ${Math.round((Date.now() - frameAt) / 1000)}s old`}
+                <span className={`pointer-events-none absolute rounded-full px-2 py-0.5 text-[10px] font-medium opacity-90 ${isPc ? "right-2 top-2" : "top-1 left-1/2 -translate-x-1/2"} ${Date.now() - frameAt < 15000 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
+                  {Date.now() - frameAt < 15000 ? "● Live" : `Paused · ${Math.round((Date.now() - frameAt) / 1000)}s old`}
                 </span>
               )}
               {marks.map((m) => (
@@ -399,6 +400,21 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
               </div>}
             </section>
 
+            {isPc && (
+            <section className="rounded-xl border border-border p-4">
+              <h2 className="mb-1 font-semibold">Lock screen</h2>
+              <p className="mb-3 text-sm text-muted-foreground">Type your PC password and press Log in — the PC lifts the lock screen and types it in one go, so it can't close on you. Your password is deleted as soon as the PC gets it.</p>
+              <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (!pw) return; void send("unlock", { password: pw }); setPw(""); toast.success("Logging in…"); }}>
+                <Input type="password" autoComplete="off" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="PC password or PIN" aria-label="PC password or PIN" />
+                <Button type="submit" disabled={!paired}>Log in</Button>
+              </form>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => send("lift_lock")}>Lift lock screen</Button>
+                <Button size="sm" variant="outline" onClick={() => send("key", { keys: ["tab"] })}>Sign-in options</Button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">Needs OSG PC Remote version 1.3 (it updates itself).</p>
+            </section>
+            )}
             {isPc ? (
             <section className="rounded-xl border border-border p-4">
               <h2 className="mb-3 font-semibold">Keyboard &amp; computer</h2>
@@ -476,7 +492,7 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
   );
 }
 
-type Play = { id: string; app: string; title: string; artist: string | null; played_seconds: number; started_at: string };
+type Play = { id: string; app: string; title: string; artist: string | null; playlist: string | null; played_seconds: number; started_at: string };
 
 /** Songs the phone reported playing in Spotify, Apple Music, YouTube and others. */
 function MusicPlayed({ deviceId }: { deviceId: string }) {
@@ -485,7 +501,7 @@ function MusicPlayed({ deviceId }: { deviceId: string }) {
     let stop = false;
     const load = async () => {
       const { data } = await supabase.from("remote_plays")
-        .select("id, app, title, artist, played_seconds, started_at")
+        .select("id, app, title, artist, playlist, played_seconds, started_at")
         .eq("device_id", deviceId).order("started_at", { ascending: false }).limit(30);
       if (!stop) setPlays((data ?? []) as Play[]);
     };
@@ -497,7 +513,7 @@ function MusicPlayed({ deviceId }: { deviceId: string }) {
   return (
     <section className="rounded-xl border border-border p-4">
       <h2 className="mb-1 font-semibold">Music played on this phone</h2>
-      <p className="mb-3 text-xs text-muted-foreground">Plays of 30 seconds or more. Turn on "Music tracking" in the OSG Remote app (version 3.1). {today} today.</p>
+      <p className="mb-3 text-xs text-muted-foreground">Plays of 30 seconds or more. Turn on "Music tracking" in the OSG Remote app (version 3.2 shows the playlist). {today} today.</p>
       {plays === null ? <Loader2 className="h-4 w-4 animate-spin" /> : plays.length === 0 ? (
         <p className="text-sm text-muted-foreground">No music tracked yet.</p>
       ) : (
@@ -507,6 +523,7 @@ function MusicPlayed({ deviceId }: { deviceId: string }) {
               <span className="min-w-0">
                 <span className="block truncate font-medium">{p.title}</span>
                 <span className="block truncate text-xs text-muted-foreground">{p.artist ?? "Unknown artist"} · {p.app}</span>
+                {p.playlist && <span className="block truncate text-xs text-primary">on playlist "{p.playlist}"</span>}
               </span>
               <span className="shrink-0 text-right text-xs text-muted-foreground">
                 {new Date(p.started_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}<br />
