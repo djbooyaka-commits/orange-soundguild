@@ -1733,6 +1733,7 @@ export type Database = {
           owner_id: string
           package: string | null
           played_seconds: number
+          playlist: string | null
           started_at: string
           title: string
         }
@@ -1746,6 +1747,7 @@ export type Database = {
           owner_id: string
           package?: string | null
           played_seconds?: number
+          playlist?: string | null
           started_at: string
           title: string
         }
@@ -1759,6 +1761,7 @@ export type Database = {
           owner_id?: string
           package?: string | null
           played_seconds?: number
+          playlist?: string | null
           started_at?: string
           title?: string
         }
