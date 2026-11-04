@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PcRemoteControls } from "@/components/PcRemoteControls";
 import guideShot from "@/assets/osg-remote-start-live.png.asset.json";
 
 type Device = {
@@ -38,7 +39,6 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
   const [url, setUrl] = useState("");
   const [pkg, setPkg] = useState("");
   const [text, setText] = useState("");
-  const [pw, setPw] = useState("");
   const [, tick] = useState(0);
   const dragStart = useRef<{ x: number; y: number; t: number } | null>(null);
   const dragPct = useRef<{ x: number; y: number } | null>(null);
@@ -243,6 +243,7 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
     setTimeout(() => setMarks((ms) => ms.filter((m) => m.id !== id)), 700);
   }
   function onDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
     dragStart.current = { ...toPhone(e), t: Date.now() };
     dragPct.current = pct(e);
   }
@@ -294,16 +295,18 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
           <p className="mt-2 text-sm text-muted-foreground">Press "{mode === "pc" ? "Add PC" : "Add phone"}" to get a pairing code.</p>
         </section>
       ) : (
-        <div className={`grid gap-6 ${isPc ? "" : "lg:grid-cols-[minmax(0,360px)_1fr]"}`}>
-          <div>
+        <div className={`grid gap-6 ${isPc ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "lg:grid-cols-[minmax(0,360px)_1fr]"}`}>
+          <div className="min-w-0">
             <div className={isPc ? "mx-auto max-w-5xl rounded-2xl border border-border bg-card p-3 pb-6 shadow-xl" : ""}>
-            {isPc && <div className="mb-2 flex items-center gap-1.5 px-1"><span className="h-2.5 w-2.5 rounded-full bg-destructive/70" /><span className="h-2.5 w-2.5 rounded-full bg-primary/70" /><span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50" /><span className="ml-3 truncate text-xs text-muted-foreground">{device.name} — {isOnline(device) ? "connected" : "offline"}</span></div>}
+            {isPc && <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1"><span className="truncate text-xs text-muted-foreground">{device.name} — {isOnline(device) ? "connected" : "offline"}</span><span role="status" className={`shrink-0 text-xs font-medium ${!watching || !isOnline(device) ? "text-muted-foreground" : frameAt > 0 && Date.now() - frameAt < 15000 ? "text-primary" : "text-destructive"}`}>{!watching ? "Stopped" : !isOnline(device) ? "Offline" : frameAt === 0 ? "Connecting…" : Date.now() - frameAt < 15000 ? "● Live" : "Reconnecting…"}</span></div>}
             <div
               role="application"
               aria-label={isPc ? "PC screen — click to click, drag to drag" : "Phone screen — click to tap, drag to swipe"}
               onPointerDown={onDown}
               onPointerMove={onMove}
               onPointerUp={onUp}
+              onPointerCancel={() => { dragStart.current = null; dragPct.current = null; setTrail(null); }}
+              onWheel={(e) => { if (isPc && paired) void send("scroll", { dy: e.deltaY > 0 ? -3 : 3 }); }}
               onContextMenu={(e) => e.preventDefault()}
               className={`relative mx-auto w-full cursor-crosshair touch-none select-none overflow-hidden bg-muted ${isPc ? "rounded-md border-2 border-foreground/90" : "max-w-[360px] rounded-[2rem] border-8 border-foreground/80"}`}
               style={{ aspectRatio: isPc ? (device.screen_width > device.screen_height ? `${device.screen_width} / ${device.screen_height}` : "16 / 9") : `${device.screen_width} / ${device.screen_height}` }}
@@ -316,10 +319,10 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                   {device.paired ? "Waiting for the screen…" : "Pair your device to see its screen here."}
                 </div>
               )}
-              {live !== "on" && device.paired && !watching && (
+              {!isPc && live !== "on" && device.paired && !watching && (
                 <span className={`pointer-events-none absolute rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ${isPc ? "right-2 top-2" : "top-1 left-1/2 -translate-x-1/2"}`}>⏸ Stopped — press Go live</span>
               )}
-              {live !== "on" && device.paired && watching && frameAt > 0 && (
+              {!isPc && live !== "on" && device.paired && watching && frameAt > 0 && (
                 <span className={`pointer-events-none absolute rounded-full px-2 py-0.5 text-[10px] font-medium opacity-90 ${isPc ? "right-2 top-2" : "top-1 left-1/2 -translate-x-1/2"} ${Date.now() - frameAt < 15000 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
                   {Date.now() - frameAt < 15000 ? "● Live" : `Paused · ${Math.round((Date.now() - frameAt) / 1000)}s old`}
                 </span>
@@ -366,7 +369,8 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
             )}
           </div>
 
-          <div className="space-y-5">
+          {isPc && <PcRemoteControls key={device.id} paired={paired} send={send} />}
+          <div className={`min-w-0 space-y-5 ${isPc ? "lg:col-span-2" : ""}`}>
             <section className="rounded-xl border border-border p-4">
               <div className="flex items-center justify-between gap-2">
                 <form key={device.id} className="flex flex-1 items-center gap-2" onSubmit={(e) => { e.preventDefault(); const v = String(new FormData(e.currentTarget).get("name") ?? "").trim(); void rename(device.id, v || "My Android phone"); }}>
@@ -395,26 +399,11 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                 <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
                   <li>On the PC, download the app: <a className="font-medium text-primary underline" href="https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest/OSG-PC-Remote.exe">Windows</a> · <a className="text-primary underline" href="https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest/OSG-PC-Remote-mac">Mac</a> · <a className="text-primary underline" href="https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest/OSG-PC-Remote-linux">Linux</a>. If those links don't work yet, use the quick starter instead: download <a className="font-medium text-primary underline" href="/pc-remote/start-osg-pc-remote.bat" download>Windows starter</a> and <a className="text-primary underline" href="/pc-remote/osg_pc_remote.py" download>osg_pc_remote.py</a> into the same folder, then double-click the starter (needs Python installed).</li>
                   <li>Open it. If Windows says "protected your PC", click <strong>More info → Run anyway</strong>.</li>
-                  <li>Type the pairing code above. Done — it starts by itself when the PC turns on.</li>
+                  <li>Type the pairing code above. It starts automatically after you sign in to your PC.</li>
                 </ol>
               </div>}
             </section>
 
-            {isPc && (
-            <section className="rounded-xl border border-border p-4">
-              <h2 className="mb-1 font-semibold">Lock screen</h2>
-              <p className="mb-3 text-sm text-muted-foreground">Type your PC password and press Log in — the PC lifts the lock screen and types it in one go, so it can't close on you. Your password is deleted as soon as the PC gets it.</p>
-              <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (!pw) return; void send("unlock", { password: pw }); setPw(""); toast.success("Logging in…"); }}>
-                <Input type="password" autoComplete="off" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="PC password or PIN" aria-label="PC password or PIN" />
-                <Button type="submit" disabled={!paired}>Log in</Button>
-              </form>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => send("lift_lock")}>Lift lock screen</Button>
-                <Button size="sm" variant="outline" onClick={() => send("key", { keys: ["tab"] })}>Sign-in options</Button>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">Needs OSG PC Remote version 1.3 (it updates itself).</p>
-            </section>
-            )}
             {isPc ? (
             <section className="rounded-xl border border-border p-4">
               <h2 className="mb-3 font-semibold">Keyboard &amp; computer</h2>
@@ -477,7 +466,7 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                   {commands.map((c) => (
                     <li key={c.id} className="flex justify-between gap-3">
                       <span className="truncate">{c.kind.replace("_", " ")}</span>
-                      <span className="shrink-0 text-muted-foreground">{c.status}</span>
+                      <span className="text-right text-muted-foreground">{c.status}{c.result && <span className="block text-xs">{c.result}</span>}</span>
                     </li>
                   ))}
                 </ul>

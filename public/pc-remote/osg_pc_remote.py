@@ -10,6 +10,14 @@ Only sends the screen while the Remote page is open. Close this window to stop.
 """
 import base64, io, json, os, platform, subprocess, sys, time, webbrowser
 
+if platform.system() == "Windows":
+    import ctypes
+    try:
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+    except Exception:
+        try: ctypes.windll.shcore.SetProcessDpiAwareness(2)
+        except Exception: pass
+
 try:
     import mss, pyautogui, requests
     from PIL import Image
@@ -17,21 +25,13 @@ except ImportError:
     print("Missing packages. Run:  pip install mss pillow pyautogui requests")
     input("Press Enter to close..."); sys.exit(1)
 
-VERSION = "1.3"
+VERSION = "1.4"
 RELEASE = "https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest"
 SITE = os.environ.get("OSG_SITE", "https://orangesoundguild.com")
 CONFIG = os.path.join(os.path.expanduser("~"), ".osg-remote", "config.json")
 FRAME_WIDTH = 1152
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0.02
-
-if platform.system() == "Windows":
-    try:
-        import ctypes
-        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # real pixels so clicks land where you see them
-    except Exception:
-        pass
-
 
 def load():
     try:
@@ -69,19 +69,63 @@ def grab(sct):
 
 KEY_MAP = {"win": "win" if platform.system() == "Windows" else "command"}
 
+def input_available():
+    """Fail closed when Windows switches to a locked or secure desktop."""
+    if platform.system() != "Windows": return True
+    import ctypes
+    user32 = ctypes.windll.user32
+    user32.OpenInputDesktop.restype = ctypes.c_void_p
+    user32.GetUserObjectInformationW.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p]
+    user32.CloseDesktop.argtypes = [ctypes.c_void_p]
+    desktop = user32.OpenInputDesktop(0, False, 1)
+    if not desktop: return False
+    try:
+        name = ctypes.create_unicode_buffer(256)
+        needed = ctypes.c_ulong()
+        return bool(user32.GetUserObjectInformationW(desktop, 2, name, ctypes.sizeof(name), ctypes.byref(needed))) and name.value.lower() == "default"
+    finally: user32.CloseDesktop(desktop)
+
+def keep_awake(enabled):
+    """Prevent idle sleep only; never change sign-in, lock or managed policies."""
+    if platform.system() == "Windows":
+        import ctypes
+        ctypes.windll.kernel32.SetThreadExecutionState(0x80000003 if enabled else 0x80000000)
+
+def release_mouse():
+    try: pyautogui.mouseUp(button="left")
+    except Exception: pass
+
 
 def run(cmd, mon):
     k, p = cmd.get("kind"), cmd.get("payload") or {}
+    if k == "unlock":
+        return "failed", "Remote password entry is not supported safely by this app."
+    if k == "sign_in_options":
+        return "failed", "Windows sign-in control requires a secure-desktop remote app."
+    if k not in ("screenshot", "wake") and not input_available():
+        return "failed", "Windows is locked or showing a secure screen; input is blocked."
     ox, oy = mon["left"], mon["top"]
-    xy = lambda a, b: (ox + int(p.get(a, 0)), oy + int(p.get(b, 0)))
+    xy = lambda a, b: (ox + max(0, min(mon["width"] - 1, int(p.get(a, 0)))), oy + max(0, min(mon["height"] - 1, int(p.get(b, 0)))))
     if k == "tap": pyautogui.click(*xy("x", "y"))
     elif k == "double_click": pyautogui.doubleClick(*xy("x", "y"))
     elif k == "long_press": pyautogui.rightClick(*xy("x", "y"))
     elif k == "swipe":
         pyautogui.moveTo(*xy("x1", "y1")); pyautogui.dragTo(*xy("x2", "y2"), duration=min(2, int(p.get("duration", 300)) / 1000), button="left")
-    elif k == "scroll": pyautogui.scroll(int(p.get("dy", 0)) * 120 if platform.system() == "Windows" else int(p.get("dy", 0)) * 5)
+    elif k == "mouse_move":
+        x, y = pyautogui.position()
+        pyautogui.moveTo(max(ox, min(ox + mon["width"] - 1, x + max(-500, min(500, int(p.get("dx", 0)))))), max(oy, min(oy + mon["height"] - 1, y + max(-500, min(500, int(p.get("dy", 0)))))))
+    elif k == "mouse_click":
+        button = p.get("button", "left")
+        if button == "double": pyautogui.doubleClick()
+        elif button in ("left", "right"): pyautogui.click(button=button)
+        else: return "failed", "Unsupported mouse button"
+    elif k == "mouse_hold":
+        if p.get("down"): pyautogui.mouseDown(button="left")
+        else: release_mouse()
+    elif k == "scroll": pyautogui.scroll(max(-10, min(10, int(p.get("dy", 0)))))
     elif k == "key":
         keys = [KEY_MAP.get(x, x) for x in p.get("keys", [])][:4]
+        if not keys: return "failed", "No key supplied"
         pyautogui.hotkey(*keys) if len(keys) > 1 else pyautogui.press(keys[0])
     elif k == "type_text": pyautogui.write(str(p.get("text", ""))[:2000], interval=0.01)
     elif k == "open_url":
@@ -103,14 +147,6 @@ def run(cmd, mon):
     elif k == "lift_lock":
         # Lift the Windows lock-screen picture so the sign-in box shows.
         pyautogui.press("space"); time.sleep(0.4); pyautogui.press("space")
-    elif k == "unlock":
-        # Lift the curtain, then type the password straight away before Windows drops it again.
-        pw = str(p.get("password", ""))[:256]
-        pyautogui.press("space"); time.sleep(0.8)
-        pyautogui.press("space"); time.sleep(0.6)
-        if pw:
-            pyautogui.write(pw, interval=0.02)
-            pyautogui.press("enter")
     elif k in ("screenshot", "wake"): pass
     else: return "failed", f"Not supported on PC: {k}"
     return "done", None
@@ -177,9 +213,13 @@ def main():
     autostart()
     last_update_check = time.time()
     results, last_frame, watch, burst_until = [], 0.0, False, 0.0
+    held_until = 0.0
+    keep_awake(True)
     with mss.mss() as sct:
         mon = sct.monitors[1]
         while True:
+            if held_until and time.time() >= held_until:
+                release_mouse(); held_until = 0.0
             body = {"deviceId": cfg["deviceId"], "token": cfg["token"], "width": mon["width"], "height": mon["height"], "results": results}
             if not watch and time.time() - last_update_check > 6 * 3600:
                 last_update_check = time.time(); check_update()
@@ -196,6 +236,7 @@ def main():
             try:
                 r = requests.post(f"{SITE}/api/public/remote/poll", json=body, timeout=20)
             except Exception as e:
+                release_mouse(); held_until = 0.0
                 print("Connection problem, retrying…", e); time.sleep(3); continue
             if r.status_code == 401:
                 print("This PC was disconnected on the website. Pair again.")
@@ -203,10 +244,16 @@ def main():
             if not r.ok: time.sleep(2); continue
             results = []
             d = r.json(); watch = bool(d.get("watch"))
+            if not watch:
+                release_mouse(); held_until = 0.0
             for c in d.get("commands", []):
                 try: status, msg = run(c, mon)
                 except Exception as e: status, msg = "failed", str(e)[:200]
                 results.append({"id": c["id"], "kind": c.get("kind"), "status": status, "result": msg})
+                if c.get("kind") == "mouse_hold":
+                    held_until = time.time() + 15 if status == "done" and (c.get("payload") or {}).get("down") else 0.0
+                elif c.get("kind") == "mouse_move" and held_until:
+                    held_until = time.time() + 15
                 last_frame = 0  # refresh the screen right after an action
                 burst_until = time.time() + 3
             time.sleep(0.05 if watch else 1.5)
@@ -215,3 +262,6 @@ def main():
 if __name__ == "__main__":
     try: main()
     except KeyboardInterrupt: pass
+    finally:
+        release_mouse()
+        keep_awake(False)
