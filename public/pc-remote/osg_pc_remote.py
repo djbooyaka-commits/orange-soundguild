@@ -213,10 +213,13 @@ def main():
     autostart()
     last_update_check = time.time()
     results, last_frame, watch, burst_until = [], 0.0, False, 0.0
+    held_until = 0.0
     keep_awake(True)
     with mss.mss() as sct:
         mon = sct.monitors[1]
         while True:
+            if held_until and time.time() >= held_until:
+                release_mouse(); held_until = 0.0
             body = {"deviceId": cfg["deviceId"], "token": cfg["token"], "width": mon["width"], "height": mon["height"], "results": results}
             if not watch and time.time() - last_update_check > 6 * 3600:
                 last_update_check = time.time(); check_update()
@@ -233,6 +236,7 @@ def main():
             try:
                 r = requests.post(f"{SITE}/api/public/remote/poll", json=body, timeout=20)
             except Exception as e:
+                release_mouse(); held_until = 0.0
                 print("Connection problem, retrying…", e); time.sleep(3); continue
             if r.status_code == 401:
                 print("This PC was disconnected on the website. Pair again.")
@@ -240,11 +244,16 @@ def main():
             if not r.ok: time.sleep(2); continue
             results = []
             d = r.json(); watch = bool(d.get("watch"))
-            if not watch: release_mouse()
+            if not watch:
+                release_mouse(); held_until = 0.0
             for c in d.get("commands", []):
                 try: status, msg = run(c, mon)
                 except Exception as e: status, msg = "failed", str(e)[:200]
                 results.append({"id": c["id"], "kind": c.get("kind"), "status": status, "result": msg})
+                if c.get("kind") == "mouse_hold":
+                    held_until = time.time() + 15 if status == "done" and (c.get("payload") or {}).get("down") else 0.0
+                elif c.get("kind") == "mouse_move" and held_until:
+                    held_until = time.time() + 15
                 last_frame = 0  # refresh the screen right after an action
                 burst_until = time.time() + 3
             time.sleep(0.05 if watch else 1.5)
