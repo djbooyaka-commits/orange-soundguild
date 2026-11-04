@@ -1,12 +1,10 @@
 import { useRef, useState } from "react";
 import { ArrowDown, ArrowUp, MousePointer2, Mouse, Unlock, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 type Props = { paired: boolean; send: (kind: string, payload?: Record<string, unknown>) => Promise<unknown> };
 
 export function PcRemoteControls({ paired, send }: Props) {
-  const [password, setPassword] = useState("");
   const gesture = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const pending = useRef({ dx: 0, dy: 0 });
   const moving = useRef(false);
@@ -25,13 +23,7 @@ export function PcRemoteControls({ paired, send }: Props) {
   return <aside className="min-w-0 space-y-5" aria-label="PC live controls">
     <section className="border-b border-border pb-5">
       <h2 className="mb-3 flex items-center gap-2 font-semibold"><Unlock className="h-4 w-4" /> Lock screen</h2>
-      <form className="flex flex-wrap gap-2" onSubmit={(e) => {
-        e.preventDefault(); if (!password || !paired) return;
-        void send("unlock", { password }); setPassword("");
-      }}>
-        <Input className="min-w-0 flex-1 basis-40" type="password" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="PC password or PIN" aria-label="PC password or PIN" disabled={!paired} />
-        <Button type="submit" disabled={!paired || !password}>Log in</Button>
-      </form>
+      <p className="text-sm text-muted-foreground">Windows may block control at sign-in. Remote password entry is unavailable.</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Button size="sm" variant="outline" disabled={!paired} onClick={() => void send("lift_lock")}><Unlock className="h-4 w-4" /> Lift lock screen</Button>
         <Button size="sm" variant="outline" disabled={!paired} onClick={() => void send("sign_in_options")}><ChevronDown className="h-4 w-4" /> Sign-in options</Button>
