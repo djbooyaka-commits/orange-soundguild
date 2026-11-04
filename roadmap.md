@@ -23,4 +23,6 @@
 - [x] PC Remote: one-click installer (Windows .exe, Mac, Linux) via GitHub release.
 - [x] PC Remote: pick the live PC by default, faster screen updates.
 - [x] PC Remote app: checks for and installs new versions by itself.
+- [ ] PC Remote: adjacent lock controls, unobstructed Live status, trackpad and verified sign-in navigation, sleep prevention without bypassing Windows security.
+- [ ] Verify PC Remote controls in signed-in desktop/mobile views and run command tests; real Windows sign-in requires hardware.
 - [x] Subscription: account menu link, plan status, expiration/days remaining, PayPal/Phantom renewal, and atomic preserved-time stacking; signed-in page and rule tests verified (no payment charged).
