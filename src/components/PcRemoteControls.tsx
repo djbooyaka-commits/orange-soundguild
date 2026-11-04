@@ -26,7 +26,9 @@ export function PcRemoteControls({ paired, send }: Props) {
       <p className="text-sm text-muted-foreground">Windows may block control at sign-in. Remote password entry is unavailable.</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Button size="sm" variant="outline" disabled={!paired} onClick={() => void send("lift_lock")}><Unlock className="h-4 w-4" /> Lift lock screen</Button>
-        <Button size="sm" variant="outline" disabled={!paired} onClick={() => void send("sign_in_options")}><ChevronDown className="h-4 w-4" /> Sign-in options</Button>
+        <Button size="sm" variant="outline" disabled={!paired} onClick={() => void send("key", { keys: ["tab"] })}><ChevronDown className="h-4 w-4" /> Next field</Button>
+        <Button size="sm" variant="outline" disabled={!paired} onClick={() => void send("key", { keys: ["shift", "tab"] })}>Previous field</Button>
+        <Button size="sm" variant="outline" disabled={!paired} onClick={() => void send("key", { keys: ["enter"] })}>Enter</Button>
       </div>
     </section>
     <section>

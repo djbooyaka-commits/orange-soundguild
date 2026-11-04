@@ -399,7 +399,7 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                 <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
                   <li>On the PC, download the app: <a className="font-medium text-primary underline" href="https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest/OSG-PC-Remote.exe">Windows</a> · <a className="text-primary underline" href="https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest/OSG-PC-Remote-mac">Mac</a> · <a className="text-primary underline" href="https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest/OSG-PC-Remote-linux">Linux</a>. If those links don't work yet, use the quick starter instead: download <a className="font-medium text-primary underline" href="/pc-remote/start-osg-pc-remote.bat" download>Windows starter</a> and <a className="text-primary underline" href="/pc-remote/osg_pc_remote.py" download>osg_pc_remote.py</a> into the same folder, then double-click the starter (needs Python installed).</li>
                   <li>Open it. If Windows says "protected your PC", click <strong>More info → Run anyway</strong>.</li>
-                  <li>Type the pairing code above. Done — it starts by itself when the PC turns on.</li>
+                  <li>Type the pairing code above. It starts automatically after you sign in to your PC.</li>
                 </ol>
               </div>}
             </section>
