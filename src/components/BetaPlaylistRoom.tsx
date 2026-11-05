@@ -28,6 +28,7 @@ import {
   readdBetaRoomMember,
   addBetaPlaylistMemberByUsername,
   setBetaPlaylistPeriod,
+  setBetaPlaylistAutoRemoveStars,
   setBetaPlaylistMemberLink,
   setBetaPlaylistMemberFacebook,
   betaPlaylistPointHistory,
@@ -89,7 +90,9 @@ type RoomData = {
     trackCount: number;
     isTeam: boolean;
     periodDays: number;
+    autoRemoveStars?: number | null;
   };
+  autoRemovedUserIds?: string[];
   removedMembers: { user_id: string; username: string | null }[];
   isOwner: boolean;
   trackingStartedAt: string | null;
@@ -104,6 +107,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const removeMemberFn = useServerFn(removeBetaRoomMember);
   const readdFn = useServerFn(readdBetaRoomMember);
   const setPeriodFn = useServerFn(setBetaPlaylistPeriod);
+  const setAutoRemoveFn = useServerFn(setBetaPlaylistAutoRemoveStars);
   const [readdingId, setReaddingId] = useState<string | null>(null);
   const setLinkFn = useServerFn(setBetaPlaylistMemberLink);
   const startTrackingFn = useServerFn(startLastfmPlaylistTracking);
@@ -386,6 +390,16 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     toast.success(`Pass given to ${ok} member(s)`);
   };
 
+  const changeAutoRemove = async (stars: number | null) => {
+    try {
+      await setAutoRemoveFn({ data: { playlistId, stars } });
+      await refresh();
+      toast.success(stars ? `Tracks auto-remove at ${stars} star${stars === 1 ? "" : "s"}` : "Auto-remove turned off");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save auto-remove");
+    }
+  };
+
   const changePeriod = async (days: number) => {
     try {
       await setPeriodFn({ data: { playlistId, days } });
@@ -600,8 +614,25 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
               className="rounded-md border border-border bg-background px-2 py-1 text-xs"
               aria-label="Minimum period"
             >
+              <option value={1}>Minimum per 1 day</option>
               <option value={7}>Minimum per 7 days</option>
               <option value={30}>Minimum per 30 days</option>
+            </select>
+          )}
+          {data.isOwner && isTeam && (
+            <select
+              value={data.playlist.autoRemoveStars ?? 0}
+              onChange={(e) => changeAutoRemove(Number(e.target.value) || null)}
+              className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+              aria-label="Auto-remove tracks at stars"
+              title="Remove a member's tracks from the Spotify playlist when they reach this many red stars. They come back automatically after a pass."
+            >
+              <option value={0}>Auto-remove: Off</option>
+              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                <option key={n} value={n}>
+                  Auto-remove at {n} star{n === 1 ? "" : "s"}
+                </option>
+              ))}
             </select>
           )}
           {data.isOwner && isTeam && (
@@ -1110,6 +1141,14 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                               joinedAt={m.joined_at}
                               periodDays={data.playlist.periodDays}
                             />
+                            {data.autoRemovedUserIds?.includes(m.user_id) && (
+                              <span
+                                className="rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] font-medium text-destructive"
+                                title="Tracks were taken off the Spotify playlist. They return automatically after a pass."
+                              >
+                                Tracks removed
+                              </span>
+                            )}
                           </>
                         ) : (
                           "Pass"
