@@ -176,6 +176,13 @@
       "when": 1793582839058,
       "tag": "0024_verify_subscription_renewal_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793842361382,
+      "tag": "0025_team_auto_remove_stars",
+      "breakpoints": true
     }
   ]
 }
