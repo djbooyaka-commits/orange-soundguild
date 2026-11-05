@@ -22,8 +22,10 @@ async function spotifyRemove(token: string, playlistId: string, trackIds: string
   const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/items`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ tracks: trackIds.map((id) => ({ uri: `spotify:track:${id}` })) }),
+    // The /items DELETE endpoint requires `items`; `tracks` returns 400 "No uris provided".
+    body: JSON.stringify({ items: trackIds.map((id) => ({ uri: `spotify:track:${id}` })) }),
   });
+  if (!res.ok) console.error(`Auto-remove DELETE failed [${res.status}]`, await res.text().catch(() => ""));
   return res.ok;
 }
 

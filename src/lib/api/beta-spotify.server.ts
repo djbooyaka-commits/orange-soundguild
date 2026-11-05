@@ -338,7 +338,8 @@ export async function fetchBetaPlaylistTracks(
     }
     const body: any = await res.json();
     for (const it of body.items ?? []) {
-      const t = it?.track;
+      // Spotify's /items endpoint puts the track under `item`; the legacy /tracks one used `track`.
+      const t = it?.item ?? it?.track;
       if (!t?.id) continue;
       out.push({
         id: t.id as string,
