@@ -50,10 +50,15 @@ export async function syncAutoRemovals(
     threshold: number | null;
     periodDays: number;
     members: { user_id: string; last_deduction_at: string | null; joined_at: string | null }[];
+    /** Spotify stream tracker team rooms keep their own removal list and member links. */
+    removalsTable?: string;
+    accessToken?: string | null;
+    trackIdsByUser?: (userIds: string[]) => Promise<Map<string, string[]>>;
   },
 ) {
+  const table = opts.removalsTable ?? "beta_playlist_auto_removals";
   const { data: existing } = await supabaseAdmin
-    .from("beta_playlist_auto_removals")
+    .from(table)
     .select("user_id, spotify_track_id")
     .eq("playlist_id", opts.playlistId);
   const removedBy = new Map<string, string[]>();
@@ -79,20 +84,39 @@ export async function syncAutoRemovals(
   const { getBetaAccessToken, fetchBetaPlaylistTracks, parseSpotifyTrackId } = await import(
     "./beta-spotify.server"
   );
-  const token = await getBetaAccessToken(opts.ownerId, supabaseAdmin);
+  const token =
+    opts.accessToken !== undefined ? opts.accessToken : await getBetaAccessToken(opts.ownerId, supabaseAdmin);
   if (!token) return;
 
   for (const uid of toRestore) {
     const ids = removedBy.get(uid) ?? [];
     if (ids.length && !(await spotifyAdd(token, opts.spotifyPlaylistId, ids))) continue;
     await supabaseAdmin
-      .from("beta_playlist_auto_removals")
+      .from(table)
       .delete()
       .eq("playlist_id", opts.playlistId)
       .eq("user_id", uid);
   }
 
   if (!toRemoveUsers.length) return;
+  if (opts.trackIdsByUser) {
+    const [byUser, current] = await Promise.all([
+      opts.trackIdsByUser(toRemoveUsers),
+      fetchBetaPlaylistTracks(token, opts.spotifyPlaylistId),
+    ]);
+    const onPl = new Set(current.items.map((t: any) => t.id as string));
+    for (const uid of toRemoveUsers) {
+      const list = (byUser.get(uid) ?? []).filter((id) => onPl.has(id));
+      if (!list.length || !(await spotifyRemove(token, opts.spotifyPlaylistId, list))) continue;
+      await supabaseAdmin
+        .from(table)
+        .upsert(
+          list.map((id) => ({ playlist_id: opts.playlistId, user_id: uid, spotify_track_id: id })),
+          { onConflict: "playlist_id,user_id,spotify_track_id", ignoreDuplicates: true },
+        );
+    }
+    return;
+  }
   const [{ data: links }, { data: subs }, current] = await Promise.all([
     supabaseAdmin
       .from("beta_playlist_member_links")
@@ -122,7 +146,7 @@ export async function syncAutoRemovals(
     if (!list.length) continue;
     if (!(await spotifyRemove(token, opts.spotifyPlaylistId, list))) continue;
     await supabaseAdmin
-      .from("beta_playlist_auto_removals")
+      .from(table)
       .upsert(
         list.map((id) => ({ playlist_id: opts.playlistId, user_id: uid, spotify_track_id: id })),
         { onConflict: "playlist_id,user_id,spotify_track_id", ignoreDuplicates: true },
