@@ -27,6 +27,11 @@ import {
   curatorTeamSetFacebook,
   curatorTeamSetWeeklyMin,
   curatorTeamDailyStreams,
+  curatorTeamSetAutoRemoveStars,
+  curatorTeamSyncAutoRemovals,
+  curatorTeamRemoveAllPoints,
+  curatorTeamUndoRemoveAll,
+  curatorTeamLastRemoveAll,
   type CuratorTeamDailyStreams,
   type CuratorTeamMember,
   type CuratorTeamPointEvent,
@@ -143,6 +148,73 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   };
 
   const [removed, setRemoved] = useState<string[]>([]);
+  const autoSetFn = useServerFn(curatorTeamSetAutoRemoveStars);
+  const autoSyncFn = useServerFn(curatorTeamSyncAutoRemovals);
+  const removeAllFn = useServerFn(curatorTeamRemoveAllPoints);
+  const undoAllFn = useServerFn(curatorTeamUndoRemoveAll);
+  const lastAllFn = useServerFn(curatorTeamLastRemoveAll);
+  const [autoStars, setAutoStars] = useState<number | null>(null);
+  const [autoRemovedIds, setAutoRemovedIds] = useState<string[]>([]);
+  const [undoBatch, setUndoBatch] = useState<string | null>(null);
+  const [allBusy, setAllBusy] = useState(false);
+
+  const loadAuto = useCallback(async () => {
+    try {
+      const r = await autoSyncFn({ data: { playlistId: room.playlist_id } });
+      setAutoStars(r.autoRemoveStars);
+      setAutoRemovedIds(r.removedUserIds);
+    } catch {}
+  }, [autoSyncFn, room.playlist_id]);
+
+  useEffect(() => {
+    loadAuto();
+    if (room.is_owner)
+      lastAllFn({ data: { playlistId: room.playlist_id } })
+        .then((r) => setUndoBatch(r?.batchId ?? null))
+        .catch(() => {});
+  }, [loadAuto, lastAllFn, room.playlist_id, room.is_owner]);
+
+  const changeAutoRemove = async (stars: number | null) => {
+    try {
+      await autoSetFn({ data: { playlistId: room.playlist_id, stars } });
+      setAutoStars(stars);
+      await loadAuto();
+      toast.success(stars ? `Tracks auto-remove at ${stars} star${stars === 1 ? "" : "s"}` : "Auto-remove turned off");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save auto-remove");
+    }
+  };
+
+  const removeAllPoints = async () => {
+    if (!window.confirm("Remove ALL points from every member in this room? You can undo this.")) return;
+    setAllBusy(true);
+    try {
+      const r = await removeAllFn({ data: { playlistId: room.playlist_id } });
+      setUndoBatch(r.batchId);
+      await refresh();
+      toast.success(`Removed ${r.points} pts from ${r.members} member(s)`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not remove points");
+    } finally {
+      setAllBusy(false);
+    }
+  };
+
+  const undoRemoveAll = async () => {
+    if (!undoBatch) return;
+    setAllBusy(true);
+    try {
+      await undoAllFn({ data: { playlistId: room.playlist_id, batchId: undoBatch } });
+      setUndoBatch(null);
+      await refresh();
+      await loadAuto();
+      toast.success("Points put back");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not undo");
+    } finally {
+      setAllBusy(false);
+    }
+  };
   const periodFn = useServerFn(curatorTeamSetPeriod);
   const periodDays = members[0]?.period_days ?? 7;
 
@@ -150,7 +222,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
     try {
       await periodFn({ data: { playlistId: room.playlist_id, days } });
       await refresh();
-      toast.success(`Minimum now counts over ${days} days`);
+      toast.success(`Minimum now counts over ${days} day${days === 1 ? "" : "s"}`);
     } catch (err: any) {
       toast.error(err?.message ?? "Could not change period");
     }
@@ -348,7 +420,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
           </div>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Everyone in this room needs at least {room.team_weekly_min} points per {periodDays === 30 ? "30 days" : "week"} from this
+          Everyone in this room needs at least {room.team_weekly_min} points per {periodDays === 30 ? "30 days" : periodDays === 1 ? "day" : "week"} from this
           playlist for their tracks to stay on it.
         </p>
 
@@ -359,9 +431,48 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
             className="mt-3 rounded-md border border-border bg-background px-2 py-1 text-xs"
             aria-label="Minimum period"
           >
+            <option value={1}>Minimum per 1 day</option>
             <option value={7}>Minimum per 7 days</option>
             <option value={30}>Minimum per 30 days</option>
           </select>
+        )}
+        {room.is_owner && (
+          <select
+            value={autoStars ?? 0}
+            onChange={(e) => changeAutoRemove(Number(e.target.value) || null)}
+            className="ml-2 mt-3 rounded-md border border-border bg-background px-2 py-1 text-xs"
+            aria-label="Auto-remove tracks at stars"
+            title="Remove a member's tracks from the Spotify playlist when they reach this many red stars. They come back automatically after a pass."
+          >
+            <option value={0}>Auto-remove: Off</option>
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <option key={n} value={n}>
+                Auto-remove at {n} star{n === 1 ? "" : "s"}
+              </option>
+            ))}
+          </select>
+        )}
+        {room.is_owner && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={removeAllPoints}
+              disabled={allBusy}
+              className="rounded-md border border-destructive/50 px-2 py-1 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+            >
+              Remove all points
+            </button>
+            {undoBatch && (
+              <button
+                type="button"
+                onClick={undoRemoveAll}
+                disabled={allBusy}
+                className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-50"
+              >
+                Undo remove all
+              </button>
+            )}
+          </div>
         )}
         {room.is_owner && removed.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -618,6 +729,14 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                           joinedAt={(m as any).created_at ?? null}
                           periodDays={periodDays}
                         />
+                        {autoRemovedIds.includes(m.user_id) && (
+                          <span
+                            className="ml-1 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] font-medium text-destructive"
+                            title="Tracks were taken off the Spotify playlist. They return automatically after a pass."
+                          >
+                            Tracks removed
+                          </span>
+                        )}
                       </>
                     ) : (
                       "Pass"
