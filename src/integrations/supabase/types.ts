@@ -325,6 +325,7 @@ export type Database = {
       }
       beta_point_adjustments: {
         Row: {
+          batch_id: string | null
           created_at: string
           curator_id: string
           delta: number
@@ -335,6 +336,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          batch_id?: string | null
           created_at?: string
           curator_id: string
           delta: number
@@ -345,6 +347,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          batch_id?: string | null
           created_at?: string
           curator_id?: string
           delta?: number
@@ -811,6 +814,7 @@ export type Database = {
       curator_playlists: {
         Row: {
           accept_pool_submissions: boolean
+          auto_remove_stars: number | null
           created_at: string
           curator_id: string
           daily_submission_limit: number
@@ -827,6 +831,7 @@ export type Database = {
         }
         Insert: {
           accept_pool_submissions?: boolean
+          auto_remove_stars?: number | null
           created_at?: string
           curator_id: string
           daily_submission_limit?: number
@@ -843,6 +848,7 @@ export type Database = {
         }
         Update: {
           accept_pool_submissions?: boolean
+          auto_remove_stars?: number | null
           created_at?: string
           curator_id?: string
           daily_submission_limit?: number
@@ -921,6 +927,38 @@ export type Database = {
           {
             foreignKeyName: "curator_submissions_curator_playlist_id_fkey"
             columns: ["curator_playlist_id"]
+            isOneToOne: false
+            referencedRelation: "curator_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curator_team_auto_removals: {
+        Row: {
+          id: string
+          playlist_id: string
+          removed_at: string
+          spotify_track_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          playlist_id: string
+          removed_at?: string
+          spotify_track_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          playlist_id?: string
+          removed_at?: string
+          spotify_track_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curator_team_auto_removals_playlist_id_fkey"
+            columns: ["playlist_id"]
             isOneToOne: false
             referencedRelation: "curator_playlists"
             referencedColumns: ["id"]
@@ -1043,6 +1081,7 @@ export type Database = {
       }
       curator_team_point_adjustments: {
         Row: {
+          batch_id: string | null
           created_at: string
           curator_id: string
           delta: number
@@ -1052,6 +1091,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          batch_id?: string | null
           created_at?: string
           curator_id: string
           delta: number
@@ -1061,6 +1101,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          batch_id?: string | null
           created_at?: string
           curator_id?: string
           delta?: number

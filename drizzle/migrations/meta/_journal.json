@@ -183,6 +183,13 @@
       "when": 1793842361382,
       "tag": "0025_team_auto_remove_stars",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793852589738,
+      "tag": "0026_spotify_team_auto_remove_and_bulk_reset",
+      "breakpoints": true
     }
   ]
 }
