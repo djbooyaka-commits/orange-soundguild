@@ -317,7 +317,7 @@ export const curatorTeamSetPeriod = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { playlistId: string; days: number }) => ({
     playlistId: String(data?.playlistId ?? ""),
-    days: Number(data?.days) === 30 ? 30 : 7,
+    days: Number(data?.days) === 30 ? 30 : Number(data?.days) === 1 ? 1 : 7,
   }))
   .handler(async ({ data, context }) => {
     const { error } = await (context.supabase as any).rpc("curator_team_set_min_period", {
@@ -382,4 +382,194 @@ export const getSpotifyMemberPointTimeline = createServerFn({ method: "POST" })
     let bal = 0;
     const out = events.map((e) => ({ ...e, balance: (bal += e.points) }));
     return { events: out.reverse(), lifetimeBalance: bal };
+  });
+
+async function loadOwnedTeamPlaylist(supabaseAdmin: any, playlistId: string, userId: string) {
+  const { data: pl } = await supabaseAdmin
+    .from("curator_playlists")
+    .select("id, curator_id, spotify_playlist_id, min_period_days, auto_remove_stars, is_team")
+    .eq("id", playlistId)
+    .maybeSingle();
+  if (!pl || pl.curator_id !== userId) throw new Error("Only the curator can do that");
+  return pl;
+}
+
+/** Curator picks how many red stars (1–7) take a member's tracks off the Spotify playlist, or Off. */
+export const curatorTeamSetAutoRemoveStars = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; stars: number | null }) => {
+    const n = Math.trunc(Number(data?.stars) || 0);
+    return { playlistId: String(data?.playlistId ?? ""), stars: n >= 1 && n <= 7 ? n : null };
+  })
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await loadOwnedTeamPlaylist(supabaseAdmin, data.playlistId, context.userId);
+    const { error } = await supabaseAdmin
+      .from("curator_playlists")
+      .update({ auto_remove_stars: data.stars })
+      .eq("id", data.playlistId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Runs the star check: removes/restores members' tracks on the Spotify playlist. Returns removed user ids. */
+export const curatorTeamSyncAutoRemovals = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({ playlistId: String(data?.playlistId ?? "") }))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: pl } = await supabaseAdmin
+      .from("curator_playlists")
+      .select("id, curator_id, spotify_playlist_id, min_period_days, auto_remove_stars")
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (!pl) throw new Error("Playlist not found");
+    const isCurator = pl.curator_id === context.userId;
+    if (!isCurator) {
+      const { data: me } = await supabaseAdmin
+        .from("curator_team_members")
+        .select("id")
+        .eq("playlist_id", pl.id)
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      if (!me) throw new Error("Not a member of this room");
+    }
+    const periodDays = Number(pl.min_period_days) || 7;
+    try {
+      const [{ data: members }, { data: adjs }] = await Promise.all([
+        supabaseAdmin.from("curator_team_members").select("user_id, created_at").eq("playlist_id", pl.id),
+        supabaseAdmin
+          .from("curator_team_point_adjustments")
+          .select("user_id, created_at")
+          .eq("playlist_id", pl.id)
+          .lt("delta", 0),
+      ]);
+      const last = new Map<string, string>();
+      for (const a of adjs ?? []) {
+        const p = last.get(a.user_id);
+        if (!p || a.created_at > p) last.set(a.user_id, a.created_at);
+      }
+      const { syncAutoRemovals } = await import("./beta-auto-remove.server");
+      const { parseSpotifyTrackId } = await import("./beta-spotify.server");
+      let tokenPromise: Promise<string | null> | null = null;
+      const getToken = () =>
+        (tokenPromise ??= import("./curator-submissions.functions").then(async (m) => {
+          const r: any = await m.getCuratorAccessToken(pl.curator_id, supabaseAdmin);
+          return (r?.accessToken as string) ?? null;
+        }));
+      const { data: existing } = await supabaseAdmin
+        .from("curator_team_auto_removals")
+        .select("user_id")
+        .eq("playlist_id", pl.id)
+        .limit(1);
+      // Only touch Spotify when the feature is on, or tracks still need restoring.
+      if (pl.auto_remove_stars || existing?.length) {
+        await syncAutoRemovals(supabaseAdmin, {
+          playlistId: pl.id,
+          spotifyPlaylistId: pl.spotify_playlist_id,
+          ownerId: pl.curator_id,
+          threshold: pl.auto_remove_stars ?? null,
+          periodDays,
+          members: (members ?? []).map((m: any) => ({
+            user_id: m.user_id,
+            joined_at: m.created_at ?? null,
+            last_deduction_at: last.get(m.user_id) ?? null,
+          })),
+          removalsTable: "curator_team_auto_removals",
+          accessToken: await getToken(),
+          trackIdsByUser: async (uids) => {
+            const { data: links } = await supabaseAdmin
+              .from("curator_team_member_links")
+              .select("user_id, track_urls")
+              .eq("playlist_id", pl.id)
+              .in("user_id", uids);
+            const out = new Map<string, string[]>();
+            for (const l of links ?? []) {
+              const ids = ((l.track_urls as string[] | null) ?? [])
+                .map((u) => parseSpotifyTrackId(u))
+                .filter(Boolean) as string[];
+              out.set(l.user_id, ids);
+            }
+            return out;
+          },
+        });
+      }
+    } catch (e) {
+      console.error("Team auto-remove sync failed", e);
+    }
+    const { data: rows } = await supabaseAdmin
+      .from("curator_team_auto_removals")
+      .select("user_id")
+      .eq("playlist_id", pl.id);
+    return {
+      autoRemoveStars: (pl.auto_remove_stars as number | null) ?? null,
+      removedUserIds: Array.from(new Set((rows ?? []).map((r: any) => r.user_id as string))),
+    };
+  });
+
+/** Curator removes every member's points in one go; returns a batch id that Undo can reverse. */
+export const curatorTeamRemoveAllPoints = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({ playlistId: String(data?.playlistId ?? "") }))
+  .handler(async ({ data, context }) => {
+    const { data: roster, error } = await context.supabase.rpc("curator_team_roster", {
+      _playlist_id: data.playlistId,
+    });
+    if (error) throw new Error(error.message);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await loadOwnedTeamPlaylist(supabaseAdmin, data.playlistId, context.userId);
+    const batchId = crypto.randomUUID();
+    const rows = (roster ?? [])
+      .filter((r: any) => Number(r.points) > 0)
+      .map((r: any) => ({
+        playlist_id: data.playlistId,
+        user_id: r.user_id,
+        curator_id: context.userId,
+        delta: -Number(r.points),
+        reason: "Curator removed all points",
+        batch_id: batchId,
+      }));
+    if (!rows.length) throw new Error("No members have points to remove");
+    const { error: insErr } = await supabaseAdmin.from("curator_team_point_adjustments").insert(rows);
+    if (insErr) throw new Error(insErr.message);
+    return { batchId, members: rows.length, points: rows.reduce((s: number, r: any) => s - r.delta, 0) };
+  });
+
+/** Puts back exactly the points a "Remove all points" action took away. */
+export const curatorTeamUndoRemoveAll = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; batchId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    batchId: String(data?.batchId ?? ""),
+  }))
+  .handler(async ({ data, context }) => {
+    if (!data.batchId) throw new Error("Nothing to undo");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await loadOwnedTeamPlaylist(supabaseAdmin, data.playlistId, context.userId);
+    const { data: del, error } = await supabaseAdmin
+      .from("curator_team_point_adjustments")
+      .delete()
+      .eq("playlist_id", data.playlistId)
+      .eq("batch_id", data.batchId)
+      .select("id");
+    if (error) throw new Error(error.message);
+    return { restored: del?.length ?? 0 };
+  });
+
+/** Latest "Remove all points" batch still on record, so Undo survives a page reload. */
+export const curatorTeamLastRemoveAll = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({ playlistId: String(data?.playlistId ?? "") }))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await loadOwnedTeamPlaylist(supabaseAdmin, data.playlistId, context.userId);
+    const { data: row } = await supabaseAdmin
+      .from("curator_team_point_adjustments")
+      .select("batch_id, created_at")
+      .eq("playlist_id", data.playlistId)
+      .not("batch_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return row ? { batchId: row.batch_id as string, at: row.created_at as string } : null;
   });
