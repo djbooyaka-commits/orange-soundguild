@@ -118,6 +118,38 @@ export type Database = {
         }
         Relationships: []
       }
+      beta_playlist_auto_removals: {
+        Row: {
+          id: string
+          playlist_id: string
+          removed_at: string
+          spotify_track_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          playlist_id: string
+          removed_at?: string
+          spotify_track_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          playlist_id?: string
+          removed_at?: string
+          spotify_track_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_playlist_auto_removals_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "beta_room_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_playlist_member_links: {
         Row: {
           created_at: string
@@ -415,6 +447,7 @@ export type Database = {
       beta_room_playlists: {
         Row: {
           accept_pool_submissions: boolean
+          auto_remove_stars: number | null
           created_at: string
           curator_notice: string | null
           daily_submission_limit: number | null
@@ -434,6 +467,7 @@ export type Database = {
         }
         Insert: {
           accept_pool_submissions?: boolean
+          auto_remove_stars?: number | null
           created_at?: string
           curator_notice?: string | null
           daily_submission_limit?: number | null
@@ -453,6 +487,7 @@ export type Database = {
         }
         Update: {
           accept_pool_submissions?: boolean
+          auto_remove_stars?: number | null
           created_at?: string
           curator_notice?: string | null
           daily_submission_limit?: number | null

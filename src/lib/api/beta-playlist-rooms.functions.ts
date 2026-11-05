@@ -15,7 +15,7 @@ const POINT_TTL_DAYS = 30;
 async function loadPlaylist(supabaseAdmin: any, playlistId: string) {
   const { data: pl } = await supabaseAdmin
     .from("beta_room_playlists")
-    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team, min_period_days, curator_notice, track_hold_days, platform, external_url")
+    .select("id, room_id, name, image_url, weekly_min, spotify_playlist_id, is_team, min_period_days, curator_notice, track_hold_days, platform, external_url, auto_remove_stars")
     .eq("id", playlistId)
     .maybeSingle();
   if (!pl) throw new Error("Playlist not found");
@@ -261,8 +261,34 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
       };
     });
 
+    const autoRemoveStars = ((pl as any).auto_remove_stars as number | null) ?? null;
+    const periodDaysVal = ((pl as any).min_period_days as number | null) ?? 7;
+    let autoRemovedUserIds: string[] = [];
+    if ((pl.is_team as boolean | null) && ((pl as any).platform ?? "spotify") === "spotify") {
+      try {
+        const { syncAutoRemovals } = await import("./beta-auto-remove.server");
+        await syncAutoRemovals(supabaseAdmin, {
+          playlistId: pl.id as string,
+          spotifyPlaylistId: pl.spotify_playlist_id as string,
+          ownerId: room.owner_id as string,
+          threshold: autoRemoveStars,
+          periodDays: periodDaysVal,
+          members: members_,
+        });
+      } catch (e) {
+        console.error("auto-remove sync failed", e);
+      }
+      const { data: ar } = await (supabaseAdmin as any)
+        .from("beta_playlist_auto_removals")
+        .select("user_id")
+        .eq("playlist_id", pl.id);
+      autoRemovedUserIds = Array.from(new Set((ar ?? []).map((r: any) => r.user_id as string)));
+    }
+
     return {
+      autoRemovedUserIds,
       playlist: {
+        autoRemoveStars,
         id: pl.id as string,
         roomId: room.id as string,
         name: pl.name as string,
@@ -514,7 +540,7 @@ export const setBetaPlaylistPeriod = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { playlistId: string; days: number }) => ({
     playlistId: String(data?.playlistId ?? ""),
-    days: Number(data?.days) === 30 ? 30 : 7,
+    days: Number(data?.days) === 30 ? 30 : Number(data?.days) === 1 ? 1 : 7,
   }))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -982,4 +1008,22 @@ export const getBetaMemberPointTimeline = createServerFn({ method: "POST" })
     let bal = 0;
     const out = events.map((e) => ({ ...e, balance: (bal += e.points) }));
     return { events: out.reverse(), lifetimeBalance: bal };
+  });
+
+export const setBetaPlaylistAutoRemoveStars = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; stars: number | null }) => {
+    const n = Math.round(Number(data?.stars));
+    return { playlistId: String(data?.playlistId ?? ""), stars: n >= 1 && n <= 7 ? n : null };
+  })
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
+    if (room.owner_id !== context.userId) throw new Error("Only the room owner can do that");
+    const { error } = await (supabaseAdmin as any)
+      .from("beta_room_playlists")
+      .update({ auto_remove_stars: data.stars })
+      .eq("id", pl.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
