@@ -281,7 +281,7 @@ function hasPlaylistModifyScope(scope: string): boolean {
   return /\bplaylist-modify-(public|private)\b/.test(scope);
 }
 
-async function getCuratorAccessToken(
+export async function getCuratorAccessToken(
   userId: string,
   supabaseAdmin: any,
 ): Promise<SpotifyTokenResult> {
