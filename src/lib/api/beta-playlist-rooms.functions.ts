@@ -1027,3 +1027,66 @@ export const setBetaPlaylistAutoRemoveStars = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+async function ownedBetaPlaylist(supabaseAdmin: any, playlistId: string, userId: string) {
+  const { pl, room } = await loadPlaylist(supabaseAdmin, playlistId);
+  if (room.owner_id !== userId) throw new Error("Only the room owner can do this");
+  return { pl, room };
+}
+
+/** Room owner removes every member's points on this playlist; batch id lets Undo reverse it. */
+export const betaRemoveAllPoints = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({ playlistId: String(data?.playlistId ?? "") }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl, room } = await ownedBetaPlaylist(supabaseAdmin, data.playlistId, context.userId);
+    const [{ data: members }, { data: earnedRows }, { data: subs }, { data: adjs }] = await Promise.all([
+      supabaseAdmin.from("beta_room_members").select("user_id").eq("room_id", room.id),
+      supabaseAdmin.rpc("beta_playlist_earned_points", { p_playlist_id: pl.id }),
+      supabaseAdmin.from("beta_submissions").select("submitter_user_id, cost_points").eq("playlist_id", pl.id),
+      supabaseAdmin.from("beta_point_adjustments").select("user_id, delta").eq("playlist_id", pl.id),
+    ]);
+    const bal = new Map<string, number>();
+    const add = (u: string, n: number) => bal.set(u, (bal.get(u) ?? 0) + n);
+    for (const r of (earnedRows ?? []) as any[]) add(r.user_id, Number(r.points) || 0);
+    for (const r of (subs ?? []) as any[]) add(r.submitter_user_id, -(Number(r.cost_points) || 0));
+    for (const r of (adjs ?? []) as any[]) add(r.user_id, Number(r.delta) || 0);
+    const batchId = crypto.randomUUID();
+    const rows = ((members ?? []) as any[])
+      .map((m) => ({ uid: m.user_id as string, b: bal.get(m.user_id) ?? 0 }))
+      .filter((x) => x.b > 0)
+      .map((x) => ({ room_id: room.id, playlist_id: pl.id, user_id: x.uid, curator_id: context.userId, delta: -x.b, reason: "Curator removed all points", batch_id: batchId }));
+    if (!rows.length) throw new Error("No members have points to remove");
+    const { error } = await supabaseAdmin.from("beta_point_adjustments").insert(rows);
+    if (error) throw new Error(error.message);
+    return { batchId, members: rows.length, points: rows.reduce((s, r) => s - r.delta, 0) };
+  });
+
+export const betaUndoRemoveAll = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; batchId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    batchId: String(data?.batchId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    if (!data.batchId) throw new Error("Nothing to undo");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl } = await ownedBetaPlaylist(supabaseAdmin, data.playlistId, context.userId);
+    const { data: del, error } = await supabaseAdmin.from("beta_point_adjustments").delete()
+      .eq("playlist_id", pl.id).eq("batch_id", data.batchId).select("id");
+    if (error) throw new Error(error.message);
+    return { restored: del?.length ?? 0 };
+  });
+
+export const betaLastRemoveAll = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({ playlistId: String(data?.playlistId ?? "") }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { pl } = await ownedBetaPlaylist(supabaseAdmin, data.playlistId, context.userId);
+    const { data: row } = await supabaseAdmin.from("beta_point_adjustments").select("batch_id")
+      .eq("playlist_id", pl.id).not("batch_id", "is", null)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    return row?.batch_id ? { batchId: row.batch_id as string } : null;
+  });
