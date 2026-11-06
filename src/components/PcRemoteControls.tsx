@@ -17,6 +17,8 @@ export function PcRemoteControls({ paired, send }: Props) {
         const delta = pending.current;
         pending.current = { dx: 0, dy: 0 };
         await send("mouse_move", delta);
+        // Let finger movement collect for ~80ms so the PC gets smooth batches, not a flood.
+        await new Promise((r) => setTimeout(r, 80));
       }
     } finally { moving.current = false; }
   }
@@ -44,7 +46,7 @@ export function PcRemoteControls({ paired, send }: Props) {
           gesture.current = { x: e.clientX, y: e.clientY, moved: true };
           void flush();
         }}
-        onPointerUp={() => { const g = gesture.current; gesture.current = null; if (g && !g.moved) void send("mouse_click", { button: "left" }); }}
+        onPointerUp={() => { const g = gesture.current; gesture.current = null; if (g && !g.moved && !dragging) void send("mouse_click", { button: "left" }); }}
         onPointerCancel={() => { gesture.current = null; }}
         onKeyDown={(e) => { const delta: Record<string, number[]> = { ArrowLeft: [-20, 0], ArrowRight: [20, 0], ArrowUp: [0, -20], ArrowDown: [0, 20] }; const d = delta[e.key]; if (paired && d) { e.preventDefault(); void send("mouse_move", { dx: d[0], dy: d[1] }); } }}>
         <MousePointer2 className="h-6 w-6" />
@@ -55,6 +57,7 @@ export function PcRemoteControls({ paired, send }: Props) {
         <Button size="icon" variant="outline" title="Scroll up" aria-label="Scroll up" disabled={!paired} onClick={() => void send("scroll", { dy: 3 })}><ArrowUp className="h-4 w-4" /></Button>
         <Button size="icon" variant="outline" title="Scroll down" aria-label="Scroll down" disabled={!paired} onClick={() => void send("scroll", { dy: -3 })}><ArrowDown className="h-4 w-4" /></Button>
       </div>
+      {dragging && <p role="status" className="mt-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">Holding the mouse button — move on the trackpad to drag, then tap Release drag.</p>}
     </section>
   </aside>;
 }

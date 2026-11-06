@@ -25,7 +25,7 @@ except ImportError:
     print("Missing packages. Run:  pip install mss pillow pyautogui requests")
     input("Press Enter to close..."); sys.exit(1)
 
-VERSION = "1.4"
+VERSION = "1.5"
 RELEASE = "https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest"
 SITE = os.environ.get("OSG_SITE", "https://orangesoundguild.com")
 CONFIG = os.path.join(os.path.expanduser("~"), ".osg-remote", "config.json")
@@ -91,7 +91,13 @@ def keep_awake(enabled):
         import ctypes
         ctypes.windll.kernel32.SetThreadExecutionState(0x80000003 if enabled else 0x80000000)
 
+REMOTE_HELD = False
+
 def release_mouse():
+    # Only release a button the remote itself pressed, so the real mouse is never disturbed.
+    global REMOTE_HELD
+    if not REMOTE_HELD: return
+    REMOTE_HELD = False
     try: pyautogui.mouseUp(button="left")
     except Exception: pass
 
@@ -120,7 +126,9 @@ def run(cmd, mon):
         elif button in ("left", "right"): pyautogui.click(button=button)
         else: return "failed", "Unsupported mouse button"
     elif k == "mouse_hold":
-        if p.get("down"): pyautogui.mouseDown(button="left")
+        global REMOTE_HELD
+        if p.get("down"):
+            pyautogui.mouseDown(button="left"); REMOTE_HELD = True
         else: release_mouse()
     elif k == "scroll": pyautogui.scroll(max(-10, min(10, int(p.get("dy", 0)))))
     elif k == "key":
@@ -254,7 +262,8 @@ def main():
                     held_until = time.time() + 15 if status == "done" and (c.get("payload") or {}).get("down") else 0.0
                 elif c.get("kind") == "mouse_move" and held_until:
                     held_until = time.time() + 15
-                last_frame = 0  # refresh the screen right after an action
+                if c.get("kind") != "mouse_move":
+                    last_frame = 0  # refresh the screen right after an action
                 burst_until = time.time() + 3
             time.sleep(0.05 if watch else 1.5)
 
