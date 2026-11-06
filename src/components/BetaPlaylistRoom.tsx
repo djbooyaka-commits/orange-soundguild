@@ -34,6 +34,9 @@ import {
   betaPlaylistPointHistory,
   betaPlaylistTrackingSessions,
   setBetaRoomMemberJoinedAt,
+  betaRemoveAllPoints,
+  betaUndoRemoveAll,
+  betaLastRemoveAll,
   type BetaPointEvent,
   type BetaTrackingSession,
 } from "@/lib/api/beta-playlist-rooms.functions";
@@ -51,6 +54,7 @@ import { NoPassStars } from "@/components/NoPassStars";
 import { PlaylistCuratorNotice } from "@/components/PlaylistCuratorNotice";
 import { PointTimelineButton } from "@/components/PointTimelineButton";
 import { OsgRoomPlayer } from "@/components/OsgRoomPlayer";
+import { RemoveAllPointsControls } from "@/components/RemoveAllPointsControls";
 
 type Member = {
   user_id: string;
@@ -104,6 +108,9 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const myId = useAuth().user?.id;
   const setMinFn = useServerFn(setBetaPlaylistWeeklyMin);
   const adjustFn = useServerFn(adjustBetaPlaylistPoints);
+  const betaRemoveAllFn = useServerFn(betaRemoveAllPoints);
+  const betaUndoAllFn = useServerFn(betaUndoRemoveAll);
+  const betaLastAllFn = useServerFn(betaLastRemoveAll);
   const removeMemberFn = useServerFn(removeBetaRoomMember);
   const readdFn = useServerFn(readdBetaRoomMember);
   const setPeriodFn = useServerFn(setBetaPlaylistPeriod);
@@ -663,6 +670,14 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                 {bulkBusy ? "Working…" : `REMOVE MIN PTS (${eligibleForPass.length})`}
               </button>
             </form>
+          )}
+          {data.isOwner && isTeam && (
+            <RemoveAllPointsControls
+              removeAll={() => betaRemoveAllFn({ data: { playlistId } })}
+              undo={(batchId) => betaUndoAllFn({ data: { playlistId, batchId } })}
+              last={() => betaLastAllFn({ data: { playlistId } })}
+              onChanged={refresh}
+            />
           )}
         </div>
 

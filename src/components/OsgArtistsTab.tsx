@@ -15,7 +15,11 @@ import {
   curatorSetOsgTrackLinks,
   adjustOsgPoints,
   setOsgWeeklyMin,
+  osgRemoveAllPoints,
+  osgUndoRemoveAll,
+  osgLastRemoveAll,
 } from "@/lib/api/osg-picks.functions";
+import { RemoveAllPointsControls } from "@/components/RemoveAllPointsControls";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
 import { OsgDailyStreams } from "@/components/OsgDailyStreams";
@@ -81,6 +85,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const submissionsFn = useServerFn(listOsgPlaylistSubmissions);
   const followLinksFn = useServerFn(listOsgArtistFollowLinks);
   const adjustFn = useServerFn(adjustOsgPoints);
+  const osgRemoveAllFn = useServerFn(osgRemoveAllPoints);
+  const osgUndoAllFn = useServerFn(osgUndoRemoveAll);
+  const osgLastAllFn = useServerFn(osgLastRemoveAll);
   const setMinFn = useServerFn(setOsgWeeklyMin);
 
   const [picks, setPicks] = useState<Pick[]>([]);
@@ -666,6 +673,12 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                 {bulkBusy ? "Working…" : `REMOVE MIN PTS (${eligiblePicks.length})`}
               </button>
             </form>
+            <RemoveAllPointsControls
+              removeAll={() => osgRemoveAllFn()}
+              undo={(batchId) => osgUndoAllFn({ data: { batchId } })}
+              last={() => osgLastAllFn()}
+              onChanged={refresh}
+            />
           </div>
 
           <form onSubmit={add} className="mt-4 flex flex-col gap-2 sm:flex-row">

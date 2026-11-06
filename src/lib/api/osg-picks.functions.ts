@@ -351,3 +351,56 @@ export const listOsgDailyStreams = createServerFn({ method: "POST" })
       })
       .sort((a, b) => b.total - a.total) as OsgDailyStreams[];
   });
+
+/** Curator removes every OSG Artist's points in one go; batch id lets Undo reverse it. */
+export const osgRemoveAllPoints = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const me = context.userId;
+    const { data: picks } = await supabaseAdmin.from("osg_artist_picks").select("artist_id").eq("user_id", me);
+    const ids = Array.from(new Set((picks ?? []).map((p: any) => p.artist_id as string)));
+    if (!ids.length) throw new Error("No members to clear");
+    const { data: pls } = await supabaseAdmin.from("curator_playlists").select("id").eq("curator_id", me).eq("is_osg", true);
+    const plIds = (pls ?? []).map((p: any) => p.id as string);
+    const { data: adjs } = await supabaseAdmin.from("osg_point_adjustments").select("user_id, delta").eq("curator_id", me).in("user_id", ids);
+    const adjBy = new Map<string, number>();
+    for (const a of (adjs ?? []) as any[]) adjBy.set(a.user_id, (adjBy.get(a.user_id) ?? 0) + Number(a.delta));
+    const batchId = crypto.randomUUID();
+    const rows: any[] = [];
+    for (const uid of ids) {
+      let earned = 0;
+      if (plIds.length) {
+        const { count } = await supabaseAdmin.from("stream_points").select("id", { count: "exact", head: true }).eq("user_id", uid).in("curator_playlist_id", plIds);
+        earned = count ?? 0;
+      }
+      const bal = earned + (adjBy.get(uid) ?? 0);
+      if (bal > 0) rows.push({ curator_id: me, user_id: uid, delta: -bal, reason: "Curator removed all points", batch_id: batchId });
+    }
+    if (!rows.length) throw new Error("No members have points to remove");
+    const { error } = await supabaseAdmin.from("osg_point_adjustments").insert(rows);
+    if (error) throw new Error(error.message);
+    return { batchId, members: rows.length, points: rows.reduce((s, r) => s - r.delta, 0) };
+  });
+
+export const osgUndoRemoveAll = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { batchId: string }) => ({ batchId: String(data?.batchId ?? "") }))
+  .handler(async ({ data, context }) => {
+    if (!data.batchId) throw new Error("Nothing to undo");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: del, error } = await supabaseAdmin.from("osg_point_adjustments").delete()
+      .eq("curator_id", context.userId).eq("batch_id", data.batchId).select("id");
+    if (error) throw new Error(error.message);
+    return { restored: del?.length ?? 0 };
+  });
+
+export const osgLastRemoveAll = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin.from("osg_point_adjustments").select("batch_id")
+      .eq("curator_id", context.userId).not("batch_id", "is", null)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    return row?.batch_id ? { batchId: row.batch_id as string } : null;
+  });
