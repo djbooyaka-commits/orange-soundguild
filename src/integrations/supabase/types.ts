@@ -1331,6 +1331,7 @@ export type Database = {
       }
       osg_point_adjustments: {
         Row: {
+          batch_id: string | null
           created_at: string
           curator_id: string
           delta: number
@@ -1339,6 +1340,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          batch_id?: string | null
           created_at?: string
           curator_id: string
           delta: number
@@ -1347,6 +1349,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          batch_id?: string | null
           created_at?: string
           curator_id?: string
           delta?: number

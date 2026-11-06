@@ -190,6 +190,13 @@
       "when": 1793852589738,
       "tag": "0026_spotify_team_auto_remove_and_bulk_reset",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793924631938,
+      "tag": "0027_osg_adjust_batch",
+      "breakpoints": true
     }
   ]
 }
