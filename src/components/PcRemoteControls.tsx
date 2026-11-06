@@ -46,7 +46,7 @@ export function PcRemoteControls({ paired, send }: Props) {
           gesture.current = { x: e.clientX, y: e.clientY, moved: true };
           void flush();
         }}
-        onPointerUp={() => { const g = gesture.current; gesture.current = null; if (g && !g.moved) void send("mouse_click", { button: "left" }); }}
+        onPointerUp={() => { const g = gesture.current; gesture.current = null; if (g && !g.moved && !dragging) void send("mouse_click", { button: "left" }); }}
         onPointerCancel={() => { gesture.current = null; }}
         onKeyDown={(e) => { const delta: Record<string, number[]> = { ArrowLeft: [-20, 0], ArrowRight: [20, 0], ArrowUp: [0, -20], ArrowDown: [0, 20] }; const d = delta[e.key]; if (paired && d) { e.preventDefault(); void send("mouse_move", { dx: d[0], dy: d[1] }); } }}>
         <MousePointer2 className="h-6 w-6" />
