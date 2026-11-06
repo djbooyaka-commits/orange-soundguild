@@ -29,6 +29,16 @@ class PcCommandsTest(unittest.TestCase):
         self.assertEqual(self.command("tap", x=5, y=6)[0], "failed")
         self.mouse.click.assert_not_called()
 
+    def test_idle_release_leaves_real_mouse_alone(self):
+        self.agent.release_mouse()
+        self.mouse.mouseUp.assert_not_called()
+
+    def test_release_only_after_remote_hold(self):
+        self.command("mouse_hold", down=True)
+        self.agent.release_mouse()
+        self.agent.release_mouse()
+        self.mouse.mouseUp.assert_called_once_with(button="left")
+
     def test_relative_mouse_moves(self):
         self.mouse.position.return_value = (300, 200)
         self.assertEqual(self.command("mouse_move", dx=40, dy=-20)[0], "done")
