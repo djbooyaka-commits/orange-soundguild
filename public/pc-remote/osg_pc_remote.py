@@ -187,7 +187,8 @@ def update_script(new, exe):
     """Windows helper: wait for this app to exit, swap in the new file, then reopen the app.
     Uses ping as the pause because `timeout` fails without a console; retries ~15s while the old file is locked.
     Reopens the app even if the swap never succeeds, so the PC is never left without the remote."""
-    folder = os.path.dirname(exe)
+    import ntpath
+    folder = ntpath.dirname(exe)
     return (
         "@echo off\r\n"
         "set n=0\r\n"
