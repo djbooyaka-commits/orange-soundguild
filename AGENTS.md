@@ -2,6 +2,7 @@
 
 - PC Remote uses a user-session agent, not a Windows secure-desktop service: fail closed for credential injection and secure-screen input; keep-awake must not disable sign-in or managed lock policies.
 - PC live-adjacent controls live in a dedicated component and send the existing owner-scoped device command queue; the agent handles DPI before GUI imports and releases held mouse input when watching ends.
+- PC agent self-updates through a detached helper that retries the file swap and always relaunches with a reset packager environment, because the running exe stays locked briefly and a onefile child must not reuse the parent's deleted temp folder.
 
 - Subscription renewals reuse the existing verified payment handlers; a database insert trigger serializes same-user/tier payments and stacks paid time, and handlers return the stored expiration so all payment methods agree.
 - The public Subscription page shows a sign-in prompt to visitors and reads subscription details only through authenticated user-scoped server functions.
