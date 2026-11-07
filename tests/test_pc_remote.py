@@ -72,6 +72,23 @@ class PcCommandsTest(unittest.TestCase):
         self.assertEqual([c.args[0] for c in dll.kernel32.SetThreadExecutionState.call_args_list], [0x80000003, 0x80000000])
         dll.user32.LockWorkStation.assert_not_called()
 
+    def test_update_script_waits_without_timeout_and_reopens(self):
+        script = self.agent.update_script(r"C:\OSG\OSG-PC-Remote.exe.new", r"C:\OSG\OSG-PC-Remote.exe")
+        self.assertNotIn("timeout", script)
+        self.assertIn("ping 127.0.0.1 -n 2", script)
+        self.assertIn("if %n% lss 15 goto wait", script)
+        self.assertIn(r'start "" /D "C:\OSG" "C:\OSG\OSG-PC-Remote.exe"', script)
+        # the app is reopened after the retry loop, even when the swap never succeeded
+        self.assertLess(script.index("lss 15"), script.index("start "))
+
+    def test_relaunch_env_drops_old_unpack_folder(self):
+        with patch.dict("os.environ", {"_MEIPASS2": "x", "_PYI_APPLICATION_HOME_DIR": "y", "PATH": "p"}):
+            env = self.agent.fresh_env()
+        self.assertNotIn("_MEIPASS2", env)
+        self.assertNotIn("_PYI_APPLICATION_HOME_DIR", env)
+        self.assertEqual(env["PYINSTALLER_RESET_ENVIRONMENT"], "1")
+        self.assertEqual(env["PATH"], "p")
+
 
 if __name__ == "__main__":
     unittest.main()
