@@ -25,7 +25,7 @@ except ImportError:
     print("Missing packages. Run:  pip install mss pillow pyautogui requests")
     input("Press Enter to close..."); sys.exit(1)
 
-VERSION = "1.5"
+VERSION = "1.6"
 RELEASE = "https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest"
 SITE = os.environ.get("OSG_SITE", "https://orangesoundguild.com")
 CONFIG = os.path.join(os.path.expanduser("~"), ".osg-remote", "config.json")
@@ -183,6 +183,34 @@ def asset_name():
     return "OSG-PC-Remote.exe" if s == "Windows" else "OSG-PC-Remote-mac" if s == "Darwin" else "OSG-PC-Remote-linux"
 
 
+def update_script(new, exe):
+    """Windows helper: wait for this app to exit, swap in the new file, then reopen the app.
+    Uses ping as the pause because `timeout` fails without a console; retries ~15s while the old file is locked.
+    Reopens the app even if the swap never succeeds, so the PC is never left without the remote."""
+    folder = os.path.dirname(exe)
+    return (
+        "@echo off\r\n"
+        "set n=0\r\n"
+        ":wait\r\n"
+        "ping 127.0.0.1 -n 2 >nul\r\n"
+        f'move /y "{new}" "{exe}" >nul 2>&1\r\n'
+        "if not errorlevel 1 goto run\r\n"
+        "set /a n+=1\r\n"
+        "if %n% lss 15 goto wait\r\n"
+        ":run\r\n"
+        f'start "" /D "{folder}" "{exe}"\r\n'
+        'del "%~f0"\r\n'
+    )
+
+
+def fresh_env():
+    """Environment for the relaunched app: drop this app's unpacked-files settings so the new copy
+    unpacks itself instead of reusing a temp folder that is deleted when this app exits."""
+    env = {k: v for k, v in os.environ.items() if not (k.startswith("_PYI") or k.startswith("_MEI"))}
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+    return env
+
+
 def check_update():
     """Installed app only: download a newer version from the release page and restart into it."""
     if not getattr(sys, "frozen", False): return
@@ -201,11 +229,12 @@ def check_update():
         if platform.system() == "Windows":
             bat = os.path.join(os.path.dirname(exe), "osg-update.bat")
             with open(bat, "w") as f:
-                f.write(f'@echo off\r\ntimeout /t 2 /nobreak >nul\r\nmove /y "{new}" "{exe}" >nul\r\nstart "" "{exe}"\r\ndel "%~f0"\r\n')
-            subprocess.Popen(["cmd", "/c", bat], creationflags=0x00000008)  # detached
+                f.write(update_script(new, exe))
+            # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP so the helper outlives this app
+            subprocess.Popen(["cmd", "/c", bat], creationflags=0x00000008 | 0x00000200, env=fresh_env(), close_fds=True)
         else:
             os.chmod(new, 0o755); os.replace(new, exe)
-            subprocess.Popen([exe])
+            subprocess.Popen([exe], env=fresh_env(), start_new_session=True, close_fds=True)
         sys.exit(0)
     except SystemExit: raise
     except Exception as e:
