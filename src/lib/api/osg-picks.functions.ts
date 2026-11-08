@@ -337,6 +337,9 @@ export const listOsgDailyStreams = createServerFn({ method: "POST" })
       m.set(day, (m.get(day) ?? 0) + 1);
     });
 
+    // A member always sees their own card, even before they have streams this week.
+    if (memberIds.includes(userId) && !byUser.has(userId)) byUser.set(userId, new Map());
+
     return Array.from(byUser.entries())
       .map(([uid, days]) => {
         const list = Array.from(days.entries())
