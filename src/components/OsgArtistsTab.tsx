@@ -18,6 +18,8 @@ import {
   osgRemoveAllPoints,
   osgUndoRemoveAll,
   osgLastRemoveAll,
+  osgSetAutoRemoveStars,
+  osgSyncAutoRemovals,
 } from "@/lib/api/osg-picks.functions";
 import { RemoveAllPointsControls } from "@/components/RemoveAllPointsControls";
 import { signMany } from "@/lib/signMedia";
@@ -114,6 +116,29 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
 
   const myWeeklyMin = picks[0]?.weekly_min ?? DEFAULT_WEEKLY_MIN;
 
+  // Auto-remove: per curator room, the star threshold and members whose tracks are off the playlist.
+  const autoSetFn = useServerFn(osgSetAutoRemoveStars);
+  const autoSyncFn = useServerFn(osgSyncAutoRemovals);
+  const [autoStars, setAutoStars] = useState<Record<string, number | null>>({});
+  const [autoRemoved, setAutoRemoved] = useState<Record<string, string[]>>({});
+  const syncAuto = async (curatorId: string) => {
+    try {
+      const r = await autoSyncFn({ data: { curatorId } });
+      setAutoStars((s) => ({ ...s, [curatorId]: r.autoRemoveStars }));
+      setAutoRemoved((s) => ({ ...s, [curatorId]: r.removedUserIds }));
+    } catch {}
+  };
+  const changeAutoRemove = async (stars: number | null) => {
+    if (!myUserId) return;
+    try {
+      await autoSetFn({ data: { stars } });
+      await syncAuto(myUserId);
+      toast.success(stars ? `Tracks auto-remove at ${stars} star${stars === 1 ? "" : "s"}` : "Auto-remove turned off");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save auto-remove");
+    }
+  };
+
 
   const refresh = async () => {
     const [rows, rosterRows, subs, links] = await Promise.all([
@@ -124,6 +149,9 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
     ]);
     setPicks(rows);
     setRosters(rosterRows);
+    const curatorIds = new Set(rosterRows.map((r) => r.curator_id));
+    if (rows.length && myUserId) curatorIds.add(myUserId);
+    curatorIds.forEach((cid) => void syncAuto(cid));
     setSubmissions(subs);
     setFollowLinks(links as FollowLinkRow[]);
     setTrackInputs(() => {
@@ -560,6 +588,14 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
               <span className="inline-flex items-center gap-1 font-semibold">
                 Below minimum
                 <NoPassStars lastDeductionAt={a.last_deduction_at ?? null} joinedAt={a.joined_at ?? null} />
+                {(autoRemoved[a.curator_id] ?? []).includes(a.artist_id) && (
+                  <span
+                    className="rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] font-medium text-destructive"
+                    title="Tracks were taken off the Spotify playlist. They return automatically after a pass or once the minimum is met."
+                  >
+                    Tracks removed
+                  </span>
+                )}
               </span>
             ) : (
               <span className="font-semibold">Pass</span>
@@ -673,6 +709,20 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                 {bulkBusy ? "Working…" : `REMOVE MIN PTS (${eligiblePicks.length})`}
               </button>
             </form>
+            <select
+              value={autoStars[myUserId] ?? 0}
+              onChange={(e) => changeAutoRemove(Number(e.target.value) || null)}
+              className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+              aria-label="Auto-remove tracks at stars"
+              title="Remove a member's tracks from your OSG Spotify playlist when they reach this many red stars. They come back automatically after a pass or once they meet the minimum."
+            >
+              <option value={0}>Auto-remove: Off</option>
+              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                <option key={n} value={n}>
+                  Auto-remove at {n} star{n === 1 ? "" : "s"}
+                </option>
+              ))}
+            </select>
             <RemoveAllPointsControls
               removeAll={() => osgRemoveAllFn()}
               undo={(batchId) => osgUndoAllFn({ data: { batchId } })}
@@ -716,7 +766,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
           </div>
 
           {(roomTab[`own:${myUserId}`] ?? "members") === "7day" ? (
-            <OsgDailyStreams curatorId={myUserId} />
+            <OsgDailyStreams curatorId={myUserId} myUserId={myUserId} />
           ) : (
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {sortByPass(picks.map((a, i) => ({ ...a, avatar: avatars[i] ?? null }))).map((a) =>
@@ -834,7 +884,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             </div>
 
             {(roomTab[cid] ?? "members") === "7day" ? (
-              <OsgDailyStreams curatorId={cid} />
+              <OsgDailyStreams curatorId={cid} myUserId={myUserId} />
             ) : (
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {sortByPass(rows).map((r) =>

@@ -337,6 +337,9 @@ export const listOsgDailyStreams = createServerFn({ method: "POST" })
       m.set(day, (m.get(day) ?? 0) + 1);
     });
 
+    // A member always sees their own card, even before they have streams this week.
+    if (memberIds.includes(userId) && !byUser.has(userId)) byUser.set(userId, new Map());
+
     return Array.from(byUser.entries())
       .map(([uid, days]) => {
         const list = Array.from(days.entries())
@@ -403,4 +406,157 @@ export const osgLastRemoveAll = createServerFn({ method: "POST" })
       .eq("curator_id", context.userId).not("batch_id", "is", null)
       .order("created_at", { ascending: false }).limit(1).maybeSingle();
     return row?.batch_id ? { batchId: row.batch_id as string } : null;
+  });
+
+const OSG_PERIOD_DAYS = 7;
+
+/** Curator picks how many red stars (1–7) take an OSG Artist's tracks off the OSG Spotify playlist, or Off. */
+export const osgSetAutoRemoveStars = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { stars: number | null }) => {
+    const n = Math.trunc(Number(data?.stars) || 0);
+    return { stars: n >= 1 && n <= 7 ? n : null };
+  })
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: pls, error } = await supabaseAdmin
+      .from("curator_playlists")
+      .update({ auto_remove_stars: data.stars })
+      .eq("curator_id", context.userId)
+      .eq("is_osg", true)
+      .select("id");
+    if (error) throw new Error(error.message);
+    if (!pls?.length) throw new Error("You don't have an OSG playlist yet");
+    return { ok: true };
+  });
+
+/**
+ * Removes OSG Artists' tracks from the curator's OSG Spotify playlist(s) once their red stars
+ * reach the threshold, and restores them once they meet the minimum or get a pass.
+ * Returns the threshold and which members currently have tracks removed.
+ */
+export const osgSyncAutoRemovals = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { curatorId: string }) => ({ curatorId: z.string().uuid().parse(data?.curatorId) }))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const curatorId = data.curatorId;
+    const { data: picks } = await supabaseAdmin
+      .from("osg_artist_picks")
+      .select("artist_id, created_at")
+      .eq("user_id", curatorId);
+    const members = (picks ?? []) as { artist_id: string; created_at: string | null }[];
+    if (context.userId !== curatorId && !members.some((m) => m.artist_id === context.userId)) {
+      throw new Error("Only room members can view this");
+    }
+    const { data: pls } = await supabaseAdmin
+      .from("curator_playlists")
+      .select("id, spotify_playlist_id, auto_remove_stars")
+      .eq("curator_id", curatorId)
+      .eq("is_osg", true);
+    const playlists = (pls ?? []).filter((p: any) => p.spotify_playlist_id);
+    const threshold = (playlists.find((p: any) => p.auto_remove_stars)?.auto_remove_stars as number | undefined) ?? null;
+    if (!playlists.length) return { autoRemoveStars: null, removedUserIds: [] as string[] };
+    const plIds = playlists.map((p: any) => p.id as string);
+
+    try {
+      const { data: existing } = await supabaseAdmin
+        .from("curator_team_auto_removals")
+        .select("user_id")
+        .in("playlist_id", plIds)
+        .limit(1);
+      // Only touch Spotify when the feature is on, or tracks still need restoring.
+      if ((threshold || existing?.length) && members.length) {
+        const ids = members.map((m) => m.artist_id);
+        const [{ data: adjs }, { data: targets }, { data: cur }] = await Promise.all([
+          supabaseAdmin.from("osg_point_adjustments").select("user_id, delta, created_at").eq("curator_id", curatorId).in("user_id", ids),
+          supabaseAdmin.from("osg_member_targets").select("user_id, target_min").eq("curator_id", curatorId).in("user_id", ids),
+          supabaseAdmin.from("profiles").select("osg_weekly_min").eq("id", curatorId).maybeSingle(),
+        ]);
+        const adjSum = new Map<string, number>();
+        const lastDed = new Map<string, string>();
+        for (const a of (adjs ?? []) as any[]) {
+          adjSum.set(a.user_id, (adjSum.get(a.user_id) ?? 0) + Number(a.delta));
+          if (a.delta < 0 && (!lastDed.get(a.user_id) || a.created_at > lastDed.get(a.user_id)!))
+            lastDed.set(a.user_id, a.created_at);
+        }
+        const targetBy = new Map(((targets ?? []) as any[]).map((t) => [t.user_id, Number(t.target_min)]));
+        const roomMin = Number((cur as any)?.osg_weekly_min) || 600;
+        const pointsBy = new Map<string, number>();
+        await Promise.all(
+          ids.map(async (uid) => {
+            const { count } = await supabaseAdmin
+              .from("stream_points")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", uid)
+              .in("curator_playlist_id", plIds);
+            pointsBy.set(uid, Math.max(0, (count ?? 0) + (adjSum.get(uid) ?? 0)));
+          }),
+        );
+
+        const { syncAutoRemovals, hasRecentPass } = await import("./beta-auto-remove.server");
+        const { parseSpotifyTrackId } = await import("./beta-spotify.server");
+        const { getCuratorAccessToken } = await import("./curator-submissions.functions");
+        const tok: any = await getCuratorAccessToken(curatorId, supabaseAdmin);
+        const accessToken = (tok?.accessToken as string) ?? null;
+
+        const memberRows = members.map((m) => {
+          const last = lastDed.get(m.artist_id) ?? null;
+          const min = targetBy.get(m.artist_id) || roomMin;
+          const pts = pointsBy.get(m.artist_id) ?? 0;
+          return {
+            user_id: m.artist_id,
+            joined_at: m.created_at ?? null,
+            last_deduction_at: last,
+            // Same rule as the card: a pass, or meeting the minimum, keeps tracks on the playlist.
+            passed: hasRecentPass(last, OSG_PERIOD_DAYS) || pts >= min,
+          };
+        });
+        const trackIdsByUser = async (uids: string[]) => {
+          const [{ data: links }, { data: subs }] = await Promise.all([
+            supabaseAdmin.from("osg_artist_follow_links").select("user_id, track_urls").eq("curator_id", curatorId).in("user_id", uids),
+            supabaseAdmin
+              .from("curator_submissions")
+              .select("submitter_user_id, spotify_track_id")
+              .in("curator_playlist_id", plIds)
+              .eq("status", "approved")
+              .in("submitter_user_id", uids),
+          ]);
+          const out = new Map<string, string[]>();
+          const add = (uid: string, id: string | null) => {
+            if (!id) return;
+            const arr = out.get(uid) ?? [];
+            if (!arr.includes(id)) arr.push(id);
+            out.set(uid, arr);
+          };
+          for (const l of (links ?? []) as any[])
+            for (const u of (l.track_urls as string[] | null) ?? []) add(l.user_id, u ? parseSpotifyTrackId(u) : null);
+          for (const s of (subs ?? []) as any[]) add(s.submitter_user_id, s.spotify_track_id ?? null);
+          return out;
+        };
+        for (const p of playlists as any[]) {
+          await syncAutoRemovals(supabaseAdmin, {
+            playlistId: p.id,
+            spotifyPlaylistId: p.spotify_playlist_id,
+            ownerId: curatorId,
+            threshold,
+            periodDays: OSG_PERIOD_DAYS,
+            members: memberRows,
+            removalsTable: "curator_team_auto_removals",
+            accessToken,
+            trackIdsByUser,
+          });
+        }
+      }
+    } catch (e) {
+      console.error("OSG auto-remove sync failed", e);
+    }
+    const { data: rows } = await supabaseAdmin
+      .from("curator_team_auto_removals")
+      .select("user_id")
+      .in("playlist_id", plIds);
+    return {
+      autoRemoveStars: threshold,
+      removedUserIds: Array.from(new Set((rows ?? []).map((r: any) => r.user_id as string))),
+    };
   });

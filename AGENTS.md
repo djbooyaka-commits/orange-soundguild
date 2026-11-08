@@ -16,3 +16,4 @@
 - Android capture assistance must be bounded to a locally initiated capture request and a verified system capture dialog; stop on the activity result and locate confirmation controls afresh before gesture fallback to avoid touching unrelated prompts.
 - Android updates use the fixed GitHub release's update.json, verify APK checksum/package/version/signature, and hand installation to Android via a cache-scoped FileProvider; this keeps phone credentials off GitHub and preserves user-confirmed installation.
 - Android CI must reuse its signing certificate via configured signing secrets or the cached fallback key, and fail publication after cache loss rather than rotate an updater release's key; Android rejects differently signed updates.
+- OSG Artists auto-remove reuses the team removal list and the OSG playlists' star setting, and counts meeting the minimum as a pass, so members shown as "Pass" never lose tracks.

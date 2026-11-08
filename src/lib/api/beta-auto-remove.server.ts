@@ -51,7 +51,8 @@ export async function syncAutoRemovals(
     ownerId: string;
     threshold: number | null;
     periodDays: number;
-    members: { user_id: string; last_deduction_at: string | null; joined_at: string | null }[];
+    /** `passed` overrides the pass check, e.g. a member who already meets the room minimum. */
+    members: { user_id: string; last_deduction_at: string | null; joined_at: string | null; passed?: boolean }[];
     /** Spotify stream tracker team rooms keep their own removal list and member links. */
     removalsTable?: string;
     accessToken?: string | null;
@@ -74,7 +75,7 @@ export async function syncAutoRemovals(
   const toRemoveUsers: string[] = [];
   for (const m of opts.members) {
     if (m.user_id === opts.ownerId) continue;
-    const passed = hasRecentPass(m.last_deduction_at, opts.periodDays);
+    const passed = m.passed ?? hasRecentPass(m.last_deduction_at, opts.periodDays);
     const isRemoved = removedBy.has(m.user_id);
     const stars = noPassStarCount(m.last_deduction_at, m.joined_at, opts.periodDays);
     if (isRemoved && (passed || !opts.threshold)) toRestore.push(m.user_id);
