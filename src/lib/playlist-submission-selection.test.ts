@@ -1,6 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { filterSubmissionPlaylists, resolveSubmissionPlaylistId } from "./playlist-submission-selection.ts";
+import { filterSubmissionPlaylists, resolveSubmissionPlaylistId, sortPlaylistsByPoints } from "./playlist-submission-selection.ts";
+
+test("playlists with the most points come first and 0-point playlists go to the bottom", () => {
+  const rows = [
+    { id: "a", name: "A", pts: 0 },
+    { id: "b", name: "B", pts: 50 },
+    { id: "c", name: "C", pts: undefined as number | undefined },
+    { id: "d", name: "D", pts: 120 },
+    { id: "e", name: "E", pts: 50 },
+  ];
+  const sorted = sortPlaylistsByPoints(rows, (r) => r.pts);
+  assert.deepEqual(sorted.map((r) => r.id), ["d", "b", "e", "a", "c"]);
+  assert.equal(resolveSubmissionPlaylistId(sorted, ""), "d");
+});
 
 const playlists = [
   { id: "spotify", genre: "Afrobeats" },

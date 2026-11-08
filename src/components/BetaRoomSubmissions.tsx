@@ -17,6 +17,7 @@ import {
   markAllBetaSubmissionsAdded,
   approveAllPendingBetaSubmissionsAdded,
 } from "@/lib/api/beta-curator.functions";
+import { resolveSubmissionPlaylistId, sortPlaylistsByPoints } from "@/lib/playlist-submission-selection";
 
 type Playlist = { id: string; name: string; holdDays: number; isTeam?: boolean };
 type Submission = {
@@ -81,18 +82,22 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
         pointsFn({ data: { roomId } }) as Promise<any>,
         mineFn({ data: { roomId } }) as Promise<Submission[]>,
       ]);
-      setPlaylists((pl ?? []).filter((x) => !x.isTeam));
+      const byPlaylist: Record<string, number> = Object.fromEntries(
+        (pts.byPlaylist ?? []).map((r: any) => [r.playlistId, r.available]),
+      );
+      const submittable = sortPlaylistsByPoints(
+        (pl ?? []).filter((x) => !x.isTeam),
+        (p) => byPlaylist[p.id],
+      );
+      setPlaylists(submittable);
       setPoints({
         available: pts.available,
         cost: pts.cost,
         dailyLimit: pts.dailyLimit,
-        byPlaylist: Object.fromEntries(
-          (pts.byPlaylist ?? []).map((r: any) => [r.playlistId, r.available]),
-        ),
+        byPlaylist,
       });
       setMine(my ?? []);
-      const submittable = (pl ?? []).filter((x) => !x.isTeam);
-      if (!playlistId && submittable[0]) setPlaylistId(submittable[0].id);
+      setPlaylistId((current) => resolveSubmissionPlaylistId(submittable, current));
       if (isOwner) {
         const [q, sp] = await Promise.all([
           queueFn({ data: { roomId } }) as Promise<Submission[]>,
