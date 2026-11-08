@@ -1,14 +1,8 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
+import { pinMeFirst } from "@/lib/pin-me-first";
 import { listOsgDailyStreams, type OsgDailyStreams as Row } from "@/lib/api/osg-picks.functions";
-
-/** The signed-in member's card always comes first; everyone else keeps the points order. */
-export function pinMeFirst<T extends { user_id: string }>(rows: T[], myUserId?: string | null): T[] {
-  if (!myUserId) return rows;
-  const mine = rows.filter((r) => r.user_id === myUserId);
-  return mine.length ? [...mine, ...rows.filter((r) => r.user_id !== myUserId)] : rows;
-}
 
 export function OsgDailyStreams({ curatorId, myUserId }: { curatorId: string; myUserId?: string | null }) {
   const fn = useServerFn(listOsgDailyStreams);
