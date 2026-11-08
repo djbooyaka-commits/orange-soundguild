@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/curator-submissions.functions";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { resolveSubmissionPlaylistId } from "@/lib/playlist-submission-selection";
+import { resolveSubmissionPlaylistId, sortPlaylistsByPoints } from "@/lib/playlist-submission-selection";
 import { useAccountType } from "@/hooks/useAccountType";
 
 export type SubmissionPlaylist = {
@@ -85,7 +85,7 @@ export function SubmitTrackCard({ pool = false, playlistOptions, selectedPlaylis
       (supabase as any).rpc("artist_daily_pass_available"),
     ]);
     setDailyPass(Boolean(dp?.data));
-    const sorted = [...(pl as SubmissionPlaylist[])].sort((a, b) => (b.available_points ?? 0) - (a.available_points ?? 0));
+    const sorted = sortPlaylistsByPoints(pl as SubmissionPlaylist[], (p) => p.available_points);
     setPlaylists(sorted);
     setMine((m ?? []) as Submission[]);
   };
