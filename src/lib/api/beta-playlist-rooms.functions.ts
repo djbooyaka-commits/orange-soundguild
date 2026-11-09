@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { roomLastfmUsernames } from "./lastfm-room-account";
 
 /**
  * Per-playlist "rooms" inside a Last.fm stream room.
@@ -199,15 +200,8 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
       (links ?? []).map((l: any) => [l.user_id as string, l]),
     );
 
-    const { data: lastfm } = userIds.length
-      ? await supabaseAdmin
-          .from("lastfm_connections")
-          .select("user_id, lastfm_username")
-          .in("user_id", userIds)
-      : { data: [] as any[] };
-    const lastfmByUser = new Map<string, string>(
-      (lastfm ?? []).map((l: any) => [l.user_id as string, l.lastfm_username as string]),
-    );
+    // Room-specific Last.fm account wins over the member's default one.
+    const lastfmByUser = await roomLastfmUsernames(supabaseAdmin, room.id, userIds);
 
     const min = (pl.weekly_min as number) ?? DEFAULT_WEEKLY_MIN;
     const { data: targetRows } = await (supabaseAdmin as any)
@@ -763,14 +757,12 @@ export const betaPlaylistTrackingSessions = createServerFn({ method: "POST" })
     let names = new Map<string, string | null>();
     let lastfmNames = new Map<string, string | null>();
     if (ids.length) {
-      const [{ data: profs }, { data: lfm }] = await Promise.all([
+      const [{ data: profs }, lfm] = await Promise.all([
         supabaseAdmin.from("profiles").select("id, username").in("id", ids),
-        supabaseAdmin.from("lastfm_connections").select("user_id, lastfm_username").in("user_id", ids),
+        roomLastfmUsernames(supabaseAdmin, room.id, ids),
       ]);
       names = new Map((profs ?? []).map((p: any) => [p.id as string, p.username as string | null]));
-      lastfmNames = new Map(
-        (lfm ?? []).map((l: any) => [l.user_id as string, l.lastfm_username as string | null]),
-      );
+      lastfmNames = lfm;
     }
 
     // Points earned per session: plays on this playlist between start and stop.
