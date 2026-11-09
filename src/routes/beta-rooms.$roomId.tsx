@@ -14,6 +14,8 @@ import {
   setBetaRoomLinksTabName,
 } from "@/lib/api/beta-playlist-rooms.functions";
 import { LastfmConnectCard } from "@/components/LastfmConnectCard";
+import { RoomLastfmAccount } from "@/components/RoomLastfmAccount";
+import { roomUsesDefaultLastfm } from "@/lib/api/lastfm-room-account";
 import { BetaRoomPlaylists } from "@/components/BetaRoomPlaylists";
 import { BetaPlaylistRoom } from "@/components/BetaPlaylistRoom";
 import { BetaRoomInvite } from "@/components/BetaRoomInvite";
@@ -56,7 +58,7 @@ function BetaRoomDetail() {
 
   const [room, setRoom] = useState<RoomData | null>(null);
   const [playlists, setPlaylists] = useState<
-    Array<{ id: string; name: string; spotifyPlaylistId: string; isTeam?: boolean }>
+    Array<{ id: string; name: string; spotifyPlaylistId: string; isTeam?: boolean; platform?: string }>
   >([]);
   const [trackingPlaylistIds, setTrackingPlaylistIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -91,6 +93,7 @@ function BetaRoomDetail() {
           name: string;
           spotifyPlaylistId: string;
           isTeam?: boolean;
+          platform?: string;
         }>;
         setPlaylists(pls ?? []);
       } catch {
@@ -319,7 +322,15 @@ function BetaRoomDetail() {
             </div>
           </section>
 
-          <LastfmConnectCard />
+          {/* YouTube, Tidal and Apple Music rooms never use the default account. */}
+          {roomUsesDefaultLastfm(playlists.map((p) => p.platform)) && <LastfmConnectCard />}
+          <RoomLastfmAccount
+            key={playlists.map((p) => p.id).join(",")}
+            roomId={roomId}
+            tracking={trackingPlaylistIds.size > 0}
+            onChanged={refresh}
+            prominent
+          />
 
           {room.isOwner && room.leaderboard.length > 0 && (
             <section className="rounded-xl border border-border bg-card p-5">

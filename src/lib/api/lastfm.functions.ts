@@ -62,6 +62,11 @@ export const setLastfmUsername = createServerFn({ method: "POST" })
   })
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { lastfmAccountInUse, LASTFM_IN_USE_MESSAGE } = await import("./lastfm-room-account");
+    // Your own current default doesn't count; any other use on the site does.
+    if (await lastfmAccountInUse(supabaseAdmin, data.username, { defaultOf: context.userId })) {
+      throw new Error(LASTFM_IN_USE_MESSAGE);
+    }
     await verifyLastfmUser(data.username);
 
     const { error } = await supabaseAdmin
@@ -135,7 +140,7 @@ export const startLastfmPlaylistTracking = createServerFn({ method: "POST" })
           .eq("playlist_id", playlist.id),
       ]);
     if (!room || (!member && room.owner_id !== context.userId)) throw new Error("Join this room first");
-    if (!connection) throw new Error("Connect your Last.fm account first");
+    if (!connection) throw new Error("Connect a Last.fm account for this room first");
     if (!trackCount) throw new Error("This playlist has no tracked tracks yet");
 
     const startedAt = new Date().toISOString();
@@ -181,7 +186,7 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
     if (!playlist) throw new Error("Playlist not found");
     const lastfmUser = await resolveRoomLastfmUsername(supabaseAdmin, playlist.room_id, context.userId);
     const watch = await loadRoomWatchTracks(supabaseAdmin, playlist.room_id, playlist.id);
-    if (!lastfmUser) throw new Error("Connect your Last.fm account first");
+    if (!lastfmUser) throw new Error("Connect a Last.fm account for this room first");
 
     const { key: apiKey, error: keyError } = getLastfmApiKey();
     if (!apiKey) throw new Error(lastfmErrorMessage(keyError ?? "lastfm_key_missing"));
@@ -389,37 +394,54 @@ async function loadRoomWatchTracks(admin: any, roomId: string, playlistId: strin
   return all.filter((t) => t.playlist_id === playlistId);
 }
 
-/** Room id for a playlist, after checking the caller belongs to that room. */
-async function roomForMember(admin: any, playlistId: string, userId: string) {
-  const { data: playlist } = await admin
-    .from("beta_room_playlists")
-    .select("room_id")
-    .eq("id", playlistId)
-    .maybeSingle();
-  if (!playlist) throw new Error("Playlist not found");
+/** Room id (from a room or one of its playlists), after a membership check. */
+async function roomForMember(
+  admin: any,
+  ref: { playlistId?: string; roomId?: string },
+  userId: string,
+) {
+  let roomId = ref.roomId || "";
+  if (!roomId) {
+    const { data: playlist } = await admin
+      .from("beta_room_playlists")
+      .select("room_id")
+      .eq("id", ref.playlistId ?? "")
+      .maybeSingle();
+    if (!playlist) throw new Error("Playlist not found");
+    roomId = playlist.room_id as string;
+  }
   const [{ data: room }, { data: member }] = await Promise.all([
-    admin.from("beta_rooms").select("owner_id").eq("id", playlist.room_id).maybeSingle(),
+    admin.from("beta_rooms").select("owner_id").eq("id", roomId).maybeSingle(),
     admin
       .from("beta_room_members")
       .select("id")
-      .eq("room_id", playlist.room_id)
+      .eq("room_id", roomId)
       .eq("user_id", userId)
       .maybeSingle(),
   ]);
   if (!room || (!member && room.owner_id !== userId)) throw new Error("Join this room first");
-  return playlist.room_id as string;
+  return roomId;
 }
 
-/** The caller's Last.fm account for this room, plus their default account. */
+const roomRef = (data: any) => ({
+  playlistId: String(data?.playlistId ?? ""),
+  roomId: String(data?.roomId ?? ""),
+});
+
+/**
+ * The caller's Last.fm account for this room, their default account, and
+ * whether this room may fall back to the default (Spotify rooms only).
+ */
 export const getRoomLastfmAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { playlistId: string }) => ({
-    playlistId: String(data?.playlistId ?? ""),
-  }))
+  .inputValidator((data: { playlistId?: string; roomId?: string }) => roomRef(data))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const roomId = await roomForMember(supabaseAdmin, data.playlistId, context.userId);
-    const [{ data: override }, { data: def }] = await Promise.all([
+    const { roomPlatforms, roomUsesDefaultLastfm, roomLastfmPlatform } = await import(
+      "./lastfm-room-account"
+    );
+    const roomId = await roomForMember(supabaseAdmin, data, context.userId);
+    const [{ data: override }, { data: def }, platforms] = await Promise.all([
       supabaseAdmin
         .from("beta_room_lastfm_accounts")
         .select("lastfm_username")
@@ -431,27 +453,32 @@ export const getRoomLastfmAccount = createServerFn({ method: "POST" })
         .select("lastfm_username")
         .eq("user_id", context.userId)
         .maybeSingle(),
+      roomPlatforms(supabaseAdmin, roomId),
     ]);
     return {
+      roomId,
       roomUsername: (override?.lastfm_username as string | undefined) ?? null,
       defaultUsername: (def?.lastfm_username as string | undefined) ?? null,
+      usesDefault: roomUsesDefaultLastfm(platforms),
+      platform: roomLastfmPlatform(platforms),
     };
   });
 
 /**
  * Sets (or clears, with an empty username) the caller's Last.fm account for
- * this room only. Other rooms keep using the default account.
+ * this room only. The account must not be used anywhere else on the site.
  */
 export const setRoomLastfmAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { playlistId: string; username: string }) => {
+  .inputValidator((data: { playlistId?: string; roomId?: string; username: string }) => {
     const username = String(data?.username ?? "").trim();
     if (username.length > 50) throw new Error("Username is too long");
-    return { playlistId: String(data?.playlistId ?? ""), username };
+    return { ...roomRef(data), username };
   })
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const roomId = await roomForMember(supabaseAdmin, data.playlistId, context.userId);
+    const { lastfmAccountInUse, LASTFM_IN_USE_MESSAGE } = await import("./lastfm-room-account");
+    const roomId = await roomForMember(supabaseAdmin, data, context.userId);
     const { data: open } = await supabaseAdmin
       .from("beta_playlist_tracking_sessions")
       .select("id, beta_room_playlists!inner(room_id)")
@@ -469,6 +496,9 @@ export const setRoomLastfmAccount = createServerFn({ method: "POST" })
         .eq("user_id", context.userId);
       if (error) throw new Error(error.message);
       return { roomUsername: null };
+    }
+    if (await lastfmAccountInUse(supabaseAdmin, data.username, { roomId, userId: context.userId })) {
+      throw new Error(LASTFM_IN_USE_MESSAGE);
     }
     await verifyLastfmUser(data.username);
     const { error } = await supabaseAdmin.from("beta_room_lastfm_accounts").upsert(
