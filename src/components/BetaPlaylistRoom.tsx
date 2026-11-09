@@ -55,6 +55,7 @@ import { PlaylistCuratorNotice } from "@/components/PlaylistCuratorNotice";
 import { PointTimelineButton } from "@/components/PointTimelineButton";
 import { OsgRoomPlayer } from "@/components/OsgRoomPlayer";
 import { RemoveAllPointsControls } from "@/components/RemoveAllPointsControls";
+import { RoomLastfmAccount } from "@/components/RoomLastfmAccount";
 
 type Member = {
   user_id: string;
@@ -687,6 +688,14 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           </p>
         )}
         {trackingMsg && <p className="mt-3 text-xs text-muted-foreground">{trackingMsg}</p>}
+
+        {!isOsg && (
+          <RoomLastfmAccount
+            playlistId={playlistId}
+            tracking={!!data.trackingStartedAt}
+            onChanged={refresh}
+          />
+        )}
 
         {isOsg ? (
           <div className="mt-4">

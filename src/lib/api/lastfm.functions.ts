@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { resolveRoomLastfmUsername } from "./lastfm-room-account";
 
 /**
  * Last.fm tracking — bypasses Spotify's development-mode user cap entirely.
@@ -8,16 +9,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * site reads their recent plays via the public Last.fm API.
  */
 
-export const setLastfmUsername = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data: { username: string }) => {
-    const username = String(data?.username ?? "").trim();
-    if (!username) throw new Error("Last.fm username is required");
-    if (username.length > 50) throw new Error("Username is too long");
-    return { username };
-  })
-  .handler(async ({ context, data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+/** Throws a friendly error unless the username exists on Last.fm. */
+async function verifyLastfmUser(username: string) {
     const { getLastfmApiKey, lastfmErrorMessage } = await import("./lastfm.server");
 
     const { key: apiKey, error: keyError } = getLastfmApiKey();
@@ -26,7 +19,7 @@ export const setLastfmUsername = createServerFn({ method: "POST" })
     // Verify the username exists on Last.fm before saving
     const checkUrl = new URL("https://ws.audioscrobbler.com/2.0/");
     checkUrl.searchParams.set("method", "user.getinfo");
-    checkUrl.searchParams.set("user", data.username);
+    checkUrl.searchParams.set("user", username);
     checkUrl.searchParams.set("api_key", apiKey);
     checkUrl.searchParams.set("format", "json");
 
@@ -57,6 +50,19 @@ export const setLastfmUsername = createServerFn({ method: "POST" })
       if (res.status === 429) throw new Error(lastfmErrorMessage("lastfm_rate_limited"));
       throw new Error(lastfmErrorMessage("lastfm_unavailable"));
     }
+}
+
+export const setLastfmUsername = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { username: string }) => {
+    const username = String(data?.username ?? "").trim();
+    if (!username) throw new Error("Last.fm username is required");
+    if (username.length > 50) throw new Error("Username is too long");
+    return { username };
+  })
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await verifyLastfmUser(data.username);
 
     const { error } = await supabaseAdmin
       .from("lastfm_connections")
@@ -120,11 +126,9 @@ export const startLastfmPlaylistTracking = createServerFn({ method: "POST" })
           .eq("room_id", playlist.room_id)
           .eq("user_id", context.userId)
           .maybeSingle(),
-        supabaseAdmin
-          .from("lastfm_connections")
-          .select("user_id")
-          .eq("user_id", context.userId)
-          .maybeSingle(),
+        resolveRoomLastfmUsername(supabaseAdmin, playlist.room_id, context.userId).then((u) => ({
+          data: u,
+        })),
         supabaseAdmin
           .from("beta_room_tracks")
           .select("id", { count: "exact", head: true })
@@ -169,21 +173,15 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!session) throw new Error("Tracking is not running for this playlist");
 
-    const [{ data: playlist }, { data: connection }] = await Promise.all([
-      supabaseAdmin
-        .from("beta_room_playlists")
-        .select("id, room_id")
-        .eq("id", data.playlistId)
-        .maybeSingle(),
-      supabaseAdmin
-        .from("lastfm_connections")
-        .select("lastfm_username")
-        .eq("user_id", context.userId)
-        .maybeSingle(),
-    ]);
+    const { data: playlist } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("id, room_id")
+      .eq("id", data.playlistId)
+      .maybeSingle();
     if (!playlist) throw new Error("Playlist not found");
+    const lastfmUser = await resolveRoomLastfmUsername(supabaseAdmin, playlist.room_id, context.userId);
     const watch = await loadRoomWatchTracks(supabaseAdmin, playlist.room_id, playlist.id);
-    if (!connection) throw new Error("Connect your Last.fm account first");
+    if (!lastfmUser) throw new Error("Connect your Last.fm account first");
 
     const { key: apiKey, error: keyError } = getLastfmApiKey();
     if (!apiKey) throw new Error(lastfmErrorMessage(keyError ?? "lastfm_key_missing"));
@@ -197,7 +195,7 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const result = await fetchLastfmRecentTracks(
-          connection.lastfm_username,
+          lastfmUser,
           apiKey,
           Math.floor(startedAtMs / 1000),
         );
@@ -322,13 +320,9 @@ export const rescanLastfmSession = createServerFn({ method: "POST" })
       if (!room || room.owner_id !== context.userId) throw new Error("Not allowed");
     }
 
-    const { data: connection } = await supabaseAdmin
-      .from("lastfm_connections")
-      .select("lastfm_username")
-      .eq("user_id", session.user_id)
-      .maybeSingle();
+    const lastfmUser = await resolveRoomLastfmUsername(supabaseAdmin, playlist.room_id, session.user_id);
     const watch = await loadRoomWatchTracks(supabaseAdmin, playlist.room_id, playlist.id);
-    if (!connection) throw new Error("This member has no Last.fm account connected");
+    if (!lastfmUser) throw new Error("This member has no Last.fm account connected");
 
     const { key: apiKey, error: keyError } = getLastfmApiKey();
     if (!apiKey) throw new Error(lastfmErrorMessage(keyError ?? "lastfm_key_missing"));
@@ -336,7 +330,7 @@ export const rescanLastfmSession = createServerFn({ method: "POST" })
     const startMs = new Date(session.started_at).getTime();
     const stopMs = session.stopped_at ? new Date(session.stopped_at).getTime() : Date.now();
     const result = await fetchLastfmRecentTracks(
-      connection.lastfm_username,
+      lastfmUser,
       apiKey,
       Math.floor(startMs / 1000),
     );
@@ -394,3 +388,98 @@ async function loadRoomWatchTracks(admin: any, roomId: string, playlistId: strin
   // Strict: only tracks on the playlist being tracked earn points for it.
   return all.filter((t) => t.playlist_id === playlistId);
 }
+
+/** Room id for a playlist, after checking the caller belongs to that room. */
+async function roomForMember(admin: any, playlistId: string, userId: string) {
+  const { data: playlist } = await admin
+    .from("beta_room_playlists")
+    .select("room_id")
+    .eq("id", playlistId)
+    .maybeSingle();
+  if (!playlist) throw new Error("Playlist not found");
+  const [{ data: room }, { data: member }] = await Promise.all([
+    admin.from("beta_rooms").select("owner_id").eq("id", playlist.room_id).maybeSingle(),
+    admin
+      .from("beta_room_members")
+      .select("id")
+      .eq("room_id", playlist.room_id)
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+  if (!room || (!member && room.owner_id !== userId)) throw new Error("Join this room first");
+  return playlist.room_id as string;
+}
+
+/** The caller's Last.fm account for this room, plus their default account. */
+export const getRoomLastfmAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const roomId = await roomForMember(supabaseAdmin, data.playlistId, context.userId);
+    const [{ data: override }, { data: def }] = await Promise.all([
+      supabaseAdmin
+        .from("beta_room_lastfm_accounts")
+        .select("lastfm_username")
+        .eq("room_id", roomId)
+        .eq("user_id", context.userId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("lastfm_connections")
+        .select("lastfm_username")
+        .eq("user_id", context.userId)
+        .maybeSingle(),
+    ]);
+    return {
+      roomUsername: (override?.lastfm_username as string | undefined) ?? null,
+      defaultUsername: (def?.lastfm_username as string | undefined) ?? null,
+    };
+  });
+
+/**
+ * Sets (or clears, with an empty username) the caller's Last.fm account for
+ * this room only. Other rooms keep using the default account.
+ */
+export const setRoomLastfmAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; username: string }) => {
+    const username = String(data?.username ?? "").trim();
+    if (username.length > 50) throw new Error("Username is too long");
+    return { playlistId: String(data?.playlistId ?? ""), username };
+  })
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const roomId = await roomForMember(supabaseAdmin, data.playlistId, context.userId);
+    const { data: open } = await supabaseAdmin
+      .from("beta_playlist_tracking_sessions")
+      .select("id, beta_room_playlists!inner(room_id)")
+      .eq("user_id", context.userId)
+      .eq("beta_room_playlists.room_id", roomId)
+      .is("stopped_at", null)
+      .limit(1);
+    if (open?.length) throw new Error("Stop tracking in this room before changing its Last.fm account");
+
+    if (!data.username) {
+      const { error } = await supabaseAdmin
+        .from("beta_room_lastfm_accounts")
+        .delete()
+        .eq("room_id", roomId)
+        .eq("user_id", context.userId);
+      if (error) throw new Error(error.message);
+      return { roomUsername: null };
+    }
+    await verifyLastfmUser(data.username);
+    const { error } = await supabaseAdmin.from("beta_room_lastfm_accounts").upsert(
+      {
+        room_id: roomId,
+        user_id: context.userId,
+        lastfm_username: data.username,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "room_id,user_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { roomUsername: data.username };
+  });
