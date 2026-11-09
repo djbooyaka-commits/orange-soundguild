@@ -78,12 +78,13 @@ const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 /**
  * True when a Last.fm username is already used anywhere on the site — as any
  * member's default account, or as a room account in any other room/member.
- * `keep` is the caller's own row for this room, which doesn't count.
+ * `keep.roomId`+`keep.userId` is the caller's own row for that room, and
+ * `keep.defaultOf` is a member whose own default account doesn't count.
  */
 export async function lastfmAccountInUse(
   admin: any,
   username: string,
-  keep?: { roomId: string; userId: string },
+  keep?: { roomId?: string; userId?: string; defaultOf?: string },
 ): Promise<boolean> {
   const name = username.trim().toLowerCase();
   if (!name) return false;
@@ -96,9 +97,9 @@ export async function lastfmAccountInUse(
       .ilike("lastfm_username", pattern),
   ]);
   const same = (r: any) => String(r.lastfm_username ?? "").toLowerCase() === name;
-  if (((defaults ?? []) as any[]).some(same)) return true;
+  if (((defaults ?? []) as any[]).some((r) => same(r) && r.user_id !== keep?.defaultOf)) return true;
   return ((rooms ?? []) as any[]).some(
-    (r) => same(r) && !(keep && r.room_id === keep.roomId && r.user_id === keep.userId),
+    (r) => same(r) && !(keep?.roomId && r.room_id === keep.roomId && r.user_id === keep.userId),
   );
 }
 
