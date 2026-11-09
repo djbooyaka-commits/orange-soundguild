@@ -388,3 +388,98 @@ async function loadRoomWatchTracks(admin: any, roomId: string, playlistId: strin
   // Strict: only tracks on the playlist being tracked earn points for it.
   return all.filter((t) => t.playlist_id === playlistId);
 }
+
+/** Room id for a playlist, after checking the caller belongs to that room. */
+async function roomForMember(admin: any, playlistId: string, userId: string) {
+  const { data: playlist } = await admin
+    .from("beta_room_playlists")
+    .select("room_id")
+    .eq("id", playlistId)
+    .maybeSingle();
+  if (!playlist) throw new Error("Playlist not found");
+  const [{ data: room }, { data: member }] = await Promise.all([
+    admin.from("beta_rooms").select("owner_id").eq("id", playlist.room_id).maybeSingle(),
+    admin
+      .from("beta_room_members")
+      .select("id")
+      .eq("room_id", playlist.room_id)
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+  if (!room || (!member && room.owner_id !== userId)) throw new Error("Join this room first");
+  return playlist.room_id as string;
+}
+
+/** The caller's Last.fm account for this room, plus their default account. */
+export const getRoomLastfmAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const roomId = await roomForMember(supabaseAdmin, data.playlistId, context.userId);
+    const [{ data: override }, { data: def }] = await Promise.all([
+      supabaseAdmin
+        .from("beta_room_lastfm_accounts")
+        .select("lastfm_username")
+        .eq("room_id", roomId)
+        .eq("user_id", context.userId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("lastfm_connections")
+        .select("lastfm_username")
+        .eq("user_id", context.userId)
+        .maybeSingle(),
+    ]);
+    return {
+      roomUsername: (override?.lastfm_username as string | undefined) ?? null,
+      defaultUsername: (def?.lastfm_username as string | undefined) ?? null,
+    };
+  });
+
+/**
+ * Sets (or clears, with an empty username) the caller's Last.fm account for
+ * this room only. Other rooms keep using the default account.
+ */
+export const setRoomLastfmAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; username: string }) => {
+    const username = String(data?.username ?? "").trim();
+    if (username.length > 50) throw new Error("Username is too long");
+    return { playlistId: String(data?.playlistId ?? ""), username };
+  })
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const roomId = await roomForMember(supabaseAdmin, data.playlistId, context.userId);
+    const { data: open } = await supabaseAdmin
+      .from("beta_playlist_tracking_sessions")
+      .select("id, beta_room_playlists!inner(room_id)")
+      .eq("user_id", context.userId)
+      .eq("beta_room_playlists.room_id", roomId)
+      .is("stopped_at", null)
+      .limit(1);
+    if (open?.length) throw new Error("Stop tracking in this room before changing its Last.fm account");
+
+    if (!data.username) {
+      const { error } = await supabaseAdmin
+        .from("beta_room_lastfm_accounts")
+        .delete()
+        .eq("room_id", roomId)
+        .eq("user_id", context.userId);
+      if (error) throw new Error(error.message);
+      return { roomUsername: null };
+    }
+    await verifyLastfmUser(data.username);
+    const { error } = await supabaseAdmin.from("beta_room_lastfm_accounts").upsert(
+      {
+        room_id: roomId,
+        user_id: context.userId,
+        lastfm_username: data.username,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "room_id,user_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { roomUsername: data.username };
+  });
