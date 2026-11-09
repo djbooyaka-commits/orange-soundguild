@@ -200,8 +200,9 @@ export function RoomLastfmAccount({
       )}
       {error && <p className="mt-2 font-medium text-destructive">{error}</p>}
       <p className="mt-2 text-muted-foreground">
-        Each room needs its own Last.fm account — one that isn't used anywhere else on the site.
-        {!info.usesDefault && " This room doesn't use your default account."}
+        {info.usesDefault
+          ? "A room-only account must be a new Last.fm account that isn't used anywhere else on the site."
+          : "This room doesn't use your default account. Connect a new Last.fm account that isn't used anywhere else on the site."}
       </p>
       {prominent && <p className="mt-2 text-muted-foreground">{tip}</p>}
     </div>
