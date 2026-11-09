@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type CuratorRoomScope = "team" | "osg";
+import { curatorRoomAccess as roomAccess, type CuratorRoomScope } from "./curator-room-access";
+
+export type { CuratorRoomScope };
 
 type Input = { scope: CuratorRoomScope; roomKey: string };
 
@@ -9,37 +11,6 @@ const parseInput = (data: Input): Input => ({
   scope: data?.scope === "osg" ? "osg" : "team",
   roomKey: String(data?.roomKey ?? ""),
 });
-
-/** Returns the room's curator id and whether the caller is that curator or a member. */
-async function roomAccess(admin: any, { scope, roomKey }: Input, userId: string) {
-  if (scope === "osg") {
-    // OSG Artists room: room key is the curator's user id; members are their picks.
-    const curatorId = roomKey;
-    if (curatorId === userId) return { curatorId, isOwner: true, isMember: true };
-    const { data } = await admin
-      .from("osg_artist_picks")
-      .select("id")
-      .eq("user_id", curatorId)
-      .eq("artist_id", userId)
-      .limit(1);
-    return { curatorId, isOwner: false, isMember: (data ?? []).length > 0 };
-  }
-  const { data: pl } = await admin
-    .from("curator_playlists")
-    .select("curator_id")
-    .eq("id", roomKey)
-    .maybeSingle();
-  if (!pl) throw new Error("Room not found");
-  const curatorId = pl.curator_id as string;
-  if (curatorId === userId) return { curatorId, isOwner: true, isMember: true };
-  const { data } = await admin
-    .from("curator_team_members")
-    .select("id")
-    .eq("playlist_id", roomKey)
-    .eq("user_id", userId)
-    .limit(1);
-  return { curatorId, isOwner: false, isMember: (data ?? []).length > 0 };
-}
 
 export const getCuratorRoomNotice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
