@@ -374,6 +374,38 @@ export type Database = {
           },
         ]
       }
+      beta_room_lastfm_accounts: {
+        Row: {
+          created_at: string
+          lastfm_username: string
+          room_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          lastfm_username: string
+          room_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          lastfm_username?: string
+          room_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_room_lastfm_accounts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "beta_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_room_links: {
         Row: {
           created_at: string
