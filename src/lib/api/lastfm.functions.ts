@@ -140,7 +140,7 @@ export const startLastfmPlaylistTracking = createServerFn({ method: "POST" })
           .eq("playlist_id", playlist.id),
       ]);
     if (!room || (!member && room.owner_id !== context.userId)) throw new Error("Join this room first");
-    if (!connection) throw new Error("Connect your Last.fm account first");
+    if (!connection) throw new Error("Connect a Last.fm account for this room first");
     if (!trackCount) throw new Error("This playlist has no tracked tracks yet");
 
     const startedAt = new Date().toISOString();
@@ -186,7 +186,7 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
     if (!playlist) throw new Error("Playlist not found");
     const lastfmUser = await resolveRoomLastfmUsername(supabaseAdmin, playlist.room_id, context.userId);
     const watch = await loadRoomWatchTracks(supabaseAdmin, playlist.room_id, playlist.id);
-    if (!lastfmUser) throw new Error("Connect your Last.fm account first");
+    if (!lastfmUser) throw new Error("Connect a Last.fm account for this room first");
 
     const { key: apiKey, error: keyError } = getLastfmApiKey();
     if (!apiKey) throw new Error(lastfmErrorMessage(keyError ?? "lastfm_key_missing"));
