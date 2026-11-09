@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { setBetaPlaylistNotice } from "@/lib/api/beta-playlist-rooms.functions";
 import { Button } from "@/components/ui/button";
 
-/** Curator-written message shown to every member of a playlist room. */
+/** Curator-written message shown to every member of a Last.fm playlist room. */
 export function PlaylistCuratorNotice({
   playlistId,
   notice,
@@ -16,6 +16,28 @@ export function PlaylistCuratorNotice({
   isOwner: boolean;
 }) {
   const saveFn = useServerFn(setBetaPlaylistNotice);
+  return (
+    <CuratorNoticeBox
+      resetKey={playlistId}
+      notice={notice}
+      isOwner={isOwner}
+      onSave={(text) => saveFn({ data: { playlistId, notice: text } })}
+    />
+  );
+}
+
+/** Shared "Message from the Curator" banner; the curator can write, edit or clear it. */
+export function CuratorNoticeBox({
+  resetKey,
+  notice,
+  isOwner,
+  onSave,
+}: {
+  resetKey: string;
+  notice: string | null;
+  isOwner: boolean;
+  onSave: (text: string) => Promise<{ notice: string | null }>;
+}) {
   const [current, setCurrent] = useState(notice);
   const [draft, setDraft] = useState(notice ?? "");
   const [editing, setEditing] = useState(false);
@@ -25,12 +47,12 @@ export function PlaylistCuratorNotice({
     setCurrent(notice);
     setDraft(notice ?? "");
     setEditing(false);
-  }, [notice, playlistId]);
+  }, [notice, resetKey]);
 
   const save = async (text: string) => {
     setSaving(true);
     try {
-      const r = await saveFn({ data: { playlistId, notice: text } });
+      const r = await onSave(text);
       setCurrent(r.notice);
       setDraft(r.notice ?? "");
       setEditing(false);

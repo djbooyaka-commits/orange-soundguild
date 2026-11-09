@@ -17,3 +17,4 @@
 - Android updates use the fixed GitHub release's update.json, verify APK checksum/package/version/signature, and hand installation to Android via a cache-scoped FileProvider; this keeps phone credentials off GitHub and preserves user-confirmed installation.
 - Android CI must reuse its signing certificate via configured signing secrets or the cached fallback key, and fail publication after cache loss rather than rotate an updater release's key; Android rejects differently signed updates.
 - OSG Artists auto-remove reuses the team removal list and the OSG playlists' star setting, and counts meeting the minimum as a pass, so members shown as "Pass" never lose tracks.
+- Spotify team and OSG Artists curator messages live in one server-only notice table keyed by room type and room id, read/written through membership-checked server functions, so members see the banner and only the room curator can edit it.

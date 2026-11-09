@@ -865,6 +865,30 @@ export type Database = {
         }
         Relationships: []
       }
+      curator_room_notices: {
+        Row: {
+          curator_id: string
+          notice: string
+          room_key: string
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          curator_id: string
+          notice: string
+          room_key: string
+          scope: string
+          updated_at?: string
+        }
+        Update: {
+          curator_id?: string
+          notice?: string
+          room_key?: string
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       curator_submissions: {
         Row: {
           added_to_spotify: boolean
