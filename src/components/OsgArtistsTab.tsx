@@ -27,6 +27,7 @@ import defaultAvatar from "@/assets/avatar.jpg";
 import { OsgDailyStreams } from "@/components/OsgDailyStreams";
 import { NoPassStars } from "@/components/NoPassStars";
 import { PointTimelineButton } from "@/components/PointTimelineButton";
+import { CuratorRoomNotice } from "@/components/CuratorRoomNotice";
 
 const DEFAULT_WEEKLY_MIN = 600;
 
@@ -748,6 +749,8 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
             </button>
           </form>
 
+          <CuratorRoomNotice scope="osg" roomKey={myUserId} />
+
           <div className="mt-4 flex gap-2 border-b border-border">
             {(["members", "7day"] as const).map((t) => (
               <button
@@ -865,6 +868,8 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                 Submit / change a track
               </Link>
             </div>
+
+            <CuratorRoomNotice scope="osg" roomKey={cid} />
 
             <div className="mt-4 flex gap-2 border-b border-border">
               {(["members", "7day"] as const).map((t) => (

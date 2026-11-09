@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { NoPassStars } from "@/components/NoPassStars";
 import { PointTimelineButton } from "@/components/PointTimelineButton";
+import { CuratorRoomNotice } from "@/components/CuratorRoomNotice";
 import {
   curatorTeamAddMember,
   curatorTeamSetPeriod,
@@ -423,6 +424,8 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
           Everyone in this room needs at least {room.team_weekly_min} points per {periodDays === 30 ? "30 days" : periodDays === 1 ? "day" : "week"} from this
           playlist for their tracks to stay on it.
         </p>
+
+        <CuratorRoomNotice scope="team" roomKey={room.playlist_id} />
 
         {room.is_owner && (
           <select
