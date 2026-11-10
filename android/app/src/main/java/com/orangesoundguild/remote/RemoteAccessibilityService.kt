@@ -196,6 +196,8 @@ class RemoteAccessibilityService : AccessibilityService() {
 
     private var netCallback: android.net.ConnectivityManager.NetworkCallback? = null
     @Volatile private var lastTickAt = 0L
+    /** How long to sleep between check-ins while nobody is watching (the website can tune it). */
+    @Volatile private var idleMs = 15_000L
 
     /** Watchdog: restart the polling loop if it stalled (Doze, Wi-Fi sleep, MIUI freezing). */
     fun ensurePolling(force: Boolean = false) {
@@ -204,7 +206,7 @@ class RemoteAccessibilityService : AccessibilityService() {
             if (keepAwake?.isHeld != true) keepAwake?.acquire()
             if (wifiLock?.isHeld != true) wifiLock?.acquire()
         } catch (_: Exception) {}
-        val stale = System.currentTimeMillis() - lastTickAt > 20_000L
+        val stale = System.currentTimeMillis() - lastTickAt > idleMs + 30_000L
         if (stale || force) {
             handler.removeCallbacksAndMessages(TICK)
             handler.postAtTime({ tick() }, TICK, android.os.SystemClock.uptimeMillis())
@@ -284,7 +286,8 @@ class RemoteAccessibilityService : AccessibilityService() {
                 for (i in 0 until keep.length()) results.put(keep.get(i))
             }
             watching = reply.optBoolean("watch", false)
-            status = if (watching) "Connected — streaming your screen" else "Connected — waiting for commands"
+            idleMs = reply.optLong("idle_ms", 15_000L).coerceIn(5_000L, 60_000L)
+            status = if (watching) "Connected — streaming your screen" else "Connected — asleep until you press Go live"
 
             val commands = reply.optJSONArray("commands") ?: JSONArray()
             for (i in 0 until commands.length()) {
@@ -307,7 +310,7 @@ class RemoteAccessibilityService : AccessibilityService() {
             delay = when {
                 watching -> 700L
                 System.currentTimeMillis() - lastCommandAt < 30_000 -> 1000L
-                else -> 2500L
+                else -> idleMs
             }
         } catch (e: Api.HttpError) {
             if (e.code == 401) {
