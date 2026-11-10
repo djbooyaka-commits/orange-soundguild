@@ -16,3 +16,27 @@ test("parses Artist - Song lines", () => {
     { artist: "Drake", name: "One Dance" },
   ]);
 });
+
+import { trackLinkError, externalTrackKey } from "./playlist-platforms.ts";
+
+test("YouTube room playlists take YouTube track links, not Spotify", () => {
+  assert.equal(trackLinkError("youtube", "https://music.youtube.com/watch?v=abc"), null);
+  assert.equal(trackLinkError("youtube", "https://youtu.be/abc"), null);
+  assert.match(trackLinkError("youtube", "https://open.spotify.com/track/abc") ?? "", /YouTube/);
+});
+
+test("Tidal and Apple Music room playlists take their own links", () => {
+  assert.equal(trackLinkError("tidal", "https://tidal.com/browse/track/123"), null);
+  assert.match(trackLinkError("tidal", "https://music.apple.com/us/song/x/1") ?? "", /Tidal/);
+  assert.equal(trackLinkError("apple_music", "https://music.apple.com/us/song/x/1"), null);
+  assert.match(trackLinkError("apple_music", "https://tidal.com/browse/track/123") ?? "", /Apple Music/);
+});
+
+test("Spotify room playlists still require a Spotify track link", () => {
+  assert.equal(trackLinkError("spotify", "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC"), null);
+  assert.match(trackLinkError("spotify", "https://music.youtube.com/watch?v=abc") ?? "", /Spotify/);
+});
+
+test("external track key ignores letter case", () => {
+  assert.equal(externalTrackKey({ artist: "Drake", name: "One Dance" }), externalTrackKey({ artist: "drake", name: "ONE DANCE" }));
+});

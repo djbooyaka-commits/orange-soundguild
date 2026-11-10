@@ -25,7 +25,7 @@ except ImportError:
     print("Missing packages. Run:  pip install mss pillow pyautogui requests")
     input("Press Enter to close..."); sys.exit(1)
 
-VERSION = "1.6"
+VERSION = "1.7"
 RELEASE = "https://github.com/djbooyaka-commits/orange-soundguild/releases/download/osg-pc-remote-latest"
 SITE = os.environ.get("OSG_SITE", "https://orangesoundguild.com")
 CONFIG = os.path.join(os.path.expanduser("~"), ".osg-remote", "config.json")
@@ -242,6 +242,19 @@ def check_update():
         print("Update check skipped:", e)
 
 
+def idle_seconds(ms):
+    """Sleep length the website asks for while nobody is watching (5–60 s)."""
+    try: return min(60.0, max(5.0, float(ms) / 1000))
+    except (TypeError, ValueError): return 15.0
+
+
+def poll_delay(watch, since_cmd, idle_s):
+    """Fast only while live; stay responsive briefly after a command, then sleep."""
+    if watch: return 0.05
+    if since_cmd < 30: return 1.0
+    return idle_s
+
+
 def main():
     print("OSG PC Remote — orangesoundguild.com")
     print("Keep this window open (you can minimise it). It starts by itself when you sign in.")
@@ -251,6 +264,7 @@ def main():
     autostart()
     last_update_check = time.time()
     results, last_frame, watch, burst_until = [], 0.0, False, 0.0
+    last_cmd, idle_s = 0.0, 15.0
     held_until = 0.0
     keep_awake(True)
     with mss.mss() as sct:
@@ -282,6 +296,7 @@ def main():
             if not r.ok: time.sleep(2); continue
             results = []
             d = r.json(); watch = bool(d.get("watch"))
+            idle_s = idle_seconds(d.get("idle_ms"))
             if not watch:
                 release_mouse(); held_until = 0.0
             for c in d.get("commands", []):
@@ -295,7 +310,8 @@ def main():
                 if c.get("kind") != "mouse_move":
                     last_frame = 0  # refresh the screen right after an action
                 burst_until = time.time() + 3
-            time.sleep(0.05 if watch else 1.5)
+                last_cmd = time.time()
+            time.sleep(poll_delay(watch, time.time() - last_cmd, idle_s))
 
 
 if __name__ == "__main__":

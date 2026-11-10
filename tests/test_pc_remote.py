@@ -29,6 +29,20 @@ class PcCommandsTest(unittest.TestCase):
         self.assertEqual(self.command("tap", x=5, y=6)[0], "failed")
         self.mouse.click.assert_not_called()
 
+    def test_sleeps_15_seconds_when_not_live(self):
+        self.assertEqual(self.agent.poll_delay(False, 999, self.agent.idle_seconds(15000)), 15.0)
+
+    def test_fast_while_live(self):
+        self.assertEqual(self.agent.poll_delay(True, 999, 15.0), 0.05)
+
+    def test_stays_responsive_right_after_a_command(self):
+        self.assertEqual(self.agent.poll_delay(False, 5, 15.0), 1.0)
+
+    def test_idle_hint_is_clamped(self):
+        self.assertEqual(self.agent.idle_seconds(1), 5.0)
+        self.assertEqual(self.agent.idle_seconds(999999), 60.0)
+        self.assertEqual(self.agent.idle_seconds(None), 15.0)
+
     def test_idle_release_leaves_real_mouse_alone(self):
         self.agent.release_mouse()
         self.mouse.mouseUp.assert_not_called()

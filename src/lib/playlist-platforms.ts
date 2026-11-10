@@ -53,3 +53,29 @@ export function parseTracklist(text: string): Array<{ artist: string; name: stri
   }
   return out;
 }
+
+/** Example track link shown in submission boxes for each service. */
+export const TRACK_LINK_PLACEHOLDERS: Record<PlaylistPlatform, string> = {
+  spotify: "https://open.spotify.com/track/...",
+  youtube: "https://music.youtube.com/watch?v=...",
+  tidal: "https://tidal.com/browse/track/...",
+  apple_music: "https://music.apple.com/.../song/...",
+  osg: "https://orangesoundguild.com/track/...",
+};
+
+/** Returns an error message when a track link doesn't belong to the playlist's service. */
+export function trackLinkError(platform: string, url: string): string | null {
+  const p = (platform || "spotify") as PlaylistPlatform;
+  const label = PLATFORM_LABELS[p] ?? platform;
+  if (p === "spotify") {
+    return /open\.spotify\.com\/(?:intl-[a-z]+\/)?track\/[A-Za-z0-9]+|^spotify:track:/i.test(url.trim())
+      ? null
+      : "Paste a Spotify track link (open.spotify.com/track/…)";
+  }
+  return detectPlaylistPlatform(url) === p ? null : `Paste a ${label} track link for this playlist`;
+}
+
+/** Stable id for a non-Spotify track so duplicates and hold days still work. */
+export function externalTrackKey(t: { name: string; artist: string | null }): string {
+  return `ext:${(t.artist ?? "").toLowerCase()}|${t.name.toLowerCase()}`.slice(0, 250);
+}
