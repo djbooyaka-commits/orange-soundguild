@@ -30,7 +30,8 @@ const PC_KEYS = [
   { label: "Play/Pause", keys: ["playpause"] }, { label: "Vol −", keys: ["volumedown"] }, { label: "Vol +", keys: ["volumeup"] }, { label: "Mute", keys: ["volumemute"] },
 ];
 
-const isOnline = (d: Device) => !!d.last_seen && Date.now() - new Date(d.last_seen).getTime() < 30_000;
+// Sleeping devices check in about every 15 s and only refresh "last seen" every 30 s.
+const isOnline = (d: Device) => !!d.last_seen && Date.now() - new Date(d.last_seen).getTime() < 75_000;
 
 export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?: "phone" | "pc" }) {
   const [devices, setDevices] = useState<Device[] | null>(null);
@@ -87,9 +88,10 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
 
   // Tell the phone/PC someone is watching so it streams its screen (it idles otherwise).
   const [frameAt, setFrameAt] = useState<number>(0);
-  // PC only: the user can pause streaming so the computer stops capturing.
-  const [pcStreaming, setPcStreaming] = useState(true);
-  const watching = !isPcMode || pcStreaming;
+  // Phone and PC stay asleep (no screen, slow check-ins) until the user presses Go live.
+  const [pcStreaming, setPcStreaming] = useState(false);
+  const watching = pcStreaming;
+  useEffect(() => { setPcStreaming(false); }, [activeId]);
   useEffect(() => {
     if (!activeId || !paired || !watching) return;
     let warned = false;
@@ -110,10 +112,10 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
     if (pcStreaming) {
       setPcStreaming(false);
       await supabase.from("remote_devices").update({ watch_until: null }).eq("id", activeId);
-      toast.success("Stream stopped — your PC is no longer sending its screen.");
+      toast.success(isPcMode ? "Stopped — your PC is asleep and no longer sending its screen." : "Stopped — your phone is asleep and no longer sending its screen.");
     } else {
       setPcStreaming(true);
-      toast.success("Going live…");
+      toast.success(isPcMode ? "Waking your PC… this can take up to 15 seconds." : "Waking your phone… this can take up to 15 seconds.");
     }
   }
 
@@ -135,7 +137,7 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
     const i = setInterval(async () => {
       if (document.hidden || busy) return;
       busy = true; try { await refreshFrame(); } finally { busy = false; }
-    }, mode === "pc" ? (watching ? 350 : 3000) : 1000);
+    }, watching ? (mode === "pc" ? 350 : 1000) : 15_000);
     return () => clearInterval(i);
   }, [activeId, paired, refreshFrame, mode, watching]);
 
@@ -201,7 +203,8 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
       payload: { session, sdp: pc.localDescription?.sdp ?? "" } as never,
     });
     if (error) { stopLive(); return toast.error(error.message); }
-    const deadline = Date.now() + 25_000;
+    // A sleeping phone can take ~15 s to notice it should wake up.
+    const deadline = Date.now() + 40_000;
     while (pcRef.current === pc && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 700));
       const { data } = await supabase.from("remote_devices").select("webrtc_answer").eq("id", device.id).maybeSingle();
@@ -360,9 +363,9 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
               <Button variant="outline" size="icon" aria-label="Home" onClick={() => send("home")}><Home className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" aria-label="Recent apps" onClick={() => send("recents")}><Square className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" aria-label="Wake screen" onClick={() => send("wake")}><Power className="h-4 w-4" /></Button>
-              <Button variant={live === "off" ? "default" : "secondary"} size="sm" disabled={!paired || live === "connecting"} onClick={() => (live === "off" ? void goLive() : stopLive())}>
-                {live === "connecting" ? <Loader2 className="h-4 w-4 animate-spin" /> : live === "on" ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
-                {live === "on" ? "Stop live" : live === "connecting" ? "Connecting" : "Go live"}
+              <Button variant={live === "off" ? "default" : "secondary"} size="sm" disabled={!paired || live === "connecting"} onClick={() => { if (watching) { stopLive(); void togglePcStream(); } else { void togglePcStream(); void goLive(); } }}>
+                {live === "connecting" ? <Loader2 className="h-4 w-4 animate-spin" /> : watching ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                {live === "connecting" ? "Connecting" : watching ? "Stop live" : "Go live"}
               </Button>
               <Button variant="outline" size="icon" aria-label="Take screenshot" onClick={() => send("screenshot")}><Camera className="h-4 w-4" /></Button>
             </div>
@@ -383,6 +386,9 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
                 Status: <strong>{isOnline(device) ? "Online" : device.paired ? "Offline" : "Not paired"}</strong>
                 {device.last_seen && <span className="text-muted-foreground"> · last seen {new Date(device.last_seen).toLocaleString()}</span>}
               </p>
+              {device.paired && !watching && (
+                <p className="mt-1 text-xs text-muted-foreground">Asleep to save resources. Press Go live to wake it — buttons you press now can take up to 15 seconds.</p>
+              )}
               {!device.paired ? (
                 new Date(device.pairing_expires_at).getTime() > Date.now() ? (
                   <p className="mt-2 text-sm">Pairing code: <span className="rounded bg-muted px-2 py-1 font-mono text-lg tracking-widest">{device.pairing_code}</span>
