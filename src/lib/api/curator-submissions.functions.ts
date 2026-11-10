@@ -11,8 +11,6 @@ function extractTrackId(input: string): string | null {
   return null;
 }
 
-import { resolveExternalTrack } from "./external-track.server";
-
 async function getAppToken(): Promise<string> {
   const clientId = process.env.SPOTIFY_CLIENT_ID!;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET!;
@@ -584,6 +582,7 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
         const linkPlatform = detectPlaylistPlatform(data.trackUrl);
         const label = PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS] ?? platform;
         if (linkPlatform !== platform) throw new Error(`Paste a ${label} track link for this playlist`);
+        const { resolveExternalTrack } = await import("./external-track.server");
         const t = await resolveExternalTrack(platform, data.trackUrl, supabaseAdmin);
         if (!t) throw new Error(`Couldn't read that ${label} track — check the link`);
         const full = t.artist ? `${t.artist} - ${t.name}` : t.name;
