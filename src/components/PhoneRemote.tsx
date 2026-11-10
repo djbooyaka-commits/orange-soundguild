@@ -363,7 +363,7 @@ export function PhoneRemote({ userId, mode = "phone" }: { userId: string; mode?:
               <Button variant="outline" size="icon" aria-label="Home" onClick={() => send("home")}><Home className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" aria-label="Recent apps" onClick={() => send("recents")}><Square className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" aria-label="Wake screen" onClick={() => send("wake")}><Power className="h-4 w-4" /></Button>
-              <Button variant={live === "off" ? "default" : "secondary"} size="sm" disabled={!paired || live === "connecting"} onClick={() => { if (watching) { stopLive(); void togglePcStream(); } else { void togglePcStream(); void goLive(); } }}>
+              <Button variant={watching ? "secondary" : "default"} size="sm" disabled={!paired || live === "connecting"} onClick={() => { if (watching) { stopLive(); void togglePcStream(); } else { void togglePcStream(); void goLive(); } }}>
                 {live === "connecting" ? <Loader2 className="h-4 w-4 animate-spin" /> : watching ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
                 {live === "connecting" ? "Connecting" : watching ? "Stop live" : "Go live"}
               </Button>
