@@ -789,16 +789,35 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
     const { parseSpotifyTrackId, getBetaAppToken, getBetaAccessToken } =
       await import("./beta-spotify.server");
 
-    const trackId = parseSpotifyTrackId(data.url);
-    if (!trackId) throw new Error("Paste a Spotify track link (open.spotify.com/track/…)");
-
     const { data: pl } = await supabaseAdmin
       .from("beta_room_playlists")
-      .select("id, room_id, track_hold_days, name, is_team, daily_submission_limit")
+      .select("id, room_id, track_hold_days, name, is_team, daily_submission_limit, platform")
       .eq("id", data.playlistId)
       .eq("room_id", data.roomId)
       .maybeSingle();
     if (!pl) throw new Error("Pick a playlist in this room");
+
+    // Each playlist takes links from its own service (YouTube room → YouTube links, etc.)
+    const { trackLinkError, externalTrackKey } = await import("@/lib/playlist-platforms");
+    const platform = ((pl as any).platform as string) || "spotify";
+    const linkError = trackLinkError(platform, data.url);
+    if (linkError) throw new Error(linkError);
+    let trackId: string;
+    let trackUrl: string;
+    let name: string | null = null;
+    if (platform === "spotify") {
+      const id = parseSpotifyTrackId(data.url);
+      if (!id) throw new Error("Paste a Spotify track link (open.spotify.com/track/…)");
+      trackId = id;
+      trackUrl = `https://open.spotify.com/track/${id}`;
+    } else {
+      const { resolveExternalTrack } = await import("./external-track.server");
+      const t = await resolveExternalTrack(platform, data.url, supabaseAdmin);
+      if (!t) throw new Error("Couldn't read that track — check the link");
+      trackId = externalTrackKey(t);
+      trackUrl = data.url.trim();
+      name = t.artist ? `${t.artist} - ${t.name}` : t.name;
+    }
     if ((pl as any).is_team) {
       throw new Error(
         `"${pl.name}" is a team playlist — points can't be used to submit to it. Track changes there are handled by the curator.`,
@@ -871,9 +890,8 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
       );
     }
 
-    // Optional metadata
-    let name: string | null = null;
-    try {
+    // Optional metadata (Spotify only — other services were read above)
+    if (platform === "spotify") try {
       const token =
         (await getBetaAccessToken(context.userId, supabaseAdmin)) ?? (await getBetaAppToken());
       if (token) {
@@ -898,7 +916,7 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
         submitter_user_id: context.userId,
         owner_id: room.owner_id,
         spotify_track_id: trackId,
-        spotify_track_url: `https://open.spotify.com/track/${trackId}`,
+        spotify_track_url: trackUrl,
         spotify_track_name: name,
         cost_points: SUBMIT_COST,
       })

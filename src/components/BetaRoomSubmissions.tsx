@@ -1,3 +1,4 @@
+import { TRACK_LINK_PLACEHOLDERS, type PlaylistPlatform } from "@/lib/playlist-platforms";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Inbox, Loader2, Send, Check, X } from "lucide-react";
@@ -19,7 +20,7 @@ import {
 } from "@/lib/api/beta-curator.functions";
 import { resolveSubmissionPlaylistId, sortPlaylistsByPoints } from "@/lib/playlist-submission-selection";
 
-type Playlist = { id: string; name: string; holdDays: number; isTeam?: boolean };
+type Playlist = { id: string; name: string; holdDays: number; isTeam?: boolean; platform?: string };
 type Submission = {
   id: string;
   playlist_id: string;
@@ -515,7 +516,7 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://open.spotify.com/track/..."
+            placeholder={TRACK_LINK_PLACEHOLDERS[(playlists.find((p) => p.id === playlistId)?.platform ?? "spotify") as PlaylistPlatform] ?? TRACK_LINK_PLACEHOLDERS.spotify}
             className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
           <button
