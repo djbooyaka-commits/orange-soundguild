@@ -12,7 +12,7 @@ const MAX_FRAME = 600_000;
 const STALE_MS = 2 * 60 * 1000;
 // While nobody is watching, devices sleep: they check in about every IDLE_POLL_MS
 // and "last seen" is only rewritten every SEEN_*_MS, so idle devices barely touch the database.
-export const IDLE_POLL_MS = 15_000;
+const IDLE_POLL_MS = 15_000;
 const SEEN_IDLE_MS = 30_000;
 const SEEN_WATCH_MS = 10_000;
 
