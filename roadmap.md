@@ -27,3 +27,5 @@
 - [x] Verify PC Remote controls in signed-in desktop/mobile views, screenshot command returned done, and 8 command tests passed.
 - [ ] PC Remote Windows locked-screen control: blocked by the user-session agent architecture; requires a separately designed secure-desktop remote solution and Windows hardware testing.
 - [x] Subscription: account menu link, plan status, expiration/days remaining, PayPal/Phantom renewal, and atomic preserved-time stacking; signed-in page and rule tests verified (no payment charged).
+- [x] Remote idle sleep: phone/PC stay asleep until Go live, 15 s idle check-ins, fewer database writes (PC v1.7, Android v3.3).
+- [x] Room track submissions accept YouTube, Tidal, Apple Music and OSG links matching the playlist.
