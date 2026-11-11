@@ -396,7 +396,7 @@ export function BetaRoomPlaylists({
                     {p.inPool ? "In Curator Pool" : "Join Curator Pool"}
                   </button>
                 )}
-                {(p.platform ?? "spotify") === "spotify" || p.platform === "osg" ? (
+                {["spotify", "osg", "youtube"].includes(p.platform ?? "spotify") && (
                   <button
                     onClick={() => (p.platform === "osg" ? syncOsg(p.id) : sync(p.id))}
                     disabled={busyId === p.id}
@@ -409,7 +409,8 @@ export function BetaRoomPlaylists({
                     )}
                     Sync tracks
                   </button>
-                ) : (
+                )}
+                {!["spotify", "osg"].includes(p.platform ?? "spotify") && (
                   <button
                     onClick={() => {
                       setEditId(editId === p.id ? null : p.id);

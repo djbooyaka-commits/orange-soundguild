@@ -391,8 +391,19 @@ export async function importPlaylistTracks(
   spotifyPlaylistId: string,
   ownerId: string,
 ) {
-  // Non-Spotify playlists use a pasted tracklist instead of automatic syncing.
-  if (spotifyPlaylistId.startsWith("ext-")) return { imported: 0, name: null };
+  // Non-Spotify playlists: YouTube reads the public playlist; others use a pasted tracklist.
+  if (spotifyPlaylistId.startsWith("ext-")) {
+    const { data: ext } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("platform, external_url")
+      .eq("id", playlistRowId)
+      .maybeSingle();
+    if (ext?.platform === "youtube" && ext.external_url) {
+      const { importYoutubePlaylistTracks } = await import("./youtube-playlist.server");
+      return importYoutubePlaylistTracks(supabaseAdmin, roomId, playlistRowId, ext.external_url as string);
+    }
+    return { imported: 0, name: null };
+  }
   const {
     getBetaAccessToken,
     getBetaAppToken,
@@ -551,6 +562,15 @@ export const addBetaRoomPlaylist = createServerFn({ method: "POST" })
             .from("beta_room_tracks")
             .upsert(uniq, { onConflict: "room_id,playlist_id,spotify_track_id" });
           imported = uniq.length;
+        }
+      }
+      if (platform === "youtube") {
+        try {
+          const { importYoutubePlaylistTracks } = await import("./youtube-playlist.server");
+          imported = (await importYoutubePlaylistTracks(supabaseAdmin, data.roomId, row.id as string, cleanUrl))
+            .imported;
+        } catch (e) {
+          console.error("YouTube import on add failed", e); // curator can press Sync tracks later
         }
       }
       return { ok: true, imported, name: fetchedName, platform, id: row.id as string };
@@ -1056,7 +1076,7 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: sub } = await supabaseAdmin
       .from("beta_submissions")
-      .select("id, room_id, playlist_id, spotify_track_id, spotify_track_name, status")
+      .select("id, room_id, playlist_id, spotify_track_id, spotify_track_name, spotify_track_url, status")
       .eq("id", data.submissionId)
       .maybeSingle();
     if (!sub) throw new Error("Submission not found");
@@ -1067,7 +1087,27 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
     let spotifyNote: string | null = null;
     let addedToSpotify = false;
     let spotifyError: string | null = null;
-    if (data.approve && (data.manual || isExternal)) {
+    const { data: subPl } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select("platform, external_url")
+      .eq("id", sub.playlist_id)
+      .maybeSingle();
+    if (data.approve && !data.manual && subPl?.platform === "osg") {
+      // Orange Sound Guild playlists live on this site, so add the track for real
+      const { addTrackToOsgPlaylist } = await import("./osg-playlist-add.server");
+      const res = await addTrackToOsgPlaylist(supabaseAdmin, {
+        playlistUrl: subPl.external_url as string | null,
+        trackUrl: sub.spotify_track_url as string | null,
+        curatorId: context.userId,
+      });
+      addedToSpotify = res.ok;
+      spotifyError = res.ok ? null : res.error;
+      spotifyNote = res.ok
+        ? res.already
+          ? "Already on the playlist."
+          : "Added to your Orange Sound Guild playlist."
+        : `Approved. ${res.error}`;
+    } else if (data.approve && (data.manual || isExternal)) {
       addedToSpotify = true;
       spotifyNote = "Approved and marked as added to your playlist.";
     } else if (data.approve) {
@@ -1263,17 +1303,42 @@ export const approveAllPendingBetaSubmissionsAdded = createServerFn({ method: "P
       })
       .eq("room_id", data.roomId)
       .eq("status", "pending")
-      .select("id, room_id, playlist_id, spotify_track_id");
+      .select("id, room_id, playlist_id, spotify_track_id, spotify_track_name, spotify_track_url");
     if (error) throw new Error(error.message);
+    // Orange Sound Guild playlists live on this site, so add those tracks for real
+    const plIds = Array.from(new Set((rows ?? []).map((r: any) => r.playlist_id as string)));
+    const { data: pls } = plIds.length
+      ? await supabaseAdmin.from("beta_room_playlists").select("id, platform, external_url").in("id", plIds)
+      : { data: [] as any[] };
+    const osgUrl = new Map(
+      (pls ?? []).filter((p: any) => p.platform === "osg").map((p: any) => [p.id, p.external_url]),
+    );
+    if (osgUrl.size) {
+      const { addTrackToOsgPlaylist } = await import("./osg-playlist-add.server");
+      for (const r of (rows ?? []) as any[]) {
+        if (!osgUrl.has(r.playlist_id)) continue;
+        await addTrackToOsgPlaylist(supabaseAdmin, {
+          playlistUrl: osgUrl.get(r.playlist_id) ?? null,
+          trackUrl: r.spotify_track_url,
+          curatorId: context.userId,
+        });
+      }
+    }
     const tracks = (rows ?? []).map((r: any) => ({
       room_id: r.room_id,
       playlist_id: r.playlist_id,
       spotify_track_id: r.spotify_track_id,
+      ...(String(r.spotify_track_id).startsWith("ext:") ? externalTrackNames(r.spotify_track_name) : {}),
     }));
-    if (tracks.length) {
+    // Upsert Spotify and named rows separately so missing name columns never blank existing ones
+    for (const group of [
+      tracks.filter((t: any) => !("track_name" in t)),
+      tracks.filter((t: any) => "track_name" in t),
+    ]) {
+      if (!group.length) continue;
       await supabaseAdmin
         .from("beta_room_tracks")
-        .upsert(tracks, { onConflict: "room_id,playlist_id,spotify_track_id" });
+        .upsert(group, { onConflict: "room_id,playlist_id,spotify_track_id" });
     }
     return { count: rows?.length ?? 0 };
   });
