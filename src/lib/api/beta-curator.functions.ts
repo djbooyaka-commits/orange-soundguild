@@ -1330,10 +1330,15 @@ export const approveAllPendingBetaSubmissionsAdded = createServerFn({ method: "P
       spotify_track_id: r.spotify_track_id,
       ...(String(r.spotify_track_id).startsWith("ext:") ? externalTrackNames(r.spotify_track_name) : {}),
     }));
-    if (tracks.length) {
+    // Upsert Spotify and named rows separately so missing name columns never blank existing ones
+    for (const group of [
+      tracks.filter((t: any) => !("track_name" in t)),
+      tracks.filter((t: any) => "track_name" in t),
+    ]) {
+      if (!group.length) continue;
       await supabaseAdmin
         .from("beta_room_tracks")
-        .upsert(tracks, { onConflict: "room_id,playlist_id,spotify_track_id" });
+        .upsert(group, { onConflict: "room_id,playlist_id,spotify_track_id" });
     }
     return { count: rows?.length ?? 0 };
   });
