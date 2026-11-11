@@ -74,6 +74,12 @@ export function parsePlaylistItems(root: any): { tracks: YoutubeTrack[]; continu
     const node = stack.pop();
     if (!node || typeof node !== "object") continue;
     if (Array.isArray(node)) {
+      // The next-page token sits in the same list as the songs, not in "related" shelves
+      if (node.some((x) => x?.playlistVideoRenderer)) {
+        const tok = node.find((x) => x?.continuationItemRenderer)?.continuationItemRenderer
+          ?.continuationEndpoint?.continuationCommand?.token;
+        if (typeof tok === "string") continuation = tok;
+      }
       for (let i = node.length - 1; i >= 0; i--) stack.push(node[i]);
       continue;
     }
@@ -84,8 +90,6 @@ export function parsePlaylistItems(root: any): { tracks: YoutubeTrack[]; continu
       if (title) tracks.push({ ...cleanYoutubeTitle(title, channel), videoId: v.videoId });
       continue;
     }
-    const tok = node.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token;
-    if (typeof tok === "string") continuation = tok;
     for (const k of Object.keys(node)) stack.push(node[k]);
   }
   return { tracks, continuation };
