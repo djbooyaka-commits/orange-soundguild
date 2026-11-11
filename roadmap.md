@@ -29,3 +29,5 @@
 - [x] Subscription: account menu link, plan status, expiration/days remaining, PayPal/Phantom renewal, and atomic preserved-time stacking; signed-in page and rule tests verified (no payment charged).
 - [x] Remote idle sleep: phone/PC stay asleep until Go live, 15 s idle check-ins, fewer database writes (PC v1.7, Android v3.3).
 - [x] Room track submissions accept YouTube, Tidal, Apple Music and OSG links matching the playlist.
+- [x] Approved Orange Sound Guild room tracks are added to the real playlist (Culture and The Renegade N2 added to N28 Radio).
+- [x] YouTube room playlists: Sync tracks pulls the song list from the YouTube playlist (also on add and on the 12-hour auto-sync).
