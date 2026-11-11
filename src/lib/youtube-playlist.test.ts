@@ -12,16 +12,16 @@ const more = (token: string) => ({
 });
 
 test("reads the playlist id from YouTube Music links", () => {
-    expect(youtubePlaylistId("https://music.youtube.com/playlist?list=PLDuxOnqbSQ2U&si=abc")).toBe("PLDuxOnqbSQ2U");
+    assert.equal(youtubePlaylistId("https://music.youtube.com/playlist?list=PLDuxOnqbSQ2U&si=abc"), "PLDuxOnqbSQ2U");
     assert.equal(youtubePlaylistId("https://www.youtube.com/watch?v=abc"), null);
   });
 
 test("splits Artist - Title and drops official video tags", () => {
-    expect(cleanYoutubeTitle("Sub Focus - Off The Ground (Official Video)", "Sub Focus")).toEqual({
+    assert.deepEqual(cleanYoutubeTitle("Sub Focus - Off The Ground (Official Video)", "Sub Focus"), {
       artist: "Sub Focus",
       name: "Off The Ground",
     });
-    expect(cleanYoutubeTitle("Skyline", "OM BooyakaMix - Topic")).toEqual({ artist: "OM BooyakaMix", name: "Skyline" });
+    assert.deepEqual(cleanYoutubeTitle("Skyline", "OM BooyakaMix - Topic"), { artist: "OM BooyakaMix", name: "Skyline" });
   });
 
 test("uses only the song list's next-page token, not related shelves", () => {
@@ -30,11 +30,11 @@ test("uses only the song list's next-page token, not related shelves", () => {
       related: [{ lockupViewModel: {} }, more("shelf-next")],
     };
     const r = parsePlaylistItems(data);
-    expect(r.tracks.map((t) => `${t.artist}|${t.name}`)).toEqual(["A|One", "B|Two"]);
-    expect(r.continuation).toBe("songs-next");
+    assert.deepEqual(r.tracks.map((t) => `${t.artist}|${t.name}`), ["A|One", "B|Two"]);
+    assert.equal(r.continuation, "songs-next");
   });
 
 test("extracts ytInitialData from page HTML", () => {
     const html = `<script>var ytInitialData = {"a":"}{","b":[1]};</script>`;
-    expect(extractInitialData(html)).toEqual({ a: "}{", b: [1] });
+    assert.deepEqual(extractInitialData(html), { a: "}{", b: [1] });
   });
