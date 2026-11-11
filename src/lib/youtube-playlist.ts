@@ -65,6 +65,19 @@ export function cleanYoutubeTitle(title: string, channel: string): { artist: str
   return { artist, name: strip(title) || title.trim() };
 }
 
+/** Finds the first continuationCommand token anywhere inside a continuation item. */
+function findToken(item: any): string | null {
+  const stack = [item];
+  while (stack.length) {
+    const n = stack.pop();
+    if (!n || typeof n !== "object") continue;
+    const t = n.continuationCommand?.token;
+    if (typeof t === "string") return t;
+    for (const v of Object.values(n)) stack.push(v);
+  }
+  return null;
+}
+
 /** Walks YouTube page/continuation JSON and returns its tracks and the next-page token. */
 export function parsePlaylistItems(root: any): { tracks: YoutubeTrack[]; continuation: string | null } {
   const tracks: YoutubeTrack[] = [];
@@ -76,9 +89,8 @@ export function parsePlaylistItems(root: any): { tracks: YoutubeTrack[]; continu
     if (Array.isArray(node)) {
       // The next-page token sits in the same list as the songs, not in "related" shelves
       if (node.some((x) => x?.playlistVideoRenderer)) {
-        const tok = node.find((x) => x?.continuationItemRenderer)?.continuationItemRenderer
-          ?.continuationEndpoint?.continuationCommand?.token;
-        if (typeof tok === "string") continuation = tok;
+        const tok = findToken(node.find((x) => x?.continuationItemRenderer));
+        if (tok) continuation = tok;
       }
       for (let i = node.length - 1; i >= 0; i--) stack.push(node[i]);
       continue;
