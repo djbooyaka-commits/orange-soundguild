@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { cleanYoutubeTitle, extractInitialData, parsePlaylistItems, youtubePlaylistId } from "./youtube-playlist";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { cleanYoutubeTitle, extractInitialData, parsePlaylistItems, youtubePlaylistId } from "./youtube-playlist.ts";
 
 const video = (id: string, title: string, channel: string) => ({
   playlistVideoRenderer: { videoId: id, title: { runs: [{ text: title }] }, shortBylineText: { runs: [{ text: channel }] } },
@@ -10,13 +11,12 @@ const more = (token: string) => ({
   },
 });
 
-describe("youtube playlist reader", () => {
-  it("reads the playlist id from YouTube Music links", () => {
+test("reads the playlist id from YouTube Music links", () => {
     expect(youtubePlaylistId("https://music.youtube.com/playlist?list=PLDuxOnqbSQ2U&si=abc")).toBe("PLDuxOnqbSQ2U");
-    expect(youtubePlaylistId("https://www.youtube.com/watch?v=abc")).toBeNull();
+    assert.equal(youtubePlaylistId("https://www.youtube.com/watch?v=abc"), null);
   });
 
-  it("splits Artist - Title and drops official video tags", () => {
+test("splits Artist - Title and drops official video tags", () => {
     expect(cleanYoutubeTitle("Sub Focus - Off The Ground (Official Video)", "Sub Focus")).toEqual({
       artist: "Sub Focus",
       name: "Off The Ground",
@@ -24,7 +24,7 @@ describe("youtube playlist reader", () => {
     expect(cleanYoutubeTitle("Skyline", "OM BooyakaMix - Topic")).toEqual({ artist: "OM BooyakaMix", name: "Skyline" });
   });
 
-  it("uses only the song list's next-page token, not related shelves", () => {
+test("uses only the song list's next-page token, not related shelves", () => {
     const data = {
       list: [video("a", "A - One", "x"), video("b", "Two", "B - Topic"), more("songs-next")],
       related: [{ lockupViewModel: {} }, more("shelf-next")],
@@ -34,8 +34,7 @@ describe("youtube playlist reader", () => {
     expect(r.continuation).toBe("songs-next");
   });
 
-  it("extracts ytInitialData from page HTML", () => {
+test("extracts ytInitialData from page HTML", () => {
     const html = `<script>var ytInitialData = {"a":"}{","b":[1]};</script>`;
     expect(extractInitialData(html)).toEqual({ a: "}{", b: [1] });
   });
-});
