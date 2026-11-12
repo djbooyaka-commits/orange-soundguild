@@ -391,7 +391,7 @@ export async function importPlaylistTracks(
   spotifyPlaylistId: string,
   ownerId: string,
 ) {
-  // Non-Spotify playlists: YouTube reads the public playlist; others use a pasted tracklist.
+  // Non-Spotify playlists: YouTube, Apple Music and Tidal read the public playlist; others use a pasted tracklist.
   if (spotifyPlaylistId.startsWith("ext-")) {
     const { data: ext } = await supabaseAdmin
       .from("beta_room_playlists")
@@ -401,6 +401,10 @@ export async function importPlaylistTracks(
     if (ext?.platform === "youtube" && ext.external_url) {
       const { importYoutubePlaylistTracks } = await import("./youtube-playlist.server");
       return importYoutubePlaylistTracks(supabaseAdmin, roomId, playlistRowId, ext.external_url as string);
+    }
+    if ((ext?.platform === "apple_music" || ext?.platform === "tidal") && ext.external_url) {
+      const { importExternalPlaylistTracks } = await import("./external-playlist.server");
+      return importExternalPlaylistTracks(supabaseAdmin, roomId, playlistRowId, ext.platform, ext.external_url as string);
     }
     return { imported: 0, name: null };
   }
@@ -571,6 +575,16 @@ export const addBetaRoomPlaylist = createServerFn({ method: "POST" })
             .imported;
         } catch (e) {
           console.error("YouTube import on add failed", e); // curator can press Sync tracks later
+        }
+      }
+      if (platform === "apple_music" || platform === "tidal") {
+        try {
+          const { importExternalPlaylistTracks } = await import("./external-playlist.server");
+          imported = (
+            await importExternalPlaylistTracks(supabaseAdmin, data.roomId, row.id as string, platform, cleanUrl)
+          ).imported;
+        } catch (e) {
+          console.error(`${platform} import on add failed`, e); // curator can press Sync tracks later
         }
       }
       return { ok: true, imported, name: fetchedName, platform, id: row.id as string };
