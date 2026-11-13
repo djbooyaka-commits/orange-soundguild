@@ -562,6 +562,38 @@ export const markCuratorSubmissionAdded = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Approves a fresh submission right away and adds it to the curator's Spotify playlist.
+ * If Spotify can't take it, the track stays approved and shows up under "Needs adding".
+ * If the approval itself fails, the submission simply stays pending for the curator.
+ */
+async function autoApproveCuratorSubmission(
+  supabaseAdmin: any,
+  submissionId: string,
+  curatorId: string,
+): Promise<{ approved: boolean; added: boolean }> {
+  try {
+    const { data: rows, error } = await supabaseAdmin
+      .from("curator_submissions")
+      .update({ status: "approved", reviewed_at: new Date().toISOString() })
+      .eq("id", submissionId)
+      .eq("status", "pending")
+      .select("id");
+    if (error || !rows?.length) return { approved: false, added: false };
+    let autoAdd: SpotifyAutoAddResult = { attempted: true, added: false };
+    try {
+      autoAdd = await addSubmissionTrackToSpotify(submissionId, curatorId, supabaseAdmin);
+    } catch (e: any) {
+      autoAdd.error = e?.message ?? "auto_add_failed";
+    }
+    await recordSpotifyAddResult(supabaseAdmin, submissionId, autoAdd);
+    return { approved: true, added: !!(autoAdd.added || autoAdd.alreadyOnPlaylist) };
+  } catch (e: any) {
+    console.error("Auto-approve curator submission failed", { submissionId, error: e?.message });
+    return { approved: false, added: false };
+  }
+}
+
 export const submitCuratorTrack = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { playlistId: string; trackUrl: string; pool?: boolean }) => {
@@ -591,7 +623,7 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
         const r = await submitBetaPoolTrack(
           supabaseAdmin, context.supabase, context.userId, data.playlistId.slice(5), key, full, data.trackUrl.trim(),
         );
-        return { id: r.id, cost: r.cost, followedAll: false, playlistName: r.playlistName, trackName: full, newBalance: r.newBalance };
+        return { id: r.id, cost: r.cost, followedAll: false, playlistName: r.playlistName, trackName: full, newBalance: r.newBalance, added: r.added };
       }
     }
 
@@ -618,6 +650,7 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
         playlistName: r.playlistName,
         trackName: meta.name ?? null,
         newBalance: r.newBalance,
+        added: r.added,
       };
     }
 
@@ -681,6 +714,9 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
       .maybeSingle();
     const cost = Number(subRow?.cost_points ?? 50);
 
+    // Auto-add: no waiting for the curator — approve and put it on their Spotify playlist now
+    const auto = await autoApproveCuratorSubmission(supabaseAdmin, submissionId as string, pl.curator_id as string);
+
     // Fetch playlist name for the receipt
     const { data: plMeta } = await supabaseAdmin
       .from("curator_playlists")
@@ -700,6 +736,7 @@ export const submitCuratorTrack = createServerFn({ method: "POST" })
       playlistName: plMeta?.name ?? "playlist",
       trackName: trackMeta.name ?? null,
       newBalance: (newBalance as number | null) ?? 0,
+      added: auto.added,
     };
   });
 
@@ -718,7 +755,7 @@ export const submitOsgCuratorTrack = createServerFn({ method: "POST" })
 
     const { data: pl } = await supabaseAdmin
       .from("curator_playlists")
-      .select("id, name, is_osg")
+      .select("id, name, is_osg, curator_id")
       .eq("id", data.playlistId)
       .maybeSingle();
     if (!pl) throw new Error("Playlist not found");
@@ -740,10 +777,13 @@ export const submitOsgCuratorTrack = createServerFn({ method: "POST" })
     );
     if (error) throw new Error(error.message);
 
+    const auto = await autoApproveCuratorSubmission(supabaseAdmin, submissionId as string, pl.curator_id as string);
+
     return {
       id: submissionId as string,
       playlistName: pl.name ?? "OSG playlist",
       trackName: trackMeta.name ?? null,
+      added: auto.added,
     };
   });
 
