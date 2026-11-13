@@ -27,6 +27,7 @@ type Submission = {
   playlist_id: string;
   playlist_name?: string | null;
   submitter_username?: string | null;
+  spotify_track_id?: string;
   spotify_track_url: string;
   spotify_track_name: string | null;
   cost_points: number;
