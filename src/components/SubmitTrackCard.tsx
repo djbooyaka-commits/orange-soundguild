@@ -1,3 +1,4 @@
+import { submitterAddMessage } from "@/lib/submission-auto-add";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -113,9 +114,7 @@ export function SubmitTrackCard({ pool = false, playlistOptions, selectedPlaylis
     try {
       const res = await submitFn({ data: { playlistId: activePlaylistId, trackUrl, pool } });
       toast.success(
-        res.cost === 0
-          ? "Submitted with your free daily 50-point artist pass"
-          : `Submitted — ${res.cost} points spent`,
+        submitterAddMessage({ added: !!(res as any).added, playlistName: res.playlistName, cost: res.cost }),
       );
       setReceipt({
         playlistName: res.playlistName,

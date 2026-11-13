@@ -1,3 +1,4 @@
+import { submitterAddMessage } from "@/lib/submission-auto-add";
 import { TRACK_LINK_PLACEHOLDERS, type PlaylistPlatform } from "@/lib/playlist-platforms";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -138,7 +139,9 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
     setBusy(true);
     try {
       const r: any = await submitFn({ data: { roomId, playlistId, url } });
-      toast.success(`Submitted — ${r.cost} points spent, ${r.remaining} left`);
+      toast.success(
+        `${submitterAddMessage({ added: !!r.added, playlistName: r.playlistName ?? "the playlist", cost: r.cost })} · ${r.remaining} pts left`,
+      );
       setUrl("");
       await refresh();
     } catch (e: any) {
@@ -254,8 +257,10 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
             <div className="min-w-0 flex-1">
               <h2 className="font-semibold">Track submissions</h2>
               <p className="text-sm text-muted-foreground">
-                Approving adds the track to your Spotify playlist (if Spotify is connected) and keeps
-                it tracked. Submissions older than 15 days drop off this list.
+                New submissions are approved and added to your playlist automatically (Spotify needs to
+                be connected; Orange Sound Guild playlists are added on the site). YouTube, Tidal and
+                Apple Music tracks are tracked right away, but you add them to the playlist by hand.
+                Submissions older than 15 days drop off this list.
               </p>
             </div>
             {!spotifyConnected && pending.length > 0 && (
@@ -374,12 +379,12 @@ export function BetaRoomSubmissions({ roomId, isOwner }: { roomId: string; isOwn
                           ? ` · approved ${new Date(s.reviewed_at).toLocaleString()}`
                           : ""}
                       </p>
-                      {spotifyConnected && s.spotify_error ? (
+                      {s.spotify_error && (spotifyConnected || s.spotify_track_id?.startsWith("ext:")) ? (
                         <p className="mt-1 text-amber-600">{s.spotify_error}</p>
                       ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      {spotifyConnected && (
+                      {spotifyConnected && !s.spotify_track_id?.startsWith("ext:") && (
                       <button
                         onClick={() => addApprovedToSpotify(s.id)}
                         disabled={busyId === s.id}
