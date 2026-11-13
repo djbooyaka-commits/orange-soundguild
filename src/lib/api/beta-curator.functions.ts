@@ -380,7 +380,26 @@ export async function submitBetaPoolTrack(
     .select("id")
     .single();
   if (error) throw new Error(error.message);
-  return { id: row.id as string, cost, playlistName: pl.name as string, newBalance: remaining };
+  const auto = await autoApproveBetaSubmission(
+    supabaseAdmin,
+    {
+      id: row.id as string,
+      room_id: room.id as string,
+      playlist_id: pl.id as string,
+      spotify_track_id: trackId,
+      spotify_track_name: trackName,
+      spotify_track_url: trackUrl ?? `https://open.spotify.com/track/${trackId}`,
+    },
+    room.owner_id as string,
+  );
+  return {
+    id: row.id as string,
+    cost,
+    playlistName: pl.name as string,
+    newBalance: remaining,
+    approved: auto.approved,
+    added: auto.added,
+  };
 }
 
 
@@ -958,8 +977,29 @@ export const submitBetaTrack = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
+    const auto = await autoApproveBetaSubmission(
+      supabaseAdmin,
+      {
+        id: row.id as string,
+        room_id: data.roomId,
+        playlist_id: pl.id as string,
+        spotify_track_id: trackId,
+        spotify_track_name: name,
+        spotify_track_url: trackUrl,
+      },
+      room.owner_id as string,
+    );
+
     const after = await pointsForPlaylist(supabaseAdmin, data.roomId, context.userId, pl.id);
-    return { id: row.id as string, cost: SUBMIT_COST, remaining: after.available, name };
+    return {
+      id: row.id as string,
+      cost: SUBMIT_COST,
+      remaining: after.available,
+      name,
+      playlistName: pl.name as string,
+      approved: auto.approved,
+      added: auto.added,
+    };
   });
 
 export const listMyBetaSubmissions = createServerFn({ method: "POST" })
@@ -1076,6 +1116,133 @@ function describeSpotifyAddError(error?: string | null): string {
   }
 }
 
+type BetaSubmissionRow = {
+  id: string;
+  room_id: string;
+  playlist_id: string;
+  spotify_track_id: string;
+  spotify_track_name: string | null;
+  spotify_track_url: string | null;
+};
+
+/**
+ * Puts an approved room submission on the curator's real playlist:
+ * Spotify via the curator's Spotify login, Orange Sound Guild on-site.
+ * YouTube/Tidal/Apple Music can't be written to, so `auto` flags them for a hand add.
+ */
+async function addBetaSubmissionToPlaylist(
+  supabaseAdmin: any,
+  sub: BetaSubmissionRow,
+  ownerId: string,
+  opts: { manual?: boolean; auto?: boolean },
+): Promise<{ added: boolean; error: string | null; note: string }> {
+  if (opts.manual) return { added: true, error: null, note: "Approved and marked as added to your playlist." };
+  const { data: pl } = await supabaseAdmin
+    .from("beta_room_playlists")
+    .select("platform, external_url, spotify_playlist_id")
+    .eq("id", sub.playlist_id)
+    .maybeSingle();
+  const { autoAddTarget, manualAddNote } = await import("@/lib/submission-auto-add");
+  const isExternal = String(sub.spotify_track_id).startsWith("ext:");
+  const target = autoAddTarget(pl?.platform as string | null);
+
+  if (target === "osg") {
+    // Orange Sound Guild playlists live on this site, so add the track for real
+    const { addTrackToOsgPlaylist } = await import("./osg-playlist-add.server");
+    const res = await addTrackToOsgPlaylist(supabaseAdmin, {
+      playlistUrl: (pl?.external_url as string | null) ?? null,
+      trackUrl: sub.spotify_track_url,
+      curatorId: ownerId,
+    });
+    if (res.ok) {
+      return {
+        added: true,
+        error: null,
+        note: res.already ? "Already on the playlist." : "Added to your Orange Sound Guild playlist.",
+      };
+    }
+    return { added: false, error: res.error, note: `Approved. ${res.error}` };
+  }
+
+  if (target === "manual" || isExternal) {
+    if (!opts.auto) return { added: true, error: null, note: "Approved and marked as added to your playlist." };
+    const note = manualAddNote(pl?.platform as string | null);
+    return { added: false, error: note, note };
+  }
+
+  try {
+    const { getBetaAccessToken, betaAddTrackToPlaylist, betaPlaylistContainsTrack } =
+      await import("./beta-spotify.server");
+    const token = await getBetaAccessToken(ownerId, supabaseAdmin);
+    if (!token || !pl?.spotify_playlist_id) {
+      const error = "Spotify is not connected, so the track was not added automatically.";
+      return { added: false, error, note: "Approved. Connect Spotify to add tracks automatically." };
+    }
+    const already = await betaPlaylistContainsTrack(
+      token,
+      pl.spotify_playlist_id as string,
+      sub.spotify_track_id,
+    );
+    if (already) return { added: true, error: null, note: "Already on the playlist." };
+    const res = await betaAddTrackToPlaylist(token, pl.spotify_playlist_id as string, sub.spotify_track_id);
+    if (res.ok) return { added: true, error: null, note: "Added to your Spotify playlist." };
+    const error = describeSpotifyAddError((res as any).error);
+    return { added: false, error, note: `Approved. ${error}` };
+  } catch {
+    const error = "Adding to Spotify failed unexpectedly. Add the track by hand.";
+    return { added: false, error, note: `Approved. ${error}` };
+  }
+}
+
+/** Approves a room submission, adds it to the real playlist and keeps it on the room watch list. */
+async function approveBetaSubmissionRow(
+  supabaseAdmin: any,
+  sub: BetaSubmissionRow,
+  ownerId: string,
+  opts: { note?: string | null; manual?: boolean; auto?: boolean },
+): Promise<{ added: boolean; note: string }> {
+  const res = await addBetaSubmissionToPlaylist(supabaseAdmin, sub, ownerId, opts);
+  const { error } = await supabaseAdmin
+    .from("beta_submissions")
+    .update({
+      status: "approved",
+      curator_note: opts.note || null,
+      reviewed_at: new Date().toISOString(),
+      added_to_spotify: res.added,
+      spotify_error: res.added ? null : res.error,
+    })
+    .eq("id", sub.id)
+    .eq("status", "pending");
+  if (error) throw new Error(error.message);
+  // Track stays on the watch list so streams keep counting
+  const isExternal = String(sub.spotify_track_id).startsWith("ext:");
+  await supabaseAdmin.from("beta_room_tracks").upsert(
+    {
+      room_id: sub.room_id,
+      playlist_id: sub.playlist_id,
+      spotify_track_id: sub.spotify_track_id,
+      ...(isExternal ? externalTrackNames(sub.spotify_track_name) : {}),
+    },
+    { onConflict: "room_id,playlist_id,spotify_track_id" },
+  );
+  return { added: res.added, note: res.note };
+}
+
+/** Auto-approves a fresh submission; on failure it simply stays pending for the curator. */
+async function autoApproveBetaSubmission(
+  supabaseAdmin: any,
+  sub: BetaSubmissionRow,
+  ownerId: string,
+): Promise<{ approved: boolean; added: boolean; note: string | null }> {
+  try {
+    const r = await approveBetaSubmissionRow(supabaseAdmin, sub, ownerId, { auto: true });
+    return { approved: true, added: r.added, note: r.note };
+  } catch (e) {
+    console.error("Auto-approve room submission failed", { id: sub.id, error: (e as Error)?.message });
+    return { approved: false, added: false, note: null };
+  }
+}
+
 export const reviewBetaSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -1095,99 +1262,28 @@ export const reviewBetaSubmission = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!sub) throw new Error("Submission not found");
     await assertOwner(supabaseAdmin, sub.room_id as string, context.userId);
-    const isExternal = String(sub.spotify_track_id).startsWith("ext:");
     if (sub.status !== "pending") throw new Error("That submission was already reviewed");
 
-    let spotifyNote: string | null = null;
-    let addedToSpotify = false;
-    let spotifyError: string | null = null;
-    const { data: subPl } = await supabaseAdmin
-      .from("beta_room_playlists")
-      .select("platform, external_url")
-      .eq("id", sub.playlist_id)
-      .maybeSingle();
-    if (data.approve && !data.manual && subPl?.platform === "osg") {
-      // Orange Sound Guild playlists live on this site, so add the track for real
-      const { addTrackToOsgPlaylist } = await import("./osg-playlist-add.server");
-      const res = await addTrackToOsgPlaylist(supabaseAdmin, {
-        playlistUrl: subPl.external_url as string | null,
-        trackUrl: sub.spotify_track_url as string | null,
-        curatorId: context.userId,
+    if (data.approve) {
+      const res = await approveBetaSubmissionRow(supabaseAdmin, sub, context.userId, {
+        note: data.note || null,
+        manual: data.manual,
       });
-      addedToSpotify = res.ok;
-      spotifyError = res.ok ? null : res.error;
-      spotifyNote = res.ok
-        ? res.already
-          ? "Already on the playlist."
-          : "Added to your Orange Sound Guild playlist."
-        : `Approved. ${res.error}`;
-    } else if (data.approve && (data.manual || isExternal)) {
-      addedToSpotify = true;
-      spotifyNote = "Approved and marked as added to your playlist.";
-    } else if (data.approve) {
-      try {
-        const { getBetaAccessToken, betaAddTrackToPlaylist, betaPlaylistContainsTrack } =
-          await import("./beta-spotify.server");
-        const { data: pl } = await supabaseAdmin
-          .from("beta_room_playlists")
-          .select("spotify_playlist_id")
-          .eq("id", sub.playlist_id)
-          .maybeSingle();
-        const token = await getBetaAccessToken(context.userId, supabaseAdmin);
-        if (token && pl) {
-          const already = await betaPlaylistContainsTrack(
-            token,
-            pl.spotify_playlist_id as string,
-            sub.spotify_track_id as string,
-          );
-          if (!already) {
-            const res = await betaAddTrackToPlaylist(
-              token,
-              pl.spotify_playlist_id as string,
-              sub.spotify_track_id as string,
-            );
-            addedToSpotify = res.ok;
-            spotifyError = res.ok ? null : describeSpotifyAddError((res as any).error);
-            spotifyNote = res.ok ? "Added to your Spotify playlist." : `Approved. ${spotifyError}`;
-          } else {
-            spotifyNote = "Already on the playlist.";
-            addedToSpotify = true;
-          }
-        } else {
-          spotifyNote = "Approved. Connect Spotify to add tracks automatically.";
-          spotifyError = "Spotify is not connected, so the track was not added automatically.";
-        }
-      } catch {
-        spotifyError = "Adding to Spotify failed unexpectedly. Add the track by hand.";
-        spotifyNote = `Approved. ${spotifyError}`;
-      }
+      return { ok: true, spotifyNote: res.note };
     }
 
     const { error } = await supabaseAdmin
       .from("beta_submissions")
       .update({
-        status: data.approve ? "approved" : "rejected",
+        status: "rejected",
         curator_note: data.note || null,
         reviewed_at: new Date().toISOString(),
-        added_to_spotify: addedToSpotify,
-        spotify_error: addedToSpotify ? null : spotifyError,
+        added_to_spotify: false,
+        spotify_error: null,
       })
       .eq("id", sub.id);
     if (error) throw new Error(error.message);
-
-    if (data.approve) {
-      // Track stays on the watch list so streams keep counting
-      await supabaseAdmin.from("beta_room_tracks").upsert(
-        {
-          room_id: sub.room_id,
-          playlist_id: sub.playlist_id,
-          spotify_track_id: sub.spotify_track_id,
-          ...(isExternal ? externalTrackNames(sub.spotify_track_name as string | null) : {}),
-        },
-        { onConflict: "room_id,playlist_id,spotify_track_id" },
-      );
-    }
-
+    const spotifyNote: string | null = null;
     return { ok: true, spotifyNote };
   });
 
