@@ -32,3 +32,4 @@
 - [x] Approved Orange Sound Guild room tracks are added to the real playlist (Culture and The Renegade N2 added to N28 Radio).
 - [x] YouTube room playlists: Sync tracks pulls the song list from the YouTube playlist (also on add and on the 12-hour auto-sync).
 - [x] Apple Music and Tidal room playlists: Sync tracks pulls the song list (also on add and on the 12-hour auto-sync).
+- [x] Submitted tracks auto-approve and auto-add to curator playlists (Spotify Stream Tracker, OSG Artists, Last.fm rooms; YouTube/Tidal/Apple tracked and flagged for hand add).
