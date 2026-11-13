@@ -157,8 +157,9 @@ export function CuratorSubmissionsQueue() {
         <div>
           <h2 className="font-semibold">Track submissions</h2>
           <p className="text-sm text-muted-foreground">
-            Fans spent points earned on your playlists to submit these tracks. Approve to add them
-            to your Spotify playlist.
+            Fans spent points earned on your playlists to submit these tracks. New submissions are
+            approved and added to your Spotify playlist automatically. If Spotify can&apos;t take one,
+            it shows under &quot;Needs adding&quot;.
           </p>
         </div>
       </div>

@@ -134,7 +134,11 @@ function OsgSubmitPage() {
     setBusy(true);
     try {
       const res = await submitFn({ data: { playlistId, trackUrl } });
-      toast.success("Submitted");
+      toast.success(
+        res.added
+          ? `Added to "${res.playlistName}"`
+          : `Submitted to "${res.playlistName}". The curator will add it to the playlist soon.`,
+      );
       setReceipt({
         playlistName: res.playlistName,
         trackName: res.trackName,
