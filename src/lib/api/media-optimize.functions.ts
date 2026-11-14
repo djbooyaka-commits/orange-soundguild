@@ -28,11 +28,9 @@ export const listWavTracks = createServerFn({ method: "POST" })
     if (ownerIds.length) {
       const { data: profs } = await supabaseAdmin
         .from("profiles")
-        .select("id, display_name, username")
+        .select("id, username")
         .in("id", ownerIds);
-      (profs ?? []).forEach((p: { id: string; display_name: string | null; username: string | null }) =>
-        names.set(p.id, p.display_name || p.username || "Unknown"),
-      );
+      (profs ?? []).forEach((p) => names.set(p.id, p.username || "Unknown"));
     }
     return {
       tracks: rows.map((r) => ({
