@@ -6,6 +6,7 @@ import { Loader2, Save, RotateCcw, ShieldAlert, Plus, Trash2, Receipt, Ticket, C
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { RoyaltyPoolAdmin } from "@/components/RoyaltyPoolAdmin";
+import { MediaOptimizationAdmin } from "@/components/MediaOptimizationAdmin";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import {
@@ -59,6 +60,7 @@ const ADMIN_TABS = [
   { id: "ads", label: "Ad scripts" },
   { id: "royalties", label: "Royalty pool" },
   { id: "accounting", label: "Site accounting" },
+  { id: "media", label: "Media optimization" },
 ] as const;
 
 type AdminTab = (typeof ADMIN_TABS)[number]["id"];
@@ -331,6 +333,7 @@ function AdminPage() {
             {tab === "ads" && <AdScriptsAdmin />}
             {tab === "royalties" && <RoyaltyPoolAdmin />}
             {tab === "accounting" && <SiteAccounting />}
+            {tab === "media" && <MediaOptimizationAdmin />}
           </div>
         )}
 
