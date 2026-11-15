@@ -218,6 +218,13 @@
       "when": 1794359100577,
       "tag": "0030_add_two_approved_tracks_to_n28_radio",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794708067796,
+      "tag": "0031_spotify_view_sync_throttle",
+      "breakpoints": true
     }
   ]
 }

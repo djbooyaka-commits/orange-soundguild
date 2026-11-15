@@ -1,0 +1,1 @@
+ALTER TABLE public.spotify_connections ADD COLUMN IF NOT EXISTS last_view_sync_at timestamptz;

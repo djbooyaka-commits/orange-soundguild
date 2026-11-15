@@ -6,11 +6,13 @@ import {
   getSpotifyAuthUrl,
   getMySpotifyStatus,
   pollSpotifyRecent,
+  syncSpotifyPointsOnView,
   disconnectSpotify,
   setMySpotifyApp,
   deleteMySpotifyApp,
   AUTO_SYNC_WINDOW_MS,
 } from "@/lib/api/spotify.functions";
+import { useSpotifyViewSync } from "@/hooks/useSpotifyViewSync";
 
 function spotifyPollMessage(result: { added?: number; error?: string | null; scanned?: number; skippedNotCurated?: number; retryAfter?: number | null }) {
   if (result.error === "spotify_account_not_allowed" || result.error === "spotify_403") {
@@ -38,6 +40,7 @@ export function SpotifyConnectCard() {
   const authUrlFn = useServerFn(getSpotifyAuthUrl);
   const statusFn = useServerFn(getMySpotifyStatus);
   const pollFn = useServerFn(pollSpotifyRecent);
+  const viewSyncFn = useServerFn(syncSpotifyPointsOnView);
   const disconnectFn = useServerFn(disconnectSpotify);
   const setAppFn = useServerFn(setMySpotifyApp);
   const deleteAppFn = useServerFn(deleteMySpotifyApp);
@@ -90,15 +93,21 @@ export function SpotifyConnectCard() {
 
   const autoActive = !!status?.autoSyncUntil && new Date(status.autoSyncUntil).getTime() > Date.now();
 
-  // Auto-update only while this member is actively streaming a Curator playlist.
+  // Opening the card checks Spotify for new points (at most once an hour).
+  useSpotifyViewSync(true, () => {
+    void refresh();
+  });
+
+  // While the card stays open and the member is streaming a Curator playlist,
+  // keep checking; the server limits this to once an hour.
   useEffect(() => {
     if (!status?.connected || !autoActive) return;
     const timer = setInterval(() => {
       if (document.visibilityState === "hidden") return;
       void (async () => {
         try {
-          await pollFn({ data: {} });
-          await refresh();
+          const r = await viewSyncFn();
+          if (r.synced) await refresh();
         } catch {
           // ignore
         }
@@ -237,7 +246,7 @@ export function SpotifyConnectCard() {
             variant={busy || (syncedAt && Date.now() - syncedAt < 2500) ? "success" : "default"}
             onClick={poll}
             disabled={busy}
-            title="Automatic point updates are on; click to sync immediately"
+            title="Click to sync your Spotify points immediately"
           >
             {busy ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -366,8 +375,8 @@ export function SpotifyConnectCard() {
         <ol className="mt-2 ml-4 list-decimal space-y-1 text-muted-foreground">
           <li><b className="text-foreground">Press Sync now before you start streaming</b> a Curator playlist. This turns auto update on for your account.</li>
           <li>Play the Curator playlist from the playlist page on Spotify (not Liked Songs, search or radio).</li>
-          <li>While you keep streaming the Curator playlist, your points update automatically every hour.</li>
-          <li>If no Curator playlist plays are found for 2 hours, auto update turns off. Press Sync now again next time you stream.</li>
+          <li>Your points also update when you open your profile, a playlist page or this card (at most once an hour). Press Sync now any time for an instant update.</li>
+          <li>Spotify only remembers your last 50 plays, so on long sessions open the site or press Sync now every couple of hours so no streams are missed.</li>
         </ol>
       </div>
 
