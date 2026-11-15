@@ -240,8 +240,8 @@ export async function pollSpotifyRecentForUser(userId: string, supabaseAdmin: an
       ? new Date(conn.last_polled_at).getTime() - OVERLAP_MS
       : Date.now() - 24 * 60 * 60 * 1000;
 
-    // Spotify retains only a short recent-play history. Frequent background
-    // polling prevents an overnight session from overflowing that window.
+    // Spotify retains only the last 50 plays; plays older than that are lost
+    // if the member doesn't view the site or press Sync now in time.
     const items: any[] = [];
     const recentUrl = new URL("https://api.spotify.com/v1/me/player/recently-played");
     recentUrl.searchParams.set("limit", "50");
@@ -377,10 +377,40 @@ export const pollSpotifyRecent = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (data.manual) {
+      // A manual sync also counts as this hour's view sync, so opening another
+      // page right after doesn't check Spotify again.
       await (supabaseAdmin as any)
         .from("spotify_connections")
-        .update({ auto_sync_until: new Date(Date.now() + AUTO_SYNC_WINDOW_MS).toISOString() })
+        .update({
+          auto_sync_until: new Date(Date.now() + AUTO_SYNC_WINDOW_MS).toISOString(),
+          last_view_sync_at: new Date().toISOString(),
+        })
         .eq("user_id", context.userId);
     }
     return pollSpotifyRecentForUser(context.userId, supabaseAdmin);
+  });
+
+// On-demand points sync when a member views their profile, a playlist page or
+// the Spotify card. Replaces the old hourly background job: the row is claimed
+// atomically, so it checks Spotify at most once per hour per member even when
+// several pages open at once.
+export const syncSpotifyPointsOnView = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { spotifyViewSyncCutoffIso } = await import("@/lib/spotify-view-sync");
+    const cutoff = spotifyViewSyncCutoffIso();
+    const { data: claimed, error } = await (supabaseAdmin as any)
+      .from("spotify_connections")
+      .update({ last_view_sync_at: new Date().toISOString() })
+      .eq("user_id", context.userId)
+      .or(`last_view_sync_at.is.null,last_view_sync_at.lt.${cutoff}`)
+      .select("user_id");
+    if (error) {
+      console.error("Spotify view sync claim failed", error.message);
+      return { synced: false as const, reason: "error" as const };
+    }
+    if (!claimed || claimed.length === 0) return { synced: false as const, reason: "recent" as const };
+    const result = await pollSpotifyRecentForUser(context.userId, supabaseAdmin);
+    return { synced: true as const, added: result.added ?? 0, error: (result as any).error ?? null };
   });
