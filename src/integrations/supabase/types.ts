@@ -2072,6 +2072,7 @@ export type Database = {
           created_at: string
           expires_at: string
           last_polled_at: string | null
+          last_view_sync_at: string | null
           refresh_token: string
           scope: string | null
           spotify_user_id: string | null
@@ -2084,6 +2085,7 @@ export type Database = {
           created_at?: string
           expires_at: string
           last_polled_at?: string | null
+          last_view_sync_at?: string | null
           refresh_token: string
           scope?: string | null
           spotify_user_id?: string | null
@@ -2096,6 +2098,7 @@ export type Database = {
           created_at?: string
           expires_at?: string
           last_polled_at?: string | null
+          last_view_sync_at?: string | null
           refresh_token?: string
           scope?: string | null
           spotify_user_id?: string | null
