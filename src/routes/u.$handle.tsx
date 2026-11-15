@@ -13,6 +13,7 @@ import { PlaylistsSection } from "@/components/PlaylistsSection";
 import { FollowersBox } from "@/components/FollowersBox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSpotifyViewSync } from "@/hooks/useSpotifyViewSync";
 import { useFollow } from "@/lib/follows";
 import { useIsAdmin, adminDeleteTrack, setUserBanned } from "@/hooks/useIsAdmin";
 import { useAccountType } from "@/hooks/useAccountType";
@@ -130,6 +131,9 @@ function ProfilePage() {
     !!user &&
     (handle === CURRENT_USER.handle ||
       (!!myUsername && myUsername.trim().toLowerCase() === decodedHandle.trim().toLowerCase()));
+
+  // Viewing your own profile refreshes your Spotify stream points (once an hour at most).
+  useSpotifyViewSync(isMe);
 
   // Reset per-profile state whenever the URL changes so stale data can't leak across profiles
   useEffect(() => {

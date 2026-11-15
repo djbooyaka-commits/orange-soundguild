@@ -9,6 +9,7 @@ import { filterSubmissionPlaylists, resolveSubmissionPlaylistId } from "@/lib/pl
 import { listPoolPlaylists } from "@/lib/api/curator-submissions.functions";
 import { PLAYLIST_GENRES } from "@/lib/playlist-genres";
 import { PLATFORM_LABELS, type PlaylistPlatform } from "@/lib/playlist-platforms";
+import { useSpotifyViewSync } from "@/hooks/useSpotifyViewSync";
 
 const PLATFORM_TABS: Array<"all" | PlaylistPlatform> = ["all", "spotify", "youtube", "tidal", "apple_music", "osg"];
 
@@ -42,6 +43,7 @@ function CuratorPlaylistsPage() {
   const [selectedPlaylistId, setSelectedPlaylistId] = useState("");
   const submissionForm = useRef<HTMLDivElement>(null);
   const listPool = useServerFn(listPoolPlaylists);
+  useSpotifyViewSync();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const platform = PLATFORM_TABS.includes(search.platform as PlaylistPlatform) ? (search.platform as PlaylistPlatform) : "all";

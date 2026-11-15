@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveTracksByIds, savePlaylistToLibrary } from "@/lib/playlists";
 import { useAuth } from "@/hooks/useAuth";
+import { useSpotifyViewSync } from "@/hooks/useSpotifyViewSync";
 import { Navbar } from "@/components/Navbar";
 import { signMany } from "@/lib/signMedia";
 import { formatArtistLine, type Track } from "@/lib/tracks";
@@ -32,6 +33,7 @@ function PlaylistPage() {
   const [missing, setMissing] = useState(false);
   const { current, isPlaying, play, toggle } = usePlayer();
   const { user } = useAuth();
+  useSpotifyViewSync();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
