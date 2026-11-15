@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 // Re-imports the Spotify track list for every beta room playlist.
-// Called by a scheduled job every 12 hours.
+// Called by a scheduled job once a day at 03:00 UTC.
 export const Route = createFileRoute("/api/public/hooks/sync-playlist-tracks")({
   server: {
     handlers: {
