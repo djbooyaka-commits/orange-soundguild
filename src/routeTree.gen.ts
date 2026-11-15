@@ -38,6 +38,7 @@ import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as BetaRoomsIndexRouteImport } from './routes/beta-rooms.index'
 import { Route as BetaRoomsRoomIdRouteImport } from './routes/beta-rooms.$roomId'
 import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submit'
+import { Route as GamesRubikRouteImport } from './routes/games.rubik'
 import { Route as GuidePromotionRouteImport } from './routes/guide.promotion'
 import { Route as PlaylistIndexRouteImport } from './routes/playlist.index'
 import { Route as PlaylistPlaylistIdRouteImport } from './routes/playlist.$playlistId'
@@ -197,6 +198,11 @@ const CuratorOsgSubmitRoute = CuratorOsgSubmitRouteImport.update({
   path: '/osg-submit',
   getParentRoute: () => CuratorRoute,
 } as any)
+const GamesRubikRoute = GamesRubikRouteImport.update({
+  id: '/games/rubik',
+  path: '/games/rubik',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GuidePromotionRoute = GuidePromotionRouteImport.update({
   id: '/guide/promotion',
   path: '/guide/promotion',
@@ -296,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/upgrade': typeof UpgradeRoute
   '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
+  '/games/rubik': typeof GamesRubikRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/t/$trackId': typeof TTrackIdRoute
@@ -340,6 +347,7 @@ export interface FileRoutesByTo {
   '/upgrade': typeof UpgradeRoute
   '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
+  '/games/rubik': typeof GamesRubikRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/t/$trackId': typeof TTrackIdRoute
@@ -385,6 +393,7 @@ export interface FileRoutesById {
   '/upgrade': typeof UpgradeRoute
   '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
+  '/games/rubik': typeof GamesRubikRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
   '/t/$trackId': typeof TTrackIdRoute
@@ -431,6 +440,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
+    | '/games/rubik'
     | '/guide/promotion'
     | '/playlist/$playlistId'
     | '/t/$trackId'
@@ -475,6 +485,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
+    | '/games/rubik'
     | '/guide/promotion'
     | '/playlist/$playlistId'
     | '/t/$trackId'
@@ -519,6 +530,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
+    | '/games/rubik'
     | '/guide/promotion'
     | '/playlist/$playlistId'
     | '/t/$trackId'
@@ -563,6 +575,7 @@ export interface RootRouteChildren {
   Top100Route: typeof Top100Route
   UpgradeRoute: typeof UpgradeRoute
   BetaRoomsRoomIdRoute: typeof BetaRoomsRoomIdRoute
+  GamesRubikRoute: typeof GamesRubikRoute
   GuidePromotionRoute: typeof GuidePromotionRoute
   PlaylistPlaylistIdRoute: typeof PlaylistPlaylistIdRoute
   TTrackIdRoute: typeof TTrackIdRoute
@@ -784,6 +797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CuratorOsgSubmitRouteImport
       parentRoute: typeof CuratorRoute
     }
+    '/games/rubik': {
+      id: '/games/rubik'
+      path: '/games/rubik'
+      fullPath: '/games/rubik'
+      preLoaderRoute: typeof GamesRubikRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guide/promotion': {
       id: '/guide/promotion'
       path: '/guide/promotion'
@@ -917,6 +937,7 @@ const rootRouteChildren: RootRouteChildren = {
   Top100Route: Top100Route,
   UpgradeRoute: UpgradeRoute,
   BetaRoomsRoomIdRoute: BetaRoomsRoomIdRoute,
+  GamesRubikRoute: GamesRubikRoute,
   GuidePromotionRoute: GuidePromotionRoute,
   PlaylistPlaylistIdRoute: PlaylistPlaylistIdRoute,
   TTrackIdRoute: TTrackIdRoute,
