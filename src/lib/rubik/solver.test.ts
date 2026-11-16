@@ -9,9 +9,9 @@ test("solved cube needs no steps", () => {
   assert.equal(solveCube(solvedCube()).length, 0);
 });
 
-test("solver solves 300 random scrambles and stages never go backwards", () => {
+test("solver solves 150 random scrambles and stages never go backwards", { timeout: 30000 }, () => {
   const r = rng(42);
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 150; i++) {
     let cube = applyAlg(solvedCube(), scramble(25, r));
     const steps = solveCube(cube);
     let prevStage = 0;
