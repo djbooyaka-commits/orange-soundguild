@@ -7,13 +7,13 @@ import { type Cube, type Face, type Move, FACE_DIR, MOVE_AXIS, applyQuarter, inL
 const COLORS: Record<Face, string> = { U: "#ffd500", D: "#f4f4f4", F: "#009b48", B: "#0046ad", R: "#b71234", L: "#ff5800" };
 const TURN_SECONDS = 0.22;
 
-export interface CubeHandle { cube: Cube; queue: Move[]; onCommit: (c: Cube) => void }
+export interface CubeHandle { cube: Cube; queue: Move[]; onCommit: (c: Cube) => void; turnSeconds?: number }
 
-function Cubie({ c }: { c: Cube[number] }) {
+function Cubie({ c, glow }: { c: Cube[number]; glow?: boolean }) {
   return (
     <group position={c.pos}>
       <RoundedBox args={[0.96, 0.96, 0.96]} radius={0.08} smoothness={2}>
-        <meshStandardMaterial color="#111" roughness={0.5} />
+        <meshStandardMaterial color={glow ? "#ff7a00" : "#111"} emissive={glow ? "#ff7a00" : "#000"} emissiveIntensity={glow ? 0.9 : 0} roughness={0.5} />
       </RoundedBox>
       {c.stickers.map((s, i) => {
         const size: [number, number, number] = s.dir.map((d) => (d ? 0.02 : 0.8)) as [number, number, number];
@@ -28,7 +28,7 @@ function Cubie({ c }: { c: Cube[number] }) {
   );
 }
 
-function Rig({ handle, version }: { handle: React.MutableRefObject<CubeHandle>; version: number }) {
+function Rig({ handle, version, highlightId }: { handle: React.MutableRefObject<CubeHandle>; version: number; highlightId?: number }) {
   const turning = useRef<THREE.Group>(null);
   const anim = useRef<{ face: Face; t: number } | null>(null);
   const cube = handle.current.cube;
@@ -52,7 +52,7 @@ function Rig({ handle, version }: { handle: React.MutableRefObject<CubeHandle>; 
     }
     const a = anim.current;
     if (!a || !turning.current) return;
-    a.t = Math.min(1, a.t + Math.min(delta, 0.05) / TURN_SECONDS);
+    a.t = Math.min(1, a.t + Math.min(delta, 0.05) / (h.turnSeconds ?? TURN_SECONDS));
     const { axis, sign } = MOVE_AXIS[a.face];
     const ease = a.t < 0.5 ? 2 * a.t * a.t : 1 - Math.pow(-2 * a.t + 2, 2) / 2;
     turning.current.setRotationFromAxisAngle(new THREE.Vector3(...axis), sign * (Math.PI / 2) * ease);
@@ -68,14 +68,14 @@ function Rig({ handle, version }: { handle: React.MutableRefObject<CubeHandle>; 
 
   return (
     <group>
-      <group ref={turning}>{moving.map((c) => <Cubie key={c.id} c={c} />)}</group>
-      {still.map((c) => <Cubie key={c.id} c={c} />)}
+      <group ref={turning}>{moving.map((c) => <Cubie key={c.id} c={c} glow={c.id === highlightId} />)}</group>
+      {still.map((c) => <Cubie key={c.id} c={c} glow={c.id === highlightId} />)}
     </group>
   );
 }
 void FACE_DIR;
 
-export default function CubeScene({ handle, version }: { handle: React.MutableRefObject<CubeHandle>; version: number }) {
+export default function CubeScene({ handle, version, highlightId }: { handle: React.MutableRefObject<CubeHandle>; version: number; highlightId?: number }) {
   return (
     <div className="h-full w-full" data-scene-ready>
       <Canvas camera={{ position: [4.2, 3.6, 5.2], fov: 40 }} dpr={[1, 2]}>
@@ -85,7 +85,7 @@ export default function CubeScene({ handle, version }: { handle: React.MutableRe
           <Lightformer intensity={2} position={[0, 5, 0]} scale={[10, 10, 1]} />
           <Lightformer intensity={1} position={[-5, 1, -1]} rotation-y={Math.PI / 2} scale={[20, 1, 1]} />
         </Environment>
-        <Rig handle={handle} version={version} />
+        <Rig handle={handle} version={version} highlightId={highlightId} />
         <OrbitControls enablePan={false} minDistance={5} maxDistance={12} />
       </Canvas>
     </div>
