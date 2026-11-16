@@ -88,7 +88,7 @@ export function Navbar() {
         </Link>
 
 
-        <nav className="hidden min-w-0 items-center gap-1 text-sm text-muted-foreground md:flex">
+        <nav className="hidden min-w-0 items-center gap-1 text-sm text-muted-foreground lg:flex">
           <Link to="/" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 font-medium text-foreground hover:bg-muted" activeOptions={{ exact: true }}>
             Home
           </Link>
@@ -321,7 +321,7 @@ export function Navbar() {
       </div>
 
       {/* Mobile tab row */}
-      <nav className="flex items-center gap-1 overflow-x-auto border-t border-border px-3 py-2 text-sm text-muted-foreground [scrollbar-width:none] [-ms-overflow-style:none] md:hidden [&::-webkit-scrollbar]:hidden">
+      <nav className="flex items-center gap-1 overflow-x-auto border-t border-border px-3 py-2 text-sm text-muted-foreground [scrollbar-width:none] [-ms-overflow-style:none] lg:hidden [&::-webkit-scrollbar]:hidden">
         <Link to="/" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-foreground hover:bg-muted" activeOptions={{ exact: true }}>Home</Link>
         <Link to="/top100" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Top 100</Link>
         <Link to="/superfans" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Superfans</Link>
