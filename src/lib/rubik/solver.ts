@@ -136,6 +136,23 @@ function firstWorking(cube: Cube, cands: Candidate[], ok: (c: Cube) => boolean) 
   return cands.map((c) => ({ c, n: flat(c).length })).sort((a, b) => a.n - b.n).find(({ c }) => ok(applyAlg(cube, flat(c))))?.c ?? null;
 }
 const setupPart = (u: Move[], why: string): SolvePart[] => (u.length ? [{ label: why, moves: u }] : []);
+/** Merge same-side turns that meet at part boundaries (e.g. U' then U cancels) so no move is wasted. */
+export function tidyParts(parts: SolvePart[]): SolvePart[] {
+  const out = parts.map((p) => ({ label: p.label, moves: p.moves.map((m) => ({ ...m })) }));
+  for (let i = 1; i < out.length; i++) {
+    let prev = i - 1;
+    while (prev >= 0 && !out[prev].moves.length) prev--;
+    while (prev >= 0 && out[i].moves.length && out[prev].moves.length) {
+      const a = out[prev].moves[out[prev].moves.length - 1], b = out[i].moves[0];
+      if (a.face !== b.face) break;
+      const t = (a.turns + b.turns) % 4;
+      out[prev].moves.pop(); out[i].moves.shift();
+      if (t) { out[i].moves.unshift({ face: a.face, turns: t as 1 | 2 | 3 }); break; }
+      while (prev >= 0 && !out[prev].moves.length) prev--;
+    }
+  }
+  return out.filter((p) => p.moves.length);
+}
 const solvedIds = (cube: Cube, pred: (c: Cubie) => boolean) => cube.filter((c) => pred(c) && pieceSolved(c)).map((c) => c.id);
 
 // ---------- Stage 2: white corners ----------
@@ -163,14 +180,14 @@ function cornerSteps(cube: Cube, steps: SolveStep[]) {
       cands.push({ note: String(n), parts: [...setupPart(u, "Move it above its spot"), { label: `Repeat ${algText(trig)} ×${n}`, moves: Array.from({ length: n }, () => trig).flat() }] });
     const pick = firstWorking(work, cands, (c) => pieceSolved(findPiece(c, colors)) && intact(c, keep));
     if (!pick) throw new Error("corner stage failed");
-    const parts = [...pre, ...pick.parts];
+    const parts = tidyParts([...pre, ...pick.parts]);
     const moves = parts.flatMap((p) => p.moves);
     const hasSetup = pick.parts.length > 1;
     steps.push({
       stage: 1, title: `White corners: the white–${cname(a)}–${cname(b)} corner`, focus: piece.id, parts, moves,
       detail: [
         `Find the white–${cname(a)}–${cname(b)} corner (it's glowing) in the ${startWhere}. Its home is the bottom corner between the ${cname(a)} and ${cname(b)} centers.`,
-        pre.length ? "It's stuck in the bottom layer the wrong way, so first lift it up to the top." : "",
+        pre.length ? "It's in the bottom layer but in the wrong spot or twisted, so first lift it up to the top." : "",
         hasSetup ? "Turn the top so the corner sits right above its home." : "",
         `Then repeat ${algText(trig)} (the "sexy move" done from the ${cname(frontFor(a, b))} side) ${pick.note} time${pick.note === "1" ? "" : "s"} until it drops in with white on the bottom.`,
       ].filter(Boolean).join(" "),
@@ -209,7 +226,7 @@ function middleSteps(cube: Cube, steps: SolveStep[]) {
     if (!pick) throw new Error("middle stage failed");
     const [dirn, x] = pick.note.split("|") as ["right" | "left", Side];
     const other = dirn === "right" ? RIGHT[x] : LEFT[x];
-    const parts = [...pre, ...pick.parts];
+    const parts = tidyParts([...pre, ...pick.parts]);
     const moves = parts.flatMap((p) => p.moves);
     steps.push({
       stage: 2, title: `Middle layer: the ${cname(a)}–${cname(b)} edge`, focus: piece.id, parts, moves,

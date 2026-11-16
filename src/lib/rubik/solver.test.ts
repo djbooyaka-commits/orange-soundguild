@@ -24,3 +24,12 @@ test("solver solves 150 random scrambles and stages never go backwards", { timeo
     assert.equal(isSolved(cube), true, `scramble ${i} solved`);
   }
 });
+
+test("no step wastes moves by turning the same side twice in a row", () => {
+  const r = rng(7);
+  for (let i = 0; i < 60; i++) {
+    for (const s of solveCube(applyAlg(solvedCube(), scramble(25, r)))) {
+      for (let j = 1; j < s.moves.length; j++) assert.notEqual(s.moves[j].face, s.moves[j - 1].face, s.title);
+    }
+  }
+});

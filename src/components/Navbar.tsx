@@ -89,27 +89,27 @@ export function Navbar() {
 
 
         <nav className="hidden min-w-0 items-center gap-1 text-sm text-muted-foreground md:flex">
-          <Link to="/" className="whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-foreground hover:bg-muted" activeOptions={{ exact: true }}>
+          <Link to="/" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 font-medium text-foreground hover:bg-muted" activeOptions={{ exact: true }}>
             Home
           </Link>
-          <Link to="/top100" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+          <Link to="/top100" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
             Top 100
           </Link>
-          <Link to="/superfans" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+          <Link to="/superfans" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
             Superfans
           </Link>
-          <Link to="/discover" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+          <Link to="/discover" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
             Discover
           </Link>
-          <Link to="/curator-playlists" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+          <Link to="/curator-playlists" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
             Curator Playlists
           </Link>
-          <Link to="/games/rubik" className="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+          <Link to="/games/rubik" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
             Rubik's Cube
           </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">
+              <button type="button" className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
                 More <ChevronDown className="h-3.5 w-3.5" />
                 {unreadMessages > 0 && (
                   <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
@@ -159,7 +159,7 @@ export function Navbar() {
             const term = q.trim();
             if (term) navigate({ to: "/search", search: { q: term } });
           }}
-          className="relative hidden w-48 shrink-0 xl:block 2xl:w-64"
+          className="relative hidden w-64 shrink-0 2xl:block"
         >
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -175,7 +175,7 @@ export function Navbar() {
           to="/search"
           search={{ q: "" }}
           aria-label="Search"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground xl:hidden"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground 2xl:hidden"
         >
           <Search className="h-4 w-4" />
         </Link>
