@@ -40,6 +40,8 @@ function RubikPage() {
   const [scrambleText, setScrambleText] = useState("");
   const [tab, setTab] = useState<"solver" | "lessons">("solver");
   const [plan, setPlan] = useState<Plan | null>(null);
+  const planRef = useRef<Plan | null>(null);
+  planRef.current = plan;
   const [replanned, setReplanned] = useState(false);
   const [busy, setBusy] = useState(false);
   const [slow, setSlow] = useState(true);
@@ -65,14 +67,15 @@ function RubikPage() {
     if (tab !== "solver") return;
     if (isSolved(cube)) { setPlan(null); return; }
     const midTurn = handle.current.queue.length > 0;
-    setPlan((cur) => {
-      if (cur) {
-        for (let j = cur.p; j < cur.states.length; j++) if (sameCube(cube, cur.states[j])) return j === cur.p ? cur : { ...cur, p: j };
-        if (midTurn) return cur;
-        setReplanned(true);
+    const cur = planRef.current;
+    if (cur) {
+      for (let j = cur.p; j < cur.states.length; j++) {
+        if (sameCube(cube, cur.states[j])) { if (j !== cur.p) setPlan({ ...cur, p: j }); return; }
       }
-      return makePlan(cube);
-    });
+      if (midTurn) return;
+      setReplanned(true);
+    }
+    setPlan(makePlan(cube));
   }, [cube, version, tab]);
   useEffect(() => { handle.current.turnSeconds = slow ? 0.6 : 0.22; }, [slow]);
   useEffect(() => {
