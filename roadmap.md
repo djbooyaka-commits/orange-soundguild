@@ -33,3 +33,5 @@
 - [x] YouTube room playlists: Sync tracks pulls the song list from the YouTube playlist (also on add and on the 12-hour auto-sync).
 - [x] Apple Music and Tidal room playlists: Sync tracks pulls the song list (also on add and on the 12-hour auto-sync).
 - [x] Submitted tracks auto-approve and auto-add to curator playlists (Spotify Stream Tracker, OSG Artists, Last.fm rooms; YouTube/Tidal/Apple tracked and flagged for hand add).
+- [x] Team rooms: "Re-add pending" badge after a pass; re-adding skips songs already back on the Spotify playlist.
+- [x] Submission playlists (not team/OSG Artists): per-playlist "Auto-remove old songs" past hold days (on toggle, Sync, daily 03:00 UTC job).
