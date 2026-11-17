@@ -482,6 +482,7 @@ export type Database = {
       beta_room_playlists: {
         Row: {
           accept_pool_submissions: boolean
+          auto_remove_expired: boolean
           auto_remove_stars: number | null
           created_at: string
           curator_notice: string | null
@@ -502,6 +503,7 @@ export type Database = {
         }
         Insert: {
           accept_pool_submissions?: boolean
+          auto_remove_expired?: boolean
           auto_remove_stars?: number | null
           created_at?: string
           curator_notice?: string | null
@@ -522,6 +524,7 @@ export type Database = {
         }
         Update: {
           accept_pool_submissions?: boolean
+          auto_remove_expired?: boolean
           auto_remove_stars?: number | null
           created_at?: string
           curator_notice?: string | null
@@ -846,6 +849,7 @@ export type Database = {
       curator_playlists: {
         Row: {
           accept_pool_submissions: boolean
+          auto_remove_expired: boolean
           auto_remove_stars: number | null
           created_at: string
           curator_id: string
@@ -863,6 +867,7 @@ export type Database = {
         }
         Insert: {
           accept_pool_submissions?: boolean
+          auto_remove_expired?: boolean
           auto_remove_stars?: number | null
           created_at?: string
           curator_id: string
@@ -880,6 +885,7 @@ export type Database = {
         }
         Update: {
           accept_pool_submissions?: boolean
+          auto_remove_expired?: boolean
           auto_remove_stars?: number | null
           created_at?: string
           curator_id?: string

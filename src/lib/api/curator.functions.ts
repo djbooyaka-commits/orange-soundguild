@@ -319,7 +319,7 @@ export const listMyCuratorPlaylists = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("curator_playlists")
-      .select("id, spotify_playlist_id, name, image_url, created_at, is_osg, is_team, team_weekly_min, track_hold_days, daily_submission_limit, accept_pool_submissions, genre")
+      .select("id, spotify_playlist_id, name, image_url, created_at, is_osg, is_team, team_weekly_min, track_hold_days, daily_submission_limit, accept_pool_submissions, genre, auto_remove_expired")
       .eq("curator_id", context.userId)
       .order("created_at", { ascending: false });
     return data ?? [];
@@ -347,6 +347,57 @@ export const setCuratorPlaylistHoldDays = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return { days: (days as number | null) ?? 0 };
+  });
+
+/** Curator turns "auto-remove songs older than the hold days" on/off for one submission playlist. */
+export const setCuratorPlaylistAutoRemoveExpired = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; on: boolean }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    on: Boolean(data?.on),
+  }))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { CURATOR_EXPIRY_COLUMNS, canAutoRemoveExpired, cleanupCuratorPlaylist } = await import(
+      "./expired-tracks.server"
+    );
+    const { data: pl } = await supabaseAdmin
+      .from("curator_playlists")
+      .select(CURATOR_EXPIRY_COLUMNS)
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (!pl || (pl as any).curator_id !== context.userId) throw new Error("Only the curator can do that");
+    if (data.on && !canAutoRemoveExpired(pl as any)) throw new Error("Team playlists can't auto-remove old songs");
+    const { error } = await supabaseAdmin
+      .from("curator_playlists")
+      .update({ auto_remove_expired: data.on })
+      .eq("id", data.playlistId);
+    if (error) throw new Error(error.message);
+    if (!data.on) return { on: false, removed: 0, error: null as string | null };
+    const r = await cleanupCuratorPlaylist(supabaseAdmin, { ...(pl as any), auto_remove_expired: true });
+    return { on: true, removed: r.removed, error: r.error };
+  });
+
+/** Runs the old-song cleanup now for every one of the curator's playlists that has it turned on. */
+export const cleanupMyExpiredCuratorTracks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { CURATOR_EXPIRY_COLUMNS, cleanupCuratorPlaylist } = await import("./expired-tracks.server");
+    const { data: rows } = await supabaseAdmin
+      .from("curator_playlists")
+      .select(CURATOR_EXPIRY_COLUMNS)
+      .eq("curator_id", context.userId)
+      .eq("auto_remove_expired", true);
+    let removed = 0;
+    for (const row of (rows ?? []) as any[]) {
+      try {
+        removed += (await cleanupCuratorPlaylist(supabaseAdmin, row)).removed;
+      } catch (e) {
+        console.error("Expired-track cleanup failed", row.id, e);
+      }
+    }
+    return { removed };
   });
 
 export const setCuratorPlaylistDailyLimit = createServerFn({ method: "POST" })

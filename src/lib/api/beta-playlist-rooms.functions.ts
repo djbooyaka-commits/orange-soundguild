@@ -258,10 +258,11 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     const autoRemoveStars = ((pl as any).auto_remove_stars as number | null) ?? null;
     const periodDaysVal = ((pl as any).min_period_days as number | null) ?? 7;
     let autoRemovedUserIds: string[] = [];
+    let pendingRestoreUserIds: string[] = [];
     if ((pl.is_team as boolean | null) && ((pl as any).platform ?? "spotify") === "spotify") {
       try {
         const { syncAutoRemovals } = await import("./beta-auto-remove.server");
-        await syncAutoRemovals(supabaseAdmin, {
+        const r = await syncAutoRemovals(supabaseAdmin, {
           playlistId: pl.id as string,
           spotifyPlaylistId: pl.spotify_playlist_id as string,
           ownerId: room.owner_id as string,
@@ -269,6 +270,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
           periodDays: periodDaysVal,
           members: members_,
         });
+        pendingRestoreUserIds = r.pendingRestore;
       } catch (e) {
         console.error("auto-remove sync failed", e);
       }
@@ -281,6 +283,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
 
     return {
       autoRemovedUserIds,
+      pendingRestoreUserIds,
       playlist: {
         autoRemoveStars,
         id: pl.id as string,

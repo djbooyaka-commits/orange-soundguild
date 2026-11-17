@@ -98,6 +98,7 @@ type RoomData = {
     autoRemoveStars?: number | null;
   };
   autoRemovedUserIds?: string[];
+  pendingRestoreUserIds?: string[];
   removedMembers: { user_id: string; username: string | null }[];
   isOwner: boolean;
   trackingStartedAt: string | null;
@@ -1165,7 +1166,8 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                               joinedAt={m.joined_at}
                               periodDays={data.playlist.periodDays}
                             />
-                            {data.autoRemovedUserIds?.includes(m.user_id) && (
+                            {data.autoRemovedUserIds?.includes(m.user_id) &&
+                              !data.pendingRestoreUserIds?.includes(m.user_id) && (
                               <span
                                 className="rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] font-medium text-destructive"
                                 title="Tracks were taken off the Spotify playlist. They return automatically after a pass."
@@ -1173,9 +1175,27 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
                                 Tracks removed
                               </span>
                             )}
+                            {!!data.pendingRestoreUserIds?.includes(m.user_id) && (
+                          <span
+                            className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                            title="This member has a pass. Their tracks are not back on the Spotify playlist yet — they are added on the next room sync. If you already added them yourself, they won't be added twice."
+                          >
+                            Re-add pending
+                          </span>
+                        )}
                           </>
                         ) : (
-                          "Pass"
+                          <>
+                            Pass
+                            {!!(data.pendingRestoreUserIds?.includes(m.user_id) || data.autoRemovedUserIds?.includes(m.user_id)) && (
+                          <span
+                            className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                            title="This member has a pass. Their tracks are not back on the Spotify playlist yet — they are added on the next room sync. If you already added them yourself, they won't be added twice."
+                          >
+                            Re-add pending
+                          </span>
+                        )}
+                          </>
                         )}
                       </span>
                     </span>

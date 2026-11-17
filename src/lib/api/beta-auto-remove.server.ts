@@ -29,6 +29,64 @@ async function spotifyRemove(token: string, playlistId: string, trackIds: string
   return res.ok;
 }
 
+/** Removed tracks that still need adding back: skips any already on the playlist (e.g. re-added by hand). */
+export function tracksToReAdd(removedIds: string[], onPlaylist: Set<string>): string[] {
+  return Array.from(new Set(removedIds)).filter((id) => !onPlaylist.has(id));
+}
+
+/** Tracks whose time on the playlist is longer than the hold days. Local files / unknown dates are kept. */
+export function expiredTrackIds(
+  items: { id: string | null; added_at: string | null }[],
+  holdDays: number,
+  now = Date.now(),
+): string[] {
+  if (!holdDays || holdDays < 1) return [];
+  const cutoff = now - holdDays * DAY;
+  const out = new Set<string>();
+  for (const it of items) {
+    if (!it.id || !it.added_at) continue;
+    const at = new Date(it.added_at).getTime();
+    if (isFinite(at) && at < cutoff) out.add(it.id);
+  }
+  return Array.from(out);
+}
+
+/**
+ * Removes every track that has been on a (non-team) Spotify playlist longer than its hold days.
+ * Only the playlist owner's token can edit it, so a failed read/delete just leaves the playlist alone.
+ */
+export async function removeExpiredSpotifyTracks(
+  token: string,
+  spotifyPlaylistId: string,
+  holdDays: number,
+): Promise<{ removed: number; error: string | null }> {
+  if (!holdDays || holdDays < 1) return { removed: 0, error: null };
+  const items: { id: string | null; added_at: string | null }[] = [];
+  let url: string | null =
+    `https://api.spotify.com/v1/playlists/${spotifyPlaylistId}/items?limit=100&additional_types=track`;
+  for (let page = 0; page < 100 && url; page++) {
+    const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return { removed: 0, error: `spotify_${res.status}` };
+    const body: any = await res.json();
+    for (const it of body.items ?? []) {
+      const t = it?.item ?? it?.track;
+      if (!t?.id || it?.is_local || (t.type && t.type !== "track")) continue;
+      items.push({ id: t.id as string, added_at: (it.added_at as string | null) ?? null });
+    }
+    url = body.next ?? null;
+  }
+  const expired = expiredTrackIds(items, holdDays);
+  let removed = 0;
+  for (let i = 0; i < expired.length; i += 100) {
+    const batch = expired.slice(i, i + 100);
+    if (!(await spotifyRemove(token, spotifyPlaylistId, batch))) {
+      return { removed, error: "spotify_delete_failed" };
+    }
+    removed += batch.length;
+  }
+  return { removed, error: null };
+}
+
 async function spotifyAdd(token: string, playlistId: string, trackIds: string[]) {
   const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/items`, {
     method: "POST",
@@ -82,26 +140,46 @@ export async function syncAutoRemovals(
     else if (!isRemoved && !passed && opts.threshold && stars >= opts.threshold)
       toRemoveUsers.push(m.user_id);
   }
-  if (!toRestore.length && !toRemoveUsers.length) return;
+  /** Members who have a pass but whose tracks are not confirmed back on the playlist yet. */
+  const pendingRestore: string[] = [];
+  const result = { pendingRestore };
+  if (!toRestore.length && !toRemoveUsers.length) return result;
 
   const { getBetaAccessToken, fetchBetaPlaylistTracks, parseSpotifyTrackId } = await import(
     "./beta-spotify.server"
   );
   const token =
     opts.accessToken !== undefined ? opts.accessToken : await getBetaAccessToken(opts.ownerId, supabaseAdmin);
-  if (!token) return;
-
-  for (const uid of toRestore) {
-    const ids = removedBy.get(uid) ?? [];
-    if (ids.length && !(await spotifyAdd(token, opts.spotifyPlaylistId, ids))) continue;
-    await supabaseAdmin
-      .from(table)
-      .delete()
-      .eq("playlist_id", opts.playlistId)
-      .eq("user_id", uid);
+  if (!token) {
+    pendingRestore.push(...toRestore);
+    return result;
   }
 
-  if (!toRemoveUsers.length) return;
+  if (toRestore.length) {
+    // Check what is on the playlist first so tracks the curator already put back by hand
+    // are never added a second time. If the list can't be read reliably, wait for next sync.
+    const current = await fetchBetaPlaylistTracks(token, opts.spotifyPlaylistId);
+    const onPlaylist = current.error ? null : new Set(current.items.map((t: any) => t.id as string));
+    for (const uid of toRestore) {
+      if (!onPlaylist) {
+        pendingRestore.push(uid);
+        continue;
+      }
+      const ids = tracksToReAdd(removedBy.get(uid) ?? [], onPlaylist);
+      if (ids.length && !(await spotifyAdd(token, opts.spotifyPlaylistId, ids))) {
+        pendingRestore.push(uid);
+        continue;
+      }
+      for (const id of ids) onPlaylist.add(id);
+      await supabaseAdmin
+        .from(table)
+        .delete()
+        .eq("playlist_id", opts.playlistId)
+        .eq("user_id", uid);
+    }
+  }
+
+  if (!toRemoveUsers.length) return result;
   if (opts.trackIdsByUser) {
     const [byUser, current] = await Promise.all([
       opts.trackIdsByUser(toRemoveUsers),
@@ -118,7 +196,7 @@ export async function syncAutoRemovals(
           { onConflict: "playlist_id,user_id,spotify_track_id", ignoreDuplicates: true },
         );
     }
-    return;
+    return result;
   }
   const [{ data: links }, { data: subs }, current] = await Promise.all([
     supabaseAdmin
@@ -155,4 +233,5 @@ export async function syncAutoRemovals(
         { onConflict: "playlist_id,user_id,spotify_track_id", ignoreDuplicates: true },
       );
   }
+  return result;
 }

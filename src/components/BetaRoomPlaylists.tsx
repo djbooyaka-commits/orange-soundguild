@@ -13,6 +13,7 @@ import {
   setBetaPlaylistPool,
   setBetaPlaylistGenre,
   setBetaPlaylistTracklist,
+  setBetaPlaylistAutoRemoveExpired,
 } from "@/lib/api/beta-curator.functions";
 import { syncOsgRoomPlaylist } from "@/lib/api/osg-room-streams.functions";
 import { PLAYLIST_GENRES } from "@/lib/playlist-genres";
@@ -34,6 +35,7 @@ type Playlist = {
   isTeam: boolean;
   inPool?: boolean;
   genre?: string | null;
+  autoRemoveExpired?: boolean;
   trackCount: number;
 };
 
@@ -59,6 +61,7 @@ export function BetaRoomPlaylists({
   const poolFn = useServerFn(setBetaPlaylistPool);
   const limitFn = useServerFn(setBetaPlaylistDailyLimit);
   const genreFn = useServerFn(setBetaPlaylistGenre);
+  const expireFn = useServerFn(setBetaPlaylistAutoRemoveExpired);
   const [limitDrafts, setLimitDrafts] = useState<Record<string, string>>({});
   const tracklistFn = useServerFn(setBetaPlaylistTracklist);
   const osgSyncFn = useServerFn(syncOsgRoomPlaylist);
@@ -113,7 +116,10 @@ export function BetaRoomPlaylists({
     setBusyId(id);
     try {
       const r: any = await syncFn({ data: { playlistId: id } });
-      toast.success(`Synced — ${r.imported} track${r.imported === 1 ? "" : "s"} tracked`);
+      const gone = r.expiredRemoved
+        ? ` · removed ${r.expiredRemoved} song${r.expiredRemoved === 1 ? "" : "s"} past hold days`
+        : "";
+      toast.success(`Synced — ${r.imported} track${r.imported === 1 ? "" : "s"} tracked${gone}`);
       await refresh();
       onChanged?.();
     } catch (e: any) {
@@ -158,6 +164,24 @@ export function BetaRoomPlaylists({
       await removeFn({ data: { playlistId: id } });
       await refresh();
       onChanged?.();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const toggleExpire = async (p: Playlist) => {
+    const on = !p.autoRemoveExpired;
+    if (on && !window.confirm(`Remove every song that has been on "${p.name}" for more than ${p.holdDays} days? This runs now and then once a day.`)) return;
+    setBusyId(p.id);
+    try {
+      const r = await expireFn({ data: { playlistId: p.id, on } });
+      if (!on) toast.success("Auto-remove old songs is off");
+      else if (r.error) toast.warning("Auto-remove is on, but Spotify couldn't be updated now. It will try again on the daily sync.");
+      else toast.success(`Auto-remove is on · removed ${r.removed} song${r.removed === 1 ? "" : "s"} older than ${p.holdDays} days`);
+      await refresh();
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not update auto-remove");
     } finally {
       setBusyId(null);
     }
@@ -387,6 +411,17 @@ export function BetaRoomPlaylists({
                   <option value="">Genre…</option>
                   {PLAYLIST_GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
+                {!p.isTeam && (p.platform ?? "spotify") === "spotify" && (
+                  <button
+                    onClick={() => toggleExpire(p)}
+                    disabled={busyId === p.id}
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50 ${p.autoRemoveExpired ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90" : "border-border hover:bg-muted"}`}
+                    title={`Take songs off the Spotify playlist once they have been on it longer than the hold days (${p.holdDays}). Checked once a day and when you press Sync.`}
+                  >
+                    <Clock className="h-3 w-3" />
+                    {p.autoRemoveExpired ? `Auto-remove after ${p.holdDays}d: On` : "Auto-remove old songs"}
+                  </button>
+                )}
                 {!p.isTeam && (
                   <button
                     onClick={() => togglePool(p)}

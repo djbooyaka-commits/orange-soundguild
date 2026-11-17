@@ -456,8 +456,10 @@ export const osgSyncAutoRemovals = createServerFn({ method: "POST" })
       .eq("is_osg", true);
     const playlists = (pls ?? []).filter((p: any) => p.spotify_playlist_id);
     const threshold = (playlists.find((p: any) => p.auto_remove_stars)?.auto_remove_stars as number | undefined) ?? null;
-    if (!playlists.length) return { autoRemoveStars: null, removedUserIds: [] as string[] };
+    if (!playlists.length)
+      return { autoRemoveStars: null, removedUserIds: [] as string[], pendingRestoreUserIds: [] as string[] };
     const plIds = playlists.map((p: any) => p.id as string);
+    const pending = new Set<string>();
 
     try {
       const { data: existing } = await supabaseAdmin
@@ -535,7 +537,7 @@ export const osgSyncAutoRemovals = createServerFn({ method: "POST" })
           return out;
         };
         for (const p of playlists as any[]) {
-          await syncAutoRemovals(supabaseAdmin, {
+          const r = await syncAutoRemovals(supabaseAdmin, {
             playlistId: p.id,
             spotifyPlaylistId: p.spotify_playlist_id,
             ownerId: curatorId,
@@ -546,6 +548,7 @@ export const osgSyncAutoRemovals = createServerFn({ method: "POST" })
             accessToken,
             trackIdsByUser,
           });
+          for (const uid of r.pendingRestore) pending.add(uid);
         }
       }
     } catch (e) {
@@ -558,5 +561,6 @@ export const osgSyncAutoRemovals = createServerFn({ method: "POST" })
     return {
       autoRemoveStars: threshold,
       removedUserIds: Array.from(new Set((rows ?? []).map((r: any) => r.user_id as string))),
+      pendingRestoreUserIds: Array.from(pending),
     };
   });

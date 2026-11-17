@@ -9,6 +9,8 @@ import {
   importMySpotifyCuratorPlaylists,
   setCuratorPlaylistHoldDays,
   setCuratorPlaylistDailyLimit,
+  setCuratorPlaylistAutoRemoveExpired,
+  cleanupMyExpiredCuratorTracks,
 } from "@/lib/api/curator.functions";
 import { setCuratorPlaylistIsTeam } from "@/lib/api/curator-team.functions";
 import { setCuratorPlaylistPool, setCuratorPlaylistGenre } from "@/lib/api/curator-submissions.functions";
@@ -20,6 +22,8 @@ type Playlist = {
   name: string;
   image_url: string | null;
   is_team?: boolean;
+  is_osg?: boolean;
+  auto_remove_expired?: boolean;
   accept_pool_submissions?: boolean;
   genre?: string | null;
   track_hold_days?: number | null;
@@ -37,6 +41,8 @@ export function CuratorPlaylistManager() {
   const setHoldFn = useServerFn(setCuratorPlaylistHoldDays);
   const setLimitFn = useServerFn(setCuratorPlaylistDailyLimit);
   const setGenreFn = useServerFn(setCuratorPlaylistGenre);
+  const setExpireFn = useServerFn(setCuratorPlaylistAutoRemoveExpired);
+  const cleanupFn = useServerFn(cleanupMyExpiredCuratorTracks);
 
   const [items, setItems] = useState<Playlist[]>([]);
   const [earned, setEarned] = useState(0);
@@ -72,14 +78,19 @@ export function CuratorPlaylistManager() {
     try {
       const result = await importFn();
       if (result.imported || result.updated) await refresh();
+      // Only a manual click removes old songs; the daily job covers the rest.
+      const cleaned = silent ? { removed: 0 } : await cleanupFn().catch(() => ({ removed: 0 }));
       const privateHint = result.needsReconnectForPrivate
         ? " Reconnect Spotify once to include private and collaborative playlists."
+        : "";
+      const cleanedHint = cleaned.removed
+        ? ` Removed ${cleaned.removed} song${cleaned.removed === 1 ? "" : "s"} past their hold days.`
         : "";
       if (!silent || result.imported || result.updated) {
         setSyncMsg(
           result.imported
-            ? `Added ${result.imported} Spotify playlist${result.imported === 1 ? "" : "s"} to the stream tracker.${privateHint}`
-            : `Spotify playlists are synced.${privateHint}`,
+            ? `Added ${result.imported} Spotify playlist${result.imported === 1 ? "" : "s"} to the stream tracker.${privateHint}${cleanedHint}`
+            : `Spotify playlists are synced.${privateHint}${cleanedHint}`,
         );
       }
     } catch (ex: any) {
@@ -122,6 +133,29 @@ export function CuratorPlaylistManager() {
       await refresh();
     } catch (ex: any) {
       setErr(ex?.message ?? "Failed to update Team playlist");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const toggleExpire = async (p: Playlist) => {
+    const on = !p.auto_remove_expired;
+    const days = p.track_hold_days ?? 30;
+    if (on && !window.confirm(`Remove every song that has been on "${p.name}" for more than ${days} days? This runs now and then once a day.`)) return;
+    setTogglingId(p.id);
+    setErr(null);
+    try {
+      const r = await setExpireFn({ data: { playlistId: p.id, on } });
+      await refresh();
+      if (on) {
+        setSyncMsg(
+          r.error
+            ? `Auto-remove is on for ${p.name}, but Spotify couldn't be updated right now. It will try again on the next daily sync.`
+            : `Auto-remove is on for ${p.name}. Removed ${r.removed} song${r.removed === 1 ? "" : "s"} older than ${days} days.`,
+        );
+      }
+    } catch (ex: any) {
+      setErr(ex?.message ?? "Failed to update auto-remove");
     } finally {
       setTogglingId(null);
     }
@@ -328,6 +362,17 @@ export function CuratorPlaylistManager() {
               <option value="">Genre…</option>
               {PLAYLIST_GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
+            {!p.is_team && !p.is_osg && (
+              <button
+                onClick={() => toggleExpire(p)}
+                disabled={busy || togglingId === p.id}
+                className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50 ${p.auto_remove_expired ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90" : "border-border hover:bg-muted"}`}
+                title={`Take songs off the Spotify playlist once they have been on it longer than the hold days (${p.track_hold_days ?? 30}). Checked once a day and when you press Sync.`}
+              >
+                <Clock className="h-3 w-3" />
+                {p.auto_remove_expired ? `Auto-remove after ${p.track_hold_days ?? 30}d: On` : "Auto-remove old songs"}
+              </button>
+            )}
             {!p.is_team && (
               <button
                 onClick={() => togglePool(p)}

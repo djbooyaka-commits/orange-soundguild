@@ -435,6 +435,7 @@ export const curatorTeamSyncAutoRemovals = createServerFn({ method: "POST" })
       if (!me) throw new Error("Not a member of this room");
     }
     const periodDays = Number(pl.min_period_days) || 7;
+    let pendingRestoreUserIds: string[] = [];
     try {
       const [{ data: members }, { data: adjs }] = await Promise.all([
         supabaseAdmin.from("curator_team_members").select("user_id, created_at").eq("playlist_id", pl.id),
@@ -464,7 +465,7 @@ export const curatorTeamSyncAutoRemovals = createServerFn({ method: "POST" })
         .limit(1);
       // Only touch Spotify when the feature is on, or tracks still need restoring.
       if (pl.auto_remove_stars || existing?.length) {
-        await syncAutoRemovals(supabaseAdmin, {
+        const r = await syncAutoRemovals(supabaseAdmin, {
           playlistId: pl.id,
           spotifyPlaylistId: pl.spotify_playlist_id,
           ownerId: pl.curator_id,
@@ -493,6 +494,7 @@ export const curatorTeamSyncAutoRemovals = createServerFn({ method: "POST" })
             return out;
           },
         });
+        pendingRestoreUserIds = r.pendingRestore;
       }
     } catch (e) {
       console.error("Team auto-remove sync failed", e);
@@ -504,6 +506,7 @@ export const curatorTeamSyncAutoRemovals = createServerFn({ method: "POST" })
     return {
       autoRemoveStars: (pl.auto_remove_stars as number | null) ?? null,
       removedUserIds: Array.from(new Set((rows ?? []).map((r: any) => r.user_id as string))),
+      pendingRestoreUserIds,
     };
   });
 

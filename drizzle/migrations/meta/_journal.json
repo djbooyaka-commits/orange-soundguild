@@ -225,6 +225,13 @@
       "when": 1794708067796,
       "tag": "0031_spotify_view_sync_throttle",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794874864827,
+      "tag": "0032_auto_remove_expired_tracks",
+      "breakpoints": true
     }
   ]
 }
