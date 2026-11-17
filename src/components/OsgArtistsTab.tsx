@@ -122,11 +122,13 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
   const autoSyncFn = useServerFn(osgSyncAutoRemovals);
   const [autoStars, setAutoStars] = useState<Record<string, number | null>>({});
   const [autoRemoved, setAutoRemoved] = useState<Record<string, string[]>>({});
+  const [pendingRestore, setPendingRestore] = useState<Record<string, string[]>>({});
   const syncAuto = async (curatorId: string) => {
     try {
       const r = await autoSyncFn({ data: { curatorId } });
       setAutoStars((s) => ({ ...s, [curatorId]: r.autoRemoveStars }));
       setAutoRemoved((s) => ({ ...s, [curatorId]: r.removedUserIds }));
+      setPendingRestore((s) => ({ ...s, [curatorId]: r.pendingRestoreUserIds ?? [] }));
     } catch {}
   };
   const changeAutoRemove = async (stars: number | null) => {
@@ -589,7 +591,7 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
               <span className="inline-flex items-center gap-1 font-semibold">
                 Below minimum
                 <NoPassStars lastDeductionAt={a.last_deduction_at ?? null} joinedAt={a.joined_at ?? null} />
-                {(autoRemoved[a.curator_id] ?? []).includes(a.artist_id) && (
+                {(autoRemoved[a.curator_id] ?? []).includes(a.artist_id) && !(pendingRestore[a.curator_id] ?? []).includes(a.artist_id) && (
                   <span
                     className="rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] font-medium text-destructive"
                     title="Tracks were taken off the Spotify playlist. They return automatically after a pass or once the minimum is met."
@@ -597,9 +599,27 @@ export function OsgArtistsTab({ myUserId }: { myUserId?: string | null } = {}) {
                     Tracks removed
                   </span>
                 )}
+                {(pendingRestore[a.curator_id] ?? []).includes(a.artist_id) && (
+                          <span
+                            className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                            title="This member has a pass. Their tracks are not back on the Spotify playlist yet — they are added on the next room sync. If you already added them yourself, they won't be added twice."
+                          >
+                            Re-add pending
+                          </span>
+                        )}
               </span>
             ) : (
-              <span className="font-semibold">Pass</span>
+              <span className="inline-flex items-center gap-1 font-semibold">
+                Pass
+                {((pendingRestore[a.curator_id] ?? []).includes(a.artist_id) || (autoRemoved[a.curator_id] ?? []).includes(a.artist_id)) && (
+                          <span
+                            className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                            title="This member has a pass. Their tracks are not back on the Spotify playlist yet — they are added on the next room sync. If you already added them yourself, they won't be added twice."
+                          >
+                            Re-add pending
+                          </span>
+                        )}
+              </span>
             )}
           </span>
         </div>

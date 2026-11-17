@@ -156,6 +156,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
   const lastAllFn = useServerFn(curatorTeamLastRemoveAll);
   const [autoStars, setAutoStars] = useState<number | null>(null);
   const [autoRemovedIds, setAutoRemovedIds] = useState<string[]>([]);
+  const [pendingRestoreIds, setPendingRestoreIds] = useState<string[]>([]);
   const [undoBatch, setUndoBatch] = useState<string | null>(null);
   const [allBusy, setAllBusy] = useState(false);
 
@@ -164,6 +165,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
       const r = await autoSyncFn({ data: { playlistId: room.playlist_id } });
       setAutoStars(r.autoRemoveStars);
       setAutoRemovedIds(r.removedUserIds);
+      setPendingRestoreIds(r.pendingRestoreUserIds ?? []);
     } catch {}
   }, [autoSyncFn, room.playlist_id]);
 
@@ -732,7 +734,7 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                           joinedAt={(m as any).created_at ?? null}
                           periodDays={periodDays}
                         />
-                        {autoRemovedIds.includes(m.user_id) && (
+                        {autoRemovedIds.includes(m.user_id) && !pendingRestoreIds.includes(m.user_id) && (
                           <span
                             className="ml-1 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] font-medium text-destructive"
                             title="Tracks were taken off the Spotify playlist. They return automatically after a pass."
@@ -740,9 +742,27 @@ export function CuratorTeamRoom({ room }: { room: TeamRoom }) {
                             Tracks removed
                           </span>
                         )}
+                        {pendingRestoreIds.includes(m.user_id) && (
+                          <span
+                            className="ml-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                            title="This member has a pass. Their tracks are not back on the Spotify playlist yet — they are added on the next room sync. If you already added them yourself, they won't be added twice."
+                          >
+                            Re-add pending
+                          </span>
+                        )}
                       </>
                     ) : (
-                      "Pass"
+                      <>
+                        Pass
+                        {(pendingRestoreIds.includes(m.user_id) || autoRemovedIds.includes(m.user_id)) && (
+                          <span
+                            className="ml-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                            title="This member has a pass. Their tracks are not back on the Spotify playlist yet — they are added on the next room sync. If you already added them yourself, they won't be added twice."
+                          >
+                            Re-add pending
+                          </span>
+                        )}
+                      </>
                     )}
                   </span>
                 </div>
