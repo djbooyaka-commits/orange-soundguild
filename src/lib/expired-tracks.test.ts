@@ -38,3 +38,66 @@ test("re-add after a pass skips tracks the curator already put back by hand", ()
   assert.deepEqual(tracksToReAdd(["x", "y", "z"], new Set(["y"])), ["x", "z"]);
   assert.deepEqual(tracksToReAdd(["x"], new Set(["x"])), []);
 });
+
+import { syncAutoRemovals } from "./api/beta-auto-remove.server.ts";
+
+async function runRestore(onPlaylist: string[], addOk = true) {
+  const realFetch = globalThis.fetch;
+  const added: string[][] = [];
+  let deleted = false;
+  globalThis.fetch = (async (url: string, init?: RequestInit) => {
+    if (init?.method === "POST") {
+      added.push(JSON.parse(String(init.body)).uris);
+      return new Response("{}", { status: addOk ? 201 : 500 });
+    }
+    return new Response(
+      JSON.stringify({ items: onPlaylist.map((id) => ({ item: { id, name: id, artists: [] } })), next: null }),
+    );
+  }) as typeof fetch;
+  const admin = {
+    from: () => ({
+      select: () => ({
+        eq: async () => ({
+          data: [
+            { user_id: "m", spotify_track_id: "x" },
+            { user_id: "m", spotify_track_id: "y" },
+          ],
+        }),
+      }),
+      delete: () => ({ eq: () => ({ eq: async () => { deleted = true; return {}; } }) }),
+    }),
+  };
+  try {
+    const r = await syncAutoRemovals(admin, {
+      playlistId: "pl",
+      spotifyPlaylistId: "sp",
+      ownerId: "curator",
+      threshold: 3,
+      periodDays: 7,
+      members: [{ user_id: "m", last_deduction_at: null, joined_at: null, passed: true }],
+      accessToken: "token",
+    });
+    return { added, deleted, pending: r.pendingRestore };
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+}
+
+test("passed member: only the track not already on Spotify is added back", async () => {
+  const r = await runRestore(["y"]);
+  assert.deepEqual(r.added, [["spotify:track:x"]]);
+  assert.equal(r.deleted, true);
+  assert.deepEqual(r.pending, []);
+});
+
+test("passed member: nothing is added when the curator already re-added every track", async () => {
+  const r = await runRestore(["x", "y"]);
+  assert.deepEqual(r.added, []);
+  assert.equal(r.deleted, true);
+});
+
+test("passed member stays 'Re-add pending' when Spotify refuses the add", async () => {
+  const r = await runRestore([], false);
+  assert.equal(r.deleted, false);
+  assert.deepEqual(r.pending, ["m"]);
+});
