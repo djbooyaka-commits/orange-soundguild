@@ -218,7 +218,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
     await assertMember(supabaseAdmin, data.roomId, context.userId);
     const { data: rows } = await supabaseAdmin
       .from("beta_room_playlists")
-      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at, daily_submission_limit, accept_pool_submissions, genre, platform, external_url")
+      .select("id, spotify_playlist_id, name, image_url, track_hold_days, is_team, created_at, daily_submission_limit, accept_pool_submissions, genre, platform, external_url, auto_remove_expired")
       .eq("room_id", data.roomId)
       .order("created_at", { ascending: true });
 
@@ -249,6 +249,7 @@ export const listBetaRoomPlaylists = createServerFn({ method: "POST" })
       isTeam: Boolean(r.is_team),
       inPool: Boolean(r.accept_pool_submissions),
       genre: (r.genre as string | null) ?? null,
+      autoRemoveExpired: Boolean(r.auto_remove_expired),
       trackCount: counts.get(r.id) ?? 0,
     }));
   });
@@ -651,6 +652,18 @@ export const syncBetaRoomPlaylist = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!pl) throw new Error("Playlist not found");
     await assertOwner(supabaseAdmin, pl.room_id as string, context.userId);
+    let expiredRemoved = 0;
+    try {
+      const { BETA_EXPIRY_COLUMNS, cleanupBetaPlaylist } = await import("./expired-tracks.server");
+      const { data: row } = await supabaseAdmin
+        .from("beta_room_playlists")
+        .select(BETA_EXPIRY_COLUMNS)
+        .eq("id", pl.id)
+        .maybeSingle();
+      if (row) expiredRemoved = (await cleanupBetaPlaylist(supabaseAdmin, row as any, context.userId)).removed;
+    } catch (e) {
+      console.error("Expired-track cleanup failed", pl.id, e);
+    }
     const result = await importPlaylistTracks(
       supabaseAdmin,
       pl.room_id as string,
@@ -658,7 +671,47 @@ export const syncBetaRoomPlaylist = createServerFn({ method: "POST" })
       pl.spotify_playlist_id as string,
       context.userId,
     );
-    return { ok: true, ...result };
+    return { ok: true, ...result, expiredRemoved };
+  });
+
+/** Room owner turns "auto-remove songs older than the hold days" on/off (Spotify, non-team playlists only). */
+export const setBetaPlaylistAutoRemoveExpired = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string; on: boolean }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+    on: Boolean(data?.on),
+  }))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { BETA_EXPIRY_COLUMNS, canAutoRemoveExpired, cleanupBetaPlaylist } = await import(
+      "./expired-tracks.server"
+    );
+    const { data: pl } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .select(BETA_EXPIRY_COLUMNS)
+      .eq("id", data.playlistId)
+      .maybeSingle();
+    if (!pl) throw new Error("Playlist not found");
+    await assertOwner(supabaseAdmin, (pl as any).room_id as string, context.userId);
+    if (data.on && !canAutoRemoveExpired(pl as any))
+      throw new Error("Only Spotify submission playlists (not team) can auto-remove old songs");
+    const { error } = await supabaseAdmin
+      .from("beta_room_playlists")
+      .update({ auto_remove_expired: data.on })
+      .eq("id", data.playlistId);
+    if (error) throw new Error(error.message);
+    if (!data.on) return { on: false, removed: 0, error: null as string | null };
+    const r = await cleanupBetaPlaylist(supabaseAdmin, { ...(pl as any), auto_remove_expired: true }, context.userId);
+    if (r.removed) {
+      await importPlaylistTracks(
+        supabaseAdmin,
+        (pl as any).room_id,
+        (pl as any).id,
+        (pl as any).spotify_playlist_id,
+        context.userId,
+      ).catch(() => {});
+    }
+    return { on: true, removed: r.removed, error: r.error };
   });
 
 export const setBetaPlaylistTracklist = createServerFn({ method: "POST" })
