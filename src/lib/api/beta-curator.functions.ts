@@ -355,7 +355,7 @@ export async function submitBetaPoolTrack(
   if (!pass) {
     const { data: member } = await supabaseAdmin
       .from("beta_room_members").select("id").eq("room_id", room.id).eq("user_id", userId).maybeSingle();
-    if (!member) throw new Error("Your free daily pass is used for today — it resets at 00:00 UTC");
+    if (!member) throw new Error("Your free pass isn't available right now — Artist passes reset at 00:00 UTC; Pioneer passes need 5 uploaded tracks and reset every 15 days");
     const pts = await pointsForPlaylist(supabaseAdmin, room.id, userId, pl.id);
     if (pts.available < SUBMIT_COST) {
       throw new Error(`Your free daily pass is used. You need ${SUBMIT_COST} points from "${pl.name}" — you have ${pts.available}`);

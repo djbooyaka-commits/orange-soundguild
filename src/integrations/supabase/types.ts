@@ -2994,6 +2994,7 @@ export type Database = {
           track_hold_days: number
         }[]
       }
+      my_uploaded_track_count: { Args: never; Returns: number }
       osg_adjust_points: {
         Args: { _delta: number; _reason?: string; _user_id: string }
         Returns: string

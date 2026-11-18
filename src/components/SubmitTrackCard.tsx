@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { resolveSubmissionPlaylistId, sortPlaylistsByPoints } from "@/lib/playlist-submission-selection";
 import { useAccountType } from "@/hooks/useAccountType";
+import { PIONEER_PASS_MIN_TRACKS, pioneerHasEnoughTracks, pioneerTracksNeeded } from "@/lib/pioneer-pass";
 
 export type SubmissionPlaylist = {
   id: string;
@@ -76,16 +77,19 @@ export function SubmitTrackCard({ pool = false, playlistOptions, selectedPlaylis
   } as const;
 
   const [dailyPass, setDailyPass] = useState(false);
+  const [uploadedTracks, setUploadedTracks] = useState<number | null>(null);
   const { accountType } = useAccountType();
   const isPioneer = accountType === "pioneer";
 
   const refresh = async () => {
-    const [pl, m, dp] = await Promise.all([
+    const [pl, m, dp, tc] = await Promise.all([
       playlistOptions ?? listPlaylists(),
       listMine(),
       (supabase as any).rpc("artist_daily_pass_available"),
+      (supabase as any).rpc("my_uploaded_track_count"),
     ]);
     setDailyPass(Boolean(dp?.data));
+    setUploadedTracks(typeof tc?.data === "number" ? tc.data : null);
     const sorted = sortPlaylistsByPoints(pl as SubmissionPlaylist[], (p) => p.available_points);
     setPlaylists(sorted);
     setMine((m ?? []) as Submission[]);
@@ -154,7 +158,24 @@ export function SubmitTrackCard({ pool = false, playlistOptions, selectedPlaylis
             : "Daily 50-point artist pass available — your next submission today is free. Resets at 00:00 UTC."}
         </div>
       )}
-      {!dailyPass && isPioneer && pool && (
+      {!dailyPass && isPioneer && uploadedTracks !== null && !pioneerHasEnoughTracks(uploadedTracks) && (
+        <div className="mt-4 rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
+          <div className="font-medium text-foreground">
+            Pioneer free pass locked — {Math.min(uploadedTracks, PIONEER_PASS_MIN_TRACKS)} of {PIONEER_PASS_MIN_TRACKS} tracks uploaded
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border">
+            <div
+              className="h-full rounded-full bg-primary"
+              style={{ width: `${(Math.min(uploadedTracks, PIONEER_PASS_MIN_TRACKS) / PIONEER_PASS_MIN_TRACKS) * 100}%` }}
+            />
+          </div>
+          <p className="mt-2">
+            Upload {pioneerTracksNeeded(uploadedTracks)} more {pioneerTracksNeeded(uploadedTracks) === 1 ? "track" : "tracks"} to Orange
+            Sound Guild to unlock 1 free submission every 15 days.
+          </p>
+        </div>
+      )}
+      {!dailyPass && isPioneer && pool && uploadedTracks !== null && pioneerHasEnoughTracks(uploadedTracks) && (
         <div className="mt-4 rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
           Pioneer Artists get 1 free submission every 15 days. Your pass is used — upgrade to Artist for a free submission every day.
         </div>
