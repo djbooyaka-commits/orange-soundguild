@@ -46,6 +46,7 @@ function RubikPage() {
   const [busy, setBusy] = useState(false);
   const [slow, setSlow] = useState(true);
   const [assisted, setAssisted] = useState(false);
+  const [whiteTop, setWhiteTop] = useState(false);
 
   useEffect(() => {
     const b = localStorage.getItem("osg-rubik-best");
@@ -115,17 +116,18 @@ function RubikPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto max-w-6xl px-4 py-3 pb-28">
         <h1 className="text-2xl font-bold tracking-tight">Rubik's Cube School</h1>
-        <p className="text-sm text-muted-foreground">Scramble the cube and the solver shows you exactly how to solve it, step by step. Drag to spin the cube; turn sides with the buttons or keys U D L R F B (hold Shift to turn backwards).</p>
-        <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_380px]">
+        <p className="text-xs text-muted-foreground">The red arrow shows which way to turn next. Scramble the cube and the solver shows you exactly how to solve it, step by step. Drag to spin the cube; turn sides with the buttons or keys U D L R F B (hold Shift to turn backwards).</p>
+        <div className="mt-2 grid gap-4 lg:grid-cols-[1fr_360px]">
           <section>
-            <div className="aspect-square w-full max-h-[560px] rounded-xl border bg-card">
+            <div className="relative h-[min(52vh,460px)] w-full rounded-xl border bg-card">
+              <Button size="sm" variant="secondary" className="absolute right-2 top-2 z-10" onClick={() => setWhiteTop((v) => !v)}>{whiteTop ? "White on top ✓" : "White on top"}</Button>
               <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading cube…</div>}>
-                <CubeScene handle={handle} version={version} highlightId={focus} />
+                <CubeScene handle={handle} version={version} highlightId={focus} whiteTop={whiteTop} nextMove={tab === "solver" && plan && plan.p < plan.flat.length ? plan.flat[plan.p] : undefined} />
               </Suspense>
             </div>
-            <div className="mt-3 grid grid-cols-6 gap-2">
+            <div className="mt-2 grid grid-cols-12 gap-1">
               {FACES.map((f) => <Button key={f} variant="secondary" onClick={() => play([{ face: f, turns: 1 }])}>{f}</Button>)}
               {FACES.map((f) => <Button key={f + "'"} variant="outline" onClick={() => play([{ face: f, turns: 3 }])}>{f}'</Button>)}
             </div>
@@ -142,7 +144,7 @@ function RubikPage() {
               {stage < 6 && <Button size="sm" variant="link" onClick={() => { setLesson(stage); setTab("lessons"); }}>Open lesson {stage + 1}</Button>}
             </div>
           </section>
-          <aside className="rounded-xl border bg-card p-4">
+          <aside className="rounded-xl border bg-card p-4 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto">
             <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
               <Button size="sm" variant={tab === "solver" ? "default" : "ghost"} onClick={() => setTab("solver")}>Show me how</Button>
               <Button size="sm" variant={tab === "lessons" ? "default" : "ghost"} onClick={() => setTab("lessons")}>Lessons</Button>

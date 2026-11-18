@@ -73,9 +73,32 @@ function Rig({ handle, version, highlightId }: { handle: React.MutableRefObject<
     </group>
   );
 }
-void FACE_DIR;
 
-export default function CubeScene({ handle, version, highlightId }: { handle: React.MutableRefObject<CubeHandle>; version: number; highlightId?: number }) {
+/** Curved arrow floating over the face that turns next: shows which way to spin. */
+function TurnArrow({ move }: { move: Move }) {
+  const q = useMemo(() => new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(...FACE_DIR[move.face])), [move.face]);
+  const n = FACE_DIR[move.face];
+  const cw = move.turns !== 3;
+  return (
+    <group position={[n[0] * 1.62, n[1] * 1.62, n[2] * 1.62]} quaternion={q}>
+      <group scale={[cw ? -1 : 1, 1, 1]}>
+        <mesh>
+          <torusGeometry args={[0.95, 0.07, 8, 48, Math.PI * 1.5]} />
+          <meshBasicMaterial color="#ff3b1f" />
+        </mesh>
+        <mesh position={[0.05, -0.95, 0]} rotation={[0, 0, -Math.PI / 2]}>
+          <coneGeometry args={[0.2, 0.4, 16]} />
+          <meshBasicMaterial color="#ff3b1f" />
+        </mesh>
+      </group>
+      {move.turns === 2 && (
+        <mesh position={[0, 0, 0.02]}><circleGeometry args={[0.18, 24]} /><meshBasicMaterial color="#ff3b1f" /></mesh>
+      )}
+    </group>
+  );
+}
+
+export default function CubeScene({ handle, version, highlightId, nextMove, whiteTop }: { handle: React.MutableRefObject<CubeHandle>; version: number; highlightId?: number; nextMove?: Move; whiteTop?: boolean }) {
   return (
     <div className="h-full w-full" data-scene-ready>
       <Canvas camera={{ position: [4.2, 3.6, 5.2], fov: 40 }} dpr={[1, 2]}>
@@ -85,7 +108,10 @@ export default function CubeScene({ handle, version, highlightId }: { handle: Re
           <Lightformer intensity={2} position={[0, 5, 0]} scale={[10, 10, 1]} />
           <Lightformer intensity={1} position={[-5, 1, -1]} rotation-y={Math.PI / 2} scale={[20, 1, 1]} />
         </Environment>
-        <Rig handle={handle} version={version} highlightId={highlightId} />
+        <group rotation={[0, 0, whiteTop ? Math.PI : 0]}>
+          <Rig handle={handle} version={version} highlightId={highlightId} />
+          {nextMove && !handle.current.queue.length && <TurnArrow move={nextMove} />}
+        </group>
         <OrbitControls enablePan={false} minDistance={5} maxDistance={12} />
       </Canvas>
     </div>
