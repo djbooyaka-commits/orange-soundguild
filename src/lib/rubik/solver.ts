@@ -277,7 +277,7 @@ function yellowCrossShape(cube: Cube) {
   if (up.length === 4) return "a yellow cross";
   if (up.length === 0) return "just a yellow dot in the middle";
   const [p, q] = up;
-  return dot(p.pos, q.pos) === 1 ? "an L shape" : "a yellow line";
+  return dot(p.pos, q.pos) === 1 ? "a corner shape (two yellow edges side by side)" : "a yellow line";
 }
 
 function lastLayer(cube: Cube, steps: SolveStep[]) {
@@ -287,7 +287,7 @@ function lastLayer(cube: Cube, steps: SolveStep[]) {
   if (!cross) throw new Error("yellow cross failed");
   for (const chunk of cross.chunks) {
     const shape = yellowCrossShape(cube);
-    const tip = shape === "an L shape" ? " Hold the L at the back-left." : shape === "a yellow line" ? " Hold the line going left to right." : "";
+    const tip = shape.startsWith("a corner shape") ? " Hold those two yellow edges at the back-left." : shape === "a yellow line" ? " Hold the line going left to right." : "";
     steps.push({ stage: 3, title: "Yellow cross", parts: splitChunk(chunk, fru.length, "Hold it the right way", "F R U R' U' F'"), moves: chunk,
       detail: `Look at the top: you have ${shape} (ignore the corners).${tip} Then do F R U R' U' F'.` });
     cube = applyAlg(cube, chunk);

@@ -7,6 +7,7 @@ import { sameCube } from "@/lib/rubik/solver";
 import { SolverPanel, makePlan, stepIndexAt, type Plan } from "@/components/rubik/SolverPanel";
 import { LESSONS, STAGE_HINT } from "@/lib/rubik/lessons";
 import type { CubeHandle } from "@/components/rubik/CubeScene";
+import { viewMove, viewText } from "@/lib/rubik/view";
 
 const CubeScene = lazy(() => import("@/components/rubik/CubeScene"));
 
@@ -51,6 +52,7 @@ function RubikPage() {
   useEffect(() => {
     const b = localStorage.getItem("osg-rubik-best");
     if (b) setBest(Number(b));
+    if (localStorage.getItem("osg-rubik-white-top") === "1") setWhiteTop(true);
     handle.current.onCommit = (c) => { setCube(c); setVersion((v) => v + 1); setBusy(handle.current.queue.length > 0); };
   }, []);
 
@@ -85,6 +87,12 @@ function RubikPage() {
     return () => clearInterval(id);
   }, [startAt]);
 
+  const toggleWhiteTop = () => setWhiteTop((v) => { localStorage.setItem("osg-rubik-white-top", v ? "0" : "1"); return !v; });
+  /** Buttons and keys name the sides as the player sees them, so in White-on-top view U turns the white side. */
+  const whiteTopRef = useRef(false);
+  whiteTopRef.current = whiteTop;
+  const playView = useCallback((m: Move) => { handle.current.queue.push(viewMove(m, whiteTopRef.current)); }, []);
+  const t = (x: string) => viewText(x, whiteTop);
   const play = useCallback((moves: Move[]) => { handle.current.queue.push(...moves.map((m) => ({ ...m }))); }, []);
   const setInstant = (c: Cube) => { handle.current.queue = []; handle.current.cube = c; setPlan(null); setReplanned(false); setCube(c); setVersion((v) => v + 1); };
 
@@ -105,11 +113,11 @@ function RubikPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const f = e.key.toUpperCase() as Face;
-      if (FACES.includes(f) && !(e.target instanceof HTMLInputElement)) play([{ face: f, turns: e.shiftKey ? 3 : 1 }]);
+      if (FACES.includes(f) && !(e.target instanceof HTMLInputElement)) playView({ face: f, turns: e.shiftKey ? 3 : 1 });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [play]);
+  }, [playView]);
 
   const L = LESSONS[lesson];
   const focus = tab === "solver" && plan && plan.p < plan.flat.length ? plan.steps[stepIndexAt(plan)].focus : undefined;
@@ -118,18 +126,18 @@ function RubikPage() {
       <Navbar />
       <main className="mx-auto max-w-6xl px-4 py-3 pb-28">
         <h1 className="text-2xl font-bold tracking-tight">Rubik's Cube School</h1>
-        <p className="text-xs text-muted-foreground">The red arrow shows which way to turn next. Scramble the cube and the solver shows you exactly how to solve it, step by step. Drag to spin the cube; turn sides with the buttons or keys U D L R F B (hold Shift to turn backwards).</p>
+        <p className="text-xs text-muted-foreground">Tap a side of the cube to turn it clockwise (right-click or Shift-click for the other way), or swipe across a top, bottom, left or right row to turn it that way. Drag the empty space around the cube to spin your view. The red arrow shows the next turn. Keys U D L R F B work too (Shift turns backwards).</p>
         <div className="mt-2 grid gap-4 lg:grid-cols-[1fr_360px]">
           <section>
             <div className="relative h-[min(52vh,460px)] w-full rounded-xl border bg-card">
-              <Button size="sm" variant="secondary" className="absolute right-2 top-2 z-10" onClick={() => setWhiteTop((v) => !v)}>{whiteTop ? "White on top ✓" : "White on top"}</Button>
+              <Button size="sm" variant="secondary" className="absolute right-2 top-2 z-10" onClick={toggleWhiteTop}>{whiteTop ? "White on top ✓" : "White on top"}</Button>
               <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading cube…</div>}>
                 <CubeScene handle={handle} version={version} highlightId={focus} whiteTop={whiteTop} nextMove={tab === "solver" && plan && plan.p < plan.flat.length ? plan.flat[plan.p] : undefined} />
               </Suspense>
             </div>
             <div className="mt-2 grid grid-cols-12 gap-1">
-              {FACES.map((f) => <Button key={f} variant="secondary" onClick={() => play([{ face: f, turns: 1 }])}>{f}</Button>)}
-              {FACES.map((f) => <Button key={f + "'"} variant="outline" onClick={() => play([{ face: f, turns: 3 }])}>{f}'</Button>)}
+              {FACES.map((f) => <Button key={f} variant="secondary" onClick={() => playView({ face: f, turns: 1 })}>{f}</Button>)}
+              {FACES.map((f) => <Button key={f + "'"} variant="outline" onClick={() => playView({ face: f, turns: 3 })}>{f}'</Button>)}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Button onClick={doScramble}>Scramble &amp; start timer</Button>
@@ -138,9 +146,9 @@ function RubikPage() {
               {best && <span className="text-xs text-muted-foreground">Best {fmt(best)}</span>}
               {assisted && startAt && <span className="text-xs text-muted-foreground">(with solver help)</span>}
             </div>
-            {scrambleText && <p className="mt-2 font-mono text-xs text-muted-foreground">Scramble: {scrambleText}</p>}
+            {scrambleText && <p className="mt-2 font-mono text-xs text-muted-foreground">Scramble: {t(scrambleText)}</p>}
             <div className="mt-3 rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm">
-              <strong>Hint:</strong> {STAGE_HINT[stage]}
+              <strong>Hint:</strong> {t(STAGE_HINT[stage])}
               {stage < 6 && <Button size="sm" variant="link" onClick={() => { setLesson(stage); setTab("lessons"); }}>Open lesson {stage + 1}</Button>}
             </div>
           </section>
@@ -151,7 +159,7 @@ function RubikPage() {
             </div>
             {tab === "solver" ? (
               <SolverPanel plan={plan} solved={stage === 6} busy={busy} slow={slow} replanned={replanned}
-                onToggleSpeed={() => setSlow((v) => !v)} onPlay={solverPlay} onScramble={doScramble} />
+                onToggleSpeed={() => setSlow((v) => !v)} onPlay={solverPlay} onScramble={doScramble} whiteTop={whiteTop} />
             ) : (<>
             <div className="flex flex-wrap gap-1">
               {LESSONS.map((l, i) => (
@@ -159,19 +167,19 @@ function RubikPage() {
               ))}
             </div>
             <h2 className="mt-3 text-lg font-semibold">{L.title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{L.goal}</p>
-            <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">{L.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+            <p className="mt-1 text-sm text-muted-foreground">{t(L.goal)}</p>
+            <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">{L.steps.map((s, i) => <li key={i}>{t(s)}</li>)}</ol>
             {L.alg && (
               <div className="mt-4 rounded-lg bg-muted p-3">
                 <div className="text-xs text-muted-foreground">{L.algLabel}</div>
-                <div className="font-mono text-base">{L.alg}</div>
+                <div className="font-mono text-base">{t(L.alg)}</div>
                 <div className="mt-2 flex gap-2">
                   <Button size="sm" onClick={() => demo(L.alg!)}>Watch it</Button>
                   <Button size="sm" variant="outline" onClick={() => play(parseAlg(L.alg!))}>Do it on my cube</Button>
                 </div>
               </div>
             )}
-            <p className="mt-4 text-xs text-muted-foreground">Hold the cube with white on the bottom and yellow on top. A letter means turn that side clockwise as if you were looking at it; ' means counter-clockwise; 2 means twice.</p>
+            <p className="mt-4 text-xs text-muted-foreground">Hold the cube with {whiteTop ? "white on top and yellow on the bottom" : "white on the bottom and yellow on top"}. A letter means turn that side clockwise as if you were looking at it; ' means counter-clockwise; 2 means twice.</p>
             </>)}
           </aside>
         </div>

@@ -1,24 +1,31 @@
-import { useMemo, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Environment, Lightformer, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
-import { type Cube, type Face, type Move, FACE_DIR, MOVE_AXIS, applyQuarter, inLayer } from "@/lib/rubik/cube";
+import { type Cube, type Face, type Move, type Vec, FACE_DIR, MOVE_AXIS, applyMove, applyQuarter, inLayer } from "@/lib/rubik/cube";
+import { swipeDirections, swipeToMove, tapToMove } from "@/lib/rubik/view";
+
+/** Pixels a press must travel before it counts as a swipe instead of a tap. */
+const SWIPE_PX = 14;
+type Grab = (c: Cube[number], normal: Vec, e: ThreeEvent<PointerEvent>) => void;
 
 const COLORS: Record<Face, string> = { U: "#ffd500", D: "#f4f4f4", F: "#009b48", B: "#0046ad", R: "#b71234", L: "#ff5800" };
 const TURN_SECONDS = 0.22;
 
 export interface CubeHandle { cube: Cube; queue: Move[]; onCommit: (c: Cube) => void; turnSeconds?: number }
 
-function Cubie({ c, glow }: { c: Cube[number]; glow?: boolean }) {
+function Cubie({ c, glow, onGrab }: { c: Cube[number]; glow?: boolean; onGrab?: Grab }) {
   return (
     <group position={c.pos}>
-      <RoundedBox args={[0.96, 0.96, 0.96]} radius={0.08} smoothness={2}>
+      {/* The body only blocks presses so they never reach stickers hidden behind it. */}
+      <RoundedBox args={[0.96, 0.96, 0.96]} radius={0.08} smoothness={2} onPointerDown={onGrab ? (e) => e.stopPropagation() : undefined}>
         <meshStandardMaterial color={glow ? "#ff7a00" : "#111"} emissive={glow ? "#ff7a00" : "#000"} emissiveIntensity={glow ? 0.9 : 0} roughness={0.5} />
       </RoundedBox>
       {c.stickers.map((s, i) => {
         const size: [number, number, number] = s.dir.map((d) => (d ? 0.02 : 0.8)) as [number, number, number];
         return (
-          <mesh key={i} position={s.dir.map((d) => d * 0.485) as [number, number, number]}>
+          <mesh key={i} position={s.dir.map((d) => d * 0.485) as [number, number, number]}
+            onPointerDown={onGrab ? (e) => { e.stopPropagation(); onGrab(c, s.dir, e); } : undefined}>
             <boxGeometry args={size} />
             <meshStandardMaterial color={COLORS[s.color]} roughness={0.35} />
           </mesh>
@@ -30,7 +37,7 @@ function Cubie({ c, glow }: { c: Cube[number]; glow?: boolean }) {
 
 function Rig({ handle, version, highlightId }: { handle: React.MutableRefObject<CubeHandle>; version: number; highlightId?: number }) {
   const turning = useRef<THREE.Group>(null);
-  const anim = useRef<{ face: Face; t: number } | null>(null);
+  const anim = useRef<{ face: Face; t: number; dir: 1 | -1 } | null>(null);
   const cube = handle.current.cube;
   const face = anim.current?.face;
   const [moving, still] = useMemo(() => {
@@ -42,11 +49,65 @@ function Rig({ handle, version, highlightId }: { handle: React.MutableRefObject<
   const [, setTick] = [0, (n: number) => { forceRef.current = n; }];
   void setTick;
 
+  // Tap a side to turn it; swipe across a row to turn that row. Dragging empty space still spins the view.
+  const root = useRef<THREE.Group>(null);
+  const { camera, gl, controls } = useThree() as unknown as { camera: THREE.Camera; gl: THREE.WebGLRenderer; controls: { enabled: boolean } | null };
+  const grab = useRef<{ x: number; y: number; pos: Vec; normal: Vec; reverse: boolean; done: boolean } | null>(null);
+  const idle = () => !anim.current && !handle.current.queue.length;
+  const onGrab: Grab = (c, normal, e) => {
+    if (!idle()) return;
+    grab.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY, pos: c.pos, normal, reverse: e.nativeEvent.button === 2 || e.nativeEvent.shiftKey, done: false };
+    if (controls) controls.enabled = false;
+  };
+  useEffect(() => {
+    const el = gl.domElement;
+    const toScreen = (v: THREE.Vector3) => {
+      const p = root.current!.localToWorld(v.clone()).project(camera);
+      return [p.x * el.clientWidth / 2, -p.y * el.clientHeight / 2];
+    };
+    const move = (ev: PointerEvent) => {
+      const g = grab.current;
+      if (!g || g.done || !root.current) return;
+      const dx = ev.clientX - g.x, dy = ev.clientY - g.y;
+      if (Math.hypot(dx, dy) < SWIPE_PX) return;
+      g.done = true;
+      const base = new THREE.Vector3(...g.pos).addScaledVector(new THREE.Vector3(...g.normal), 0.5);
+      const [bx, by] = toScreen(base);
+      let best: { dir: Vec; score: number } | null = null;
+      for (const dir of swipeDirections(g.normal)) {
+        const [tx, ty] = toScreen(base.clone().addScaledVector(new THREE.Vector3(...dir), 0.5));
+        const len = Math.hypot(tx - bx, ty - by) || 1;
+        const score = ((tx - bx) * dx + (ty - by) * dy) / len;
+        if (!best || score > best.score) best = { dir, score };
+      }
+      const m = best && swipeToMove(g.pos, g.normal, best.dir);
+      if (m && idle()) handle.current.queue.push(m);
+    };
+    const up = () => {
+      const g = grab.current;
+      if (!g) return;
+      if (!g.done && idle()) handle.current.queue.push(tapToMove(g.normal, g.reverse));
+      grab.current = null;
+      if (controls) controls.enabled = true;
+    };
+    const noMenu = (ev: Event) => ev.preventDefault();
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    el.addEventListener("contextmenu", noMenu);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      el.removeEventListener("contextmenu", noMenu);
+    };
+  }, [camera, gl, controls, handle]);
+
   useFrame((_, delta) => {
     const h = handle.current;
     if (!anim.current && h.queue.length) {
       const m = h.queue[0];
-      anim.current = { face: m.face, t: 0 };
+      anim.current = { face: m.face, t: 0, dir: m.turns === 3 ? -1 : 1 }; // counter-clockwise turns animate backwards, not as three turns
       h.onCommit(h.cube); // re-render to split the layer
       return;
     }
@@ -55,21 +116,21 @@ function Rig({ handle, version, highlightId }: { handle: React.MutableRefObject<
     a.t = Math.min(1, a.t + Math.min(delta, 0.05) / (h.turnSeconds ?? TURN_SECONDS));
     const { axis, sign } = MOVE_AXIS[a.face];
     const ease = a.t < 0.5 ? 2 * a.t * a.t : 1 - Math.pow(-2 * a.t + 2, 2) / 2;
-    turning.current.setRotationFromAxisAngle(new THREE.Vector3(...axis), sign * (Math.PI / 2) * ease);
+    turning.current.setRotationFromAxisAngle(new THREE.Vector3(...axis), a.dir * sign * (Math.PI / 2) * ease);
     if (a.t >= 1) {
       turning.current.rotation.set(0, 0, 0);
       const m = h.queue[0];
-      h.cube = applyQuarter(h.cube, a.face);
-      if (m.turns > 1) m.turns = (m.turns - 1) as 1 | 2; else h.queue.shift();
+      if (a.dir < 0) { h.cube = applyMove(h.cube, { face: a.face, turns: 3 }); h.queue.shift(); }
+      else { h.cube = applyQuarter(h.cube, a.face); if (m.turns > 1) m.turns = (m.turns - 1) as 1 | 2; else h.queue.shift(); }
       anim.current = null;
       h.onCommit(h.cube);
     }
   });
 
   return (
-    <group>
+    <group ref={root}>
       <group ref={turning}>{moving.map((c) => <Cubie key={c.id} c={c} glow={c.id === highlightId} />)}</group>
-      {still.map((c) => <Cubie key={c.id} c={c} glow={c.id === highlightId} />)}
+      {still.map((c) => <Cubie key={c.id} c={c} glow={c.id === highlightId} onGrab={onGrab} />)}
     </group>
   );
 }
@@ -112,7 +173,7 @@ export default function CubeScene({ handle, version, highlightId, nextMove, whit
           <Rig handle={handle} version={version} highlightId={highlightId} />
           {nextMove && !handle.current.queue.length && <TurnArrow move={nextMove} />}
         </group>
-        <OrbitControls enablePan={false} minDistance={5} maxDistance={12} />
+        <OrbitControls makeDefault enablePan={false} minDistance={5} maxDistance={12} />
       </Canvas>
     </div>
   );

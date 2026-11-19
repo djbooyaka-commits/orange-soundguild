@@ -11,7 +11,7 @@ export const LESSONS: Lesson[] = [
     steps: ["Find a top edge with no yellow.", "Turn U until its front color matches the front center.", "If it belongs on the right: U R U' R' U' F' U F", "If it belongs on the left: U' L' U L U F U' F'"],
     alg: "U R U' R' U' F' U F", algLabel: "Insert edge to the right" },
   { title: "4. Yellow cross", goal: "Make a yellow plus on top (side colors don't matter yet).",
-    steps: ["Look at the top: you'll see a dot, an L shape, or a line.", "L shape: hold it at the back-left. Line: hold it horizontal.", "Do F R U R' U' F' and look again. Repeat until you have the cross."],
+    steps: ["Look at the top: you'll see a dot, a corner shape (two yellow edges side by side), or a line.", "Corner shape: hold those two edges at the back-left. Line: hold it going left to right.", "Do F R U R' U' F' and look again. Repeat until you have the cross."],
     alg: "F R U R' U' F'", algLabel: "Yellow cross" },
   { title: "5. Yellow face", goal: "Turn the whole top yellow.",
     steps: ["If exactly one corner is yellow-up, hold it at front-left.", "Do the 'Sune': R U R' U R U2 R'", "Look again and repeat until the top is all yellow."],

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { type Cube, type Move, applyMove, moveName } from "@/lib/rubik/cube";
-import { type SolveStep, STAGE_NAMES, describeMove, solveCube } from "@/lib/rubik/solver";
+import { type SolveStep, STAGE_NAMES, solveCube } from "@/lib/rubik/solver";
+import { describeViewMove, viewMove, viewText } from "@/lib/rubik/view";
 
 export interface Plan { steps: SolveStep[]; flat: Move[]; stepStart: number[]; states: Cube[]; p: number }
 
@@ -28,9 +29,12 @@ interface Props {
   onToggleSpeed: () => void;
   onPlay: (moves: Move[]) => void;
   onScramble: () => void;
+  whiteTop: boolean;
 }
 
-export function SolverPanel({ plan, solved, busy, slow, replanned, onToggleSpeed, onPlay, onScramble }: Props) {
+export function SolverPanel({ plan, solved, busy, slow, replanned, onToggleSpeed, onPlay, onScramble, whiteTop }: Props) {
+  const t = (x: string) => viewText(x, whiteTop);
+  const name = (m: Move) => moveName(viewMove(m, whiteTop));
   if (solved || !plan || plan.p >= plan.flat.length) {
     return (
       <div className="space-y-3">
@@ -62,8 +66,8 @@ export function SolverPanel({ plan, solved, busy, slow, replanned, onToggleSpeed
         <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
       </div>
       {replanned && <p className="text-xs text-muted-foreground">You turned the cube yourself, so I worked out a new plan from here.</p>}
-      <h2 className="text-lg font-semibold leading-snug">{step.title}</h2>
-      <p className="text-sm text-muted-foreground">{step.detail}</p>
+      <h2 className="text-lg font-semibold leading-snug">{t(step.title)}</h2>
+      <p className="text-sm text-muted-foreground">{t(step.detail)}</p>
 
       <div className="space-y-2">
         {step.parts.map((part, pi) => {
@@ -71,7 +75,7 @@ export function SolverPanel({ plan, solved, busy, slow, replanned, onToggleSpeed
           offset += part.moves.length;
           return (
             <div key={pi}>
-              <div className="text-xs text-muted-foreground">{part.label}</div>
+              <div className="text-xs text-muted-foreground">{t(part.label)}</div>
               <div className="mt-1 flex flex-wrap gap-1">
                 {part.moves.map((m, mi) => {
                   const idx = base + mi;
@@ -80,7 +84,7 @@ export function SolverPanel({ plan, solved, busy, slow, replanned, onToggleSpeed
                     <span key={mi} className={
                       "rounded px-2 py-0.5 font-mono text-sm " +
                       (state === "done" ? "bg-muted text-muted-foreground line-through" : state === "next" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")
-                    }>{moveName(m)}</span>
+                    }>{name(m)}</span>
                   );
                 })}
               </div>
@@ -90,8 +94,8 @@ export function SolverPanel({ plan, solved, busy, slow, replanned, onToggleSpeed
       </div>
 
       <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm">
-        <div className="font-mono text-base font-semibold">Next: {moveName(next)}</div>
-        <div className="text-muted-foreground">{describeMove(next)}</div>
+        <div className="font-mono text-base font-semibold">Next: {name(next)}</div>
+        <div className="text-muted-foreground">{describeViewMove(next, whiteTop)}</div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -100,14 +104,14 @@ export function SolverPanel({ plan, solved, busy, slow, replanned, onToggleSpeed
         <Button size="sm" variant="outline" disabled={busy} onClick={() => onPlay(plan.flat.slice(plan.p))}>Solve it all</Button>
         <Button size="sm" variant="ghost" onClick={onToggleSpeed}>{slow ? "Speed: slow" : "Speed: normal"}</Button>
       </div>
-      <p className="text-xs text-muted-foreground">Want to try yourself? Do the moves with the turn buttons or on a real cube — hold green facing you and yellow on top.</p>
+      <p className="text-xs text-muted-foreground">Want to try yourself? Tap or swipe the cube, use the turn buttons, or follow along on a real cube — hold green facing you and {whiteTop ? "white" : "yellow"} on top.</p>
 
       <details className="rounded-lg border p-2 text-sm">
         <summary className="cursor-pointer font-medium">All steps ({plan.steps.length})</summary>
         <ol className="mt-2 max-h-64 space-y-1 overflow-y-auto pl-1">
           {plan.steps.map((s, i) => (
             <li key={i} className={i === si ? "font-semibold text-primary" : i < si ? "text-muted-foreground line-through" : ""}>
-              {i + 1}. {s.title} <span className="font-mono text-xs text-muted-foreground">({s.moves.length} moves)</span>
+              {i + 1}. {t(s.title)} <span className="font-mono text-xs text-muted-foreground">({s.moves.length} moves)</span>
             </li>
           ))}
         </ol>
