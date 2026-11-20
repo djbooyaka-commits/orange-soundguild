@@ -103,7 +103,6 @@ export function SpotifyConnectCard() {
   useEffect(() => {
     if (!status?.connected || !autoActive) return;
     const timer = setInterval(() => {
-      if (document.visibilityState === "hidden") return;
       void (async () => {
         try {
           const r = await viewSyncFn();
@@ -122,7 +121,6 @@ export function SpotifyConnectCard() {
   useEffect(() => {
     if (!status?.connected) return;
     const timer = setInterval(() => {
-      if (document.visibilityState === "hidden") return;
       void refresh();
     }, 60 * 1000);
     return () => clearInterval(timer);

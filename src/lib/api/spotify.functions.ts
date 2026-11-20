@@ -355,7 +355,7 @@ export async function pollSpotifyRecentForUser(userId: string, supabaseAdmin: an
     // "now" on an empty response would skip plays Spotify reports late.
     const updates: Record<string, string> = {};
     if (maxEvaluatedAt != null) updates.last_polled_at = new Date(maxEvaluatedAt).toISOString();
-    // Streaming a Curator playlist keeps auto-sync alive for 2 more hours.
+    // Streaming a Curator playlist keeps auto-sync alive for 10 more hours.
     if (added > 0) updates.auto_sync_until = new Date(Date.now() + AUTO_SYNC_WINDOW_MS).toISOString();
     if (Object.keys(updates).length) {
       await supabaseAdmin.from("spotify_connections").update(updates).eq("user_id", userId);
@@ -369,7 +369,8 @@ export async function pollSpotifyRecentForUser(userId: string, supabaseAdmin: an
     };
 }
 
-export const AUTO_SYNC_WINDOW_MS = 2 * 60 * 60 * 1000;
+// Covers a full night's sleep or a long work day of streaming.
+export const AUTO_SYNC_WINDOW_MS = 10 * 60 * 60 * 1000;
 
 export const pollSpotifyRecent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
