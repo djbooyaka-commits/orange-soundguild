@@ -107,6 +107,9 @@ export function Navbar() {
           <Link to="/games/rubik" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
             Rubik's Cube
           </Link>
+          <Link to="/isrc-finder" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
+            ISRC Finder
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
@@ -329,6 +332,7 @@ export function Navbar() {
         <Link to="/posts" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Posts</Link>
         <Link to="/curator-playlists" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Curator Playlists</Link>
         <Link to="/games/rubik" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Rubik's Cube</Link>
+        <Link to="/isrc-finder" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">ISRC Finder</Link>
         {user && (
           <Link to="/u/$handle" params={{ handle: CURRENT_USER.handle }} className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Profile</Link>
         )}

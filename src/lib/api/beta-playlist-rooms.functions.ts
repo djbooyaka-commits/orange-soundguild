@@ -1,5 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+// Points must never silently read as 0: retry once, then surface the error.
+async function earnedPointsRows(supabaseAdmin: any, playlistId: string) {
+  for (let i = 0; i < 2; i++) {
+    const res = await supabaseAdmin.rpc("beta_playlist_earned_points", { p_playlist_id: playlistId });
+    if (!res.error) return res;
+    console.error("beta_playlist_earned_points failed", res.error);
+  }
+  throw new Error("Couldn't load points right now — please try again.");
+}
 import { roomLastfmUsernames } from "./lastfm-room-account";
 
 /**
@@ -156,9 +166,7 @@ export const getBetaPlaylistRoom = createServerFn({ method: "POST" })
     if (userIds.length) {
       // Aggregate in SQL: counting client-side truncated at the API row limit
       // once a playlist had thousands of plays, which zeroed out totals.
-      const { data: rows } = await supabaseAdmin.rpc("beta_playlist_earned_points", {
-        p_playlist_id: pl.id,
-      });
+      const { data: rows } = await earnedPointsRows(supabaseAdmin, pl.id);
       const memberSet = new Set(userIds);
       for (const r of (rows ?? []) as any[]) {
         if (!memberSet.has(r.user_id as string)) continue;
@@ -401,7 +409,7 @@ export const adjustBetaPlaylistPoints = createServerFn({ method: "POST" })
         : new Date(0).toISOString(); // inactivity expiry handled in beta_playlist_earned_points
       const [{ data: earnedRows }, { data: submissions }, { data: adjustments }] =
         await Promise.all([
-          supabaseAdmin.rpc("beta_playlist_earned_points", { p_playlist_id: pl.id }),
+          earnedPointsRows(supabaseAdmin, pl.id),
           supabaseAdmin
             .from("beta_submissions")
             .select("cost_points")
@@ -1038,7 +1046,7 @@ export const betaRemoveAllPoints = createServerFn({ method: "POST" })
     const { pl, room } = await ownedBetaPlaylist(supabaseAdmin, data.playlistId, context.userId);
     const [{ data: members }, { data: earnedRows }, { data: subs }, { data: adjs }] = await Promise.all([
       supabaseAdmin.from("beta_room_members").select("user_id").eq("room_id", room.id),
-      supabaseAdmin.rpc("beta_playlist_earned_points", { p_playlist_id: pl.id }),
+      earnedPointsRows(supabaseAdmin, pl.id),
       supabaseAdmin.from("beta_submissions").select("submitter_user_id, cost_points").eq("playlist_id", pl.id),
       supabaseAdmin.from("beta_point_adjustments").select("user_id, delta").eq("playlist_id", pl.id),
     ]);

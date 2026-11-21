@@ -18,6 +18,7 @@ import { Route as CuratorRouteImport } from './routes/curator'
 import { Route as CuratorPlaylistsRouteImport } from './routes/curator-playlists'
 import { Route as CuratorPoolRouteImport } from './routes/curator-pool'
 import { Route as DiscoverRouteImport } from './routes/discover'
+import { Route as IsrcFinderRouteImport } from './routes/isrc-finder'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as PcRemoteRouteImport } from './routes/pc-remote'
@@ -97,6 +98,11 @@ const CuratorPoolRoute = CuratorPoolRouteImport.update({
 const DiscoverRoute = DiscoverRouteImport.update({
   id: '/discover',
   path: '/discover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IsrcFinderRoute = IsrcFinderRouteImport.update({
+  id: '/isrc-finder',
+  path: '/isrc-finder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -290,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/curator-playlists': typeof CuratorPlaylistsRoute
   '/curator-pool': typeof CuratorPoolRoute
   '/discover': typeof DiscoverRoute
+  '/isrc-finder': typeof IsrcFinderRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
   '/pc-remote': typeof PcRemoteRoute
@@ -336,6 +343,7 @@ export interface FileRoutesByTo {
   '/curator-playlists': typeof CuratorPlaylistsRoute
   '/curator-pool': typeof CuratorPoolRoute
   '/discover': typeof DiscoverRoute
+  '/isrc-finder': typeof IsrcFinderRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
   '/pc-remote': typeof PcRemoteRoute
@@ -383,6 +391,7 @@ export interface FileRoutesById {
   '/curator-playlists': typeof CuratorPlaylistsRoute
   '/curator-pool': typeof CuratorPoolRoute
   '/discover': typeof DiscoverRoute
+  '/isrc-finder': typeof IsrcFinderRoute
   '/library': typeof LibraryRoute
   '/messages': typeof MessagesRoute
   '/pc-remote': typeof PcRemoteRoute
@@ -431,6 +440,7 @@ export interface FileRouteTypes {
     | '/curator-playlists'
     | '/curator-pool'
     | '/discover'
+    | '/isrc-finder'
     | '/library'
     | '/messages'
     | '/pc-remote'
@@ -477,6 +487,7 @@ export interface FileRouteTypes {
     | '/curator-playlists'
     | '/curator-pool'
     | '/discover'
+    | '/isrc-finder'
     | '/library'
     | '/messages'
     | '/pc-remote'
@@ -523,6 +534,7 @@ export interface FileRouteTypes {
     | '/curator-playlists'
     | '/curator-pool'
     | '/discover'
+    | '/isrc-finder'
     | '/library'
     | '/messages'
     | '/pc-remote'
@@ -570,6 +582,7 @@ export interface RootRouteChildren {
   CuratorPlaylistsRoute: typeof CuratorPlaylistsRoute
   CuratorPoolRoute: typeof CuratorPoolRoute
   DiscoverRoute: typeof DiscoverRoute
+  IsrcFinderRoute: typeof IsrcFinderRoute
   LibraryRoute: typeof LibraryRoute
   MessagesRoute: typeof MessagesRoute
   PcRemoteRoute: typeof PcRemoteRoute
@@ -669,6 +682,13 @@ declare module '@tanstack/react-router' {
       path: '/discover'
       fullPath: '/discover'
       preLoaderRoute: typeof DiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/isrc-finder': {
+      id: '/isrc-finder'
+      path: '/isrc-finder'
+      fullPath: '/isrc-finder'
+      preLoaderRoute: typeof IsrcFinderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -940,6 +960,7 @@ const rootRouteChildren: RootRouteChildren = {
   CuratorPlaylistsRoute: CuratorPlaylistsRoute,
   CuratorPoolRoute: CuratorPoolRoute,
   DiscoverRoute: DiscoverRoute,
+  IsrcFinderRoute: IsrcFinderRoute,
   LibraryRoute: LibraryRoute,
   MessagesRoute: MessagesRoute,
   PcRemoteRoute: PcRemoteRoute,
