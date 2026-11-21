@@ -86,6 +86,7 @@ export const lookupIsrc = createServerFn({ method: "POST" })
         const albums = await Promise.all((r.albums?.items ?? []).map((a: any) => fullAlbum(a.id)));
         return { tracks: [], albums };
       }
+      if (p.kind !== "text") return { tracks: [], albums: [] };
       if (data.type === "album") {
         const r = await sp(`search?type=album&limit=5&q=${encodeURIComponent(p.q)}`);
         const albums = await Promise.all((r.albums?.items ?? []).slice(0, 5).map((a: any, i: number) => fullAlbum(a.id, i === 0)));
