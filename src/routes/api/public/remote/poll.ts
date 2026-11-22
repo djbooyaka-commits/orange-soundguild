@@ -91,6 +91,18 @@ export const Route = createFileRoute("/api/public/remote/poll")({
               played_seconds: secs, started_at: new Date(started).toISOString(),
             }];
           });
+          // Fill missing playlist names by matching the song against tracked room playlists.
+          for (const r of rows) {
+            if (r.playlist || !r.title) continue;
+            const { data: hit } = await supabaseAdmin.from("beta_room_tracks")
+              .select("playlist_id, artist_name").ilike("track_name", r.title).limit(5);
+            const first = r.artist?.toLowerCase().split(/[,&]/)[0]?.trim();
+            const m = (hit ?? []).find((h) => !first || (h.artist_name ?? "").toLowerCase().includes(first));
+            if (m?.playlist_id) {
+              const { data: pl } = await supabaseAdmin.from("beta_room_playlists").select("name").eq("id", m.playlist_id).maybeSingle();
+              if (pl?.name) r.playlist = `${String(pl.name).trim()} (matched)`;
+            }
+          }
           if (rows.length) await supabaseAdmin.from("remote_plays").upsert(rows as never, { onConflict: "device_id,started_at,title", ignoreDuplicates: true });
         }
 

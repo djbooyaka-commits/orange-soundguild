@@ -7,7 +7,9 @@ import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.provider.Settings
+import android.app.Notification
 import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -63,6 +65,22 @@ class MusicTracker : NotificationListenerService() {
     }
 
     private val tracks = HashMap<String, Track>()
+    /** Latest playlist-like label each music app showed in its notification. */
+    private val notifLabel = HashMap<String, String>()
+
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        val pkg = sbn?.packageName ?: return
+        if (!APPS.containsKey(pkg)) return
+        try {
+            val ex = sbn.notification.extras
+            val raw = (ex.getCharSequence(Notification.EXTRA_SUB_TEXT) ?: ex.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))?.toString()
+            val clean = raw?.replace(Regex("^(playing from|from|playlist)\\s*[:·•-]?\\s*(playlist\\s*[:·•-]?\\s*)?", RegexOption.IGNORE_CASE), "")?.trim()
+            if (!clean.isNullOrEmpty()) {
+                notifLabel[pkg] = clean.take(200)
+                tracks[pkg]?.let { if (it.playlist == null) it.playlist = notifLabel[pkg] }
+            }
+        } catch (_: Exception) {}
+    }
     private val callbacks = HashMap<MediaController, MediaController.Callback>()
     private var msm: MediaSessionManager? = null
     private val sessionsListener = MediaSessionManager.OnActiveSessionsChangedListener { list -> watch(list ?: emptyList()) }
@@ -120,6 +138,7 @@ class MusicTracker : NotificationListenerService() {
         val t = tracks[pkg]!!
         // Spotify and others report the playlist/queue name here (e.g. "Super lucky").
         try { c.queueTitle?.toString()?.trim()?.takeIf { it.isNotEmpty() }?.let { t.playlist = it.take(200) } } catch (_: Exception) {}
+        if (t.playlist == null) notifLabel[pkg]?.let { t.playlist = it }
         if (c.playbackState?.state == PlaybackState.STATE_PLAYING) t.play(now) else t.pause(now)
     }
 

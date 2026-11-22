@@ -508,7 +508,7 @@ function MusicPlayed({ deviceId }: { deviceId: string }) {
   return (
     <section className="rounded-xl border border-border p-4">
       <h2 className="mb-1 font-semibold">Music played on this phone</h2>
-      <p className="mb-3 text-xs text-muted-foreground">Plays of 30 seconds or more. Turn on "Music tracking" in the OSG Remote app (version 3.2 shows the playlist). {today} today.</p>
+      <p className="mb-3 text-xs text-muted-foreground">Plays of 30 seconds or more. Turn on "Music tracking" in the OSG Remote app (version 3.4 shows the playlist). {today} today.</p>
       {plays === null ? <Loader2 className="h-4 w-4 animate-spin" /> : plays.length === 0 ? (
         <p className="text-sm text-muted-foreground">No music tracked yet.</p>
       ) : (
