@@ -88,7 +88,7 @@ export function Navbar() {
         </Link>
 
 
-        <nav className="hidden min-w-0 items-center gap-1 text-sm text-muted-foreground xl:flex">
+        <nav className="hidden min-w-0 shrink-0 items-center gap-1 text-sm text-muted-foreground xl:flex">
           <Link to="/" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 font-medium text-foreground hover:bg-muted" activeOptions={{ exact: true }}>
             Home
           </Link>
@@ -103,12 +103,6 @@ export function Navbar() {
           </Link>
           <Link to="/curator-playlists" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
             Curator Playlists
-          </Link>
-          <Link to="/games/rubik" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
-            Rubik's Cube
-          </Link>
-          <Link to="/isrc-finder" className="whitespace-nowrap rounded-md px-2 py-1.5 lg:px-3 hover:bg-muted">
-            ISRC Finder
           </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -127,6 +121,12 @@ export function Navbar() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/library">Library</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/games/rubik">Rubik's Cube</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/isrc-finder">ISRC Finder</Link>
               </DropdownMenuItem>
               {user && (
                 <DropdownMenuItem asChild>
