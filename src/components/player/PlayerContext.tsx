@@ -11,7 +11,7 @@ import {
 import type { Track } from "@/lib/tracks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { recordOsgRoomPlay } from "@/lib/api/osg-room-streams.functions";
+import { recordOsgRoomPlay, startOsgRoomPlay } from "@/lib/api/osg-room-streams.functions";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -72,6 +72,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const currentRef = useRef<Track | null>(null);
   const countedRef = useRef(false);
   const recordingRef = useRef(false);
+  // Server-signed start ticket for the current play, needed for OSG room points.
+  const osgTicketRef = useRef<{ trackId: string; ticket: string | null; used: boolean } | null>(null);
   const queueRef = useRef<Track[]>([]);
   const shuffleRef = useRef(false);
   const playedRef = useRef<Set<string>>(new Set());
@@ -179,7 +181,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         return;
       }
       // Credit OSG stream-room points for members (no-op if not in a room).
-      void recordOsgRoomPlay({ data: { trackId: t.id } }).catch(() => {});
+      const osgTicket = osgTicketRef.current;
+      if (osgTicket?.trackId === t.id && osgTicket.ticket && !osgTicket.used) {
+        osgTicket.used = true;
+        void recordOsgRoomPlay({ data: { trackId: t.id, ticket: osgTicket.ticket } }).catch(() => {});
+      }
       if (currentRef.current?.id !== t.id) return;
       countedRef.current = true;
       window.dispatchEvent(
@@ -209,6 +215,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
     const onPlay = () => {
       setIsPlaying(true);
+      const t = currentRef.current;
+      const prev = osgTicketRef.current;
+      if (
+        t && UUID_RE.test(t.id) && !countedRef.current && audio.currentTime <= 1 &&
+        (!prev || prev.trackId !== t.id || prev.used)
+      ) {
+        const entry = { trackId: t.id, ticket: null as string | null, used: false };
+        osgTicketRef.current = entry;
+        void startOsgRoomPlay({ data: { trackId: t.id } })
+          .then((r) => { entry.ticket = r.ticket; })
+          .catch(() => {});
+      }
       announcePlaying();
     };
     const onPause = () => setIsPlaying(false);

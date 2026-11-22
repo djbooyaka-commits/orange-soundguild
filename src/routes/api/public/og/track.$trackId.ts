@@ -4,6 +4,10 @@ import { createFileRoute } from "@tanstack/react-router";
 // Streams the track's cover through our own domain with clean headers
 // (no cookies, no signed-URL query string) so social card scrapers like
 // X's Twitterbot will cache and render it reliably.
+function isOwnCoverPath(path: string, ownerId: string | null) {
+  return !!ownerId && !path.startsWith("http") && !path.includes("..") && path.startsWith(`${ownerId}/`);
+}
+
 export const Route = createFileRoute("/api/public/og/track/$trackId")({
   server: {
     handlers: {
@@ -16,11 +20,11 @@ export const Route = createFileRoute("/api/public/og/track/$trackId")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: row } = await supabaseAdmin
           .from("tracks")
-          .select("cover_art_url")
+          .select("cover_art_url, user_id")
           .eq("id", trackId)
           .maybeSingle();
 
-        if (!row?.cover_art_url) {
+        if (!row?.cover_art_url || !isOwnCoverPath(row.cover_art_url, row.user_id)) {
           return new Response(null, { status: 404 });
         }
 
@@ -41,24 +45,21 @@ export const Route = createFileRoute("/api/public/og/track/$trackId")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: row } = await supabaseAdmin
           .from("tracks")
-          .select("cover_art_url")
+          .select("cover_art_url, user_id")
           .eq("id", trackId)
           .maybeSingle();
 
-        if (!row?.cover_art_url) {
+        // Only stream covers stored in the track owner's own folder. External
+        // links are never fetched, so this route can't be pointed at other sites.
+        if (!row?.cover_art_url || !isOwnCoverPath(row.cover_art_url, row.user_id)) {
           return new Response("Not found", { status: 404 });
         }
 
-        let sourceUrl: string;
-        if (row.cover_art_url.startsWith("http")) {
-          sourceUrl = row.cover_art_url;
-        } else {
-          const { data: signed } = await supabaseAdmin.storage
-            .from("covers")
-            .createSignedUrl(row.cover_art_url, 60 * 60);
-          if (!signed?.signedUrl) return new Response("Not found", { status: 404 });
-          sourceUrl = signed.signedUrl;
-        }
+        const { data: signed } = await supabaseAdmin.storage
+          .from("covers")
+          .createSignedUrl(row.cover_art_url, 60 * 60);
+        if (!signed?.signedUrl) return new Response("Not found", { status: 404 });
+        const sourceUrl = signed.signedUrl;
 
         const upstream = await fetch(sourceUrl);
         if (!upstream.ok || !upstream.body) {

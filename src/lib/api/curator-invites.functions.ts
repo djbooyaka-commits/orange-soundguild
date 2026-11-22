@@ -3,13 +3,26 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const acceptCuratorInviteByLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { curatorId: string }) => data)
+  .inputValidator((data: { curatorId: string; token: string }) => ({
+    curatorId: String(data?.curatorId ?? ""),
+    token: String(data?.token ?? "").slice(0, 200),
+  }))
   .handler(async ({ data, context }) => {
     const { data: id, error } = await context.supabase.rpc("accept_curator_invite_by_link", {
       _curator_id: data.curatorId,
+      _token: data.token,
     });
     if (error) throw new Error(error.message);
     return { id };
+  });
+
+/** The signed-in Curator's own secret invite-link code. */
+export const getMyCuratorInviteToken = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.rpc("get_my_curator_invite_token");
+    if (error) throw new Error(error.message);
+    return { token: (data as string | null) ?? null };
   });
 
 export const inviteCuratorUser = createServerFn({ method: "POST" })

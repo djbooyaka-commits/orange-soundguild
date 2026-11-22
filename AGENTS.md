@@ -29,3 +29,6 @@
 - Team-room restores read the live Spotify playlist before re-adding and keep the removal row (shown as "Re-add pending") until the add succeeds; this prevents duplicates of songs curators re-added by hand.
 - Old-song cleanup (auto_remove_expired) removes Spotify items whose added_at exceeds track_hold_days only on non-team, non-OSG Spotify playlists, via expired-tracks.server from the toggle, Sync and the daily playlist-sync hook; team member tracks follow star rules instead.
 - Desktop navbar keeps only core links inline; new pages go in the More dropdown (mobile row scrolls), so added tabs never overlap the search bar.
+- Curator invite links carry a per-curator secret code (curator_invite_links, ?invite=<curatorId>.<code>) checked by accept_curator_invite_by_link, so a guessable user id alone never enrolls anyone.
+- OSG room points need a server-signed start ticket from startOsgRoomPlay redeemed ≥30s later, with played_at set to the ticket start, so points can't be minted without real playback or by reusing a ticket.
+- PayPal orders store `<purpose>:<buyerId>` in custom_id and captures check it first, so only the buyer who created an order can capture it.

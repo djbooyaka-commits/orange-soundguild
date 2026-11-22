@@ -408,7 +408,7 @@ async function paypalAccessToken(): Promise<string> {
 export const createTrackPaypalOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { trackId: string }) => ({ trackId: d.trackId }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const sale = await loadSaleInfo(data.trackId);
     if (!sale.price_cents || sale.price_cents < 100) throw new Error("Track is not for sale");
     const priceUsd = (sale.price_cents / 100).toFixed(2);
@@ -422,7 +422,8 @@ export const createTrackPaypalOrder = createServerFn({ method: "POST" })
           {
             amount: { currency_code: "USD", value: priceUsd },
             description: `Orange Sound Guild — ${sale.title}`,
-            custom_id: data.trackId,
+            // Ties the order to this buyer and song so nobody else can capture it.
+            custom_id: `${data.trackId}:${context.userId}`,
           },
         ],
       }),
@@ -454,7 +455,15 @@ export const captureTrackPaypalOrder = createServerFn({ method: "POST" })
     if (existing) throw new Error("This order has already been used.");
 
     const token = await paypalAccessToken();
-    const capRes = await fetch(`${PAYPAL_API}/v2/checkout/orders/${data.orderId}/capture`, {
+    const check = await fetch(`${PAYPAL_API}/v2/checkout/orders/${encodeURIComponent(data.orderId)}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!check.ok) throw new Error("PayPal order not found");
+    const pending = (await check.json()) as { purchase_units?: Array<{ custom_id?: string }> };
+    if (pending.purchase_units?.[0]?.custom_id !== `${data.trackId}:${context.userId}`) {
+      throw new Error("This PayPal order does not belong to your account");
+    }
+    const capRes = await fetch(`${PAYPAL_API}/v2/checkout/orders/${encodeURIComponent(data.orderId)}/capture`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
     });

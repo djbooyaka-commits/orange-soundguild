@@ -4,7 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { Link2, Copy, Check, X, Loader2, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { listMyCuratorInvitees, cancelCuratorInvite } from "@/lib/api/curator-invites.functions";
+import {
+  listMyCuratorInvitees,
+  cancelCuratorInvite,
+  getMyCuratorInviteToken,
+} from "@/lib/api/curator-invites.functions";
 import { curatorAdjustPlaylistPoints, listMyCuratorPlaylists } from "@/lib/api/curator.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
@@ -36,10 +40,21 @@ export function CuratorInviteManager() {
   const [adjustingId, setAdjustingId] = useState<string | null>(null);
 
 
+  const tokenFn = useServerFn(getMyCuratorInviteToken);
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    tokenFn()
+      .then((r) => { if (!cancelled) setInviteToken(r.token); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user, tokenFn]);
+
   const inviteUrl = useMemo(() => {
-    if (!user) return "";
-    return `${publicOrigin()}/curator?invite=${user.id}`;
-  }, [user]);
+    if (!user || !inviteToken) return "";
+    return `${publicOrigin()}/curator?invite=${user.id}.${inviteToken}`;
+  }, [user, inviteToken]);
 
   const refresh = async () => {
     const rows = ((await listFn()) ?? []) as Invitee[];
@@ -96,6 +111,7 @@ export function CuratorInviteManager() {
 
 
   const copy = async () => {
+    if (!inviteUrl) return;
     try {
       await navigator.clipboard.writeText(inviteUrl);
       setCopied(true);

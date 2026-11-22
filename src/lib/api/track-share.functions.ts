@@ -18,7 +18,8 @@ export const getTrackShareMeta = createServerFn({ method: "GET" })
     if (row.cover_art_url) {
       if (row.cover_art_url.startsWith("http")) {
         coverUrl = row.cover_art_url;
-      } else {
+      } else if (row.user_id && row.cover_art_url.startsWith(`${row.user_id}/`) && !row.cover_art_url.includes("..")) {
+        // Only sign covers kept in the track owner's own folder.
         const { data: signed } = await supabaseAdmin.storage
           .from("covers")
           .createSignedUrl(row.cover_art_url, 60 * 60 * 24 * 7);

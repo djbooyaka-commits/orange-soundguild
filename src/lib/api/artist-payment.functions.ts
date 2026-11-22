@@ -284,6 +284,18 @@ async function paypalAccessToken(): Promise<string> {
   return j.access_token;
 }
 
+/** Only the signed-in user who created a PayPal order on this site may capture it. */
+async function assertPaypalOrderOwner(token: string, orderId: string, expected: string) {
+  const res = await fetch(`${paypalApi()}/v2/checkout/orders/${encodeURIComponent(orderId)}`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error("PayPal order not found");
+  const order = (await res.json()) as { purchase_units?: Array<{ custom_id?: string }> };
+  if (order.purchase_units?.[0]?.custom_id !== expected) {
+    throw new Error("This PayPal order does not belong to your account");
+  }
+}
+
 export const getPaypalConfig = createServerFn({ method: "GET" }).handler(async () => ({
   clientId: process.env.PAYPAL_CLIENT_ID ?? "",
   mode: (process.env.PAYPAL_MODE ?? "sandbox") as "sandbox" | "live",
@@ -294,7 +306,7 @@ export const getPaypalConfig = createServerFn({ method: "GET" }).handler(async (
 export const createPaypalOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { tier?: Tier } | undefined) => ({ tier: validateTier(data?.tier ?? "artist") }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const token = await paypalAccessToken();
     const priceUsd = priceFor(data.tier);
     const label = data.tier === "artist" ? "Artist plan" : "Superfan plan";
@@ -310,7 +322,8 @@ export const createPaypalOrder = createServerFn({ method: "POST" })
           {
             amount: { currency_code: "USD", value: priceUsd.toFixed(2) },
             description: `Orange Sound Guild ${label} - 30 days`,
-            custom_id: data.tier,
+            // Ties the order to this buyer so nobody else can capture it.
+            custom_id: `${data.tier}:${context.userId}`,
           },
         ],
       }),
@@ -344,9 +357,10 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
     if (existing) throw new Error("This order has already been used.");
 
     const token = await paypalAccessToken();
+    await assertPaypalOrderOwner(token, data.orderId, `${data.tier}:${userId}`);
 
     const capRes = await fetch(
-      `${paypalApi()}/v2/checkout/orders/${data.orderId}/capture`,
+      `${paypalApi()}/v2/checkout/orders/${encodeURIComponent(data.orderId)}/capture`,
       {
         method: "POST",
         headers: {

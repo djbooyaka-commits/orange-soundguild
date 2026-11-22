@@ -719,6 +719,15 @@ export const setBetaPlaylistMemberFacebook = createServerFn({ method: "POST" })
     const { pl, room } = await loadPlaylist(supabaseAdmin, data.playlistId);
     if (room.owner_id !== context.userId)
       throw new Error("Only the room owner can set Facebook links");
+    if (data.userId !== room.owner_id) {
+      const { data: member } = await supabaseAdmin
+        .from("beta_room_members")
+        .select("id")
+        .eq("room_id", room.id)
+        .eq("user_id", data.userId)
+        .maybeSingle();
+      if (!member) throw new Error("That person is not a member of this room");
+    }
 
     // Stored once on the member's profile so it shows on every playlist tab/room.
     const { error } = await supabaseAdmin

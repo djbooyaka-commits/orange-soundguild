@@ -130,8 +130,17 @@ export const getMyListeningStats = createServerFn({ method: "GET" })
   });
 
 export const getSuperfanPublicProfile = createServerFn({ method: "GET" })
-  .inputValidator((data: { userId: string }) => data)
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) => {
+    const userId = String(data?.userId ?? "");
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+      throw new Error("Invalid user");
+    }
+    return { userId };
+  })
   .handler(async ({ data }) => {
+    // Listening highlights (top song, top artist, follows) are only shown to
+    // signed-in members, never to anonymous visitors or scrapers.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Every account type can show its public listening highlights. The fuller

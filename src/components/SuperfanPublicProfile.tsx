@@ -49,6 +49,9 @@ export function SuperfanPublicProfile({
         setTrackCover(signed[0]);
         setArtistAvatar(signed[1]);
         setFollowingAvatars(signed.slice(2));
+      } catch {
+        // Visitors who aren't signed in don't see listening highlights.
+        if (!cancelled) setHasListenerProfile(false);
       } finally {
         if (!cancelled) setLoading(false);
       }

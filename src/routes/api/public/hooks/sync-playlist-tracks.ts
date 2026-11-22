@@ -6,7 +6,10 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/api/public/hooks/sync-playlist-tracks")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const { authenticateCronRequest } = await import("@/integrations/supabase/cron-auth");
+        const denied = await authenticateCronRequest(request);
+        if (denied) return denied;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { importPlaylistTracks } = await import("@/lib/api/beta-curator.functions");
 

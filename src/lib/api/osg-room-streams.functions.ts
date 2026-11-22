@@ -6,6 +6,21 @@ const osgIdFrom = (url: string | null) => (url ?? "").match(UUID)?.[0] ?? null;
 const keyFor = (artist: string, name: string) =>
   `ext:${artist.toLowerCase()}|${name.toLowerCase()}`.slice(0, 250);
 
+// A song must have been playing at least this long before it earns a point,
+// and a member can only earn one OSG point per this window (one song at a time).
+const MIN_PLAY_MS = 30_000;
+const MAX_TICKET_AGE_MS = 6 * 60 * 60 * 1000;
+
+/** Issued when an on-site OSG song starts; required to credit the finished play. */
+export const startOsgRoomPlay = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { trackId: string }) => ({ trackId: String(d?.trackId ?? "") }))
+  .handler(async ({ context, data }) => {
+    if (!UUID.test(data.trackId)) return { ticket: null as string | null };
+    const { signOsgPlayTicket } = await import("./osg-play-ticket.server");
+    return { ticket: signOsgPlayTicket(context.userId, data.trackId, Date.now()) as string | null };
+  });
+
 /**
  * Records a completed on-site play of an OSG track for every Orange Sound Guild
  * room playlist the listener belongs to that contains the track. No Last.fm
@@ -13,9 +28,18 @@ const keyFor = (artist: string, name: string) =>
  */
 export const recordOsgRoomPlay = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { trackId: string }) => ({ trackId: String(d?.trackId ?? "") }))
+  .inputValidator((d: { trackId: string; ticket: string }) => ({
+    trackId: String(d?.trackId ?? ""),
+    ticket: String(d?.ticket ?? "").slice(0, 600),
+  }))
   .handler(async ({ context, data }) => {
     if (!UUID.test(data.trackId)) return { added: 0 };
+    const { verifyOsgPlayTicket } = await import("./osg-play-ticket.server");
+    const startedMs = verifyOsgPlayTicket(data.ticket, context.userId, data.trackId);
+    const now = Date.now();
+    if (startedMs == null || now - startedMs < MIN_PLAY_MS || now - startedMs > MAX_TICKET_AGE_MS) {
+      return { added: 0 };
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const uid = context.userId;
     const [{ data: mem }, { data: owned }] = await Promise.all([
@@ -50,7 +74,19 @@ export const recordOsgRoomPlay = createServerFn({ method: "POST" })
     if (!t) return { added: 0 };
     const artist = ((t as any).profiles?.username as string | null) ?? "Artist";
     const key = keyFor(artist, t.title as string);
-    const playedAt = new Date().toISOString();
+    // The play time is the ticket's start time, so a reused ticket hits the
+    // unique row and never earns twice.
+    const playedAt = new Date(startedMs).toISOString();
+    const { data: overlapping } = await supabaseAdmin
+      .from("beta_stream_points")
+      .select("id")
+      .eq("user_id", uid)
+      .eq("source", "osg_player")
+      .neq("spotify_track_id", key)
+      .gt("played_at", new Date(startedMs - MIN_PLAY_MS).toISOString())
+      .lt("played_at", new Date(startedMs + MIN_PLAY_MS).toISOString())
+      .limit(1);
+    if (overlapping?.length) return { added: 0 };
     const rows = targets.map((p) => ({
       room_id: p.room_id as string,
       user_id: uid,

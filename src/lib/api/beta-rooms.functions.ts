@@ -97,14 +97,22 @@ export const joinBetaRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { roomId: string }) => ({ roomId: String(data?.roomId ?? "") }))
   .handler(async ({ context, data }) => {
+    // Rooms are invite-only: new members join through the curator's invite
+    // link (joinBetaRoomByCode). This only confirms existing access.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("beta_room_members")
-      .upsert(
-        { room_id: data.roomId, user_id: context.userId },
-        { onConflict: "room_id,user_id" },
-      );
-    if (error) throw new Error(error.message);
+    const [{ data: room }, { data: member }] = await Promise.all([
+      supabaseAdmin.from("beta_rooms").select("owner_id").eq("id", data.roomId).maybeSingle(),
+      supabaseAdmin
+        .from("beta_room_members")
+        .select("id")
+        .eq("room_id", data.roomId)
+        .eq("user_id", context.userId)
+        .maybeSingle(),
+    ]);
+    if (!room) throw new Error("Room not found");
+    if (room.owner_id !== context.userId && !member) {
+      throw new Error("This room is invite-only. Ask the curator for an invite link.");
+    }
     return { ok: true };
   });
 

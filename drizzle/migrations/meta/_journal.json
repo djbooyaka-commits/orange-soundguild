@@ -253,6 +253,13 @@
       "when": 1795227545590,
       "tag": "0035_revoke_room_points_by_playlist",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795328428733,
+      "tag": "0036_harden_security_functions_and_invites",
+      "breakpoints": true
     }
   ]
 }

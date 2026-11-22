@@ -170,6 +170,17 @@ export const postRoomChat = createServerFn({ method: "POST" })
       throw new Error("Invalid attachment");
     }
 
+    if (data.replyTo) {
+      const { data: parent } = await supabaseAdmin
+        .from("room_chat_messages")
+        .select("id")
+        .eq("id", data.replyTo)
+        .eq("scope", data.scope)
+        .eq("room_key", data.roomKey)
+        .maybeSingle();
+      if (!parent) throw new Error("The message you replied to is not in this room");
+    }
+
     const { error } = await supabaseAdmin.from("room_chat_messages").insert({
       scope: data.scope,
       room_key: data.roomKey,

@@ -801,6 +801,24 @@ export type Database = {
           },
         ]
       }
+      curator_invite_links: {
+        Row: {
+          created_at: string
+          curator_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          curator_id: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          curator_id?: string
+          token?: string
+        }
+        Relationships: []
+      }
       curator_invites: {
         Row: {
           created_at: string
@@ -2531,10 +2549,9 @@ export type Database = {
       }
     }
     Functions: {
-      accept_curator_invite_by_link: {
-        Args: { _curator_id: string }
-        Returns: string
-      }
+      accept_curator_invite_by_link:
+        | { Args: { _curator_id: string }; Returns: string }
+        | { Args: { _curator_id: string; _token: string }; Returns: string }
       add_osg_artist_pick: { Args: { _username: string }; Returns: string }
       admin_list_referrers: {
         Args: never
@@ -2754,6 +2771,7 @@ export type Database = {
       }
       get_curator_earned_points: { Args: never; Returns: number }
       get_monthly_listeners: { Args: { _artist_id: string }; Returns: number }
+      get_my_curator_invite_token: { Args: never; Returns: string }
       get_my_referral_info: {
         Args: never
         Returns: {

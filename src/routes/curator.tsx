@@ -146,7 +146,9 @@ function CuratorPage() {
       return;
     }
 
-    if (user.id === invite) {
+    // Link format: ?invite=<curatorId>.<secret code>
+    const [inviteCurator = "", inviteToken = ""] = invite.split(".");
+    if (user.id === inviteCurator) {
       // Curator opened own link — just clean it
       const url = new URL(window.location.href);
       url.searchParams.delete("invite");
@@ -155,7 +157,7 @@ function CuratorPage() {
     }
 
     setJoining(true);
-    acceptCuratorInviteByLink({ data: { curatorId: invite } })
+    acceptCuratorInviteByLink({ data: { curatorId: inviteCurator, token: inviteToken } })
       .then(() => {
         toast.success("You're now being tracked for this curator's playlists.");
       })
