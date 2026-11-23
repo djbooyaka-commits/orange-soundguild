@@ -6,9 +6,11 @@ const osgIdFrom = (url: string | null) => (url ?? "").match(UUID)?.[0] ?? null;
 const keyFor = (artist: string, name: string) =>
   `ext:${artist.toLowerCase()}|${name.toLowerCase()}`.slice(0, 250);
 
-// A song must have been playing at least this long before it earns a point,
-// and a member can only earn one OSG point per this window (one song at a time).
+// A song must play for (almost) its full length in real time before it earns a
+// point; 30 s is only the floor for files whose length can't be read. A member
+// can only earn for one song at a time.
 const MIN_PLAY_MS = 30_000;
+const LOOKBACK_MS = 4 * 60 * 60 * 1000;
 const MAX_TICKET_AGE_MS = 6 * 60 * 60 * 1000;
 
 /** Issued when an on-site OSG song starts; required to credit the finished play. */
@@ -18,6 +20,14 @@ export const startOsgRoomPlay = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     if (!UUID.test(data.trackId)) return { ticket: null as string | null };
     const { signOsgPlayTicket } = await import("./osg-play-ticket.server");
+    // Measure (and remember) the song's length now so the finish check is fast.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { getTrackDurationSeconds } = await import("./track-duration.server");
+      await getTrackDurationSeconds(supabaseAdmin, data.trackId);
+    } catch {
+      /* measured again when the play finishes */
+    }
     return { ticket: signOsgPlayTicket(context.userId, data.trackId, Date.now()) as string | null };
   });
 
@@ -41,6 +51,12 @@ export const recordOsgRoomPlay = createServerFn({ method: "POST" })
       return { added: 0 };
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getTrackDurationSeconds } = await import("./track-duration.server");
+    const { requiredPlayMs, playsOverlap } = await import("@/lib/audio-duration");
+    const durationSeconds = await getTrackDurationSeconds(supabaseAdmin, data.trackId);
+    const neededMs = requiredPlayMs(durationSeconds, MIN_PLAY_MS);
+    if (now - startedMs < neededMs) return { added: 0, reason: "not_full_play" as const };
+    const playEndsMs = startedMs + neededMs;
     const uid = context.userId;
     const [{ data: mem }, { data: owned }] = await Promise.all([
       supabaseAdmin.from("beta_room_members").select("room_id").eq("user_id", uid),
@@ -77,16 +93,22 @@ export const recordOsgRoomPlay = createServerFn({ method: "POST" })
     // The play time is the ticket's start time, so a reused ticket hits the
     // unique row and never earns twice.
     const playedAt = new Date(startedMs).toISOString();
-    const { data: overlapping } = await supabaseAdmin
+    // One song at a time: refuse if another credited play ran during this one.
+    const { data: recent } = await supabaseAdmin
       .from("beta_stream_points")
-      .select("id")
+      .select("spotify_track_id, played_at, play_ends_at")
       .eq("user_id", uid)
       .eq("source", "osg_player")
-      .neq("spotify_track_id", key)
-      .gt("played_at", new Date(startedMs - MIN_PLAY_MS).toISOString())
-      .lt("played_at", new Date(startedMs + MIN_PLAY_MS).toISOString())
-      .limit(1);
-    if (overlapping?.length) return { added: 0 };
+      .gt("played_at", new Date(startedMs - LOOKBACK_MS).toISOString())
+      .lt("played_at", new Date(playEndsMs).toISOString())
+      .limit(500);
+    const overlaps = (recent ?? []).some((r) => {
+      const s = Date.parse(r.played_at as string);
+      if (r.spotify_track_id === key && s === startedMs) return false; // this same play
+      const e = r.play_ends_at ? Date.parse(r.play_ends_at as string) : s + MIN_PLAY_MS;
+      return playsOverlap(startedMs, playEndsMs, s, e);
+    });
+    if (overlaps) return { added: 0, reason: "overlap" as const };
     const rows = targets.map((p) => ({
       room_id: p.room_id as string,
       user_id: uid,
@@ -94,6 +116,7 @@ export const recordOsgRoomPlay = createServerFn({ method: "POST" })
       spotify_track_id: key,
       spotify_track_name: t.title as string,
       played_at: playedAt,
+      play_ends_at: new Date(playEndsMs).toISOString(),
       source: "osg_player",
     }));
     const { error } = await supabaseAdmin

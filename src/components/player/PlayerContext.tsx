@@ -73,7 +73,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const countedRef = useRef(false);
   const recordingRef = useRef(false);
   // Server-signed start ticket for the current play, needed for OSG room points.
-  const osgTicketRef = useRef<{ trackId: string; ticket: string | null; used: boolean } | null>(null);
+  const osgTicketRef = useRef<{
+    trackId: string;
+    ticket: string | null;
+    used: boolean;
+    pending: Promise<void> | null;
+  } | null>(null);
   const queueRef = useRef<Track[]>([]);
   const shuffleRef = useRef(false);
   const playedRef = useRef<Set<string>>(new Set());
@@ -182,9 +187,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
       // Credit OSG stream-room points for members (no-op if not in a room).
       const osgTicket = osgTicketRef.current;
-      if (osgTicket?.trackId === t.id && osgTicket.ticket && !osgTicket.used) {
+      if (osgTicket?.trackId === t.id && !osgTicket.used) {
         osgTicket.used = true;
-        void recordOsgRoomPlay({ data: { trackId: t.id, ticket: osgTicket.ticket } }).catch(() => {});
+        void (async () => {
+          if (!osgTicket.ticket && osgTicket.pending) await osgTicket.pending;
+          if (!osgTicket.ticket) return;
+          await recordOsgRoomPlay({ data: { trackId: t.id, ticket: osgTicket.ticket } });
+        })().catch(() => {});
       }
       if (currentRef.current?.id !== t.id) return;
       countedRef.current = true;
@@ -221,9 +230,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         t && UUID_RE.test(t.id) && !countedRef.current && audio.currentTime <= 1 &&
         (!prev || prev.trackId !== t.id || prev.used)
       ) {
-        const entry = { trackId: t.id, ticket: null as string | null, used: false };
+        const entry = {
+          trackId: t.id,
+          ticket: null as string | null,
+          used: false,
+          pending: null as Promise<void> | null,
+        };
         osgTicketRef.current = entry;
-        void startOsgRoomPlay({ data: { trackId: t.id } })
+        entry.pending = startOsgRoomPlay({ data: { trackId: t.id } })
           .then((r) => { entry.ticket = r.ticket; })
           .catch(() => {});
       }

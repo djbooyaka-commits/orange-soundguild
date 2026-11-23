@@ -641,6 +641,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          play_ends_at: string | null
           played_at: string
           playlist_id: string | null
           room_id: string
@@ -652,6 +653,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          play_ends_at?: string | null
           played_at: string
           playlist_id?: string | null
           room_id: string
@@ -663,6 +665,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          play_ends_at?: string | null
           played_at?: string
           playlist_id?: string | null
           room_id?: string
@@ -2258,6 +2261,35 @@ export type Database = {
             foreignKeyName: "track_collaborators_track_id_fkey"
             columns: ["track_id"]
             isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      track_durations: {
+        Row: {
+          audio_url: string
+          measured_at: string
+          seconds: number
+          track_id: string
+        }
+        Insert: {
+          audio_url: string
+          measured_at?: string
+          seconds: number
+          track_id: string
+        }
+        Update: {
+          audio_url?: string
+          measured_at?: string
+          seconds?: number
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_durations_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: true
             referencedRelation: "tracks"
             referencedColumns: ["id"]
           },

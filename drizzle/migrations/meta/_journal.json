@@ -260,6 +260,13 @@
       "when": 1795328428733,
       "tag": "0036_harden_security_functions_and_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795393269931,
+      "tag": "0037_osg_full_play_duration_check",
+      "breakpoints": true
     }
   ]
 }

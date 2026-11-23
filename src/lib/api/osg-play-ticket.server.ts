@@ -3,7 +3,11 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 // Signed "this song started playing at T" tickets for OSG room points. The
 // server issues one when playback starts and only credits a point once real
 // time has passed, so a member can't award themselves points without playing.
-const secret = () => process.env.SUPABASE_SERVICE_ROLE_KEY || "fallback";
+const secret = () => {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) throw new Error("Play tickets are unavailable");
+  return key;
+};
 
 export function signOsgPlayTicket(userId: string, trackId: string, startedMs: number): string {
   const payload = `${userId}.${trackId}.${startedMs}`;
