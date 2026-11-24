@@ -442,3 +442,22 @@ export const curatorAdjustPlaylistPoints = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { balance: (balance as number | null) ?? 0 };
   });
+
+/** Current spendable points of every tracked member on one of the curator's playlists. */
+export const listCuratorPlaylistMemberBalances = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { playlistId: string }) => ({
+    playlistId: String(data?.playlistId ?? ""),
+  }))
+  .handler(async ({ data, context }) => {
+    if (!data.playlistId) return {} as Record<string, number>;
+    const { data: rows, error } = await context.supabase.rpc("curator_playlist_member_balances", {
+      _playlist_id: data.playlistId,
+    });
+    if (error) throw new Error(error.message);
+    const out: Record<string, number> = {};
+    for (const r of (rows ?? []) as Array<{ user_id: string; balance: number }>) {
+      out[r.user_id] = Number(r.balance) || 0;
+    }
+    return out;
+  });

@@ -2701,6 +2701,13 @@ export type Database = {
         }
         Returns: number
       }
+      curator_playlist_member_balances: {
+        Args: { _playlist_id: string }
+        Returns: {
+          balance: number
+          user_id: string
+        }[]
+      }
       curator_pool_summary: {
         Args: { p_period_start: string }
         Returns: {

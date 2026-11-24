@@ -9,7 +9,11 @@ import {
   cancelCuratorInvite,
   getMyCuratorInviteToken,
 } from "@/lib/api/curator-invites.functions";
-import { curatorAdjustPlaylistPoints, listMyCuratorPlaylists } from "@/lib/api/curator.functions";
+import {
+  curatorAdjustPlaylistPoints,
+  listMyCuratorPlaylists,
+  listCuratorPlaylistMemberBalances,
+} from "@/lib/api/curator.functions";
 import { signMany } from "@/lib/signMedia";
 import defaultAvatar from "@/assets/avatar.jpg";
 
@@ -30,6 +34,9 @@ export function CuratorInviteManager() {
   const cancelFn = useServerFn(cancelCuratorInvite);
   const playlistsFn = useServerFn(listMyCuratorPlaylists);
   const adjustFn = useServerFn(curatorAdjustPlaylistPoints);
+  const balancesFn = useServerFn(listCuratorPlaylistMemberBalances);
+  const [balances, setBalances] = useState<Record<string, number> | null>(null);
+  const [balancesError, setBalancesError] = useState(false);
 
   const [items, setItems] = useState<Invitee[]>([]);
   const [busy, setBusy] = useState(false);
@@ -83,8 +90,25 @@ export function CuratorInviteManager() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const adjust = async (userId: string, sign: 1 | -1) => {
-    const n = Math.abs(Math.trunc(Number(pointInputs[userId] ?? "")));
+  const loadBalances = async (pid: string) => {
+    if (!pid) return;
+    setBalancesError(false);
+    try {
+      const b = await balancesFn({ data: { playlistId: pid } });
+      setBalances(b);
+    } catch {
+      setBalancesError(true);
+    }
+  };
+
+  useEffect(() => {
+    setBalances(null);
+    void loadBalances(playlistId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playlistId]);
+
+  const adjust = async (userId: string, sign: 1 | -1, fixed?: number) => {
+    const n = fixed ?? Math.abs(Math.trunc(Number(pointInputs[userId] ?? "")));
     if (!playlistId) {
       toast.error("Pick a playlist first");
       return;
@@ -98,7 +122,8 @@ export function CuratorInviteManager() {
       const res = await adjustFn({
         data: { playlistId, userId, delta: sign * n },
       });
-      setPointInputs((s) => ({ ...s, [userId]: "" }));
+      if (fixed === undefined) setPointInputs((s) => ({ ...s, [userId]: "" }));
+      setBalances((b) => ({ ...(b ?? {}), [userId]: res.balance }));
       toast.success(
         `${sign > 0 ? "Added" : "Removed"} ${n} pts · now ${res.balance} pts on this playlist`,
       );
@@ -179,8 +204,17 @@ export function CuratorInviteManager() {
             ))}
           </select>
           <span className="text-muted-foreground">
-            Points you add here can be spent on that playlist.
+            Points you add here can be spent on that playlist. +50 gives back one submission.
           </span>
+          {balancesError && (
+            <button
+              type="button"
+              onClick={() => loadBalances(playlistId)}
+              className="rounded-md border border-border px-2 py-0.5 text-xs hover:border-primary"
+            >
+              Retry points
+            </button>
+          )}
         </div>
       )}
       <ul className="mt-2 space-y-2">
@@ -202,9 +236,28 @@ export function CuratorInviteManager() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">@{i.username}</p>
               <p className="text-xs capitalize text-muted-foreground">{i.status}</p>
+              {i.status === "accepted" && playlists.length > 0 && (
+                <p className="mt-0.5 text-xs font-semibold text-primary">
+                  {balances
+                    ? `${balances[i.user_id] ?? 0} pts`
+                    : balancesError
+                      ? "Points didn't load"
+                      : "Loading pts…"}
+                  <span className="font-normal text-muted-foreground"> on this playlist</span>
+                </p>
+              )}
             </div>
             {i.status === "accepted" && playlists.length > 0 && (
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => adjust(i.user_id, 1, 50)}
+                  disabled={adjustingId === i.user_id}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  title="Give back one submission (50 pts)"
+                >
+                  <Plus className="h-3.5 w-3.5" /> 50
+                </button>
                 <input
                   type="number"
                   min={1}
