@@ -960,6 +960,16 @@ const AD_SLOTS: AdSlotDef[] = [
     label: "Spotify stream tracker banner",
     description: "Injected near the top of the Curator / Spotify stream tracker page.",
   },
+  {
+    key: "ad_script_isrc_top",
+    label: "ISRC Finder — Top",
+    description: "Shown below the menu, above the ISRC & UPC Finder heading.",
+  },
+  {
+    key: "ad_script_isrc_middle",
+    label: "ISRC Finder — Middle",
+    description: "Shown below the search bar and Songs/Albums buttons, above the results.",
+  },
 ];
 
 function AdScriptsAdmin() {

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Navbar } from "@/components/Navbar";
+import { AdSlotScript } from "@/components/AdSlotScript";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Copy, Search } from "lucide-react";
@@ -64,6 +65,7 @@ function IsrcFinder() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="mx-auto max-w-3xl px-4 py-8">
+        <AdSlotScript contentKey="ad_script_isrc_top" hideWhenEmpty className="mb-6" />
         <h1 className="text-3xl font-bold">ISRC & UPC Finder</h1>
         <p className="mt-1 text-sm text-muted-foreground">Search a song or album name, paste a Spotify link, or enter an ISRC/UPC to find what it belongs to.</p>
         <form onSubmit={run} className="mt-6 space-y-3">
@@ -79,6 +81,7 @@ function IsrcFinder() {
             ))}
           </div>
         </form>
+        <AdSlotScript contentKey="ad_script_isrc_middle" hideWhenEmpty className="mt-6" />
 
         <section className="mt-6 space-y-3">
           {res?.error && <p className="text-sm text-destructive">{res.error}</p>}

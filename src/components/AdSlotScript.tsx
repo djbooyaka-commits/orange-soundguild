@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -9,11 +9,15 @@ import { supabase } from "@/integrations/supabase/client";
 export function AdSlotScript({
   contentKey,
   className = "",
+  hideWhenEmpty = false,
 }: {
   contentKey: string;
   className?: string;
+  /** Render nothing until ad code is saved for this slot. */
+  hideWhenEmpty?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [hasCode, setHasCode] = useState(false);
 
   useEffect(() => {
     const container = ref.current;
@@ -34,7 +38,9 @@ export function AdSlotScript({
       } catch {
         /* no ad */
       }
-      if (cancelled || !ref.current || !code.trim()) return;
+      if (cancelled || !code.trim()) return;
+      setHasCode(true);
+      if (!ref.current) return;
       const script = document.createElement("script");
       script.text = code;
       container.appendChild(script);
@@ -56,6 +62,7 @@ export function AdSlotScript({
   return (
     <aside
       aria-label="Advertisement"
+      hidden={hideWhenEmpty && !hasCode}
       className={`overflow-hidden rounded-xl border border-border bg-card p-4 ${className}`}
     >
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
