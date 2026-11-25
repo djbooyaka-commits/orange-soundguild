@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getBetaMemberPointTimeline } from "@/lib/api/beta-playlist-rooms.functions";
 import { getSpotifyMemberPointTimeline } from "@/lib/api/curator-team.functions";
+import type { MemberSubmission } from "@/lib/curator-member-stats";
 
 type Ev = { at: string; kind: "stream" | "submission" | "adjustment"; points: number; label: string; balance: number };
 
-export function PointTimelineButton({ playlistId = "", userId, username, currentPoints, spotify }: { playlistId?: string; userId: string; username: string; currentPoints: number; spotify?: { mode: "osg" | "team"; curatorId?: string } }) {
+export function PointTimelineButton({ playlistId = "", userId, username, currentPoints, spotify, submissionHistory }: { playlistId?: string; userId: string; username: string; currentPoints: number; spotify?: { mode: "osg" | "team"; curatorId?: string }; submissionHistory?: MemberSubmission[] }) {
   const fn = useServerFn(getBetaMemberPointTimeline);
   const spFn = useServerFn(getSpotifyMemberPointTimeline);
   const [open, setOpen] = useState(false);
@@ -20,11 +21,22 @@ export function PointTimelineButton({ playlistId = "", userId, username, current
     setOpen(true);
     setLoading(true);
     setErr(null);
+    setEvents(null);
     try {
       const r = spotify
         ? await spFn({ data: { mode: spotify.mode, userId, playlistId, curatorId: spotify.curatorId } })
         : await fn({ data: { playlistId, userId } });
-      setEvents(r.events as Ev[]);
+      if (submissionHistory) {
+        const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        const merged = [
+          ...(r.events as Ev[]).filter((e) => Date.parse(e.at) >= cutoff),
+          ...submissionHistory.map((s) => ({ at: s.created_at, kind: "submission" as const, points: -Number(s.cost_points), label: "Track submitted", balance: 0 })),
+        ].sort((a, b) => a.at.localeCompare(b.at));
+        let balance = 0;
+        setEvents(merged.map((e) => ({ ...e, balance: (balance += e.points) })).reverse());
+      } else {
+        setEvents(r.events as Ev[]);
+      }
     } catch (e: any) {
       setErr(e?.message ?? "Could not load timeline");
     } finally {
@@ -41,7 +53,7 @@ export function PointTimelineButton({ playlistId = "", userId, username, current
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Point timeline — @{username}</DialogTitle>
-            <DialogDescription>Available now: <strong>{currentPoints} pts</strong>. Newest first.</DialogDescription>
+            <DialogDescription>Available now: <strong>{currentPoints} pts</strong>. {submissionHistory ? "Last 30 days. " : ""}Newest first.</DialogDescription>
           </DialogHeader>
           {loading && <Loader2 className="mx-auto h-5 w-5 animate-spin" />}
           {err && <p className="text-sm text-destructive">{err}</p>}

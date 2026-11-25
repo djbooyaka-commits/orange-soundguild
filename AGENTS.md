@@ -32,3 +32,4 @@
 - Curator invite links carry a per-curator secret code (curator_invite_links, ?invite=<curatorId>.<code>) checked by accept_curator_invite_by_link, so a guessable user id alone never enrolls anyone.
 - OSG room points need a server-signed start ticket from startOsgRoomPlay redeemed only after the song's server-measured length (private track_durations, re-measured when audio_url changes; 30s floor only if unreadable) has passed in real time, with played_at/play_ends_at rejecting overlapping plays, so points can't be minted without a real full playthrough or by reusing a ticket.
 - PayPal orders store `<purpose>:<buyerId>` in custom_id and captures check it first, so only the buyer who created an order can capture it.
+- Curator invite member cards use playlist-keyed balance queries and existing owner-scoped adjustments; submission totals and their timeline use the same 30-day window so switching playlists cannot mix balances.

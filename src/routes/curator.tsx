@@ -32,6 +32,8 @@ export const Route = createFileRoute("/curator")({
       { name: "robots", content: "noindex" },
       { property: "og:title", content: "Curator — Orange Sound Guild" },
       { property: "og:description", content: "Curator tools." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: CuratorPage,
@@ -272,7 +274,7 @@ function CuratorPage() {
             <TabsContent value="main" className="space-y-6">
               {isSuperfan ? (
                 <Tabs defaultValue="playlists" className="space-y-6">
-                  <TabsList>
+                  <TabsList className="h-auto max-w-full flex-wrap justify-start">
                     <TabsTrigger value="playlists">My Curator playlists</TabsTrigger>
                     <TabsTrigger value="invite">Your invite link</TabsTrigger>
                     <TabsTrigger value="submissions">Track submissions</TabsTrigger>

@@ -35,3 +35,4 @@
 - [x] Submitted tracks auto-approve and auto-add to curator playlists (Spotify Stream Tracker, OSG Artists, Last.fm rooms; YouTube/Tidal/Apple tracked and flagged for hand add).
 - [x] Team rooms: "Re-add pending" badge after a pass; re-adding skips songs already back on the Spotify playlist.
 - [x] Submission playlists (not team/OSG Artists): per-playlist "Auto-remove old songs" past hold days (on toggle, Sync, daily 03:00 UTC job).
+- [x] Curator-only Spotify tracker: playlist tabs, searchable member cards, submission totals, point timeline and separate add/remove controls (sample-data browser checks passed; real curator account unavailable for live adjustment verification).
