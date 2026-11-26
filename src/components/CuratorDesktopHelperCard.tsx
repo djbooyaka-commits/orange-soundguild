@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Copy, Download, KeyRound, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { createCuratorDesktopKey } from "@/lib/api/curator-desktop.functions";
+import { Button } from "@/components/ui/button";
 
 export function CuratorDesktopHelperCard() {
   const makeKey = useServerFn(createCuratorDesktopKey);
@@ -34,30 +35,28 @@ export function CuratorDesktopHelperCard() {
         </div>
       </div>
       <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-        <li>Install Python for Windows (tick "Add to PATH") and the Spotify desktop app.</li>
-        <li>Download both files below into one folder, then double-click the .bat file.</li>
-        <li>Paste your key, pick a playlist and press Add. Don't touch the mouse while it pastes.</li>
+        <li>Install the Spotify desktop app on Windows 10 or 11 (64-bit).</li>
+        <li>Download and open OSG Spotify Helper. No Python installation needed.</li>
+        <li>Paste your key, load the queue and pick a playlist. Follow the Spotify paste prompt, then confirm the tracks appeared.</li>
       </ol>
+      <p className="mt-2 text-xs text-muted-foreground">This download is unsigned, so Windows may show an unknown-publisher warning. Track removal still uses the site's existing tools or Spotify itself.</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <a href="/spotify-helper/start-osg-spotify-helper.bat" download className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
-          <Download className="h-3 w-3" /> start-osg-spotify-helper.bat
-        </a>
-        <a href="/spotify-helper/osg_spotify_helper.py" download className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
-          <Download className="h-3 w-3" /> osg_spotify_helper.py
-        </a>
-        <button onClick={generate} disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
+        <Button asChild size="sm">
+          <a href="/downloads/OSG-Spotify-Helper.exe" download="OSG-Spotify-Helper.exe"><Download /> Download Windows app (.exe)</a>
+        </Button>
+        <Button onClick={generate} disabled={busy} size="sm" variant="outline">
           <KeyRound className="h-3 w-3" /> {key ? "Make a new key" : "Get my desktop key"}
-        </button>
+        </Button>
       </div>
       {key && (
         <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md border border-border bg-background p-2">
           <code className="truncate text-xs">{key.key}</code>
-          <button
+          <Button
             onClick={() => { void navigator.clipboard.writeText(key.key); toast.success("Key copied"); }}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-xs"
+            size="sm" variant="outline" className="shrink-0"
           >
             <Copy className="h-3 w-3" /> Copy
-          </button>
+          </Button>
           <p className="col-span-2 text-xs text-muted-foreground">
             Keep it private. Works until {new Date(key.expiresAt).toLocaleDateString()}.
           </p>

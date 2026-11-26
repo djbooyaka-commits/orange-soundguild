@@ -34,3 +34,5 @@
 - PayPal orders store `<purpose>:<buyerId>` in custom_id and captures check it first, so only the buyer who created an order can capture it.
 - Curator invite member cards use playlist-keyed balance queries and existing owner-scoped adjustments; submission totals and their timeline use the same 30-day window so switching playlists cannot mix balances.
 - The OSG Spotify Helper (public/spotify-helper) adds queued curator submissions by pasting into the Spotify desktop app, authenticated by an HMAC-signed 90-day curator key at /api/public/curator-desktop; this avoids Spotify Web API add limits without a site login or new table.
+
+- Native Windows Spotify Helper source and packaging rules live in desktop/spotify-helper/AGENTS.md; this keeps no-Python downloads reproducible.
