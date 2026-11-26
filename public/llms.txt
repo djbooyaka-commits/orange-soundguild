@@ -2,11 +2,14 @@
 
 > Orange Sound Guild is a music streaming web app for uploading, discovering, and playing audio tracks from independent artists.
 
+Orange Sound Guild also offers a free public ISRC & UPC Finder for looking up existing song recording codes and album release barcodes from Spotify’s catalog. No sign-in is required; the tool does not issue or assign new codes.
+
 ## Pages
 
 - [Home](/): Latest tracks and featured artists.
 - [Top 100](/top100): The 100 most-played tracks right now.
 - [Search](/search): Find artists, tracks and genres.
+- [ISRC & UPC Finder](/isrc-finder): Free lookup for song ISRC codes and album UPC barcodes by title, Spotify link or code.
 - [Terms](/terms): Terms of service.
 
 ## Optional

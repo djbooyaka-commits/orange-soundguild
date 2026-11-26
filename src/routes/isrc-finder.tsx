@@ -12,13 +12,32 @@ import { lookupIsrc, type IsrcResult, type IsrcTrack } from "@/lib/api/isrc.func
 export const Route = createFileRoute("/isrc-finder")({
   head: () => ({
     meta: [
-      { title: "ISRC & UPC Finder — Orange Sound Guild" },
-      { name: "description", content: "Look up the ISRC code of any song or the UPC barcode of any album, or search by code or Spotify link." },
-      { property: "og:title", content: "ISRC & UPC Finder — Orange Sound Guild" },
-      { property: "og:description", content: "Free lookup for song ISRC codes and album UPC barcodes." },
+      { title: "Free ISRC & UPC Finder — Orange Sound Guild" },
+      { name: "description", content: "Find song ISRC codes and album UPC barcodes for free on Orange Sound Guild. Search by title, Spotify link or code. No sign-in required." },
+      { property: "og:title", content: "Free ISRC & UPC Finder — Orange Sound Guild" },
+      { property: "og:description", content: "Find song ISRC codes and album UPC barcodes by title, Spotify link or code. Free public lookup, no sign-in required." },
+      { property: "og:url", content: "https://orangesoundguild.com/isrc-finder" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Free ISRC & UPC Finder — Orange Sound Guild" },
+      { name: "twitter:description", content: "Free public lookup for song ISRC codes and album UPC barcodes. No sign-in required." },
     ],
+    links: [{ rel: "canonical", href: "https://orangesoundguild.com/isrc-finder" }],
+    scripts: [{
+      type: "application/ld+json",
+      children: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        name: "Orange Sound Guild ISRC & UPC Finder",
+        url: "https://orangesoundguild.com/isrc-finder",
+        description: "A free public tool to look up song ISRC codes and album UPC barcodes using Spotify links, titles or codes.",
+        applicationCategory: "MultimediaApplication",
+        operatingSystem: "Any",
+        browserRequirements: "Requires a web browser and internet connection",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        publisher: { "@type": "Organization", name: "Orange Sound Guild", url: "https://orangesoundguild.com" },
+      }),
+    }],
   }),
   component: IsrcFinder,
 });
@@ -100,6 +119,30 @@ function IsrcFinder() {
               <div className="mt-3 space-y-2">{a.tracks.map((t) => <TrackRow key={t.id} t={t} showArt={false} />)}</div>
             </div>
           ))}
+        </section>
+        <section aria-labelledby="codes-heading" className="mt-10 border-t border-border pt-8">
+          <h2 id="codes-heading" className="text-xl font-semibold">Song ISRC codes & album UPC barcodes</h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Orange Sound Guild’s free ISRC & UPC Finder looks up existing recording and release identifiers from Spotify’s catalog. It does not issue new codes or assign identifiers to music uploaded to Orange Sound Guild.
+          </p>
+          <div className="mt-6 space-y-5 text-sm leading-relaxed">
+            <div>
+              <h3 className="font-semibold">What is an ISRC?</h3>
+              <p className="mt-1 text-muted-foreground">An International Standard Recording Code is a 12-character identifier for a specific sound recording. Different recordings or versions of a song can have different ISRCs.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">What is a UPC?</h3>
+              <p className="mt-1 text-muted-foreground">A Universal Product Code identifies a release, such as a single, EP or album. A release’s tracks have their own ISRCs, while the release has a UPC or other barcode such as an EAN.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Does this Finder require an account?</h3>
+              <p className="mt-1 text-muted-foreground">The Finder is free and public. No Orange Sound Guild account or Spotify sign-in is required.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Why might a code be missing?</h3>
+              <p className="mt-1 text-muted-foreground">Results depend on the identifiers available in Spotify’s catalog. Music not listed there may not appear, and some releases do not expose every code. For missing identifiers, check with the artist’s distributor or record label.</p>
+            </div>
+          </div>
         </section>
       </main>
     </div>
