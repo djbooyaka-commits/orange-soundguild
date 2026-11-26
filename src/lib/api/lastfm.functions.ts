@@ -161,8 +161,9 @@ export const startLastfmPlaylistTracking = createServerFn({ method: "POST" })
 
 export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { playlistId: string }) => ({
+  .inputValidator((data: { playlistId: string; force?: boolean }) => ({
     playlistId: String(data?.playlistId ?? ""),
+    force: data?.force === true,
   }))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -217,6 +218,18 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
 
     // If Last.fm could not be read, keep the session open so the user can press
     // Stop again instead of losing every play they made.
+    if (fetchError && data.force) {
+      // Force stop: close the session window now; the member can Rescan it later
+      // once Last.fm recovers, so no plays are lost.
+      const iso = stoppedAt.toISOString();
+      const { error: forceError } = await supabaseAdmin
+        .from("beta_playlist_tracking_sessions")
+        .update({ stopped_at: iso, updated_at: iso })
+        .eq("id", session.id)
+        .is("stopped_at", null);
+      if (forceError) throw new Error(forceError.message);
+      return { active: false, added: 0, matched: 0, scanned: 0, forced: true, warning: lastfmErrorMessage(fetchError) };
+    }
     if (fetchError) {
       throw new Error(
         `${lastfmErrorMessage(fetchError)} Your session is still running — press Stop again in a moment.`,
@@ -284,6 +297,7 @@ export const stopLastfmPlaylistTracking = createServerFn({ method: "POST" })
       added,
       matched,
       scanned: eligibleItems.length,
+      forced: false,
       warning: fetchError ? lastfmErrorMessage(fetchError) : null,
     };
   });

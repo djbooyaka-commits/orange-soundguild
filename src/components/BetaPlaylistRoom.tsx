@@ -138,6 +138,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
   const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
   const [changingTracking, setChangingTracking] = useState(false);
   const [trackingMsg, setTrackingMsg] = useState<string | null>(null);
+  const [lastfmDown, setLastfmDown] = useState(false);
   const [history, setHistory] = useState<BetaPointEvent[]>([]);
   const historyFn = useServerFn(betaPlaylistPointHistory);
   const setJoinedFn = useServerFn(setBetaRoomMemberJoinedAt);
@@ -490,14 +491,17 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
     !!m.last_deduction_at &&
     Date.now() - new Date(m.last_deduction_at).getTime() <
       (data.playlist.periodDays || 7) * 24 * 60 * 60 * 1000;
-  const toggleTracking = async () => {
+  const toggleTracking = async (force = false) => {
     setChangingTracking(true);
     setTrackingMsg(null);
     try {
       if (data.trackingStartedAt) {
-        const result = await stopTrackingFn({ data: { playlistId } });
+        const result = await stopTrackingFn({ data: { playlistId, force } });
+        setLastfmDown(false);
         setTrackingMsg(
-          result.added
+          result.forced
+            ? "Tracking force-stopped. Last.fm was not responding, so no points were counted yet. When Last.fm is back, open Tracking times and press Rescan on this session to collect your plays."
+            : result.added
             ? `Tracking stopped. +${result.added} point${result.added === 1 ? "" : "s"} added to this playlist.`
             : `Tracking stopped. ${result.scanned} play${result.scanned === 1 ? " was" : "s were"} checked; no new matching points were found.`,
         );
@@ -507,7 +511,9 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
       }
       await refresh();
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not change tracking");
+      const msg: string = e?.message ?? "Could not change tracking";
+      if (data.trackingStartedAt && /still running/i.test(msg)) setLastfmDown(true);
+      toast.error(msg);
     } finally {
       setChangingTracking(false);
     }
@@ -602,7 +608,7 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           <div className={`flex flex-wrap items-center gap-2 ${isOsg && !data.trackingStartedAt ? "hidden" : ""}`}>
             <Button
               type="button"
-              onClick={toggleTracking}
+              onClick={() => toggleTracking()}
               disabled={changingTracking}
               variant={data.trackingStartedAt ? "destructive" : "default"}
             >
@@ -687,6 +693,26 @@ export function BetaPlaylistRoom({ playlistId }: { playlistId: string }) {
           <p className="mt-3 text-xs font-medium text-primary">
             Tracking this playlist since {new Date(data.trackingStartedAt).toLocaleTimeString()}.
           </p>
+        )}
+        {lastfmDown && data.trackingStartedAt && (
+          <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+            <p className="font-medium text-foreground">Last.fm is not responding right now</p>
+            <p className="mt-1 text-muted-foreground">
+              Your tracking is still running because we could not read your plays from Last.fm. Your listening is
+              safe on Last.fm. You can press Stop again in a few minutes, or force stop now and use Rescan later to
+              collect your points once Last.fm is back.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="mt-2"
+              disabled={changingTracking}
+              onClick={() => toggleTracking(true)}
+            >
+              Force stop
+            </Button>
+          </div>
         )}
         {trackingMsg && <p className="mt-3 text-xs text-muted-foreground">{trackingMsg}</p>}
 
