@@ -10,6 +10,7 @@ import { CuratorInviteManager } from "@/components/CuratorInviteManager";
 import { CuratorInvitesInbox } from "@/components/CuratorInvitesInbox";
 import { SubmitTrackCard } from "@/components/SubmitTrackCard";
 import { CuratorSubmissionsQueue } from "@/components/CuratorSubmissionsQueue";
+import { CuratorDesktopHelperCard } from "@/components/CuratorDesktopHelperCard";
 import { CuratorPoolCard } from "@/components/CuratorPoolCard";
 import { OsgArtistsTab } from "@/components/OsgArtistsTab";
 import { acceptCuratorInviteByLink } from "@/lib/api/curator-invites.functions";
@@ -292,6 +293,7 @@ function CuratorPage() {
                   <TabsContent value="submissions" className="space-y-6">
                     <CuratorPoolCard />
                     <CuratorSubmissionsQueue />
+                    <CuratorDesktopHelperCard />
                   </TabsContent>
                 </Tabs>
               ) : (

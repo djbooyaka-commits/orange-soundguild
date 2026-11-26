@@ -46,6 +46,7 @@ import { Route as PlaylistPlaylistIdRouteImport } from './routes/playlist.$playl
 import { Route as TTrackIdRouteImport } from './routes/t.$trackId'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as AlbumHandleAlbumRouteImport } from './routes/album.$handle.$album'
+import { Route as ApiPublicCuratorDesktopRouteImport } from './routes/api/public/curator-desktop'
 import { Route as ApiPublicHooksCleanupChatLinksRouteImport } from './routes/api/public/hooks/cleanup-chat-links'
 import { Route as ApiPublicHooksCleanupChatMediaRouteImport } from './routes/api/public/hooks/cleanup-chat-media'
 import { Route as ApiPublicHooksSyncActiveSpotifyRouteImport } from './routes/api/public/hooks/sync-active-spotify'
@@ -240,6 +241,11 @@ const AlbumHandleAlbumRoute = AlbumHandleAlbumRouteImport.update({
   path: '/album/$handle/$album',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCuratorDesktopRoute = ApiPublicCuratorDesktopRouteImport.update({
+  id: '/api/public/curator-desktop',
+  path: '/api/public/curator-desktop',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksCleanupChatLinksRoute =
   ApiPublicHooksCleanupChatLinksRouteImport.update({
     id: '/api/public/hooks/cleanup-chat-links',
@@ -324,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/beta-rooms/': typeof BetaRoomsIndexRoute
   '/playlist/': typeof PlaylistIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
+  '/api/public/curator-desktop': typeof ApiPublicCuratorDesktopRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
   '/api/public/hooks/sync-active-spotify': typeof ApiPublicHooksSyncActiveSpotifyRoute
@@ -371,6 +378,7 @@ export interface FileRoutesByTo {
   '/beta-rooms': typeof BetaRoomsIndexRoute
   '/playlist': typeof PlaylistIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
+  '/api/public/curator-desktop': typeof ApiPublicCuratorDesktopRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
   '/api/public/hooks/sync-active-spotify': typeof ApiPublicHooksSyncActiveSpotifyRoute
@@ -419,6 +427,7 @@ export interface FileRoutesById {
   '/beta-rooms/': typeof BetaRoomsIndexRoute
   '/playlist/': typeof PlaylistIndexRoute
   '/album/$handle/$album': typeof AlbumHandleAlbumRoute
+  '/api/public/curator-desktop': typeof ApiPublicCuratorDesktopRoute
   '/api/public/hooks/cleanup-chat-links': typeof ApiPublicHooksCleanupChatLinksRoute
   '/api/public/hooks/cleanup-chat-media': typeof ApiPublicHooksCleanupChatMediaRoute
   '/api/public/hooks/sync-active-spotify': typeof ApiPublicHooksSyncActiveSpotifyRoute
@@ -468,6 +477,7 @@ export interface FileRouteTypes {
     | '/beta-rooms/'
     | '/playlist/'
     | '/album/$handle/$album'
+    | '/api/public/curator-desktop'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
     | '/api/public/hooks/sync-active-spotify'
@@ -515,6 +525,7 @@ export interface FileRouteTypes {
     | '/beta-rooms'
     | '/playlist'
     | '/album/$handle/$album'
+    | '/api/public/curator-desktop'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
     | '/api/public/hooks/sync-active-spotify'
@@ -562,6 +573,7 @@ export interface FileRouteTypes {
     | '/beta-rooms/'
     | '/playlist/'
     | '/album/$handle/$album'
+    | '/api/public/curator-desktop'
     | '/api/public/hooks/cleanup-chat-links'
     | '/api/public/hooks/cleanup-chat-media'
     | '/api/public/hooks/sync-active-spotify'
@@ -609,6 +621,7 @@ export interface RootRouteChildren {
   BetaRoomsIndexRoute: typeof BetaRoomsIndexRoute
   PlaylistIndexRoute: typeof PlaylistIndexRoute
   AlbumHandleAlbumRoute: typeof AlbumHandleAlbumRoute
+  ApiPublicCuratorDesktopRoute: typeof ApiPublicCuratorDesktopRoute
   ApiPublicHooksCleanupChatLinksRoute: typeof ApiPublicHooksCleanupChatLinksRoute
   ApiPublicHooksCleanupChatMediaRoute: typeof ApiPublicHooksCleanupChatMediaRoute
   ApiPublicHooksSyncActiveSpotifyRoute: typeof ApiPublicHooksSyncActiveSpotifyRoute
@@ -880,6 +893,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlbumHandleAlbumRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/curator-desktop': {
+      id: '/api/public/curator-desktop'
+      path: '/api/public/curator-desktop'
+      fullPath: '/api/public/curator-desktop'
+      preLoaderRoute: typeof ApiPublicCuratorDesktopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/cleanup-chat-links': {
       id: '/api/public/hooks/cleanup-chat-links'
       path: '/api/public/hooks/cleanup-chat-links'
@@ -987,6 +1007,7 @@ const rootRouteChildren: RootRouteChildren = {
   BetaRoomsIndexRoute: BetaRoomsIndexRoute,
   PlaylistIndexRoute: PlaylistIndexRoute,
   AlbumHandleAlbumRoute: AlbumHandleAlbumRoute,
+  ApiPublicCuratorDesktopRoute: ApiPublicCuratorDesktopRoute,
   ApiPublicHooksCleanupChatLinksRoute: ApiPublicHooksCleanupChatLinksRoute,
   ApiPublicHooksCleanupChatMediaRoute: ApiPublicHooksCleanupChatMediaRoute,
   ApiPublicHooksSyncActiveSpotifyRoute: ApiPublicHooksSyncActiveSpotifyRoute,
