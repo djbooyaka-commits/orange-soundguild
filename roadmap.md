@@ -39,3 +39,5 @@
 - [x] Curator-only Spotify tracker: playlist tabs, searchable member cards, submission totals, point timeline and separate add/remove controls (sample-data browser checks passed; real curator account unavailable for live adjustment verification).
 - [x] ISRC Finder search visibility: sitemap, AI-readable description, canonical metadata, application schema and public code explanations; SSR, real public lookup, mobile layout and 4 lookup tests verified. Search Console reports URL unknown to Google.
 - [ ] Finder Google indexing: publish updated sitemap, then request indexing through Search Console URL Inspection (no indexing-request API available).
+- [x] Spotify Helper: include owned Last.fm room Spotify queues and independently owner-scoped confirmations; 6 queue/key tests passed and the requester's 17 Last.fm playlists returned through the live endpoint.
+- [x] Spotify Helper: startup auto-update, verified download, detached swap with retry/rollback, v1.1.0 executable and matching release manifest; Go tests and served download verified. Actual Windows file-swap/relaunch and Spotify paste require Windows hardware testing.

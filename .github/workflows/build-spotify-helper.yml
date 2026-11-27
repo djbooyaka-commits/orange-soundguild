@@ -27,5 +27,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: OSG-Spotify-Helper-Windows-x64
-          path: public/downloads/OSG-Spotify-Helper.exe
+          path: |
+            public/downloads/OSG-Spotify-Helper.exe
+            public/downloads/spotify-helper-update.json
           if-no-files-found: error

@@ -210,9 +210,12 @@ func (a *App) paste(pid, name string, uris, ids []string) {
 
 func main() {
 	runtime.LockOSThread()
+	if handleUpdateArguments() {
+		return
+	}
 	a := &App{}
 	err := (MainWindow{
-		AssignTo: &a.window, Title: "OSG Spotify Helper", MinSize: Size{Width: 640, Height: 520}, Size: Size{Width: 760, Height: 600}, Layout: VBox{},
+		AssignTo: &a.window, Title: "OSG Spotify Helper " + strings.TrimSpace(embeddedVersion), MinSize: Size{Width: 640, Height: 520}, Size: Size{Width: 760, Height: 600}, Layout: VBox{},
 		Children: []Widget{
 			Composite{Layout: HBox{}, Children: []Widget{
 				Label{Text: "Desktop key:"}, LineEdit{AssignTo: &a.key, PasswordMode: true},
@@ -237,5 +240,7 @@ func main() {
 		walk.MsgBox(nil, "OSG Spotify Helper", err.Error(), walk.MsgBoxIconError)
 		return
 	}
+	// Update only on opening, before a paste or confirmation can be interrupted.
+	go a.window.Synchronize(func() { a.checkForUpdate() })
 	a.window.Run()
 }

@@ -30,7 +30,7 @@ export function CuratorDesktopHelperCard() {
         <div className="min-w-0">
           <h2 className="font-semibold">Spotify Helper for Windows</h2>
           <p className="text-sm text-muted-foreground">
-            Adds your "Needs adding" tracks by pasting them into the Spotify desktop app, so there is no add limit.
+            Adds approved tracks waiting in your Curator Playlists and Last.fm rooms to their Spotify playlists.
           </p>
         </div>
       </div>
