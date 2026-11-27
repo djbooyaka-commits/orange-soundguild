@@ -21,6 +21,30 @@ func TestManualLinks(t *testing.T) {
 	}
 }
 
+func TestWaitingPlaylistsComeFirst(t *testing.T) {
+	playlists := []Playlist{
+		{ID: "empty-curator"},
+		{ID: "waiting-lastfm", Tracks: []Track{{ID: "song1"}}},
+		{ID: "empty-lastfm"},
+		{ID: "waiting-curator", Tracks: []Track{{ID: "song2"}, {ID: "song3"}}},
+	}
+	prioritizeWaitingPlaylists(playlists)
+	var ids []string
+	for _, playlist := range playlists {
+		ids = append(ids, playlist.ID)
+	}
+	want := []string{"waiting-lastfm", "waiting-curator", "empty-curator", "empty-lastfm"}
+	if !reflect.DeepEqual(ids, want) {
+		t.Fatalf("queue order = %v, want %v", ids, want)
+	}
+	playlists[0].Tracks = nil
+	prioritizeWaitingPlaylists(playlists)
+	if playlists[0].ID != "waiting-curator" {
+		t.Fatal("completed playlist remained above a waiting playlist after reload")
+	}
+	prioritizeWaitingPlaylists(nil)
+}
+
 func TestQueueAndConfirmedMarkAdded(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body struct {

@@ -49,6 +49,7 @@ func (a *App) load() {
 				return
 			}
 			a.data = r.Playlists
+			prioritizeWaitingPlaylists(a.data)
 			names := make([]string, len(a.data))
 			total := 0
 			for i, p := range a.data {

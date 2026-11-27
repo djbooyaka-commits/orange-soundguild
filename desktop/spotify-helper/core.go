@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -34,6 +35,12 @@ var trackPattern = regexp.MustCompile(`(?:spotify:track:|open\.spotify\.com/(?:i
 var playlistPattern = regexp.MustCompile(`(?:spotify:playlist:|open\.spotify\.com/(?:intl-[a-z]+/)?playlist/)([A-Za-z0-9]{22})(?:[^A-Za-z0-9]|$)`)
 var spotifyIDPattern = regexp.MustCompile(`^[A-Za-z0-9]{22}$`)
 var uriPattern = regexp.MustCompile(`^spotify:track:[A-Za-z0-9]{22}$`)
+
+func prioritizeWaitingPlaylists(playlists []Playlist) {
+	sort.SliceStable(playlists, func(i, j int) bool {
+		return len(playlists[i].Tracks) > 0 && len(playlists[j].Tracks) == 0
+	})
+}
 
 func manualTracks(text string) []string {
 	var uris []string
