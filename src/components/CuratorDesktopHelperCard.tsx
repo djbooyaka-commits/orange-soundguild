@@ -37,7 +37,7 @@ export function CuratorDesktopHelperCard() {
       <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
         <li>Install the Spotify desktop app on Windows 10 or 11 (64-bit).</li>
         <li>Download and open OSG Spotify Helper. No Python installation needed.</li>
-        <li>Paste your key, load the queue and pick a playlist. Follow the Spotify paste prompt, then confirm the tracks appeared.</li>
+        <li>Paste your key, load the queue and pick a playlist. The helper opens Spotify and pastes automatically; check the playlist, then confirm the tracks appeared.</li>
       </ol>
       <p className="mt-2 text-xs text-muted-foreground">This download is unsigned, so Windows may show an unknown-publisher warning. Track removal still uses the site's existing tools or Spotify itself.</p>
       <div className="mt-3 flex flex-wrap gap-2">

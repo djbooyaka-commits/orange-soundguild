@@ -2,17 +2,14 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
 	"time"
-	"unsafe"
 
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/lxn/win"
-	"golang.org/x/sys/windows"
 )
 
 type App struct {
@@ -103,38 +100,6 @@ func (a *App) addManual() {
 	a.paste(match[1], "your playlist", uris, nil)
 }
 
-// Check the executable, not the window title: never paste into another application.
-func spotifyInFront() bool {
-	hwnd := win.GetForegroundWindow()
-	var pid uint32
-	win.GetWindowThreadProcessId(hwnd, &pid)
-	h, err := windows.OpenProcess(0x1000, false, pid)
-	if err != nil {
-		return false
-	}
-	defer windows.CloseHandle(h)
-	buf := make([]uint16, 32768)
-	size := uint32(len(buf))
-	proc := syscall.NewLazyDLL("kernel32.dll").NewProc("QueryFullProcessImageNameW")
-	ok, _, _ := proc.Call(uintptr(h), 0, uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&size)))
-	return ok != 0 && strings.EqualFold(filepath.Base(syscall.UTF16ToString(buf[:size])), "Spotify.exe")
-}
-
-func pasteKeys() error {
-	inputs := []win.KEYBD_INPUT{
-		{Type: win.INPUT_KEYBOARD, Ki: win.KEYBDINPUT{WVk: win.VK_CONTROL}},
-		{Type: win.INPUT_KEYBOARD, Ki: win.KEYBDINPUT{WVk: 'V'}},
-		{Type: win.INPUT_KEYBOARD, Ki: win.KEYBDINPUT{WVk: 'V', DwFlags: win.KEYEVENTF_KEYUP}},
-		{Type: win.INPUT_KEYBOARD, Ki: win.KEYBDINPUT{WVk: win.VK_CONTROL, DwFlags: win.KEYEVENTF_KEYUP}},
-	}
-	if win.SendInput(uint32(len(inputs)), unsafe.Pointer(&inputs[0]), int32(unsafe.Sizeof(inputs[0]))) != uint32(len(inputs)) {
-		// Always release keys even if Windows blocks part of the input.
-		win.SendInput(2, unsafe.Pointer(&inputs[2]), int32(unsafe.Sizeof(inputs[0])))
-		return fmt.Errorf("Windows blocked the paste; run Spotify normally, not as administrator")
-	}
-	return nil
-}
-
 func (a *App) paste(pid, name string, uris, ids []string) {
 	if a.busy {
 		return
@@ -157,25 +122,11 @@ func (a *App) paste(pid, name string, uris, ids []string) {
 		a.status.SetText("Install and open the Spotify desktop app first.")
 		return
 	}
-	answer := walk.MsgBox(a.window, "Ready to paste", fmt.Sprintf("Open '%s' in Spotify and click its track list. After clicking OK here, you have 8 seconds to switch back to Spotify. The helper will paste %d track(s). Cancel to stop.", name, len(uris)), walk.MsgBoxOKCancel|walk.MsgBoxIconInformation)
-	if answer != walk.DlgCmdOK {
-		a.status.SetText("Cancelled. Nothing marked added.")
-		return
-	}
 	key := strings.TrimSpace(a.key.Text())
 	a.setBusy(true)
+	a.status.SetText(fmt.Sprintf("Opening '%s' in Spotify. The helper will bring Spotify forward and paste automatically.", name))
 	go func() {
-		for n := 8; n > 0; n-- {
-			a.message(fmt.Sprintf("Switch to Spotify and click the track list — pasting in %d...", n))
-			time.Sleep(time.Second)
-		}
-		var err error
-		if !spotifyInFront() {
-			err = fmt.Errorf("Paste cancelled: Spotify was not the active window. Nothing marked added.")
-		} else {
-			err = pasteKeys()
-		}
-		if err != nil {
+		if err := focusSpotifyAndPaste(); err != nil {
 			a.window.Synchronize(func() { a.setBusy(false); a.status.SetText(err.Error()) })
 			return
 		}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -69,5 +70,23 @@ func TestRejectedKeyDoesNotReturnQueue(t *testing.T) {
 	r, err := callAPI(s.Client(), s.URL, "invalid", "queue", nil)
 	if err == nil || len(r.Playlists) != 0 {
 		t.Fatal("invalid key returned a usable queue")
+	}
+}
+
+func TestPasteRequiresSpotifyFocus(t *testing.T) {
+	called := false
+	send := func() error {
+		called = true
+		return nil
+	}
+	if err := pasteWhenSpotifyActive(func() bool { return false }, send); err == nil || called {
+		t.Fatal("sent paste keys while another application was active")
+	}
+	if err := pasteWhenSpotifyActive(func() bool { return true }, send); err != nil || !called {
+		t.Fatalf("did not paste into active Spotify: %v", err)
+	}
+	blocked := errors.New("blocked")
+	if err := pasteWhenSpotifyActive(func() bool { return true }, func() error { return blocked }); !errors.Is(err, blocked) {
+		t.Fatalf("hid Windows paste failure: %v", err)
 	}
 }

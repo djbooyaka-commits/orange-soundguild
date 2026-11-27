@@ -84,3 +84,10 @@ func desktopAPI(key, action string, ids []string) (Response, error) {
 	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse }}
 	return callAPI(client, site+"/api/public/curator-desktop", key, action, ids)
 }
+
+func pasteWhenSpotifyActive(active func() bool, sendKeys func() error) error {
+	if !active() {
+		return fmt.Errorf("Spotify was not the active window. Click its playlist window and press Ctrl+V; the links are already copied. Nothing marked added.")
+	}
+	return sendKeys()
+}

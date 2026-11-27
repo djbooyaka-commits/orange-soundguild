@@ -41,3 +41,4 @@
 - [ ] Finder Google indexing: publish updated sitemap, then request indexing through Search Console URL Inspection (no indexing-request API available).
 - [x] Spotify Helper: include owned Last.fm room Spotify queues and independently owner-scoped confirmations; 6 queue/key tests passed and the requester's 17 Last.fm playlists returned through the live endpoint.
 - [x] Spotify Helper: startup auto-update, verified download, detached swap with retry/rollback, v1.1.0 executable and matching release manifest; Go tests and served download verified. Actual Windows file-swap/relaunch and Spotify paste require Windows hardware testing.
+- [x] Spotify Helper: v1.2.0 automatically focuses Spotify and pastes without a countdown; focus-guard tests, Windows packaging, served download and matching update manifest verified. Real Windows/Spotify automation still needs hardware testing after publication.
