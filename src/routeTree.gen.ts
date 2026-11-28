@@ -39,6 +39,7 @@ import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as BetaRoomsIndexRouteImport } from './routes/beta-rooms.index'
 import { Route as BetaRoomsRoomIdRouteImport } from './routes/beta-rooms.$roomId'
 import { Route as CuratorOsgSubmitRouteImport } from './routes/curator.osg-submit'
+import { Route as Games4WayChessRouteImport } from './routes/games.4-way-chess'
 import { Route as GamesRubikRouteImport } from './routes/games.rubik'
 import { Route as GuidePromotionRouteImport } from './routes/guide.promotion'
 import { Route as PlaylistIndexRouteImport } from './routes/playlist.index'
@@ -206,6 +207,11 @@ const CuratorOsgSubmitRoute = CuratorOsgSubmitRouteImport.update({
   path: '/osg-submit',
   getParentRoute: () => CuratorRoute,
 } as any)
+const Games4WayChessRoute = Games4WayChessRouteImport.update({
+  id: '/games/4-way-chess',
+  path: '/games/4-way-chess',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesRubikRoute = GamesRubikRouteImport.update({
   id: '/games/rubik',
   path: '/games/rubik',
@@ -322,6 +328,7 @@ export interface FileRoutesByFullPath {
   '/upgrade': typeof UpgradeRoute
   '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
+  '/games/4-way-chess': typeof Games4WayChessRoute
   '/games/rubik': typeof GamesRubikRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
@@ -370,6 +377,7 @@ export interface FileRoutesByTo {
   '/upgrade': typeof UpgradeRoute
   '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
+  '/games/4-way-chess': typeof Games4WayChessRoute
   '/games/rubik': typeof GamesRubikRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
@@ -419,6 +427,7 @@ export interface FileRoutesById {
   '/upgrade': typeof UpgradeRoute
   '/beta-rooms/$roomId': typeof BetaRoomsRoomIdRoute
   '/curator/osg-submit': typeof CuratorOsgSubmitRoute
+  '/games/4-way-chess': typeof Games4WayChessRoute
   '/games/rubik': typeof GamesRubikRoute
   '/guide/promotion': typeof GuidePromotionRoute
   '/playlist/$playlistId': typeof PlaylistPlaylistIdRoute
@@ -469,6 +478,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
+    | '/games/4-way-chess'
     | '/games/rubik'
     | '/guide/promotion'
     | '/playlist/$playlistId'
@@ -517,6 +527,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
+    | '/games/4-way-chess'
     | '/games/rubik'
     | '/guide/promotion'
     | '/playlist/$playlistId'
@@ -565,6 +576,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/beta-rooms/$roomId'
     | '/curator/osg-submit'
+    | '/games/4-way-chess'
     | '/games/rubik'
     | '/guide/promotion'
     | '/playlist/$playlistId'
@@ -613,6 +625,7 @@ export interface RootRouteChildren {
   Top100Route: typeof Top100Route
   UpgradeRoute: typeof UpgradeRoute
   BetaRoomsRoomIdRoute: typeof BetaRoomsRoomIdRoute
+  Games4WayChessRoute: typeof Games4WayChessRoute
   GamesRubikRoute: typeof GamesRubikRoute
   GuidePromotionRoute: typeof GuidePromotionRoute
   PlaylistPlaylistIdRoute: typeof PlaylistPlaylistIdRoute
@@ -844,6 +857,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CuratorOsgSubmitRouteImport
       parentRoute: typeof CuratorRoute
     }
+    '/games/4-way-chess': {
+      id: '/games/4-way-chess'
+      path: '/games/4-way-chess'
+      fullPath: '/games/4-way-chess'
+      preLoaderRoute: typeof Games4WayChessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games/rubik': {
       id: '/games/rubik'
       path: '/games/rubik'
@@ -999,6 +1019,7 @@ const rootRouteChildren: RootRouteChildren = {
   Top100Route: Top100Route,
   UpgradeRoute: UpgradeRoute,
   BetaRoomsRoomIdRoute: BetaRoomsRoomIdRoute,
+  Games4WayChessRoute: Games4WayChessRoute,
   GamesRubikRoute: GamesRubikRoute,
   GuidePromotionRoute: GuidePromotionRoute,
   PlaylistPlaylistIdRoute: PlaylistPlaylistIdRoute,

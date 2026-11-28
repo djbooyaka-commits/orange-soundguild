@@ -1254,6 +1254,45 @@ export type Database = {
         }
         Relationships: []
       }
+      four_way_chess_rooms: {
+        Row: {
+          code: string
+          created_at: string
+          host_id: string
+          id: string
+          members: string[]
+          revision: number
+          seats: Json
+          started: boolean
+          state: Json
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          host_id: string
+          id?: string
+          members: string[]
+          revision?: number
+          seats: Json
+          started?: boolean
+          state: Json
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          host_id?: string
+          id?: string
+          members?: string[]
+          revision?: number
+          seats?: Json
+          started?: boolean
+          state?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           addressee_id: string

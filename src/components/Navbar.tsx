@@ -123,6 +123,9 @@ export function Navbar() {
                 <Link to="/library">Library</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/games/4-way-chess">4-Way Chess</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/games/rubik">Rubik's Cube</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -331,6 +334,7 @@ export function Navbar() {
         <Link to="/discover" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Discover</Link>
         <Link to="/posts" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Posts</Link>
         <Link to="/curator-playlists" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Curator Playlists</Link>
+        <Link to="/games/4-way-chess" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">4-Way Chess</Link>
         <Link to="/games/rubik" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">Rubik's Cube</Link>
         <Link to="/isrc-finder" className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-muted">ISRC Finder</Link>
         {user && (

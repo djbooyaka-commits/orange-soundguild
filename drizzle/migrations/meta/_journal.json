@@ -281,6 +281,13 @@
       "when": 1795828879783,
       "tag": "0039_activity_based_point_expiry",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795834840914,
+      "tag": "0040_four_way_chess_rooms",
+      "breakpoints": true
     }
   ]
 }
