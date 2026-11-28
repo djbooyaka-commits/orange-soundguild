@@ -1,3 +1,5 @@
 - Use a shared 320-square variant engine for local play and authoritative online moves; ordinary 8×8 engines cannot represent this board or royal pawn creation.
 - Online writes are server-only after seat/host checks, using revision compare-and-swap so racing moves and joins cannot overwrite each other.
-- King-capture free-for-all removes defeated armies; royal pawn rewards count each army’s own moves and never bank when royals are away or the home pawn rank is full.
+- Filter moves through a separate attack map and king-safety simulation; checkmate eliminates an army on its turn, never by king capture, so human and bot moves obey the same check rules.
+- Persist a pawn's ninth-rank upgrade after it retreats, measuring ranks from its army's home edge; this keeps saved online games consistent with local moves.
+- Royal pawn rewards count each army’s own moves and never bank when royals are away or the home pawn rank is full.

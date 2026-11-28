@@ -44,3 +44,4 @@
 - [x] Spotify Helper: v1.2.0 automatically focuses Spotify and pastes without a countdown; focus-guard tests, Windows packaging, served download and matching update manifest verified. Real Windows/Spotify automation still needs hardware testing after publication.
 
 - [x] Four-way Chess: cross board, bots, private online rooms and royal pawn creation; 11 rule tests, solo play, two-account live turns, saved-game rejoin and mobile square sizing verified.
+- [x] Four-way Chess: check/checkmate and permanent ninth-rank pawn movement; 18 rule tests passed, live solo pawn upgrade/retreat and signed-in online moves/readback/resignation verified.

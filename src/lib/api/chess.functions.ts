@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
-import { applyMove, botMove, newGame } from '@/lib/chess/engine';
+import { advanceTurn, applyMove, botMove, newGame } from '@/lib/chess/engine';
 import { authorizeHost, authorizeMove, type Room } from '@/lib/chess/rooms';
 import type { Json } from '@/integrations/supabase/types';
 const schema=z.object({action:z.enum(['create','join','read','start','bot','move','resign']),code:z.string().regex(/^[A-Z0-9]{8}$/).optional(),id:z.string().uuid().optional(),seat:z.number().int().min(0).max(3).optional(),from:z.number().int().min(0).max(575).optional(),to:z.number().int().min(0).max(575).optional(),promotion:z.enum(['Q','R','B','N']).optional()});
@@ -55,7 +55,7 @@ export const chessAction=createServerFn({method:'POST'}).middleware([requireSupa
    room.state.alive=room.state.alive.filter(s=>s!==side);
    room.state.log.push(`Player ${side+1} resigned`);
    if(room.state.alive.length===1) room.state.winner=room.state.alive[0] ?? null;
-   if(room.state.turn===side) room.state.turn=room.state.alive.find(s=>s>side) ?? room.state.alive[0] ?? 0;
+   if(room.state.turn===side) advanceTurn(room.state,side as 0|1|2|3);
   }
  }
  // Bots advance on the authoritative server, never by accepting client board snapshots.

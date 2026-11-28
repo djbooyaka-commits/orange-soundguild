@@ -1,7 +1,7 @@
 // The 320-square royal-pawn variant cannot be represented by an 8×8 chess engine.
 export type Side = 0 | 1 | 2 | 3;
 export type Kind = 'P' | 'R' | 'N' | 'B' | 'Q' | 'K';
-export type Piece = { side: Side; kind: Kind; moved: boolean };
+export type Piece = { side: Side; kind: Kind; moved: boolean; advanced?: boolean };
 export type Move = { from: number; to: number; promotion?: Kind };
 export type Game = { board: Record<string, Piece>; turn: Side; moves: number[]; alive: Side[]; log: string[]; winner: Side | null };
 export const SIDES = ['Red', 'Blue', 'Gold', 'Green'];
@@ -26,7 +26,12 @@ export function newGame(): Game {
 }
 const dirs = [[0,-1],[1,0],[0,1],[-1,0]] as const;
 const diagonals = [[1,1],[1,-1],[-1,1],[-1,-1]] as const;
-export function destinations(game: Game, from: number): number[] {
+export const pawnRank = (side: Side, pos: number): number => {
+ const [x,y]=xy(pos);
+ return side===0 ? 24-y : side===1 ? x+1 : side===2 ? y+1 : 24-x;
+};
+export const advancedPawn = (piece: Piece, pos: number): boolean => piece.kind==='P' && (piece.advanced===true || pawnRank(piece.side,pos)>=9);
+function pseudoDestinations(game: Game, from: number, attacks=false): number[] {
  const p = game.board[from]; if (!p || !game.alive.includes(p.side)) return [];
  const [x,y] = xy(from); const result: number[] = [];
  const add = (a: number,b: number) => {
@@ -35,17 +40,19 @@ export function destinations(game: Game, from: number): number[] {
   if (q?.side === p.side) return false;
   result.push(key(a,b)); return !q;
  };
- if (p.kind === 'P') {
+ if (advancedPawn(p,from)) {
+  for(const [dx,dy] of [...dirs,...diagonals]) add(x+dx,y+dy);
+ } else if (p.kind === 'P') {
   const d = dirs[p.side]; if (!d) return [];
   const [dx,dy] = d;
-  if (valid(x+dx,y+dy) && !game.board[key(x+dx,y+dy)]) {
+  if (!attacks && valid(x+dx,y+dy) && !game.board[key(x+dx,y+dy)]) {
    result.push(key(x+dx,y+dy));
    if (!p.moved && valid(x+dx*2,y+dy*2) && !game.board[key(x+dx*2,y+dy*2)]) result.push(key(x+dx*2,y+dy*2));
   }
   for (const s of [-1,1]) {
    const a = x+dx+(dy ? s : 0), b = y+dy+(dx ? s : 0);
    const target = game.board[key(a,b)];
-   if (valid(a,b) && target && target.side !== p.side) result.push(key(a,b));
+   if (valid(a,b) && (attacks || (target && target.side !== p.side))) result.push(key(a,b));
   }
  } else if (p.kind === 'N') {
   for (const [dx,dy] of [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]]) if (dx !== undefined && dy !== undefined) add(x+dx,y+dy);
@@ -54,6 +61,46 @@ export function destinations(game: Game, from: number): number[] {
   for (const [dx,dy] of rays) for (let i=1; i <= (p.kind === 'K' ? 1 : 23); i++) if (!add(x+dx*i,y+dy*i)) break;
  }
  return result;
+}
+export function inCheck(game: Game, side: Side): boolean {
+ const king=Object.entries(game.board).find(([,p])=>p.side===side && p.kind==='K');
+ if(!king) return true;
+ return Object.entries(game.board).some(([pos,p])=>p.side!==side && game.alive.includes(p.side) && pseudoDestinations(game,Number(pos),true).includes(Number(king[0])));
+}
+function movedGame(game: Game, move: Move): Game {
+ const piece=game.board[move.from];
+ if(!piece) throw new Error('Choose a piece.');
+ const next: Game={...game,board:{...game.board},moves:[...game.moves]};
+ delete next.board[move.from];
+ const [x,y]=xy(move.to);
+ const promotes=piece.kind==='P' && (piece.side===0 ? y===0 : piece.side===1 ? x===23 : piece.side===2 ? y===23 : x===0);
+ const advanced=advancedPawn(piece,move.from) || (piece.kind==='P' && pawnRank(piece.side,move.to)>=9);
+ next.board[move.to]={...piece,moved:true,...(advanced ? {advanced:true} : {}),kind:promotes ? (['Q','R','B','N'].includes(move.promotion ?? '') ? move.promotion ?? 'Q' : 'Q') : piece.kind};
+ next.moves[piece.side]=(next.moves[piece.side] ?? 0)+1;
+ spawnPawn(next,piece.side);
+ return next;
+}
+export function destinations(game: Game, from: number): number[] {
+ const piece=game.board[from];
+ if(!piece || game.winner!==null) return [];
+ return pseudoDestinations(game,from).filter(to=>game.board[to]?.kind!=='K' && !inCheck(movedGame(game,{from,to}),piece.side));
+}
+export function hasLegalMove(game: Game, side: Side): boolean {
+ return Object.entries(game.board).some(([pos,p])=>p.side===side && destinations(game,Number(pos)).length>0);
+}
+export function advanceTurn(game: Game, after: Side): void {
+ for(let i=1;i<=4;i++) {
+  if(game.alive.length===1) {game.winner=game.alive[0] ?? null;return;}
+  const side=((after+i)%4) as Side;
+  if(!game.alive.includes(side)) continue;
+  if(hasLegalMove(game,side)) {game.turn=side;return;}
+  if(inCheck(game,side)) {
+   game.alive=game.alive.filter(s=>s!==side);
+   for(const [pos,p] of Object.entries(game.board)) if(p.side===side) delete game.board[pos];
+   game.log=[...game.log,`${SIDES[side]} checkmated · Army eliminated`].slice(-100);
+  }
+ }
+ if(game.alive.length===1) game.winner=game.alive[0] ?? null;
 }
 export function royalHome(game: Game, side: Side): boolean {
  const k = game.board[home(side,4)], q = game.board[home(side,3)];
@@ -70,27 +117,16 @@ export function spawnPawn(game: Game, side: Side): number | null {
 export function applyMove(game: Game, move: Move): Game {
  const piece = game.board[move.from];
  if (game.winner !== null || !piece || piece.side !== game.turn || !destinations(game,move.from).includes(move.to)) throw new Error('That move is not allowed.');
- const next: Game = structuredClone(game);
- const captured = next.board[move.to]; delete next.board[move.from];
- const [x,y] = xy(move.to);
- const promotes = piece.kind === 'P' && (piece.side === 0 ? y === 0 : piece.side === 1 ? x === 23 : piece.side === 2 ? y === 23 : x === 0);
- next.board[move.to] = { ...piece, moved:true, kind: promotes ? (['Q','R','B','N'].includes(move.promotion ?? '') ? move.promotion ?? 'Q' : 'Q') : piece.kind };
+ const next = movedGame(game,move);
+ const captured = game.board[move.to];
  let note = `${SIDES[piece.side]} ${piece.kind} ${square(move.from)} → ${square(move.to)}`;
  if (captured) note += ` × ${SIDES[captured.side]} ${captured.kind}`;
- if (captured?.kind === 'K') {
-  next.alive = next.alive.filter(s=>s!==captured.side);
-  for (const [pos,p] of Object.entries(next.board)) if(p.side === captured.side) delete next.board[pos];
- }
- next.moves[piece.side] = (next.moves[piece.side] ?? 0)+1;
- const spawned = spawnPawn(next,piece.side);
+ const spawned=Object.keys(next.board).map(Number).find(pos=>pos!==move.to && (pos===move.from || !game.board[pos]) && next.board[pos]?.kind==='P') ?? null;
  if (spawned !== null) note += ` · Royal pawn at ${square(spawned)}`;
  next.log = [...next.log,note].slice(-100);
  if(next.alive.length===1) next.winner=next.alive[0] ?? null;
- // Immobile armies skip a turn; no conventional checkmate in king-capture chess.
- for(let i=1;i<=4;i++) {
-  const s=((piece.side+i)%4) as Side;
-  if(next.alive.includes(s) && Object.entries(next.board).some(([n,p])=>p.side===s && destinations(next,Number(n)).length)) {next.turn=s;break;}
- }
+ advanceTurn(next,piece.side);
+ if(next.winner===null && inCheck(next,next.turn)) next.log=[...next.log,`${SIDES[next.turn]} is in check`].slice(-100);
  return next;
 }
 export const square = (n:number) => { const [x,y]=xy(n); return `${String.fromCharCode(97+x)}${24-y}`; };
@@ -102,7 +138,7 @@ export function botMove(game: Game): Move | null {
   let v=(target ? values[target.kind]*20 : 0)+(12-Math.abs(x-11.5)-Math.abs(y-11.5))*0.2+Math.random()*0.5;
   const board={...game.board};delete board[pos];board[to]=p;
   const projected={...game,board};
-  if(Object.entries(board).some(([n,q])=>q.side!==p.side && destinations(projected,Number(n)).includes(to))) v-=values[p.kind]*8;
+  if(Object.entries(board).some(([n,q])=>q.side!==p.side && pseudoDestinations(projected,Number(n),true).includes(to))) v-=values[p.kind]*8;
   if(v>score){score=v;best={from:Number(pos),to};}
  }
  return best;
