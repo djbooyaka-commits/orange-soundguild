@@ -138,10 +138,10 @@ func (a *App) paste(pid, name string, uris, ids []string) {
 				a.status.SetText(fmt.Sprintf("Pasted %d track link(s). Check Spotify to confirm.", len(uris)))
 				return
 			}
-			answer := walk.MsgBox(a.window, "Confirm in Spotify", fmt.Sprintf("Did all %d tracks appear in '%s'? Only choose Yes after checking Spotify.", len(uris), name), walk.MsgBoxYesNo|walk.MsgBoxIconQuestion)
+			answer := walk.MsgBox(a.window, "Confirm in Spotify", fmt.Sprintf("Did all %d tracks appear in '%s'?\n\nYes = they are in the playlist, mark them added on OSG.\nNo = NOT added (for example, this Spotify account can't edit the playlist). They stay on your list.", len(uris), name), walk.MsgBoxYesNo|walk.MsgBoxIconQuestion)
 			if answer != walk.DlgCmdYes {
 				a.setBusy(false)
-				a.status.SetText("Queue unchanged. You can try again.")
+				a.status.SetText("Not added - kept on your list. Switch to the Spotify account that owns this playlist and try again.")
 				return
 			}
 			go func() {
